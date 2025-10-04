@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Users, Settings, GraduationCap, CheckCircle, DollarSign } from 'lucide-react';
 import { UserRole } from '../roleMapping';
 import HRChecklist from './checklists/HRChecklist';
 import OperationsChecklist from './checklists/OperationsChecklist';
@@ -28,11 +29,11 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
   const auditorId = urlParams.get('auditorId') || urlParams.get('id') || urlParams.get('hrId') || 'unknown';
 
   const checklists = [
-    { id: 'hr' as ChecklistType, label: 'HR', icon: '👥', color: 'bg-blue-500' },
-    { id: 'operations' as ChecklistType, label: 'Operations', icon: '⚙️', color: 'bg-green-500' },
-    { id: 'training' as ChecklistType, label: 'Training', icon: '📚', color: 'bg-purple-500' },
-    { id: 'qa' as ChecklistType, label: 'QA', icon: '✅', color: 'bg-orange-500' },
-    { id: 'finance' as ChecklistType, label: 'Finance', icon: '💰', color: 'bg-red-500' }
+    { id: 'hr' as ChecklistType, label: 'HR', icon: Users, color: 'bg-blue-500' },
+    { id: 'operations' as ChecklistType, label: 'Operations', icon: Settings, color: 'bg-green-500' },
+    { id: 'training' as ChecklistType, label: 'Training', icon: GraduationCap, color: 'bg-purple-500' },
+    { id: 'qa' as ChecklistType, label: 'QA', icon: CheckCircle, color: 'bg-orange-500' },
+    { id: 'finance' as ChecklistType, label: 'Finance', icon: DollarSign, color: 'bg-red-500' }
   ];
 
   const updateChecklistStats = (type: ChecklistType, stats: { completed: number; total: number; score: number }) => {
@@ -97,6 +98,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
           {checklists.map(checklist => {
             const stats = checklistStats[checklist.id];
             const completionPercentage = stats.total > 0 ? (stats.completed / stats.total) * 100 : 0;
+            const IconComponent = checklist.icon;
             
             return (
               <button
@@ -109,8 +111,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                 }`}
               >
                 <div className="text-center">
-                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${checklist.color} text-white text-xl mb-3`}>
-                    {checklist.icon}
+                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${checklist.color} text-white mb-3`}>
+                    <IconComponent className="w-6 h-6" />
                   </div>
                   <h3 className="font-semibold text-gray-900 dark:text-slate-100 mb-1">
                     {checklist.label}

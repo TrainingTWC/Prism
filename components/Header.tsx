@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { LogOut } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -74,7 +75,7 @@ const Header: React.FC = () => {
             className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200"
             title="Sign out"
           >
-            <span className="text-lg">🚪</span>
+            <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Sign Out</span>
           </button>
           <ThemeToggle />
