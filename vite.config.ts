@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
       // Use repo name as base path when deploying to GitHub Pages
-      base: mode === 'production' ? '/hr-connect-dashboard/' : '/',
+      base: mode === 'production' ? '/Prism/' : '/',
       server: {
         port: 3000,
         host: '0.0.0.0',
