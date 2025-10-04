@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Users, Clipboard, GraduationCap, BarChart3 } from 'lucide-react';
 import { Submission, Store } from '../types';
 import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, AMOperationsSubmission, TrainingAuditSubmission } from '../services/dataService';
 import { hapticFeedback } from '../utils/haptics';
@@ -1543,43 +1544,51 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           <button
             onClick={() => setDashboardType('hr')}
-            className={`px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
+            className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
               dashboardType === 'hr'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
             }`}
           >
-            HR Survey Dashboard
+            <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">HR Survey Dashboard</span>
+            <span className="sm:hidden">HR Survey</span>
           </button>
           <button
             onClick={() => setDashboardType('operations')}
-            className={`px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
+            className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
               dashboardType === 'operations'
                 ? 'bg-orange-600 text-white'
                 : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
             }`}
           >
-            Operations Checklist Dashboard
+            <Clipboard className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Operations Checklist Dashboard</span>
+            <span className="sm:hidden">Operations</span>
           </button>
           <button
             onClick={() => setDashboardType('training')}
-            className={`px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
+            className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
               dashboardType === 'training'
                 ? 'bg-purple-600 text-white'
                 : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
             }`}
           >
-            Training Audit Dashboard
+            <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Training Audit Dashboard</span>
+            <span className="sm:hidden">Training</span>
           </button>
           <button
             onClick={() => setDashboardType('consolidated')}
-            className={`px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
+            className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
               dashboardType === 'consolidated'
                 ? 'bg-green-600 text-white'
                 : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
             }`}
           >
-            Consolidated Dashboard
+            <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Consolidated Dashboard</span>
+            <span className="sm:hidden">Consolidated</span>
           </button>
         </div>
         <p className="text-sm text-gray-600 dark:text-slate-400 mt-2">

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { BarChart3, Brain, CheckSquare } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import AIInsights from './components/AIInsights';
 import ChecklistsAndSurveys from './components/ChecklistsAndSurveys';
@@ -87,9 +88,9 @@ const AppContent: React.FC = () => {
   }
 
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'ai-insights', label: 'AI Insights', icon: '🤖' },
-    { id: 'checklists', label: 'Checklists & Surveys', icon: '✅' }
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'ai-insights', label: 'AI Insights', icon: Brain },
+    { id: 'checklists', label: 'Checklists & Surveys', icon: CheckSquare }
   ];
 
   return (
@@ -99,21 +100,24 @@ const AppContent: React.FC = () => {
       {/* Tab Navigation */}
       <nav className="px-2 sm:px-4 lg:px-8 border-b border-gray-200 dark:border-slate-700">
         <div className="flex space-x-4 sm:space-x-8 overflow-x-auto">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as 'dashboard' | 'ai-insights' | 'checklists')}
-              className={`flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 ${
-                activeTab === tab.id
-                  ? 'border-sky-400 text-sky-400'
-                  : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 hover:border-gray-300 dark:hover:border-slate-300'
-              }`}
-            >
-              <span className="text-sm sm:text-base">{tab.icon}</span>
-              <span className="hidden sm:inline">{tab.label}</span>
-              <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
-            </button>
-          ))}
+          {tabs.map(tab => {
+            const IconComponent = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as 'dashboard' | 'ai-insights' | 'checklists')}
+                className={`flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 ${
+                  activeTab === tab.id
+                    ? 'border-sky-400 text-sky-400'
+                    : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 hover:border-gray-300 dark:hover:border-slate-300'
+                }`}
+              >
+                <IconComponent className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+              </button>
+            );
+          })}
         </div>
       </nav>
 
