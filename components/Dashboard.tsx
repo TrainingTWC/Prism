@@ -37,8 +37,6 @@ import TrainingHealthPieChart from './TrainingHealthPieChart';
 import OperationsRadarChart from './OperationsRadarChart';
 import TrainingDetailModal from './TrainingDetailModal';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../roleMapping';
-// Import audit dashboard navigation
-import { navigationActions, useCurrentView, useBreadcrumbs } from '../src/audit-dashboard/state';
 
 interface DashboardProps {
   userRole: UserRole;
@@ -80,11 +78,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     title: string;
   } | null>(null);
 
-  // Audit dashboard navigation state
-  const currentAuditView = useCurrentView();
-  const auditBreadcrumbs = useBreadcrumbs();
-
-  // Training detail modal handlers with audit dashboard navigation
+  // Training detail modal handlers
   const handleRegionClick = (region: string) => {
     console.log('handleRegionClick called with region:', region);
     console.log('filteredTrainingData:', filteredTrainingData?.length || 0);
@@ -96,9 +90,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       title: `${region} Region`
     });
     setShowTrainingDetail(true);
-    
-    // Add audit dashboard navigation
-    navigationActions.handleRegionPerfClick(region);
   };
 
   const handleTrainerClick = (trainerId: string, trainerName: string) => {
@@ -109,9 +100,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       title: `Trainer: ${trainerName}`
     });
     setShowTrainingDetail(true);
-    
-    // Add audit dashboard navigation
-    navigationActions.handleTopTrainerClick(trainerId, trainerName);
   };
 
   const handleSectionClick = (sectionId: string, sectionTitle: string) => {
@@ -122,27 +110,19 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       title: `Section: ${sectionTitle}`
     });
     setShowTrainingDetail(true);
-    
-    // Add audit dashboard navigation
-    navigationActions.handleSectionPerfClick(sectionId);
   };
 
   const handleScoreRangeClick = (minScore: number, maxScore: number, label: string) => {
-    // Add audit dashboard navigation for score distribution
-    navigationActions.handleScoreDistribClick(`${minScore}-${maxScore}`);
+    console.log('Score range clicked:', label);
   };
 
   const handleStoreClick = (storeId: string, storeName: string) => {
-    // Add audit dashboard navigation for store details
     setTrainingDetailFilter({
       type: 'store',
       value: storeId,
       title: `Store: ${storeName}`
     });
     setShowTrainingDetail(true);
-    
-    // Add audit dashboard navigation
-    navigationActions.handleRegionStoreClick(storeId, storeName);
   };
 
   const closeTrainingDetail = () => {
@@ -1598,33 +1578,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           {dashboardType === 'consolidated' && 'View combined insights from all checklist types'}
         </p>
       </div>
-
-      {/* Audit Navigation Breadcrumbs - Only show for training dashboard when navigating */}
-      {dashboardType === 'training' && auditBreadcrumbs.length > 1 && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <div className="flex items-center space-x-2 text-sm">
-            <span className="text-blue-600 dark:text-blue-400 font-medium">Audit Navigation:</span>
-            {auditBreadcrumbs.map((crumb, index) => (
-              <React.Fragment key={index}>
-                {index > 0 && (
-                  <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                  </svg>
-                )}
-                <span className={`${index === auditBreadcrumbs.length - 1 ? 'text-blue-800 dark:text-blue-200 font-semibold' : 'text-blue-600 dark:text-blue-300'}`}>
-                  {crumb.label}
-                </span>
-              </React.Fragment>
-            ))}
-            <button
-              onClick={() => navigationActions.handleRegionFilterClick('')}
-              className="ml-4 text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 px-2 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
-            >
-              Reset Navigation
-            </button>
-          </div>
-        </div>
-      )}
 
       <DashboardFilters
         regions={availableRegions}
