@@ -1538,12 +1538,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       )}
 
       {/* Dashboard Type Selector */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">Dashboard Type</h3>
-        <div className="flex gap-4">
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3 sm:mb-4">Dashboard Type</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           <button
             onClick={() => setDashboardType('hr')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
               dashboardType === 'hr'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
@@ -1553,7 +1553,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           </button>
           <button
             onClick={() => setDashboardType('operations')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
               dashboardType === 'operations'
                 ? 'bg-orange-600 text-white'
                 : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
@@ -1563,7 +1563,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           </button>
           <button
             onClick={() => setDashboardType('training')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
               dashboardType === 'training'
                 ? 'bg-purple-600 text-white'
                 : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
@@ -1573,7 +1573,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           </button>
           <button
             onClick={() => setDashboardType('consolidated')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
               dashboardType === 'consolidated'
                 ? 'bg-green-600 text-white'
                 : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'

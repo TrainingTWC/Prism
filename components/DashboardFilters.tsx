@@ -73,7 +73,7 @@ const SearchableFilter: React.FC<{
 
   return (
     <div>
-      <label htmlFor={label} className="block text-sm font-medium text-gray-700 dark:text-slate-400 mb-1">
+      <label htmlFor={label} className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-slate-400 mb-1">
         {label}
         {filteredOptions.length < options.length && !disabled && (
           <span className="text-xs text-blue-600 dark:text-blue-400 ml-1">
@@ -84,7 +84,7 @@ const SearchableFilter: React.FC<{
       <div className="relative">
         <input
           id={label}
-          className={`w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-slate-600 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm rounded-md text-gray-900 dark:text-slate-200 ${
+          className={`w-full pl-3 pr-10 py-2.5 text-sm sm:text-base border-gray-300 dark:border-slate-600 focus:outline-none focus:ring-sky-500 focus:border-sky-500 rounded-md text-gray-900 dark:text-slate-200 ${
             disabled 
               ? 'bg-gray-100 dark:bg-slate-600 cursor-not-allowed opacity-50' 
               : 'bg-white dark:bg-slate-700'
@@ -198,13 +198,13 @@ const FilterSelect: React.FC<{
   disabled?: boolean;
 }> = ({ label, value, onChange, options, placeholder, disabled = false }) => (
   <div>
-    <label htmlFor={label} className="block text-sm font-medium text-gray-700 dark:text-slate-400 mb-1">{label}</label>
+    <label htmlFor={label} className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-slate-400 mb-1">{label}</label>
     <select
       id={label}
       value={value}
       onChange={onChange}
       disabled={disabled}
-      className="w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-slate-600 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full pl-3 pr-10 py-2.5 text-sm sm:text-base border-gray-300 dark:border-slate-600 focus:outline-none focus:ring-sky-500 focus:border-sky-500 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <option value="">{placeholder}</option>
       {options.map((opt) => (
@@ -225,7 +225,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
 }) => {
   return (
     <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700 mb-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 items-end">
         {/* Region - Keep as simple select since usually limited options */}
         <FilterSelect
           label="Region"
@@ -270,10 +270,10 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
         />
         
         {/* Reset Button */}
-        <div className="pt-6">
+        <div className="pt-4 sm:pt-6">
           <button
             onClick={onReset}
-            className="w-full bg-gray-500 dark:bg-slate-600 hover:bg-gray-600 dark:hover:bg-slate-500 text-white dark:text-slate-100 font-semibold py-2 px-4 rounded-md transition-colors duration-200 h-[42px]"
+            className="w-full bg-gray-500 dark:bg-slate-600 hover:bg-gray-600 dark:hover:bg-slate-500 text-white dark:text-slate-100 font-semibold py-2.5 px-4 rounded-md transition-colors duration-200 text-sm sm:text-base"
           >
             Reset Filters
           </button>

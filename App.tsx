@@ -97,26 +97,27 @@ const AppContent: React.FC = () => {
       <Header />
       
       {/* Tab Navigation */}
-      <nav className="px-4 sm:px-6 lg:px-8 border-b border-gray-200 dark:border-slate-700">
-        <div className="flex space-x-8">
+      <nav className="px-2 sm:px-4 lg:px-8 border-b border-gray-200 dark:border-slate-700">
+        <div className="flex space-x-4 sm:space-x-8 overflow-x-auto">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as 'dashboard' | 'ai-insights' | 'checklists')}
-              className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+              className={`flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 ${
                 activeTab === tab.id
                   ? 'border-sky-400 text-sky-400'
                   : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 hover:border-gray-300 dark:hover:border-slate-300'
               }`}
             >
-              <span>{tab.icon}</span>
-              {tab.label}
+              <span className="text-sm sm:text-base">{tab.icon}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
             </button>
           ))}
         </div>
       </nav>
 
-      <main className="p-4 sm:p-6 lg:p-8">
+      <main className="p-2 sm:p-4 lg:p-8">
         {activeTab === 'dashboard' && <Dashboard userRole={userRole} />}
         {activeTab === 'ai-insights' && <AIInsights userRole={userRole} />}
         {activeTab === 'checklists' && <ChecklistsAndSurveys userRole={userRole} />}
