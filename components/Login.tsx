@@ -33,7 +33,7 @@ const Login: React.FC = () => {
         <div className="text-center mb-8 mt-8">
           <div className="inline-flex items-center justify-center mb-6">
             <img 
-              src={`${(import.meta as any).env?.BASE_URL || '/'}prism-logo.svg`}
+              src={`${(import.meta as any).env?.BASE_URL || '/'}prism-logo-kittl.svg`}
               alt="Prism Dashboard Logo"
               className="w-24 h-24 object-contain drop-shadow-lg"
               onError={(e) => {

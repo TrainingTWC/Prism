@@ -18,7 +18,7 @@ const Header: React.FC = () => {
         <div className="flex items-center flex-wrap flex-1 min-w-0 pr-4">
           <div className="flex items-center gap-3">
             <img 
-              src={`${(import.meta as any).env?.BASE_URL || '/'}prism-logo.svg`}
+              src={`${(import.meta as any).env?.BASE_URL || '/'}prism-logo-kittl.svg`}
               alt="Prism Logo"
               className="w-8 h-8 object-contain"
               onError={(e) => {
