@@ -1278,44 +1278,45 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                           <h4 className="text-md font-semibold text-gray-900 dark:text-slate-100 mb-3 text-orange-700 dark:text-orange-300">
                             {subsectionName}
                           </h4>
-                          <div className="space-y-2">
+                          <div className="space-y-3">
                             {items.map((item, itemIndex) => (
-                              <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                <div className="flex items-center flex-1 mr-4">
-                                  <span className="inline-flex items-center justify-center w-5 h-5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-xs font-medium mr-3 flex-shrink-0">
+                              <div key={item.id} className="p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div className="flex items-start gap-3">
+                                  <span className="inline-flex items-center justify-center w-5 h-5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
                                     {itemIndex + 1}
                                   </span>
-                                  <span className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-tight">
-                                    {item.q}
-                                  </span>
-                                </div>
-                                
-                                <div className="flex-shrink-0">
-                                  {item.type === 'text' ? (
-                                    <input
-                                      type="text"
-                                      value={responses[`${section.id}_${item.id}`] || ''}
-                                      onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
-                                      className="w-32 px-2 py-1 border border-gray-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
-                                      placeholder="Enter value"
-                                    />
-                                  ) : (
-                                    <div className="flex gap-2">
-                                      {['yes', 'no', 'na'].map(option => (
-                                        <label key={option} className="flex items-center space-x-1 cursor-pointer">
-                                          <input
-                                            type="radio"
-                                            name={`${section.id}_${item.id}`}
-                                            value={option}
-                                            checked={responses[`${section.id}_${item.id}`] === option}
-                                            onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                            className="w-3 h-3 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500"
-                                          />
-                                          <span className="text-xs text-gray-700 dark:text-slate-300 capitalize">{option}</span>
-                                        </label>
-                                      ))}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-3">
+                                      {item.q}
+                                    </p>
+                                    <div className="">
+                                      {item.type === 'text' ? (
+                                        <input
+                                          type="text"
+                                          value={responses[`${section.id}_${item.id}`] || ''}
+                                          onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
+                                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                          placeholder="Enter value"
+                                        />
+                                      ) : (
+                                        <div className="flex gap-4">
+                                          {['yes', 'no', 'na'].map(option => (
+                                            <label key={option} className="flex items-center space-x-2 cursor-pointer">
+                                              <input
+                                                type="radio"
+                                                name={`${section.id}_${item.id}`}
+                                                value={option}
+                                                checked={responses[`${section.id}_${item.id}`] === option}
+                                                onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                                                className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500"
+                                              />
+                                              <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
+                                  </div>
                                 </div>
                               </div>
                             ))}
@@ -1390,44 +1391,45 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                           <h4 className="text-md font-semibold text-gray-900 dark:text-slate-100 mb-3 text-yellow-700 dark:text-yellow-300">
                             {subsectionName}
                           </h4>
-                          <div className="space-y-2">
+                          <div className="space-y-3">
                             {items.map((item, itemIndex) => (
-                              <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                <div className="flex items-center flex-1 mr-4">
-                                  <span className="inline-flex items-center justify-center w-5 h-5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-full text-xs font-medium mr-3 flex-shrink-0">
+                              <div key={item.id} className="p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div className="flex items-start gap-3">
+                                  <span className="inline-flex items-center justify-center w-5 h-5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
                                     {itemIndex + 1}
                                   </span>
-                                  <span className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-tight">
-                                    {item.q}
-                                  </span>
-                                </div>
-                                
-                                <div className="flex-shrink-0">
-                                  {item.type === 'text' ? (
-                                    <input
-                                      type="text"
-                                      value={responses[`${section.id}_${item.id}`] || ''}
-                                      onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
-                                      className="w-32 px-2 py-1 border border-gray-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
-                                      placeholder="Enter value"
-                                    />
-                                  ) : (
-                                    <div className="flex gap-2">
-                                      {['yes', 'no', 'na'].map(option => (
-                                        <label key={option} className="flex items-center space-x-1 cursor-pointer">
-                                          <input
-                                            type="radio"
-                                            name={`${section.id}_${item.id}`}
-                                            value={option}
-                                            checked={responses[`${section.id}_${item.id}`] === option}
-                                            onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                            className="w-3 h-3 text-yellow-600 border-gray-300 dark:border-slate-600 focus:ring-yellow-500"
-                                          />
-                                          <span className="text-xs text-gray-700 dark:text-slate-300 capitalize">{option}</span>
-                                        </label>
-                                      ))}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-3">
+                                      {item.q}
+                                    </p>
+                                    <div className="">
+                                      {item.type === 'text' ? (
+                                        <input
+                                          type="text"
+                                          value={responses[`${section.id}_${item.id}`] || ''}
+                                          onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
+                                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                          placeholder="Enter value"
+                                        />
+                                      ) : (
+                                        <div className="flex gap-4">
+                                          {['yes', 'no', 'na'].map(option => (
+                                            <label key={option} className="flex items-center space-x-2 cursor-pointer">
+                                              <input
+                                                type="radio"
+                                                name={`${section.id}_${item.id}`}
+                                                value={option}
+                                                checked={responses[`${section.id}_${item.id}`] === option}
+                                                onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                                                className="w-4 h-4 text-yellow-600 border-gray-300 dark:border-slate-600 focus:ring-yellow-500"
+                                              />
+                                              <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
+                                  </div>
                                 </div>
                               </div>
                             ))}
@@ -1502,44 +1504,45 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                           <h4 className="text-md font-semibold text-gray-900 dark:text-slate-100 mb-3 text-blue-700 dark:text-blue-300">
                             {subsectionName}
                           </h4>
-                          <div className="space-y-2">
+                          <div className="space-y-3">
                             {items.map((item, itemIndex) => (
-                              <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                <div className="flex items-center flex-1 mr-4">
-                                  <span className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium mr-3 flex-shrink-0">
+                              <div key={item.id} className="p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div className="flex items-start gap-3">
+                                  <span className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
                                     {itemIndex + 1}
                                   </span>
-                                  <span className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-tight">
-                                    {item.q}
-                                  </span>
-                                </div>
-                                
-                                <div className="flex-shrink-0">
-                                  {item.type === 'text' ? (
-                                    <input
-                                      type="text"
-                                      value={responses[`${section.id}_${item.id}`] || ''}
-                                      onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
-                                      className="w-32 px-2 py-1 border border-gray-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
-                                      placeholder="Enter value"
-                                    />
-                                  ) : (
-                                    <div className="flex gap-2">
-                                      {['yes', 'no', 'na'].map(option => (
-                                        <label key={option} className="flex items-center space-x-1 cursor-pointer">
-                                          <input
-                                            type="radio"
-                                            name={`${section.id}_${item.id}`}
-                                            value={option}
-                                            checked={responses[`${section.id}_${item.id}`] === option}
-                                            onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                            className="w-3 h-3 text-blue-600 border-gray-300 dark:border-slate-600 focus:ring-blue-500"
-                                          />
-                                          <span className="text-xs text-gray-700 dark:text-slate-300 capitalize">{option}</span>
-                                        </label>
-                                      ))}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-3">
+                                      {item.q}
+                                    </p>
+                                    <div className="">
+                                      {item.type === 'text' ? (
+                                        <input
+                                          type="text"
+                                          value={responses[`${section.id}_${item.id}`] || ''}
+                                          onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
+                                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                          placeholder="Enter value"
+                                        />
+                                      ) : (
+                                        <div className="flex gap-4">
+                                          {['yes', 'no', 'na'].map(option => (
+                                            <label key={option} className="flex items-center space-x-2 cursor-pointer">
+                                              <input
+                                                type="radio"
+                                                name={`${section.id}_${item.id}`}
+                                                value={option}
+                                                checked={responses[`${section.id}_${item.id}`] === option}
+                                                onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                                                className="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-600 focus:ring-blue-500"
+                                              />
+                                              <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
+                                  </div>
                                 </div>
                               </div>
                             ))}
@@ -1561,30 +1564,31 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                 
                 <div className="space-y-3">
                   {section.items.map((item, itemIndex) => (
-                    <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                      <div className="flex items-center flex-1 mr-4">
-                        <span className="inline-flex items-center justify-center w-6 h-6 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-xs font-medium mr-3 flex-shrink-0">
+                    <div key={item.id} className="p-4 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                      <div className="flex items-start gap-3">
+                        <span className="inline-flex items-center justify-center w-6 h-6 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
                           {itemIndex + 1}
                         </span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-tight">
-                          {item.q}
-                        </span>
-                      </div>
-                      
-                      <div className="flex gap-2 flex-shrink-0">
-                        {['yes', 'no', 'na'].map(option => (
-                          <label key={option} className="flex items-center space-x-1 cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`${section.id}_${item.id}`}
-                              value={option}
-                              checked={responses[`${section.id}_${item.id}`] === option}
-                              onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                              className="w-4 h-4 text-purple-600 border-gray-300 dark:border-slate-600 focus:ring-purple-500"
-                            />
-                            <span className="text-xs text-gray-700 dark:text-slate-300 capitalize">{option}</span>
-                          </label>
-                        ))}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-3">
+                            {item.q}
+                          </p>
+                          <div className="flex gap-4">
+                            {['yes', 'no', 'na'].map(option => (
+                              <label key={option} className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name={`${section.id}_${item.id}`}
+                                  value={option}
+                                  checked={responses[`${section.id}_${item.id}`] === option}
+                                  onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                                  className="w-4 h-4 text-purple-600 border-gray-300 dark:border-slate-600 focus:ring-purple-500"
+                                />
+                                <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
