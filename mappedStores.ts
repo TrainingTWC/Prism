@@ -1,4 +1,4 @@
-// Updated stores from HR mapping data
+// Updated stores from comprehensive TWC mapping data
 
 // Fallback stores for when mapping data is not available
 const FALLBACK_STORES = [
@@ -6,44 +6,61 @@ const FALLBACK_STORES = [
   { name: 'Khan Market', id: 'S037', region: 'North' },
   { name: 'Connaught Place', id: 'S049', region: 'North' },
   { name: 'Kalkaji', id: 'S055', region: 'North' },
-  { name: 'Sector 07', id: 'S039', region: 'North' },
-  { name: 'Sector 35', id: 'S042', region: 'North' },
-  { name: 'Panchkula', id: 'S062', region: 'North' },
-  { name: 'Jubilee Walk Mohali', id: 'S122', region: 'North' },
-  { name: 'Deer Park', id: 'S024', region: 'North' },
-  { name: 'GK 1', id: 'S035', region: 'North' },
-  { name: 'Kailash Colony', id: 'S072', region: 'North' },
-  { name: 'Saket', id: 'S028', region: 'North' },
-  { name: 'Vatika Business Park', id: 'S038', region: 'North' },
-  { name: 'Golf Course', id: 'S073', region: 'North' },
-  { name: 'Hauz Khas', id: 'S113', region: 'North' },
-  { name: 'Janakpuri', id: 'S120', region: 'North' },
-  { name: 'Green Park', id: 'S142', region: 'North' },
-  { name: 'Paschim Vihar', id: 'S141', region: 'North' }
+  { name: 'TWC-Koramangala', id: 'S001', region: 'South' },
+  { name: 'TWC-CMH Indira Nagar', id: 'S002', region: 'South' },
+  { name: 'Mahavir Nagar', id: 'S096', region: 'West' },
+  { name: 'Emerald Borivali', id: 'S076', region: 'West' }
 ];
 
-// Create stores array from the mapping data
+// Create stores array from the comprehensive TWC mapping data
 const createStoresFromMapping = async () => {
   try {
-  const base = (import.meta as any).env?.BASE_URL || '/';
-  const response = await fetch(`${base}hr_mapping.json`);
-    const hrMappingData = await response.json();
+    // Try to load from the comprehensive mapping file first
+    const base = (import.meta as any).env?.BASE_URL || '/';
+    let response;
+    let mappingData;
+
+    try {
+      response = await fetch(`${base}twc_store_mapping.json`);
+      if (response.ok) {
+        mappingData = await response.json();
+        console.log('Loaded comprehensive TWC store mapping');
+      } else {
+        throw new Error('Comprehensive mapping not found');
+      }
+    } catch {
+      // Fallback to hr_mapping.json
+      response = await fetch(`${base}hr_mapping.json`);
+      mappingData = await response.json();
+      console.log('Loaded fallback HR mapping');
+    }
     
     const storeMap = new Map();
     
-    hrMappingData.forEach((item: any) => {
-      if (!storeMap.has(item.storeId)) {
-        storeMap.set(item.storeId, {
-          name: item.locationName,
-          id: item.storeId,
-          region: item.region
+    mappingData.forEach((item: any) => {
+      const storeId = item['Store ID'] || item.storeId;
+      const storeName = item['Store Name'] || item.locationName;
+      const region = item['Region'] || item.region;
+      
+      if (!storeMap.has(storeId)) {
+        storeMap.set(storeId, {
+          name: storeName,
+          id: storeId,
+          region: region,
+          amId: item['Area Manager ID'] || item.amId,
+          hrbpId: item['HRBP ID'] || item.hrbpId,
+          regionalHrId: item['Regional HR ID'] || item.regionalHrId,
+          hrHeadId: item['HR Head ID'] || item.hrHeadId,
+          lmsHeadId: item['LMS Head ID'] || item.lmsHeadId,
+          trainer: item['Trainer'] || item.trainer,
+          trainerId: item['Trainer ID'] || item.trainerId
         });
       }
     });
     
     return Array.from(storeMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
   } catch (error) {
-    console.warn('Could not load mapping data, using fallback stores');
+    console.warn('Could not load mapping data, using fallback stores:', error);
     return FALLBACK_STORES;
   }
 };

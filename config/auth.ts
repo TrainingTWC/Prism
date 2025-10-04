@@ -1,4 +1,4 @@
-// Configuration for HR Connect Dashboard Authentication
+// Configuration for Prism Dashboard Authentication
 // Change the password here to whatever you want
 
 export const AUTH_CONFIG = {

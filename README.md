@@ -1,11 +1,11 @@
-# HR Connect Dashboard
+# Prism Dashboard
 
-A comprehensive HR performance dashboard built with React, TypeScript, and Vite. This dashboard provides role-based access to HR analytics with real-time data from Google Sheets integration.
+A comprehensive performance analytics dashboard built with React, TypeScript, and Vite. This dashboard provides role-based access to HR analytics with real-time data from Google Sheets integration.
 
 ## Features
 
 ### 🎯 Core Functionality
-- **Role-Based Access Control**: Dynamic dashboard filtering based on HR hierarchy
+- **Role-Based Access Control**: Dynamic dashboard filtering based on organizational hierarchy
 - **Real-Time Data Integration**: Direct connection to Google Sheets for live survey data
 - **Professional PDF Generation**: Export detailed reports with survey responses
 - **Theme Toggle**: Beautiful light/dark mode with custom pearl morph animation

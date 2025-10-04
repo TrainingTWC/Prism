@@ -16,13 +16,57 @@ const Header: React.FC = () => {
     <header className="p-4 sm:p-6 lg:p-8">
       <div className="flex items-start justify-between">
         <div className="flex items-center flex-wrap flex-1 min-w-0 pr-4">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black uppercase tracking-wide text-gray-800 dark:text-slate-200">
-            Third Wave Coffee
-          </h1>
-          <span className="mx-2 sm:mx-3 text-xl sm:text-2xl lg:text-3xl font-black text-gray-400 dark:text-slate-500">|</span>
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-sky-500 dark:text-sky-400">
-            HR Connect
-          </h2>
+          <div className="flex items-center gap-3">
+            <img 
+              src={`${(import.meta as any).env?.BASE_URL || '/'}prism-logo.svg`}
+              alt="Prism Logo"
+              className="w-8 h-8 object-contain"
+              onError={(e) => {
+                // Fallback to inline SVG if logo file is not found
+                const fallbackSVG = document.createElement('div');
+                fallbackSVG.className = 'w-8 h-8 flex items-center justify-center';
+                fallbackSVG.innerHTML = `
+                  <svg width="32" height="32" viewBox="0 0 200 200">
+                    <defs>
+                      <linearGradient id="tGradHeader" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#E91E63"/>
+                        <stop offset="100%" style="stop-color:#9C27B0"/>
+                      </linearGradient>
+                      <linearGradient id="rGradHeader" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#FF6B35"/>
+                        <stop offset="100%" style="stop-color:#F7931E"/>
+                      </linearGradient>
+                      <linearGradient id="bGradHeader" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#1E88E5"/>
+                        <stop offset="100%" style="stop-color:#00ACC1"/>
+                      </linearGradient>
+                      <linearGradient id="lGradHeader" x1="0%" y1="100%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#673AB7"/>
+                        <stop offset="100%" style="stop-color:#512DA8"/>
+                      </linearGradient>
+                    </defs>
+                    <g transform="translate(100,100) scale(0.6)">
+                      <path d="M 0,-90 L 70,-10 L 0,20 L -35,-35 Z" fill="url(#tGradHeader)" />
+                      <path d="M 70,-10 L 90,80 L 0,20 Z" fill="url(#rGradHeader)" />
+                      <path d="M 90,80 L -50,90 L 0,20 Z" fill="url(#bGradHeader)" />
+                      <path d="M -50,90 L -35,-35 L 0,20 Z" fill="url(#lGradHeader)" />
+                      <path d="M 0,-90 L 0,20" stroke="white" stroke-width="1.5" opacity="0.8" />
+                      <path d="M 70,-10 L 0,20" stroke="white" stroke-width="1.5" opacity="0.8" />
+                      <path d="M 90,80 L 0,20" stroke="white" stroke-width="1.5" opacity="0.8" />
+                      <path d="M -50,90 L 0,20" stroke="white" stroke-width="1.5" opacity="0.8" />
+                    </g>
+                  </svg>
+                `;
+                const parent = (e.target as HTMLElement).parentElement;
+                if (parent) {
+                  parent.replaceChild(fallbackSVG, e.target as HTMLElement);
+                }
+              }}
+            />
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black uppercase tracking-wide text-gradient bg-gradient-to-r from-purple-600 via-blue-500 to-cyan-400 bg-clip-text text-transparent dark:from-purple-400 dark:via-blue-300 dark:to-cyan-300">
+              Prism
+            </h1>
+          </div>
         </div>
         <div className="flex-shrink-0 flex items-center gap-3">
           <button

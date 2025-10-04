@@ -1,0 +1,74 @@
+import React, { useMemo } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AMOperationsSubmission } from '../services/dataService';
+import ChartContainer from './ChartContainer';
+import { useTheme } from '../contexts/ThemeContext';
+
+interface OperationsAverageScoreChartProps {
+  submissions: AMOperationsSubmission[];
+}
+
+const OperationsAverageScoreChart: React.FC<OperationsAverageScoreChartProps> = ({ submissions }) => {
+  const { theme } = useTheme();
+  
+  const data = useMemo(() => {
+    const scoresByManager: { [key: string]: { totalPercent: number, count: number } } = {};
+
+    submissions.forEach(submission => {
+      const amId = submission.amId || 'Unknown';
+      const amName = submission.amName || `AM ${amId}`;
+      
+      if (!scoresByManager[amName]) {
+        scoresByManager[amName] = { totalPercent: 0, count: 0 };
+      }
+      
+      const score = parseFloat(submission.percentageScore || '0');
+      if (!isNaN(score)) {
+        scoresByManager[amName].totalPercent += score;
+        scoresByManager[amName].count++;
+      }
+    });
+
+    return Object.entries(scoresByManager)
+      .map(([name, { totalPercent, count }]) => ({
+        name: name.split(' ')[0], // Use first name for brevity
+        averageScore: count > 0 ? Math.round(totalPercent / count) : 0,
+      }))
+      .sort((a, b) => b.averageScore - a.averageScore);
+  }, [submissions]);
+
+  // Theme-aware styling
+  const chartStyles = {
+    gridStroke: theme === 'dark' ? '#334155' : '#e2e8f0',
+    tickFill: theme === 'dark' ? '#94a3b8' : '#64748b',
+    tooltipBg: theme === 'dark' ? '#1e293b' : '#ffffff',
+    tooltipBorder: theme === 'dark' ? '#334155' : '#e2e8f0',
+    tooltipColor: theme === 'dark' ? '#f1f5f9' : '#1e293b',
+    cursorFill: theme === 'dark' ? 'rgba(14, 165, 233, 0.1)' : 'rgba(59, 130, 246, 0.1)'
+  };
+
+  return (
+    <ChartContainer title="Average Operations Score by Area Manager">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={chartStyles.gridStroke} />
+          <XAxis type="number" domain={[0, 100]} tick={{ fill: chartStyles.tickFill }} />
+          <YAxis dataKey="name" type="category" width={80} tick={{ fill: chartStyles.tickFill }} />
+          <Tooltip 
+            cursor={{fill: chartStyles.cursorFill}}
+            contentStyle={{ 
+              backgroundColor: chartStyles.tooltipBg, 
+              border: `1px solid ${chartStyles.tooltipBorder}`, 
+              color: chartStyles.tooltipColor,
+              borderRadius: '8px'
+            }}
+            formatter={(value) => `${value}%`}
+          />
+          <Bar dataKey="averageScore" fill="#22c55e" />
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartContainer>
+  );
+};
+
+export default OperationsAverageScoreChart;

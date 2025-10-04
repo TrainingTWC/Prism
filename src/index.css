@@ -1,6 +1,6 @@
+/* Import theme toggle styles */
+@import url('../toggle/style.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import theme toggle styles */
-@import url('/hr-connect-dashboard/toggle/style.css');

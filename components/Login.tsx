@@ -33,21 +33,42 @@ const Login: React.FC = () => {
         <div className="text-center mb-8 mt-8">
           <div className="inline-flex items-center justify-center mb-6">
             <img 
-              src={`${(import.meta as any).env?.BASE_URL || '/'}assets/logo.png`}
-              alt="Third Wave Coffee Logo"
-              className="w-32 h-32 object-contain drop-shadow-lg bg-white rounded-2xl p-4"
+              src={`${(import.meta as any).env?.BASE_URL || '/'}prism-logo.svg`}
+              alt="Prism Dashboard Logo"
+              className="w-24 h-24 object-contain drop-shadow-lg"
               onError={(e) => {
-                // Fallback SVG if logo.png is not found
+                // Fallback to inline SVG if logo file is not found
                 const fallbackSVG = document.createElement('div');
-                fallbackSVG.className = 'w-32 h-32 bg-slate-800 dark:bg-slate-200 rounded-2xl flex items-center justify-center drop-shadow-lg';
+                fallbackSVG.className = 'w-24 h-24 flex items-center justify-center';
                 fallbackSVG.innerHTML = `
-                  <svg width="80" height="80" viewBox="0 0 200 200" class="text-white dark:text-slate-800">
-                    <g transform="translate(100,100)">
-                      <path d="M 45 -20 Q 65 -20 65 0 Q 65 20 45 20" fill="none" stroke="currentColor" stroke-width="4"/>
-                      <circle cx="0" cy="0" r="40" fill="none" stroke="currentColor" stroke-width="4"/>
-                      <circle cx="0" cy="0" r="32" fill="currentColor"/>
-                      <path d="M -25 -8 Q -12 -16 0 -8 Q 12 0 25 -8" fill="none" stroke="white" stroke-width="2"/>
-                      <path d="M -20 8 Q -8 0 8 8 Q 20 16 32 8" fill="none" stroke="white" stroke-width="2"/>
+                  <svg width="96" height="96" viewBox="0 0 200 200" class="drop-shadow-lg">
+                    <defs>
+                      <linearGradient id="tGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#E91E63"/>
+                        <stop offset="100%" style="stop-color:#9C27B0"/>
+                      </linearGradient>
+                      <linearGradient id="rGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#FF6B35"/>
+                        <stop offset="100%" style="stop-color:#F7931E"/>
+                      </linearGradient>
+                      <linearGradient id="bGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#1E88E5"/>
+                        <stop offset="100%" style="stop-color:#00ACC1"/>
+                      </linearGradient>
+                      <linearGradient id="lGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#673AB7"/>
+                        <stop offset="100%" style="stop-color:#512DA8"/>
+                      </linearGradient>
+                    </defs>
+                    <g transform="translate(100,100) scale(0.8)">
+                      <path d="M 0,-90 L 70,-10 L 0,20 L -35,-35 Z" fill="url(#tGrad)" />
+                      <path d="M 70,-10 L 90,80 L 0,20 Z" fill="url(#rGrad)" />
+                      <path d="M 90,80 L -50,90 L 0,20 Z" fill="url(#bGrad)" />
+                      <path d="M -50,90 L -35,-35 L 0,20 Z" fill="url(#lGrad)" />
+                      <path d="M 0,-90 L 0,20" stroke="white" stroke-width="2" opacity="0.8" />
+                      <path d="M 70,-10 L 0,20" stroke="white" stroke-width="2" opacity="0.8" />
+                      <path d="M 90,80 L 0,20" stroke="white" stroke-width="2" opacity="0.8" />
+                      <path d="M -50,90 L 0,20" stroke="white" stroke-width="2" opacity="0.8" />
                     </g>
                   </svg>
                 `;
@@ -58,12 +79,12 @@ const Login: React.FC = () => {
               }}
             />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100 mb-2">
-            Third Wave Coffee
+          <h1 className="text-4xl font-black uppercase tracking-wide text-gradient bg-gradient-to-r from-purple-600 via-blue-500 to-cyan-400 bg-clip-text text-transparent dark:from-purple-400 dark:via-blue-300 dark:to-cyan-300 mb-3">
+            Prism
           </h1>
-          <h2 className="text-2xl font-semibold text-sky-500 dark:text-sky-400 mb-4">
-            HR Connect Dashboard
-          </h2>
+          <p className="text-sm text-gray-500 dark:text-slate-500 mb-6">
+            Powered by Third Wave Coffee
+          </p>
           <p className="text-gray-600 dark:text-slate-400">
             Please enter your password to continue
           </p>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AM Operations Endpoint Test</title>
+</head>
+<body>
+    <h1>AM Operations Data Test</h1>
+    <button onclick="testEndpoint()">Test AM Operations Endpoint</button>
+    <div id="result"></div>
+    
+    <script>
+        async function testEndpoint() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Loading...</p>';
+            
+            const endpoint = 'https://script.google.com/macros/s/AKfycbyjqLEJNcV3uS04_unMXdM4_2KBUShANCRrwYY9LqqegKNb46Hr2JohCwHIhzNbZSE/exec?action=getData';
+            
+            try {
+                console.log('Testing AM Operations endpoint:', endpoint);
+                
+                const response = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                    redirect: 'follow',
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Response data:', data);
+                    
+                    resultDiv.innerHTML = `
+                        <h3>Success!</h3>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Data type:</strong> ${Array.isArray(data) ? 'Array' : typeof data}</p>
+                        <p><strong>Data length:</strong> ${Array.isArray(data) ? data.length : 'N/A'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    
+                    resultDiv.innerHTML = `
+                        <h3>Error!</h3>
+                        <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                        <p><strong>Response:</strong></p>
+                        <pre>${errorText}</pre>
+                    `;
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                resultDiv.innerHTML = `
+                    <h3>Fetch Error!</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

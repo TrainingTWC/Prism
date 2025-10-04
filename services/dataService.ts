@@ -1,36 +1,62 @@
 import { Submission } from '../types';
 import { QUESTIONS, AREA_MANAGERS, STORES, HR_PERSONNEL } from '../constants';
+import { generateTrainingTestData } from '../utils/trainingTestData';
+import { STATIC_TRAINING_DATA } from './staticTrainingData';
 
 // Google Apps Script endpoint for fetching data
 const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKMVh-lnNBnINskIqD10CnQHvGsW_R2SLASGSdBDN9lTGj1gznlNbHORQ/exec';
 
-// Cache for HR mapping data
-let hrMappingCache: any[] | null = null;
+// AM Operations endpoint
+const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzvAf3C-ChJTiIR0HKXhacf3rj3kO-6MshlRGkr-tm4AiLp7nAUkDVb2qVOqnPayDlsFA/exec';
 
-// Load HR mapping data
-const loadHRMapping = async (): Promise<any[]> => {
-  if (hrMappingCache) {
-    return hrMappingCache;
+// Training Audit endpoint
+const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxmF8RE5ySmSEvFpv_vJnYC2mWvBE-EkhsVRjg6TI3wENv3_JexJff4LcGwrlT0UPfWVw/exec';
+
+// Cache for store mapping data
+let storeMappingCache: any[] | null = null;
+
+// Load comprehensive store mapping data
+const loadStoreMapping = async (): Promise<any[]> => {
+  if (storeMappingCache) {
+    return storeMappingCache;
   }
   
   try {
     const base = (import.meta as any).env?.BASE_URL || '/';
-    const response = await fetch(`${base}hr_mapping.json`);
-    hrMappingCache = await response.json();
-    console.log('HR mapping loaded successfully:', hrMappingCache.length, 'entries');
-    return hrMappingCache;
+    let response;
+    
+    // Try comprehensive mapping first
+    try {
+      response = await fetch(`${base}twc_store_mapping.json`);
+      if (response.ok) {
+        storeMappingCache = await response.json();
+        console.log('Comprehensive TWC store mapping loaded successfully:', storeMappingCache.length, 'entries');
+        return storeMappingCache;
+      } else {
+        throw new Error('Comprehensive mapping not found');
+      }
+    } catch {
+      // Fallback to hr_mapping.json
+      response = await fetch(`${base}hr_mapping.json`);
+      storeMappingCache = await response.json();
+      console.log('Fallback HR mapping loaded successfully:', storeMappingCache.length, 'entries');
+      return storeMappingCache;
+    }
   } catch (error) {
-    console.warn('Could not load hr_mapping.json:', error);
+    console.warn('Could not load store mapping:', error);
     return [];
   }
 };
 
 // Get Area Manager data for HR based on mapping
 const getAMForHR = async (hrId: string): Promise<{amId: string, amName: string} | null> => {
-  const mappingData = await loadHRMapping();
+  const mappingData = await loadStoreMapping();
   
   // Find stores where this HR is responsible (HRBP > Regional HR > HR Head priority)
-  const hrStores = mappingData.filter(mapping => 
+  const hrStores = mappingData.filter((mapping: any) => 
+    mapping['HRBP ID'] === hrId || 
+    mapping['Regional HR ID'] === hrId || 
+    mapping['HR Head ID'] === hrId ||
     mapping.hrbpId === hrId || 
     mapping.regionalHrId === hrId || 
     mapping.hrHeadId === hrId
@@ -38,7 +64,7 @@ const getAMForHR = async (hrId: string): Promise<{amId: string, amName: string} 
   
   if (hrStores.length > 0) {
     // Get the Area Manager from the first store (they should all have the same AM)
-    const amId = hrStores[0].areaManagerId;
+    const amId = hrStores[0]['Area Manager ID'] || hrStores[0].areaManagerId;
     const amPerson = AREA_MANAGERS.find(am => am.id === amId);
     
     return {
@@ -52,14 +78,16 @@ const getAMForHR = async (hrId: string): Promise<{amId: string, amName: string} 
 
 // Get stores for an Area Manager
 const getStoresForAM = async (amId: string): Promise<{storeId: string, storeName: string, region: string}[]> => {
-  const mappingData = await loadHRMapping();
+  const mappingData = await loadStoreMapping();
   
   return mappingData
-    .filter(mapping => mapping.areaManagerId === amId)
-    .map(mapping => ({
-      storeId: mapping.storeId,
-      storeName: mapping.locationName,
-      region: mapping.region
+    .filter((mapping: any) => 
+      mapping['Area Manager ID'] === amId || mapping.areaManagerId === amId
+    )
+    .map((mapping: any) => ({
+      storeId: mapping['Store ID'] || mapping['storeId'],
+      storeName: mapping['Store Name'] || mapping['locationName'],
+      region: mapping['Region'] || mapping['region']
     }));
 };
 
@@ -98,7 +126,7 @@ const generateMockData = async (count: number): Promise<Submission[]> => {
       hr = HR_PERSONNEL.find(h => h.id === hrId) || 
            { name: `HR ${hrId}`, id: hrId };
            
-      store = { name: randomMapping.locationName, id: randomMapping.storeId };
+      store = { name: randomMapping['Store Name'] || randomMapping.locationName, id: randomMapping['Store ID'] || randomMapping.storeId };
       storeRegion = randomMapping.region;
     } else {
       // Fallback to constants
@@ -198,12 +226,15 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
     let amName = row.amName || '';
     let hrId = row.hrId || '';
     let hrName = row.hrName || '';
+    let region = row.region || 'Unknown';
     
     if (row.storeID || row.storeId) {
       const storeId = row.storeID || row.storeId;
       try {
-        const mappingData = await loadHRMapping();
-        const storeMapping = mappingData.find(mapping => mapping.storeId === storeId);
+        const mappingData = await loadStoreMapping();
+        const storeMapping = mappingData.find((mapping: any) => 
+          mapping['Store ID'] === storeId || mapping.storeId === storeId
+        );
         
         if (storeMapping) {
           // Get Area Manager
@@ -216,7 +247,10 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
           const hrPerson = HR_PERSONNEL.find(hr => hr.id === hrId);
           hrName = hrPerson?.name || `HR ${hrId}`;
           
-          console.log(`Mapped store ${storeId} to AM: ${amName} (${amId}) and HR: ${hrName} (${hrId})`);
+          // Get Region from mapping
+          region = storeMapping['Region'] || storeMapping.region || 'Unknown';
+          
+          console.log(`Mapped store ${storeId} to AM: ${amName} (${amId}), HR: ${hrName} (${hrId}), Region: ${region}`);
         }
       } catch (error) {
         console.warn(`Could not map store ${storeId}:`, error);
@@ -233,7 +267,7 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
       empId: row.empId || '',
       storeName: row.storeName || '',
       storeID: row.storeID || row.storeId || '',
-      region: row.region || 'Unknown',
+      region: region,
       q1: row.q1 || '',
       q1_remarks: row.q1_remarks || '',
       q2: row.q2 || '',
@@ -345,5 +379,291 @@ export const fetchSubmissions = async (): Promise<Submission[]> => {
     console.log('Failed to fetch data, generating mock data...');
     // Return mock data instead of empty array for demo purposes
     return await generateMockData(20);
+  }
+};
+
+// Interface for AM Operations submission
+export interface AMOperationsSubmission {
+  submissionTime: string;
+  hrName: string;
+  hrId: string;
+  amName: string;
+  amId: string;
+  trainerName: string;
+  trainerId: string;
+  storeName: string;
+  storeId: string;
+  region: string;
+  totalScore: string;
+  maxScore: string;
+  percentageScore: string;
+  // All section responses
+  [key: string]: string; // For dynamic question keys like CG_1, OTA_1, etc.
+}
+
+// Fetch AM Operations data
+export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]> => {
+  try {
+    console.log('Fetching AM Operations data from Google Sheets...');
+    
+    let response;
+    let data;
+    
+    try {
+      console.log('Trying direct request to AM Operations Google Apps Script...');
+      const directUrl = AM_OPS_ENDPOINT + '?action=getData';
+      
+      response = await fetch(directUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        redirect: 'follow',
+      });
+      
+      if (response.ok) {
+        data = await response.json();
+        console.log('Direct request successful, AM Operations data received:', data);
+      } else {
+        throw new Error(`Direct request failed: ${response.status}`);
+      }
+    } catch (directError) {
+      console.log('Direct request failed for AM Operations, trying CORS proxy...', directError);
+      
+      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+      const targetUrl = AM_OPS_ENDPOINT + '?action=getData';
+
+      response = await fetch(proxyUrl + targetUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        redirect: 'follow',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('CORS proxy response was not OK for AM Operations:', response.status, response.statusText, errorText);
+        console.log('No AM Operations data available, returning empty array');
+        return [];
+      }
+
+      data = await response.json();
+      console.log('CORS proxy request successful for AM Operations, data received:', data);
+    }
+    
+    if (!Array.isArray(data)) {
+      console.error('AM Operations data from Google Sheets is not an array:', data);
+      return [];
+    }
+    
+    // Process data to ensure proper region mapping
+    const processedData = await Promise.all(data.map(async (row: any) => {
+      let region = row.region || 'Unknown';
+      let storeId = row.storeId;
+      
+      // If region is Unknown or empty, try to map from store ID
+      if (!region || region === 'Unknown') {
+        try {
+          if (storeId) {
+            const mappingData = await loadStoreMapping();
+            
+            // Try to find by exact store ID match first
+            let storeMapping = mappingData.find(mapping => mapping['Store ID'] === storeId.toString() || mapping.storeId === storeId.toString());
+            
+            // If not found and storeId is numeric, try to find by store name or alternate mapping
+            if (!storeMapping && !isNaN(storeId)) {
+              // For numeric store IDs, try to match by store name if available
+              if (row.storeName) {
+                storeMapping = mappingData.find(mapping => 
+                  (mapping['Store Name'] && mapping['Store Name'].toLowerCase().includes(row.storeName.toLowerCase())) ||
+                  (mapping.locationName && mapping.locationName.toLowerCase().includes(row.storeName.toLowerCase())) ||
+                  (mapping['Store Name'] && row.storeName.toLowerCase().includes(mapping['Store Name'].toLowerCase())) ||
+                  (mapping.locationName && row.storeName.toLowerCase().includes(mapping.locationName.toLowerCase()))
+                );
+              }
+            // If still not found with S prefix, try with S prefix
+            if (!storeMapping && !storeId.toString().startsWith('S')) {
+              const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
+              storeMapping = mappingData.find(mapping => mapping['Store ID'] === sFormattedId || mapping.storeId === sFormattedId);
+            }
+            if (storeMapping && (storeMapping['Region'] || storeMapping.region)) {
+              region = storeMapping['Region'] || storeMapping.region;
+              console.log(`✅ Mapped store ${storeId} (${row.storeName}) to region: ${region}`);
+            } else {
+              console.warn(`❌ Could not find region mapping for store ${storeId} (${row.storeName})`);
+            }
+              console.warn(`❌ Could not find region mapping for store ${storeId} (${row.storeName})`);
+            }
+          }
+        } catch (error) {
+          console.warn(`Could not map region for store ${row.storeId}:`, error);
+        }
+      }
+      
+      return {
+        ...row,
+        region: region
+      };
+    }));
+    
+    console.log('AM Operations submissions processed with regions:', processedData);
+    return processedData as AMOperationsSubmission[];
+    
+  } catch (error) {
+    console.error('Error fetching AM Operations data from Google Sheets:', error);
+    return [];
+  }
+};
+
+// Interface for Training Audit submission
+export interface TrainingAuditSubmission {
+  submissionTime: string;
+  trainerName: string;
+  trainerId: string;
+  amName: string;
+  amId: string;
+  storeName: string;
+  storeId: string;
+  region: string;
+  mod: string;
+  totalScore: string;
+  maxScore: string;
+  percentageScore: string;
+  // TSA Scores (derived from TSA_TSA_1, TSA_TSA_2, TSA_TSA_3)
+  tsaFoodScore?: string;
+  tsaCoffeeScore?: string;
+  tsaCXScore?: string;
+  // All section responses
+  [key: string]: string; // For dynamic question keys like TM_1, LMS_1, etc.
+}
+
+// Fetch Training Audit data
+export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> => {
+  try {
+    console.log('Fetching Training Audit data from Google Sheets...');
+    
+    let response;
+    let data;
+    
+    try {
+      console.log('Trying direct request to Training Audit Google Apps Script...');
+      const directUrl = TRAINING_AUDIT_ENDPOINT + '?action=getData';
+      
+      response = await fetch(directUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        redirect: 'follow',
+      });
+      
+      if (response.ok) {
+        data = await response.json();
+        console.log('Direct request successful, Training Audit data received:', data);
+      } else {
+        throw new Error(`Direct request failed: ${response.status}`);
+      }
+    } catch (directError) {
+      console.log('Direct request failed for Training Audit, trying CORS proxy...', directError);
+      
+      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+      const targetUrl = TRAINING_AUDIT_ENDPOINT + '?action=getData';
+
+      response = await fetch(proxyUrl + targetUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        redirect: 'follow',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('CORS proxy response was not OK for Training Audit:', response.status, response.statusText, errorText);
+        console.log('Using static training test data as fallback...');
+        return STATIC_TRAINING_DATA as TrainingAuditSubmission[];
+      }
+
+      data = await response.json();
+      console.log('CORS proxy request successful for Training Audit, data received:', data);
+    }
+    
+    if (!Array.isArray(data)) {
+      console.error('Training Audit data from Google Sheets is not an array:', data);
+      console.log('Using static training test data as fallback...');
+      return STATIC_TRAINING_DATA as TrainingAuditSubmission[];
+    }
+    
+    // Process data to ensure proper region mapping and TSA score extraction
+    const processedData = await Promise.all(data.map(async (row: any) => {
+      let region = row.region || 'Unknown';
+      let storeId = row.storeId;
+      
+      // If region is Unknown or empty, try to map from store ID
+      if (!region || region === 'Unknown') {
+        try {
+          if (storeId) {
+            const mappingData = await loadStoreMapping();
+            
+            // Try to find by exact store ID match first
+            let storeMapping = mappingData.find(mapping => mapping["Store ID"] || mapping.storeId === storeId.toString());
+            
+            // If not found and storeId is numeric, try to find by store name or alternate mapping
+            if (!storeMapping && !isNaN(storeId)) {
+              // For numeric store IDs, try to match by store name if available
+              if (row.storeName) {
+                storeMapping = mappingData.find(mapping => 
+                  mapping["Store Name"] || mapping.locationName.toLowerCase().includes(row.storeName.toLowerCase()) ||
+                  row.storeName.toLowerCase().includes(mapping["Store Name"] || mapping.locationName.toLowerCase())
+                );
+              }
+            }
+            
+            // If still not found with S prefix, try with S prefix
+            if (!storeMapping && !storeId.toString().startsWith('S')) {
+              const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
+              storeMapping = mappingData.find(mapping => mapping["Store ID"] || mapping.storeId === sFormattedId);
+            }
+            
+            if (storeMapping && storeMapping["Region"] || storeMapping.region) {
+              region = storeMapping["Region"] || storeMapping.region;
+              console.log(`✅ Mapped store ${storeId} (${row.storeName}) to region: ${region}`);
+            } else {
+              console.warn(`❌ Could not find region mapping for store ${storeId} (${row.storeName})`);
+            }
+          }
+        } catch (error) {
+          console.warn(`Could not map region for store ${row.storeId}:`, error);
+        }
+      }
+      
+      // Extract and map TSA scores from TSA_TSA_1, TSA_TSA_2, TSA_TSA_3
+      // Based on the training audit questions:
+      // TSA_TSA_1: Hot & Cold stations work (coffee-related)
+      // TSA_TSA_2: Food station cleanliness (food-related)  
+      // TSA_TSA_3: Customer Service quality (CX-related)
+      const tsaCoffeeScore = row['TSA_TSA_1'] || row.TSA_TSA_1 || '';
+      const tsaFoodScore = row['TSA_TSA_2'] || row.TSA_TSA_2 || '';
+      const tsaCXScore = row['TSA_TSA_3'] || row.TSA_TSA_3 || '';
+      
+      return {
+        ...row,
+        region: region,
+        tsaCoffeeScore: tsaCoffeeScore,
+        tsaFoodScore: tsaFoodScore,
+        tsaCXScore: tsaCXScore
+      };
+    }));
+    
+    console.log('Training Audit submissions processed with regions:', processedData);
+    return processedData as TrainingAuditSubmission[];
+    
+  } catch (error) {
+    console.error('Error fetching Training Audit data from Google Sheets:', error);
+    console.log('Using static training test data as fallback...');
+    return STATIC_TRAINING_DATA as TrainingAuditSubmission[];
   }
 };

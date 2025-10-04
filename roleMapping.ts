@@ -14,11 +14,29 @@ export interface UserRole {
 // Load mapping data dynamically
 const loadMappingData = async (): Promise<any[]> => {
   try {
-  const base = (import.meta as any).env?.BASE_URL || '/';
-  const response = await fetch(`${base}hr_mapping.json`);
-    return await response.json();
+    const base = (import.meta as any).env?.BASE_URL || '/';
+    let response;
+    let mappingData;
+
+    // Try comprehensive TWC mapping first
+    try {
+      response = await fetch(`${base}twc_store_mapping.json`);
+      if (response.ok) {
+        mappingData = await response.json();
+        console.log('Loaded comprehensive TWC store mapping for role access');
+        return mappingData;
+      } else {
+        throw new Error('Comprehensive mapping not found');
+      }
+    } catch {
+      // Fallback to hr_mapping.json
+      response = await fetch(`${base}hr_mapping.json`);
+      mappingData = await response.json();
+      console.log('Loaded fallback HR mapping for role access');
+      return mappingData;
+    }
   } catch (error) {
-    console.warn('Could not load HR mapping data, using fallback');
+    console.warn('Could not load mapping data for roles, using fallback');
     return [];
   }
 };
@@ -81,7 +99,14 @@ const createRoleMappings = (hrMappingData: any[]): UserRole[] => {
   const regionalHrRegions: { [key: string]: string } = {};
 
   hrMappingData.forEach((item: any) => {
-    const { storeId, areaManagerId, hrbpId, regionalHrId, hrHeadId, lmsHeadId, region } = item;
+    // Handle both old and new field formats
+    const storeId = item['Store ID'] || item.storeId;
+    const areaManagerId = item['Area Manager ID'] || item.areaManagerId;
+    const hrbpId = item['HRBP ID'] || item.hrbpId;
+    const regionalHrId = item['Regional HR ID'] || item.regionalHrId;
+    const hrHeadId = item['HR Head ID'] || item.hrHeadId;
+    const lmsHeadId = item['LMS Head ID'] || item.lmsHeadId;
+    const region = item['Region'] || item.region;
 
     // Collect unique IDs
     if (areaManagerId) areaManagers.add(areaManagerId);

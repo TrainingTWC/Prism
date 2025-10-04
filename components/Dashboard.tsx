@@ -2,21 +2,42 @@ import React, { useEffect, useState, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Submission, Store } from '../types';
-import { fetchSubmissions } from '../services/dataService';
+import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, AMOperationsSubmission, TrainingAuditSubmission } from '../services/dataService';
 import { hapticFeedback } from '../utils/haptics';
 import StatCard from './StatCard';
 import Loader from './Loader';
 import NotificationOverlay from './NotificationOverlay';
 import ScoreDistributionChart from './ScoreDistributionChart';
 import AverageScoreByManagerChart from './AverageScoreByManagerChart';
-import { QUESTIONS, AREA_MANAGERS, HR_PERSONNEL, REGIONS, SENIOR_HR_ROLES } from '../constants';
+import { QUESTIONS, OPERATIONS_QUESTIONS, TRAINING_QUESTIONS, AREA_MANAGERS, HR_PERSONNEL, REGIONS, SENIOR_HR_ROLES } from '../constants';
 import DashboardFilters from './DashboardFilters';
+// import RCACapaAnalysis from './RCACapaAnalysis'; // Commented out - file not found
 import RegionPerformanceInfographic from './RegionPerformanceInfographic';
 import AMPerformanceInfographic from './AMPerformanceInfographic';
 import HRPerformanceInfographic from './HRPerformanceInfographic';
 import QuestionScoresInfographic from './QuestionScoresInfographic';
 import AMRadarChart from './AMRadarChart';
+// Operations Dashboard Components
+import OperationsRegionPerformanceInfographic from './OperationsRegionPerformanceInfographic';
+import OperationsAMPerformanceInfographic from './OperationsAMPerformanceInfographic';
+import OperationsHRPerformanceInfographic from './OperationsHRPerformanceInfographic';
+import OperationsScoreDistributionChart from './OperationsScoreDistributionChart';
+import OperationsAverageScoreChart from './OperationsAverageScoreChart';
+import OperationsSectionScoresInfographic from './OperationsSectionScoresInfographic';
+// Training Dashboard Components
+import TrainingStorePerformanceChart from './TrainingStorePerformanceChart';
+import TrainingRegionPerformanceInfographic from './TrainingRegionPerformanceInfographic';
+import TrainingScoreDistributionChart from './TrainingScoreDistributionChart';
+import TrainingAMPerformanceInfographic from './TrainingAMPerformanceInfographic';
+import TrainingHRPerformanceInfographic from './TrainingHRPerformanceInfographic';
+import TrainingAverageScoreChart from './TrainingAverageScoreChart';
+import TrainingRadarChart from './TrainingRadarChart';
+import TrainingHealthPieChart from './TrainingHealthPieChart';
+import OperationsRadarChart from './OperationsRadarChart';
+import TrainingDetailModal from './TrainingDetailModal';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../roleMapping';
+// Import audit dashboard navigation
+import { navigationActions, useCurrentView, useBreadcrumbs } from '../src/audit-dashboard/state';
 
 interface DashboardProps {
   userRole: UserRole;
@@ -24,6 +45,8 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const [submissions, setSubmissions] = useState<Submission[] | null>(null);
+  const [amOperationsData, setAMOperationsData] = useState<AMOperationsSubmission[] | null>(null);
+  const [trainingData, setTrainingData] = useState<TrainingAuditSubmission[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,10 +63,91 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     hr: '',
   });
 
+  // Dashboard type selection
+  const [dashboardType, setDashboardType] = useState<'hr' | 'operations' | 'training' | 'consolidated'>('consolidated');
+
   // Notification overlay state
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error' | 'info'>('success');
+
+  // Training detail modal state
+  const [showTrainingDetail, setShowTrainingDetail] = useState(false);
+  const [trainingDetailFilter, setTrainingDetailFilter] = useState<{
+    type: 'region' | 'am' | 'hr' | 'store' | 'section';
+    value: string;
+    title: string;
+  } | null>(null);
+
+  // Audit dashboard navigation state
+  const currentAuditView = useCurrentView();
+  const auditBreadcrumbs = useBreadcrumbs();
+
+  // Training detail modal handlers with audit dashboard navigation
+  const handleRegionClick = (region: string) => {
+    console.log('handleRegionClick called with region:', region);
+    console.log('filteredTrainingData:', filteredTrainingData?.length || 0);
+    
+    // Original modal functionality
+    setTrainingDetailFilter({
+      type: 'region',
+      value: region,
+      title: `${region} Region`
+    });
+    setShowTrainingDetail(true);
+    
+    // Add audit dashboard navigation
+    navigationActions.handleRegionPerfClick(region);
+  };
+
+  const handleTrainerClick = (trainerId: string, trainerName: string) => {
+    // Original modal functionality
+    setTrainingDetailFilter({
+      type: 'am',
+      value: trainerName,
+      title: `Trainer: ${trainerName}`
+    });
+    setShowTrainingDetail(true);
+    
+    // Add audit dashboard navigation
+    navigationActions.handleTopTrainerClick(trainerId, trainerName);
+  };
+
+  const handleSectionClick = (sectionId: string, sectionTitle: string) => {
+    // For section clicks, we'll show all data but highlight section performance
+    setTrainingDetailFilter({
+      type: 'section',
+      value: sectionId,
+      title: `Section: ${sectionTitle}`
+    });
+    setShowTrainingDetail(true);
+    
+    // Add audit dashboard navigation
+    navigationActions.handleSectionPerfClick(sectionId);
+  };
+
+  const handleScoreRangeClick = (minScore: number, maxScore: number, label: string) => {
+    // Add audit dashboard navigation for score distribution
+    navigationActions.handleScoreDistribClick(`${minScore}-${maxScore}`);
+  };
+
+  const handleStoreClick = (storeId: string, storeName: string) => {
+    // Add audit dashboard navigation for store details
+    setTrainingDetailFilter({
+      type: 'store',
+      value: storeId,
+      title: `Store: ${storeName}`
+    });
+    setShowTrainingDetail(true);
+    
+    // Add audit dashboard navigation
+    navigationActions.handleRegionStoreClick(storeId, storeName);
+  };
+
+  const closeTrainingDetail = () => {
+    setShowTrainingDetail(false);
+    setTrainingDetailFilter(null);
+  };
 
   // Auto-populate filters from URL parameters - but only when explicitly intended for dashboard filtering
   useEffect(() => {
@@ -155,10 +259,21 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         setLoading(true);
       }
       
+      // Load HR survey data
       const data = await fetchSubmissions();
-      console.log('Dashboard loaded data:', data.length, 'submissions');
-      console.log('Sample submission:', data[0]);
+      console.log('Dashboard loaded HR survey data:', data.length, 'submissions');
       setSubmissions(data);
+      
+      // Load AM Operations data
+      const amOpsData = await fetchAMOperationsData();
+      console.log('Dashboard loaded AM Operations data:', amOpsData.length, 'submissions');
+      setAMOperationsData(amOpsData);
+      
+      // Load Training Audit data
+      const trainingAuditData = await fetchTrainingData();
+      console.log('Dashboard loaded Training Audit data:', trainingAuditData.length, 'submissions');
+      setTrainingData(trainingAuditData);
+      
       setError(null);
       setLastRefresh(new Date());
       
@@ -322,7 +437,142 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   const filteredSubmissions = filteredData || [];
 
+  // Filter AM Operations data
+  const filteredAMOperations = useMemo(() => {
+    if (!amOperationsData) return [];
+    
+    console.log('Dashboard filtering AM Operations - userRole:', userRole);
+    console.log('Dashboard filtering AM Operations - raw data:', amOperationsData.length);
+    
+    let filtered = amOperationsData.filter((submission: AMOperationsSubmission) => {
+      // Role-based access control
+      if (userRole.type === 'store') {
+        if (!canAccessStore(userRole, submission.storeId)) {
+          return false;
+        }
+      } else if (userRole.type === 'am') {
+        if (!canAccessAM(userRole, submission.amId)) {
+          return false;
+        }
+      } else if (userRole.type === 'hr') {
+        if (!canAccessHR(userRole, submission.hrId)) {
+          return false;
+        }
+      }
+      
+      // Apply filters
+      if (filters.region && submission.region !== filters.region) {
+        return false;
+      }
+      
+      if (filters.store && submission.storeId !== filters.store) {
+        return false;
+      }
+      
+      if (filters.am && submission.amId !== filters.am) {
+        return false;
+      }
+      
+      if (filters.hr && submission.hrId !== filters.hr) {
+        return false;
+      }
+      
+      return true;
+    });
+    
+    console.log('Dashboard filtering AM Operations - filtered:', filtered.length);
+    return filtered;
+  }, [amOperationsData, filters, userRole]);
+
+  // Filter Training Audit data
+  const filteredTrainingData = useMemo(() => {
+    if (!trainingData) return [];
+    
+    console.log('Dashboard filtering Training Audit - userRole:', userRole);
+    console.log('Dashboard filtering Training Audit - raw data:', trainingData.length);
+    
+    let filtered = trainingData.filter((submission: TrainingAuditSubmission) => {
+      // Role-based access control (same as AM Operations but with trainer focus)
+      if (userRole.type === 'store') {
+        if (!canAccessStore(userRole, submission.storeId)) {
+          return false;
+        }
+      } else if (userRole.type === 'am') {
+        if (!canAccessAM(userRole, submission.amId)) {
+          return false;
+        }
+      } else if (userRole.type === 'hr') {
+        // For training audit, trainers can also act as HR for access
+        if (!canAccessHR(userRole, submission.amId)) { // Use amId as trainer check
+          return false;
+        }
+      }
+      
+      // Apply filters
+      if (filters.region && submission.region !== filters.region) {
+        return false;
+      }
+      
+      if (filters.store && submission.storeId !== filters.store) {
+        return false;
+      }
+      
+      if (filters.am && submission.amId !== filters.am) {
+        return false;
+      }
+      
+      // For training, trainer filter maps to trainer field
+      if (filters.hr && submission.trainerId !== filters.hr) {
+        return false;
+      }
+      
+      return true;
+    });
+    
+    console.log('Dashboard filtering Training Audit - filtered:', filtered.length);
+    return filtered;
+  }, [trainingData, filters, userRole]);
+
   const stats = useMemo(() => {
+    // For Training dashboard, use Training Audit data
+    if (dashboardType === 'training') {
+      if (!filteredTrainingData) return null;
+
+      const totalSubmissions = filteredTrainingData.length;
+      const avgScore = totalSubmissions > 0 
+        ? filteredTrainingData.reduce((acc, s) => acc + parseFloat(s.percentageScore || '0'), 0) / totalSubmissions 
+        : 0;
+      const uniqueTrainers = new Set(filteredTrainingData.map(s => s.trainerId)).size;
+      const uniqueStores = new Set(filteredTrainingData.map(s => s.storeId)).size;
+
+      return {
+        totalSubmissions,
+        avgScore: Math.round(avgScore),
+        uniqueEmployees: uniqueTrainers, // Using trainers for training dashboard
+        uniqueStores
+      };
+    }
+    
+    // For Operations dashboard, use AM Operations data
+    if (dashboardType === 'operations') {
+      if (!filteredAMOperations) return null;
+
+      const totalSubmissions = filteredAMOperations.length;
+      const avgScore = totalSubmissions > 0 
+        ? filteredAMOperations.reduce((acc, s) => acc + parseFloat(s.percentageScore || '0'), 0) / totalSubmissions 
+        : 0;
+      const uniqueTrainers = new Set(filteredAMOperations.map(s => s.trainerId)).size;
+      const uniqueStores = new Set(filteredAMOperations.map(s => s.storeId)).size;
+
+      return {
+        totalSubmissions,
+        avgScore: Math.round(avgScore),
+        uniqueEmployees: uniqueTrainers, // Using trainers instead of employees for operations
+        uniqueStores
+      };
+    }
+    
+    // For HR and Consolidated dashboards, use HR survey data
     if (!filteredSubmissions) return null;
 
     const totalSubmissions = filteredSubmissions.length;
@@ -336,7 +586,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       uniqueEmployees,
       uniqueStores
     };
-  }, [filteredSubmissions]);
+  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, dashboardType]);
 
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
     const newFilters = { ...filters, [filterName]: value };
@@ -376,10 +626,42 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       // Strong haptic feedback when starting PDF generation
       hapticFeedback.confirm();
       
-      if (!filteredSubmissions || filteredSubmissions.length === 0) {
-        alert('No data available to generate report');
-        hapticFeedback.error();
-        return;
+      // Check if we have data based on dashboard type
+      let reportData = [];
+      let dataType = 'HR Survey';
+      
+      if (dashboardType === 'hr') {
+        if (!filteredSubmissions || filteredSubmissions.length === 0) {
+          alert('No HR survey data available to generate report');
+          hapticFeedback.error();
+          return;
+        }
+        reportData = filteredSubmissions;
+        dataType = 'HR Survey';
+      } else if (dashboardType === 'operations') {
+        if (!filteredAMOperations || filteredAMOperations.length === 0) {
+          alert('No AM Operations data available to generate report');
+          hapticFeedback.error();
+          return;
+        }
+        reportData = filteredAMOperations;
+        dataType = 'AM Operations Checklist';
+      } else if (dashboardType === 'training') {
+        if (!filteredTrainingData || filteredTrainingData.length === 0) {
+          alert('No Training Audit data available to generate report');
+          hapticFeedback.error();
+          return;
+        }
+        reportData = filteredTrainingData;
+        dataType = 'Training Audit Checklist';
+      } else { // consolidated
+        if ((!filteredSubmissions || filteredSubmissions.length === 0) && (!filteredAMOperations || filteredAMOperations.length === 0)) {
+          alert('No data available to generate report');
+          hapticFeedback.error();
+          return;
+        }
+        reportData = filteredSubmissions.length > 0 ? filteredSubmissions : filteredAMOperations;
+        dataType = filteredSubmissions.length > 0 ? 'HR Survey' : 'AM Operations Checklist';
       }
 
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -389,7 +671,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(18);
       doc.setTextColor(34, 107, 140); // Dark blue color
-      doc.text('THIRD WAVE COFFEE | HR CONNECT', 14, y);
+      doc.text('PRISM DASHBOARD', 14, y);
       
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
@@ -397,52 +679,54 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       y += 12;
 
       // Determine report type and entity details based on current filters
-      let reportTitle = 'Dashboard Report';
+      let reportTitle = `${dataType} Dashboard Report`;
       let entityDetails = {};
 
       if (filters.store) {
         const storeInfo = allStores.find(s => s.id === filters.store);
-        reportTitle = 'Store Report';
+        reportTitle = `${dataType} Store Report`;
         entityDetails = {
           'Store Name': storeInfo?.name || filters.store,
           'Store ID': filters.store,
-          'Total Submissions': filteredSubmissions.length,
-          'Employees Surveyed': stats?.uniqueEmployees || 0
+          'Total Submissions': reportData.length,
+          'Data Type': dataType
         };
       } else if (filters.am) {
         const amInfo = AREA_MANAGERS.find(am => am.id === filters.am);
-        reportTitle = 'Area Manager Report';
-        const amStores = filteredSubmissions.reduce((acc, sub) => {
-          if (sub.storeName && !acc.includes(sub.storeName)) {
-            acc.push(sub.storeName);
+        reportTitle = `${dataType} Area Manager Report`;
+        const storesFromData = reportData.reduce((acc, sub) => {
+          const storeName = sub.storeName || sub.store_name || 'Unknown Store';
+          if (!acc.includes(storeName)) {
+            acc.push(storeName);
           }
           return acc;
         }, []);
         entityDetails = {
           'Area Manager': amInfo?.name || filters.am,
           'AM ID': filters.am,
-          'Stores Managed': amStores.join(', ') || 'N/A',
-          'Total Submissions': filteredSubmissions.length,
+          'Stores Managed': storesFromData.join(', ') || 'N/A',
+          'Total Submissions': reportData.length,
           'Stores Covered': stats?.uniqueStores || 0,
-          'Employees Surveyed': stats?.uniqueEmployees || 0
+          'Data Type': dataType
         };
       } else if (filters.hr) {
         const hrInfo = HR_PERSONNEL.find(hr => hr.id === filters.hr);
-        reportTitle = 'HR Personnel Report';
+        const roleName = dashboardType === 'training' ? 'Trainer' : 'HR Personnel';
+        reportTitle = `${dataType} ${roleName} Report`;
         entityDetails = {
-          'HR Name': hrInfo?.name || filters.hr,
-          'HR ID': filters.hr,
-          'Total Submissions': filteredSubmissions.length,
+          [`${roleName} Name`]: hrInfo?.name || filters.hr,
+          [`${roleName} ID`]: filters.hr,
+          'Total Submissions': reportData.length,
           'Stores Covered': stats?.uniqueStores || 0,
-          'Employees Surveyed': stats?.uniqueEmployees || 0
+          'Data Type': dataType
         };
       } else if (filters.region) {
-        reportTitle = 'Region Report';
+        reportTitle = `${dataType} Region Report`;
         entityDetails = {
           'Region': filters.region,
-          'Total Submissions': filteredSubmissions.length,
+          'Total Submissions': reportData.length,
           'Stores Covered': stats?.uniqueStores || 0,
-          'Employees Surveyed': stats?.uniqueEmployees || 0
+          'Data Type': dataType
         };
       } else {
         // General dashboard report
@@ -450,9 +734,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           'Generated by': userRole?.name || 'Unknown',
           'Role': userRole?.role?.replace('_', ' ').toUpperCase() || 'Unknown',
           'Region Access': userRole?.region || 'All Regions',
-          'Total Submissions': filteredSubmissions.length,
+          'Total Submissions': reportData.length,
           'Stores Covered': stats?.uniqueStores || 0,
-          'Employees Surveyed': stats?.uniqueEmployees || 0
+          'Data Type': dataType
         };
       }
 
@@ -494,7 +778,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       y += 15;
 
       // Score and progress bar
-      if (filteredSubmissions.length !== 1) {
+      if (reportData.length !== 1) {
         // Multi-submission: show average percent and bar here with centered text
         const scoreToShow = stats?.avgScore || 0;
         doc.setFont('helvetica', 'bold');
@@ -536,72 +820,182 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       }
 
       // For individual submission reports (when filtered to specific store/employee)
-      if (filteredSubmissions.length === 1) {
-        const submission = filteredSubmissions[0];
+      if (reportData.length === 1) {
+        const submission = reportData[0];
         console.log('Single submission data:', submission);
         
-        // Survey Details Section
+        // Determine which question set to use based on dashboard type
+        let questionsToUse = QUESTIONS; // Default to HR questions
+        let maxScore = 50; // Default HR max score
+        let detailsTitle = 'Survey Details';
+        
+        if (dashboardType === 'operations') {
+          questionsToUse = OPERATIONS_QUESTIONS;
+          maxScore = 53; // Operations has 53 questions, each worth 1 point
+          detailsTitle = 'Operations Checklist Details';
+        } else if (dashboardType === 'training') {
+          questionsToUse = TRAINING_QUESTIONS;
+          // Actual max score based on SECTIONS weights in TrainingChecklist.tsx:
+          // TM: 10pts, LMS: 10pts, Buddy: 10pts, NJ: 10pts, PK: 15pts, TSA: 30pts, CX: 10pts, AP: 5pts
+          maxScore = 100; // Total max score for training questions
+          detailsTitle = 'Training Audit Details';
+        }
+
+        // Create mapping for training question weights (from SECTIONS in TrainingChecklist.tsx)
+        const trainingWeights: Record<string, {w: number, wneg?: number}> = {
+          'TM_1': {w: 1}, 'TM_2': {w: 1}, 'TM_3': {w: 1}, 'TM_4': {w: 1}, 'TM_5': {w: 2},
+          'TM_6': {w: 1}, 'TM_7': {w: 1}, 'TM_8': {w: 1}, 'TM_9': {w: 1},
+          'LMS_1': {w: 4, wneg: -4}, 'LMS_2': {w: 4, wneg: -4}, 'LMS_3': {w: 2},
+          'Buddy_1': {w: 2}, 'Buddy_2': {w: 2}, 'Buddy_3': {w: 1}, 'Buddy_4': {w: 2}, 'Buddy_5': {w: 2}, 'Buddy_6': {w: 1},
+          'NJ_1': {w: 1}, 'NJ_2': {w: 1}, 'NJ_3': {w: 1}, 'NJ_4': {w: 1}, 'NJ_5': {w: 2}, 'NJ_6': {w: 2}, 'NJ_7': {w: 2},
+          'PK_1': {w: 2}, 'PK_2': {w: 2}, 'PK_3': {w: 2}, 'PK_4': {w: 2}, 'PK_5': {w: 2}, 'PK_6': {w: 2}, 'PK_7': {w: 3, wneg: -3},
+          'TSA_1': {w: 10}, 'TSA_2': {w: 10}, 'TSA_3': {w: 10},
+          'CX_1': {w: 1}, 'CX_2': {w: 1}, 'CX_3': {w: 1}, 'CX_4': {w: 1}, 'CX_5': {w: 2}, 'CX_6': {w: 1}, 'CX_7': {w: 1}, 'CX_8': {w: 1}, 'CX_9': {w: 1},
+          'AP_1': {w: 1, wneg: -1}, 'AP_2': {w: 2}, 'AP_3': {w: 2}
+        };
+        
+        // Survey/Checklist Details Section
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
-        doc.text('Survey Details', 14, y);
+        doc.text(detailsTitle, 14, y);
         y += 8;
 
-        // Survey details in two columns (like the attachment) with better alignment
+        // Details in two columns (adapted for different data structures)
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
         
-        // Left column
-        doc.setFont('helvetica', 'bold');
-        doc.text('HR Name:', 14, y);
-        doc.setFont('helvetica', 'normal');
-        doc.text(submission.hrName || 'N/A', 55, y);
-        
-        // Right column
-        doc.setFont('helvetica', 'bold');
-        doc.text('HR ID:', 110, y);
-        doc.setFont('helvetica', 'normal');
-        doc.text(submission.hrId || 'N/A', 130, y);
-        y += 6;
+        if (dashboardType === 'hr') {
+          // HR Survey specific fields
+          // Left column
+          doc.setFont('helvetica', 'bold');
+          doc.text('HR Name:', 14, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text((submission as any).hrName || 'N/A', 55, y);
+          
+          // Right column
+          doc.setFont('helvetica', 'bold');
+          doc.text('HR ID:', 110, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text((submission as any).hrId || 'N/A', 130, y);
+          y += 6;
 
-        doc.setFont('helvetica', 'bold');
-        doc.text('Area Manager:', 14, y);
-        doc.setFont('helvetica', 'normal');
-        doc.text(submission.amName || 'N/A', 55, y);
-        
-        doc.setFont('helvetica', 'bold');
-        doc.text('AM ID:', 110, y);
-        doc.setFont('helvetica', 'normal');
-        doc.text(submission.amId || 'N/A', 130, y);
-        y += 6;
+          doc.setFont('helvetica', 'bold');
+          doc.text('Area Manager:', 14, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text((submission as any).amName || 'N/A', 55, y);
+          
+          doc.setFont('helvetica', 'bold');
+          doc.text('AM ID:', 110, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text((submission as any).amId || 'N/A', 130, y);
+          y += 6;
 
-        doc.setFont('helvetica', 'bold');
-        doc.text('Emp Name:', 14, y);
-        doc.setFont('helvetica', 'normal');
-        doc.text(submission.empName || 'N/A', 55, y);
-        
-        doc.setFont('helvetica', 'bold');
-        doc.text('Emp ID:', 110, y);
-        doc.setFont('helvetica', 'normal');
-        doc.text(submission.empId || 'N/A', 130, y);
-        y += 6;
+          doc.setFont('helvetica', 'bold');
+          doc.text('Emp Name:', 14, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text((submission as any).empName || 'N/A', 55, y);
+          
+          doc.setFont('helvetica', 'bold');
+          doc.text('Emp ID:', 110, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text((submission as any).empId || 'N/A', 130, y);
+          y += 6;
+        } else if (dashboardType === 'operations' || dashboardType === 'training') {
+          // Operations and Training specific fields
+          doc.setFont('helvetica', 'bold');
+          doc.text('Trainer Name:', 14, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text((submission as any).trainerName || (submission as any).trainer_name || 'N/A', 55, y);
+          
+          doc.setFont('helvetica', 'bold');
+          doc.text('Trainer ID:', 110, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text((submission as any).trainerId || (submission as any).trainer_id || 'N/A', 130, y);
+          y += 6;
 
+          doc.setFont('helvetica', 'bold');
+          doc.text('Area Manager:', 14, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text((submission as any).amName || (submission as any).am_name || 'N/A', 55, y);
+          
+          doc.setFont('helvetica', 'bold');
+          doc.text('AM ID:', 110, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text((submission as any).amId || (submission as any).am_id || 'N/A', 130, y);
+          y += 6;
+
+          if (dashboardType === 'training') {
+            doc.setFont('helvetica', 'bold');
+            doc.text('MOD:', 14, y);
+            doc.setFont('helvetica', 'normal');
+            doc.text((submission as any).mod || 'N/A', 55, y);
+            y += 6;
+          }
+        }
+        
+        // Store details (common for all types)
         doc.setFont('helvetica', 'bold');
         doc.text('Store Name:', 14, y);
         doc.setFont('helvetica', 'normal');
-        doc.text(submission.storeName || 'N/A', 55, y);
+        doc.text((submission as any).storeName || (submission as any).store_name || 'N/A', 55, y);
         
         doc.setFont('helvetica', 'bold');
         doc.text('Store ID:', 110, y);
         doc.setFont('helvetica', 'normal');
-        doc.text(submission.storeID || 'N/A', 130, y);
+        doc.text((submission as any).storeId || (submission as any).storeID || (submission as any).store_id || 'N/A', 130, y);
         y += 15;
 
         // Score section with bar (after details)
-        const singleScore = submission.totalScore || 0;
-        const singlePct = Math.round((singleScore / (submission.maxScore || 50)) * 100);
+        let calculatedScore = 0;
+        let calculatedMaxScore = 0;
+        
+        if (dashboardType === 'training') {
+          // Recalculate score using the same logic as TrainingChecklist.tsx
+          questionsToUse.forEach((question) => {
+            const weight = trainingWeights[question.id];
+            if (weight) {
+              const respKey = question.id;
+              const raw = (submission as any)[respKey];
+              
+              // Only include in calculation if there's a response (exclude N/A)
+              if (raw !== undefined && raw !== null && raw !== '' && raw !== 'N/A') {
+                if (question.id.startsWith('TSA_')) {
+                  const score = parseInt(raw) || 0;
+                  calculatedScore += score;
+                  calculatedMaxScore += weight.w;
+                } else if (raw === 'yes' || raw === 'Yes') {
+                  calculatedScore += weight.w;
+                  calculatedMaxScore += weight.w;
+                } else if (raw === 'no' || raw === 'No') {
+                  calculatedScore += weight.wneg || 0;
+                  calculatedMaxScore += weight.w;
+                } else if (raw === 'Excellent') {
+                  calculatedScore += 5;
+                  calculatedMaxScore += weight.w;
+                } else if (raw === 'Good') {
+                  calculatedScore += 3;
+                  calculatedMaxScore += weight.w;
+                } else if (raw === 'Poor') {
+                  calculatedScore += 1;
+                  calculatedMaxScore += weight.w;
+                } else if (String(raw).trim()) {
+                  // For text responses, give full score if there's content
+                  calculatedScore += weight.w;
+                  calculatedMaxScore += weight.w;
+                }
+              }
+            }
+          });
+        } else {
+          // For non-training dashboards, use the stored score
+          calculatedScore = (submission as any).totalScore || (submission as any).total_score || 0;
+          calculatedMaxScore = maxScore;
+        }
+        
+        const singlePct = calculatedMaxScore > 0 ? Math.round((calculatedScore / calculatedMaxScore) * 100) : 0;
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
-        doc.text(`Score: ${singleScore} / 50   (${singlePct}%)`, 14, y);
+        doc.text(`Score: ${calculatedScore} / ${calculatedMaxScore}   (${singlePct}%)`, 14, y);
         y += 8;
 
         const barX = 14, barY = y, barW = 170, barH = 8;
@@ -635,29 +1029,102 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         y += barH + 12;
 
         // Individual Question Responses Table
-        const questionResponses = QUESTIONS.map((question) => {
-          // Access Submission fields directly (q1..q12) and remarks if present
-          const respKey = question.id as keyof Submission;
-          const remarksKey = `${question.id}_remarks` as keyof Submission;
+        const questionResponses = questionsToUse.map((question) => {
+          // Access submission fields directly based on question ID
+          const respKey = question.id;
+          const remarksKey = `${question.id}_remarks`;
           const raw = (submission as any)[respKey];
           const remarks = ((submission as any)[remarksKey] as string) || '';
           let answerText = 'No Response';
+          let scoreText = '-';
 
           // Always display the raw value if it exists, regardless of whether it matches expected choices
-          if (raw !== undefined && raw !== null && raw !== '') {
+          if (raw !== undefined && raw !== null && raw !== '' && raw !== 'N/A') {
             answerText = String(raw).trim();
+            
+            // Calculate individual question score for training questions
+            if (dashboardType === 'training') {
+              const weight = trainingWeights[question.id];
+              if (weight) {
+                if (question.id.startsWith('TSA_')) {
+                  const score = parseInt(raw) || 0;
+                  scoreText = `${score}/${weight.w}`;
+                } else if (raw === 'Yes' || raw === 'yes') {
+                  scoreText = `${weight.w}/${weight.w}`;
+                } else if (raw === 'No' || raw === 'no') {
+                  const actualScore = weight.wneg || 0;
+                  scoreText = `${actualScore}/${weight.w}`;
+                } else if (question.choices) {
+                  // For choice-based questions, find the actual score
+                  const choice = question.choices.find(c => c.label === String(raw));
+                  if (choice) {
+                    scoreText = `${choice.score}/${weight.w}`;
+                  } else {
+                    scoreText = `0/${weight.w}`;
+                  }
+                } else {
+                  // Text responses get full score if answered
+                  scoreText = answerText.trim() ? `${weight.w}/${weight.w}` : `0/${weight.w}`;
+                }
+              } else {
+                scoreText = 'N/A';
+              }
+            } else if (dashboardType === 'operations') {
+              // Operations questions are Yes/No with 1/0 scoring
+              if (question.choices) {
+                const choice = question.choices.find(c => c.label === String(raw));
+                scoreText = choice ? `${choice.score}/1` : '0/1';
+              }
+            } else {
+              // HR questions
+              if (question.choices) {
+                const choice = question.choices.find(c => c.label === String(raw));
+                if (choice) {
+                  const maxChoice = Math.max(...question.choices.map(c => c.score));
+                  scoreText = `${choice.score}/${maxChoice}`;
+                }
+              }
+            }
           }
 
-          return [
-            question.title,
-            answerText,
-            remarks || '-'
-          ];
+          // For training, return 4 columns including individual score
+          if (dashboardType === 'training') {
+            return [
+              question.title,
+              answerText,
+              scoreText,
+              remarks || '-'
+            ];
+          } else {
+            return [
+              question.title,
+              answerText,
+              remarks || '-'
+            ];
+          }
         });
+
+          // Configure table headers and columns based on dashboard type
+          const tableHeaders = dashboardType === 'training' 
+            ? [['Question', 'Answer', 'Score', 'Remarks']]
+            : [['Question', 'Answer', 'Remarks']];
+            
+          const columnStyles = dashboardType === 'training'
+            ? {
+                0: { cellWidth: 75 },  // Question
+                1: { cellWidth: 40 },  // Answer  
+                2: { cellWidth: 25 },  // Score
+                3: { cellWidth: 40 }   // Remarks
+              }
+            : {
+                0: { cellWidth: 90 },  // Question
+                1: { cellWidth: 55 },  // Answer
+                2: { cellWidth: 45 }   // Remarks
+              };
 
           autoTable(doc, {
             startY: y,
-            head: [['Question', 'Answer', 'Remarks']],
+            head: tableHeaders,
             body: questionResponses,
             styles: { 
               fontSize: 9, 
@@ -677,11 +1144,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               lineWidth: 0.2,
               lineColor: [180, 180, 180]
             },
-            columnStyles: {
-              0: { cellWidth: 90 },
-              1: { cellWidth: 55 },
-              2: { cellWidth: 45 }
-            },
+            columnStyles: columnStyles,
             margin: { left: 14, right: 14 }
           });
 
@@ -693,7 +1156,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       } else {
         // Summary Statistics Table for multiple submissions
         const summaryData = [
-          ['Total Responses', filteredSubmissions.length.toString()],
+          ['Total Responses', reportData.length.toString()],
           ['Average Score', `${stats?.avgScore || 0}%`],
           ['Unique Employees', (stats?.uniqueEmployees || 0).toString()],
           ['Stores Covered', (stats?.uniqueStores || 0).toString()],
@@ -731,12 +1194,21 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       }
 
       // Question Performance + Individual Submissions (only for multi-result reports)
-      if (filteredSubmissions.length !== 1) {
+      if (reportData.length !== 1) {
+        // Determine which question set to use for multi-submission reports
+        let questionsToUse = QUESTIONS; // Default to HR questions
+        
+        if (dashboardType === 'operations') {
+          questionsToUse = OPERATIONS_QUESTIONS;
+        } else if (dashboardType === 'training') {
+          questionsToUse = TRAINING_QUESTIONS;
+        }
+        
         // Question Performance Table
-        const questionPerformance = QUESTIONS.map((question) => {
-          const questionScores = filteredSubmissions
-            .map(s => {
-              const val = (s as any)[question.id];
+        const questionPerformance = questionsToUse.map((question) => {
+          const questionScores = reportData
+            .map((s: any) => {
+              const val = s[question.id];
               if (val == null || val === '') return null;
               if (question.type === 'radio' && question.choices) {
                 const choice = question.choices.find(c => c.label === String(val));
@@ -1065,6 +1537,86 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         </div>
       )}
 
+      {/* Dashboard Type Selector */}
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">Dashboard Type</h3>
+        <div className="flex gap-4">
+          <button
+            onClick={() => setDashboardType('hr')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              dashboardType === 'hr'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
+            }`}
+          >
+            HR Survey Dashboard
+          </button>
+          <button
+            onClick={() => setDashboardType('operations')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              dashboardType === 'operations'
+                ? 'bg-orange-600 text-white'
+                : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
+            }`}
+          >
+            Operations Checklist Dashboard
+          </button>
+          <button
+            onClick={() => setDashboardType('training')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              dashboardType === 'training'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
+            }`}
+          >
+            Training Audit Dashboard
+          </button>
+          <button
+            onClick={() => setDashboardType('consolidated')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              dashboardType === 'consolidated'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
+            }`}
+          >
+            Consolidated Dashboard
+          </button>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-slate-400 mt-2">
+          {dashboardType === 'hr' && 'View insights from HR Employee Satisfaction Surveys'}
+          {dashboardType === 'operations' && 'View insights from AM Operations Checklists'}
+          {dashboardType === 'training' && 'View insights from Training Audit Checklists'}
+          {dashboardType === 'consolidated' && 'View combined insights from all checklist types'}
+        </p>
+      </div>
+
+      {/* Audit Navigation Breadcrumbs - Only show for training dashboard when navigating */}
+      {dashboardType === 'training' && auditBreadcrumbs.length > 1 && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="flex items-center space-x-2 text-sm">
+            <span className="text-blue-600 dark:text-blue-400 font-medium">Audit Navigation:</span>
+            {auditBreadcrumbs.map((crumb, index) => (
+              <React.Fragment key={index}>
+                {index > 0 && (
+                  <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                )}
+                <span className={`${index === auditBreadcrumbs.length - 1 ? 'text-blue-800 dark:text-blue-200 font-semibold' : 'text-blue-600 dark:text-blue-300'}`}>
+                  {crumb.label}
+                </span>
+              </React.Fragment>
+            ))}
+            <button
+              onClick={() => navigationActions.handleRegionFilterClick('')}
+              className="ml-4 text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 px-2 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
+            >
+              Reset Navigation
+            </button>
+          </div>
+        </div>
+      )}
+
       <DashboardFilters
         regions={availableRegions}
         stores={availableStores}
@@ -1075,8 +1627,21 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         onReset={resetFilters}
       />
 
+      {/* RCA & CAPA Analysis - Only for Operations Dashboard */}
+      {/* Commented out - RCACapaAnalysis component not found
+      {dashboardType === 'operations' && filteredAMOperations.length > 0 && (
+        <RCACapaAnalysis 
+          submissions={filteredAMOperations} 
+          questions={OPERATIONS_QUESTIONS}
+        />
+      )}
+      */}
+
       {/* Download Report Button */}
-      {filteredSubmissions.length > 0 && (
+      {((dashboardType === 'hr' && filteredSubmissions.length > 0) || 
+        (dashboardType === 'operations' && filteredAMOperations.length > 0) ||
+        (dashboardType === 'training' && filteredTrainingData.length > 0) ||
+        (dashboardType === 'consolidated' && (filteredSubmissions.length > 0 || filteredAMOperations.length > 0))) && (
         <div className="flex justify-end">
           <button
             onClick={generatePDFReport}
@@ -1090,36 +1655,128 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         </div>
       )}
       
-      {filteredSubmissions.length > 0 ? (
+      {/* Check if we have data for the selected dashboard type */}
+      {((dashboardType === 'hr' && filteredSubmissions.length > 0) || 
+        (dashboardType === 'operations' && filteredAMOperations.length > 0) ||
+        (dashboardType === 'training' && filteredTrainingData.length > 0) ||
+        (dashboardType === 'consolidated' && (filteredSubmissions.length > 0 || filteredAMOperations.length > 0))) ? (
         <>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard title="Total Submissions" value={stats?.totalSubmissions} />
-            <StatCard title="Average Score" value={`${stats?.avgScore}%`} />
-            <StatCard title="Employees Surveyed" value={stats?.uniqueEmployees} />
-            <StatCard title="Stores Covered" value={stats?.uniqueStores} />
-          </div>
+          {/* Dashboard Type Specific Content - Removed Coming Soon sections */}
+          
+          {/* Stats Grid - Different layouts based on dashboard type */}
+          {dashboardType === 'training' ? (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard title="Total Submissions" value={stats?.totalSubmissions} />
+              <StatCard title="Average Score" value={`${stats?.avgScore}%`} />
+              <div className="sm:col-span-1 lg:col-span-1">
+                <TrainingHealthPieChart submissions={filteredTrainingData} />
+              </div>
+              <StatCard title="Stores Covered" value={stats?.uniqueStores} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard title="Total Submissions" value={stats?.totalSubmissions} />
+              <StatCard title="Average Score" value={`${stats?.avgScore}%`} />
+              <StatCard 
+                title={dashboardType === 'operations' ? "Trainers Involved" : "Employees Surveyed"} 
+                value={stats?.uniqueEmployees} 
+              />
+              <StatCard title="Stores Covered" value={stats?.uniqueStores} />
+            </div>
+          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            <RegionPerformanceInfographic submissions={filteredSubmissions} stores={allStores} />
-            <AMPerformanceInfographic submissions={filteredSubmissions} />
-            <HRPerformanceInfographic submissions={filteredSubmissions} />
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ScoreDistributionChart submissions={filteredSubmissions} />
-              <AverageScoreByManagerChart submissions={filteredSubmissions} />
-          </div>
-          
-          <QuestionScoresInfographic submissions={filteredSubmissions} questions={QUESTIONS} />
-          
-          <div className="grid grid-cols-1 gap-6">
-            <AMRadarChart submissions={filteredSubmissions} />
-          </div>
+          {/* Show HR Dashboard Content */}
+          {(dashboardType === 'hr' || dashboardType === 'consolidated') && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <RegionPerformanceInfographic submissions={filteredSubmissions} stores={allStores} />
+                <AMPerformanceInfographic submissions={filteredSubmissions} />
+                <HRPerformanceInfographic submissions={filteredSubmissions} />
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <ScoreDistributionChart submissions={filteredSubmissions} />
+                  <AverageScoreByManagerChart submissions={filteredSubmissions} />
+              </div>
+              
+              <QuestionScoresInfographic submissions={filteredSubmissions} questions={QUESTIONS} />
+              
+              <div className="grid grid-cols-1 gap-6">
+                <AMRadarChart submissions={filteredSubmissions} />
+              </div>
+            </>
+          )}
+
+          {/* Training Dashboard Content */}
+          {dashboardType === 'training' && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <TrainingRegionPerformanceInfographic 
+                  submissions={filteredTrainingData} 
+                  onRegionClick={handleRegionClick}
+                />
+                <TrainingAMPerformanceInfographic 
+                  submissions={filteredTrainingData} 
+                  onTrainerClick={handleTrainerClick}
+                />
+                <TrainingHRPerformanceInfographic 
+                  submissions={filteredTrainingData}
+                  onSectionClick={handleSectionClick}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <TrainingScoreDistributionChart 
+                  submissions={filteredTrainingData} 
+                  onScoreRangeClick={handleScoreRangeClick}
+                />
+                <TrainingAverageScoreChart submissions={filteredTrainingData} />
+              </div>
+              
+              <TrainingStorePerformanceChart 
+                submissions={filteredTrainingData} 
+                onStoreClick={handleStoreClick}
+              />
+              
+              <div className="grid grid-cols-1 gap-6">
+                <TrainingRadarChart submissions={filteredTrainingData} />
+              </div>
+            </>
+          )}
+
+          {/* Operations Dashboard Content */}
+          {dashboardType === 'operations' && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <OperationsRegionPerformanceInfographic submissions={filteredAMOperations} />
+                <OperationsAMPerformanceInfographic submissions={filteredAMOperations} />
+                <OperationsHRPerformanceInfographic submissions={filteredAMOperations} />
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <OperationsScoreDistributionChart submissions={filteredAMOperations} />
+                <OperationsAverageScoreChart submissions={filteredAMOperations} />
+              </div>
+              
+              <OperationsSectionScoresInfographic submissions={filteredAMOperations} />
+              
+              <div className="grid grid-cols-1 gap-6">
+                <OperationsRadarChart submissions={filteredAMOperations} />
+              </div>
+            </>
+          )}
         </>
       ) : (
         <div className="text-center py-10 bg-slate-800/50 rounded-xl border border-slate-700">
             <h3 className="text-lg font-semibold text-slate-100">No Results Found</h3>
-            <p className="text-slate-400 mt-1">Try adjusting your filters to find data.</p>
+            <p className="text-slate-400 mt-1">
+              {dashboardType === 'operations' 
+                ? 'No AM Operations checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
+                : dashboardType === 'training'
+                ? 'No Training Audit checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
+                : 'Try adjusting your filters to find data.'
+              }
+            </p>
         </div>
       )}
 
@@ -1129,6 +1786,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         message={notificationMessage}
         type={notificationType}
       />
+
+      {/* Training Detail Modal */}
+      {trainingDetailFilter && (
+        <TrainingDetailModal
+          isOpen={showTrainingDetail}
+          onClose={closeTrainingDetail}
+          submissions={filteredTrainingData || []}
+          filterType={trainingDetailFilter.type}
+          filterValue={trainingDetailFilter.value}
+          title={trainingDetailFilter.title}
+        />
+      )}
     </div>
   );
 };

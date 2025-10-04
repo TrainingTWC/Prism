@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Dashboard from './components/Dashboard';
-import Survey from './components/Survey';
 import AIInsights from './components/AIInsights';
+import ChecklistsAndSurveys from './components/ChecklistsAndSurveys';
 import Header from './components/Header';
 import Login from './components/Login';
 import { getUserRole, UserRole } from './roleMapping';
@@ -10,7 +10,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 const AppContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'survey' | 'ai-insights'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'ai-insights' | 'checklists'>('dashboard');
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userId, setUserId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -22,9 +22,9 @@ const AppContent: React.FC = () => {
     const userIdParam = urlParams.get('userId') || urlParams.get('id') || urlParams.get('user');
     const hrIdParam = urlParams.get('hrId') || urlParams.get('hr_id');
     
-    // If HR ID is present, default to survey tab
+    // If HR ID is present, default to checklists tab
     if (hrIdParam) {
-      setActiveTab('survey');
+      setActiveTab('checklists');
     }
     
     if (userIdParam) {
@@ -88,8 +88,8 @@ const AppContent: React.FC = () => {
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'survey', label: 'Survey', icon: '📝' },
-    { id: 'ai-insights', label: 'AI Insights', icon: '🤖' }
+    { id: 'ai-insights', label: 'AI Insights', icon: '🤖' },
+    { id: 'checklists', label: 'Checklists & Surveys', icon: '✅' }
   ];
 
   return (
@@ -102,7 +102,7 @@ const AppContent: React.FC = () => {
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as 'dashboard' | 'survey' | 'ai-insights')}
+              onClick={() => setActiveTab(tab.id as 'dashboard' | 'ai-insights' | 'checklists')}
               className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                 activeTab === tab.id
                   ? 'border-sky-400 text-sky-400'
@@ -118,8 +118,8 @@ const AppContent: React.FC = () => {
 
       <main className="p-4 sm:p-6 lg:p-8">
         {activeTab === 'dashboard' && <Dashboard userRole={userRole} />}
-        {activeTab === 'survey' && <Survey userRole={userRole} />}
         {activeTab === 'ai-insights' && <AIInsights userRole={userRole} />}
+        {activeTab === 'checklists' && <ChecklistsAndSurveys userRole={userRole} />}
       </main>
     </div>
   );
