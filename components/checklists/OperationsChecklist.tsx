@@ -5,8 +5,8 @@ import { Store } from '../../types';
 import { hapticFeedback } from '../../utils/haptics';
 import hrMappingData from '../../src/hr_mapping.json';
 
-// Google Sheets endpoint for logging AM Operations data - UPDATE WITH YOUR SCRIPT URL
-const AM_OPS_LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzvAf3C-ChJTiIR0HKXhacf3rj3kO-6MshlRGkr-tm4AiLp7nAUkDVb2qVOqnPayDlsFA/exec';
+// Google Sheets endpoint for logging AM Operations data - UPDATED URL
+const AM_OPS_LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw_Q9JD-4ys1qElIM4-DYFwwOUzVmPs-LYsYmP9lWqsp3ExJr5tnt-RYEJxYTi5SEjJ6w/exec';
 
 interface ChecklistMeta {
   hrName: string;
@@ -17,6 +17,12 @@ interface ChecklistMeta {
   trainerId: string;
   storeName: string;
   storeId: string;
+  bscAchievement: string;
+  peopleOnShift: string;
+  manpowerFulfilment: string;
+  cafeType: string;
+  storeType: string;
+  concept: string;
 }
 
 interface OperationsChecklistProps {
@@ -153,7 +159,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     } catch(e) {}
     
     const urlParams = new URLSearchParams(window.location.search);
-    const amId = urlParams.get('amId') || urlParams.get('am_id') || (stored as any).amId || '';
+    const amId = urlParams.get('amId') || urlParams.get('am_id') || urlParams.get('r') || (stored as any).amId || '';
     const amName = urlParams.get('amName') || urlParams.get('am_name') || (stored as any).amName || '';
     
     const findAMById = (id: string) => {
@@ -185,7 +191,13 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
       trainerName: (stored as any).trainerName || '',
       trainerId: (stored as any).trainerId || '',
       storeName: (stored as any).storeName || '',
-      storeId: (stored as any).storeId || ''
+      storeId: (stored as any).storeId || '',
+      bscAchievement: (stored as any).bscAchievement || '',
+      peopleOnShift: (stored as any).peopleOnShift || '',
+      manpowerFulfilment: (stored as any).manpowerFulfilment || '',
+      cafeType: (stored as any).cafeType || '',
+      storeType: (stored as any).storeType || '',
+      concept: (stored as any).concept || ''
     };
   });
 
@@ -208,9 +220,11 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
   // Search state for dropdowns
   const [hrSearchTerm, setHrSearchTerm] = useState('');
   const [amSearchTerm, setAmSearchTerm] = useState('');
+  const [trainerSearchTerm, setTrainerSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
   const [showHrDropdown, setShowHrDropdown] = useState(false);
   const [showAmDropdown, setShowAmDropdown] = useState(false);
+  const [showTrainerDropdown, setShowTrainerDropdown] = useState(false);
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   
   // Submission state
@@ -238,17 +252,102 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
   useEffect(() => {
     setHrSearchTerm(metadata.hrName);
     setAmSearchTerm(metadata.amName);
+    setTrainerSearchTerm(metadata.trainerName);
     setStoreSearchTerm(metadata.storeName);
   }, []);
 
+  // Auto-fill HR and trainer when AM is selected from URL
+  useEffect(() => {
+    if (metadata.amId && metadata.amName && (!metadata.hrName || !metadata.trainerName)) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const amFromUrl = urlParams.get('amId') || urlParams.get('am_id') || urlParams.get('r');
+      
+      if (amFromUrl) {
+        // Auto-fill HR if not already set
+        if (!metadata.hrName) {
+          const amStores = hrMappingData.filter((item: any) => 
+            item.areaManagerId === metadata.amId
+          );
+          
+          if (amStores.length > 0) {
+            const firstStore = amStores[0];
+            const hrbp = HR_PERSONNEL.find(hr => hr.id === firstStore.hrbpId);
+            if (hrbp) {
+              setMetadata(prev => ({ ...prev, hrName: hrbp.name, hrId: hrbp.id }));
+              setHrSearchTerm(hrbp.name);
+            }
+          }
+        }
+        
+        // Auto-fill trainer if not already set
+        if (!metadata.trainerName) {
+          const amStores = hrMappingData.filter((item: any) => 
+            item.areaManagerId === metadata.amId
+          );
+          
+          if (amStores.length > 0) {
+            const firstStore = amStores[0];
+            if (firstStore.trainer && firstStore.trainerId) {
+              setMetadata(prev => ({ 
+                ...prev, 
+                trainerName: firstStore.trainer, 
+                trainerId: firstStore.trainerId 
+              }));
+              setTrainerSearchTerm(firstStore.trainer);
+            }
+          }
+        }
+      }
+    }
+  }, [metadata.amId, metadata.amName]);
+
   // Filtering functions
-  const filteredHR = HR_PERSONNEL.filter(hr => 
-    hr.name.toLowerCase().includes(hrSearchTerm.toLowerCase())
-  );
+  const filteredHR = HR_PERSONNEL.filter(hr => {
+    const matchesSearch = hr.name.toLowerCase().includes(hrSearchTerm.toLowerCase());
+    
+    // If no AM is selected, show all HR
+    if (!metadata.amId) return matchesSearch;
+    
+    // Filter HR based on selected AM - check if HR is associated with the AM's stores
+    const hrStores = hrMappingData.filter((item: any) => 
+      item.hrbpId === hr.id || item.regionalHrId === hr.id || item.hrHeadId === hr.id
+    );
+    
+    const amStores = hrMappingData.filter((item: any) => 
+      item.areaManagerId === metadata.amId
+    );
+    
+    // Check if HR has any stores in common with the selected AM
+    const hasCommonStores = hrStores.some((hrStore: any) =>
+      amStores.some((amStore: any) => amStore.storeId === hrStore.storeId)
+    );
+    
+    return matchesSearch && hasCommonStores;
+  });
 
   const filteredAM = AREA_MANAGERS.filter(am => 
     am.name.toLowerCase().includes(amSearchTerm.toLowerCase())
   );
+
+  const filteredTrainers = () => {
+    // If no AM is selected, return empty array
+    if (!metadata.amId) return [];
+    
+    // Get unique trainers for the selected AM's stores
+    const trainers = new Map();
+    hrMappingData.forEach((item: any) => {
+      if (item.areaManagerId === metadata.amId && item.trainer && item.trainerId) {
+        trainers.set(item.trainerId, {
+          id: item.trainerId,
+          name: item.trainer
+        });
+      }
+    });
+    
+    return Array.from(trainers.values()).filter(trainer =>
+      trainer.name.toLowerCase().includes(trainerSearchTerm.toLowerCase())
+    );
+  };
 
   const getStoresForAM = () => {
     if (!metadata.amId && !metadata.amName) {
@@ -283,6 +382,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     const handleClickOutside = () => {
       setShowHrDropdown(false);
       setShowAmDropdown(false);
+      setShowTrainerDropdown(false);
       setShowStoreDropdown(false);
     };
     document.addEventListener('click', handleClickOutside);
@@ -327,7 +427,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     }
 
     // Validate required metadata fields
-    const requiredFields = ['hrName', 'hrId', 'amName', 'amId', 'trainerName', 'storeName', 'storeId'];
+    const requiredFields = ['hrName', 'hrId', 'amName', 'amId', 'trainerName', 'storeName', 'storeId', 'bscAchievement', 'peopleOnShift', 'manpowerFulfilment', 'cafeType', 'storeType', 'concept'];
     const missingFields = requiredFields.filter(field => !metadata[field as keyof ChecklistMeta] || metadata[field as keyof ChecklistMeta].trim() === '');
     
     if (missingFields.length > 0) {
@@ -350,7 +450,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
           let storeMapping = hrMappingData.find((item: any) => item.storeId === metadata.storeId);
           
           // If not found and storeId is numeric, try with S prefix
-          if (!storeMapping && !isNaN(metadata.storeId) && !metadata.storeId.startsWith('S')) {
+          if (!storeMapping && !isNaN(Number(metadata.storeId)) && !metadata.storeId.startsWith('S')) {
             const sFormattedId = `S${metadata.storeId.padStart(3, '0')}`;
             storeMapping = hrMappingData.find((item: any) => item.storeId === sFormattedId);
           }
@@ -389,6 +489,12 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         storeName: metadata.storeName,
         storeId: correctedStoreId, // Use the corrected S-prefixed store ID
         region: detectedRegion || 'Unknown',
+        bscAchievement: metadata.bscAchievement,
+        peopleOnShift: metadata.peopleOnShift,
+        manpowerFulfilment: metadata.manpowerFulfilment,
+        cafeType: metadata.cafeType,
+        storeType: metadata.storeType,
+        concept: metadata.concept,
         totalScore: score.toString(),
         maxScore: maxScore.toString(),
         percentageScore: percentage.toString()
@@ -534,7 +640,13 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         trainerName: '',
         trainerId: '',
         storeName: '',
-        storeId: ''
+        storeId: '',
+        bscAchievement: '',
+        peopleOnShift: '',
+        manpowerFulfilment: '',
+        cafeType: '',
+        storeType: '',
+        concept: ''
       });
       setSectionRemarks({});
       setSectionImages({});
@@ -561,7 +673,13 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
       trainerName: '',
       trainerId: '',
       storeName: '',
-      storeId: ''
+      storeId: '',
+      bscAchievement: '',
+      peopleOnShift: '',
+      manpowerFulfilment: '',
+      cafeType: '',
+      storeType: '',
+      concept: ''
     });
     setSectionRemarks({});
     setSectionImages({});
@@ -641,19 +759,25 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
               </button>
               {showHrDropdown && (
                 <div className="absolute z-10 w-full bg-white dark:bg-slate-700 border dark:border-slate-600 rounded-md mt-1 max-h-40 overflow-y-auto shadow-lg">
-                  {filteredHR.map((hr) => (
-                    <div
-                      key={hr.id}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600 cursor-pointer dark:text-slate-100"
-                      onClick={() => {
-                        setMetadata(prev => ({ ...prev, hrName: hr.name, hrId: hr.id }));
-                        setHrSearchTerm(hr.name);
-                        setShowHrDropdown(false);
-                      }}
-                    >
-                      {hr.name}
+                  {filteredHR.length > 0 ? (
+                    filteredHR.map((hr) => (
+                      <div
+                        key={hr.id}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600 cursor-pointer dark:text-slate-100"
+                        onClick={() => {
+                          setMetadata(prev => ({ ...prev, hrName: hr.name, hrId: hr.id }));
+                          setHrSearchTerm(hr.name);
+                          setShowHrDropdown(false);
+                        }}
+                      >
+                        {hr.name}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-2 text-gray-500 dark:text-slate-400 text-sm">
+                      {metadata.amId ? 'No HR found for selected AM' : 'Please select an Area Manager first'}
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
             </div>
@@ -704,15 +828,53 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
           </div>
 
           {/* Trainer Field */}
-          <div>
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Trainer Name:</label>
-            <input
-              type="text"
-              value={metadata.trainerName}
-              onChange={(e) => setMetadata(prev => ({ ...prev, trainerName: e.target.value, trainerId: e.target.value }))}
-              placeholder="Enter trainer name"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={trainerSearchTerm}
+                onChange={(e) => {
+                  setTrainerSearchTerm(e.target.value);
+                  setShowTrainerDropdown(true);
+                }}
+                onFocus={() => setShowTrainerDropdown(true)}
+                placeholder="Select or type trainer name"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 pr-8"
+              />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowTrainerDropdown(!showTrainerDropdown);
+                }}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                ▼
+              </button>
+              {showTrainerDropdown && (
+                <div className="absolute z-10 w-full bg-white dark:bg-slate-700 border dark:border-slate-600 rounded-md mt-1 max-h-40 overflow-y-auto shadow-lg">
+                  {filteredTrainers().length > 0 ? (
+                    filteredTrainers().map((trainer) => (
+                      <div
+                        key={trainer.id}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600 cursor-pointer dark:text-slate-100"
+                        onClick={() => {
+                          setMetadata(prev => ({ ...prev, trainerName: trainer.name, trainerId: trainer.id }));
+                          setTrainerSearchTerm(trainer.name);
+                          setShowTrainerDropdown(false);
+                        }}
+                      >
+                        {trainer.name}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-2 text-gray-500 dark:text-slate-400 text-sm">
+                      {metadata.amId ? 'No trainers found for selected AM' : 'Please select an Area Manager first'}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Store Field */}
@@ -757,6 +919,105 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Additional Operations Fields */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-200 dark:border-slate-600">
+          {/* BSC Achievement % */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">BSC Achievement %:</label>
+            <input
+              type="text"
+              value={metadata.bscAchievement}
+              onChange={(e) => setMetadata(prev => ({ ...prev, bscAchievement: e.target.value }))}
+              placeholder="Enter BSC Achievement %"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+            />
+          </div>
+
+          {/* No. of people on shift */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">No. of people on shift:</label>
+            <input
+              type="number"
+              value={metadata.peopleOnShift}
+              onChange={(e) => setMetadata(prev => ({ ...prev, peopleOnShift: e.target.value }))}
+              placeholder="Enter number of people"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+            />
+          </div>
+
+          {/* Man power fulfilment */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Man power fulfilment:</label>
+            <select
+              value={metadata.manpowerFulfilment}
+              onChange={(e) => setMetadata(prev => ({ ...prev, manpowerFulfilment: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+            >
+              <option value="">Select fulfilment level</option>
+              <option value="Low">Low</option>
+              <option value="Med">Med</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+
+          {/* Café Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Café Type:</label>
+            <select
+              value={metadata.cafeType}
+              onChange={(e) => setMetadata(prev => ({ ...prev, cafeType: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+            >
+              <option value="">Select café type</option>
+              <option value="REGULAR+">REGULAR+</option>
+              <option value="REGULAR">REGULAR</option>
+              <option value="PREMIUM">PREMIUM</option>
+              <option value="PREMIUM+">PREMIUM+</option>
+              <option value="AIRPORT-CA">AIRPORT-CA</option>
+              <option value="TIER-2">TIER-2</option>
+              <option value="KIOSK-LITE">KIOSK-LITE</option>
+              <option value="No HD">No HD</option>
+              <option value="KIOSK-PRO">KIOSK-PRO</option>
+            </select>
+          </div>
+
+          {/* Store Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Store Type:</label>
+            <select
+              value={metadata.storeType}
+              onChange={(e) => setMetadata(prev => ({ ...prev, storeType: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+            >
+              <option value="">Select store type</option>
+              <option value="Corporate">Corporate</option>
+              <option value="Highstreet">Highstreet</option>
+              <option value="Shop in Shop">Shop in Shop</option>
+              <option value="Mall">Mall</option>
+              <option value="Hospital">Hospital</option>
+              <option value="Airport">Airport</option>
+              <option value="Highway">Highway</option>
+            </select>
+          </div>
+
+          {/* Concept */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Concept:</label>
+            <select
+              value={metadata.concept}
+              onChange={(e) => setMetadata(prev => ({ ...prev, concept: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+            >
+              <option value="">Select concept</option>
+              <option value="Experience">Experience</option>
+              <option value="Premium">Premium</option>
+              <option value="Shop In Shop">Shop In Shop</option>
+              <option value="Kiosk">Kiosk</option>
+              <option value="ZIP">ZIP</option>
+            </select>
           </div>
         </div>
       </div>

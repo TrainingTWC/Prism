@@ -26,19 +26,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [roleConfig, setRoleConfig] = useState<RoleConfig | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const logout = () => {
-    try {
-      localStorage.removeItem(AUTH_CONFIG.storageKeys.auth);
-      localStorage.removeItem(AUTH_CONFIG.storageKeys.timestamp);
-      localStorage.removeItem(AUTH_CONFIG.storageKeys.role);
-    } catch (error) {
-      console.error('Error clearing auth status:', error);
-    }
-    setIsAuthenticated(false);
-    setUserRole(null);
-    setRoleConfig(null);
-  };
-
   useEffect(() => {
     checkAuthStatus();
   }, []);
@@ -95,9 +82,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.error('Error saving auth status:', error);
           return { success: false };
         }
-      }
+  const logout = () => {
+    try {
+      localStorage.removeItem(AUTH_CONFIG.storageKeys.auth);
+      localStorage.removeItem(AUTH_CONFIG.storageKeys.timestamp);
+      localStorage.removeItem(AUTH_CONFIG.storageKeys.role);
+    } catch (error) {
+      console.error('Error clearing auth status:', error);
     }
-    return { success: false };
+    setIsAuthenticated(false);
+    setUserRole(null);
+    setRoleConfig(null);
   };
 
   const hasPermission = (permission: string): boolean => {

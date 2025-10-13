@@ -1,11 +1,35 @@
 
 import React from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Shield } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
 
 const Header: React.FC = () => {
-  const { logout } = useAuth();
+  const { logout, userRole, roleConfig } = useAuth();
+
+  const getRoleDisplayName = (role: string) => {
+    const roleNames = {
+      operations: 'Operations',
+      hr: 'Human Resources',
+      qa: 'Quality Assurance',
+      training: 'Training',
+      finance: 'Finance',
+      admin: 'Administrator'
+    };
+    return roleNames[role as keyof typeof roleNames] || role;
+  };
+
+  const getRoleColor = (role: string) => {
+    const colors = {
+      operations: 'text-blue-600 dark:text-blue-400',
+      hr: 'text-green-600 dark:text-green-400',
+      qa: 'text-purple-600 dark:text-purple-400',
+      training: 'text-orange-600 dark:text-orange-400',
+      finance: 'text-red-600 dark:text-red-400',
+      admin: 'text-yellow-600 dark:text-yellow-400'
+    };
+    return colors[role as keyof typeof colors] || 'text-gray-600 dark:text-gray-400';
+  };
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to sign out?')) {
@@ -68,6 +92,16 @@ const Header: React.FC = () => {
               Prism
             </h1>
           </div>
+          
+          {/* User Role Badge */}
+          {userRole && (
+            <div className="ml-4 flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-slate-700 rounded-full">
+              <Shield className={`w-4 h-4 ${getRoleColor(userRole)}`} />
+              <span className={`text-sm font-medium ${getRoleColor(userRole)}`}>
+                {getRoleDisplayName(userRole)}
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex-shrink-0 flex items-center gap-3">
           <button
@@ -81,7 +115,21 @@ const Header: React.FC = () => {
           <ThemeToggle />
         </div>
       </div>
-      <p className="mt-1 text-gray-500 dark:text-slate-400 text-sm">Employee data, insights, and task management.</p>
+      
+      <div className="mt-2 flex items-center justify-between flex-wrap gap-2">
+        <p className="text-gray-500 dark:text-slate-400 text-sm">
+          Employee data, insights, and task management.
+        </p>
+        
+        {userRole && roleConfig && (
+          <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-slate-500">
+            <span>Access Level:</span>
+            <span className={`font-medium ${getRoleColor(userRole)}`}>
+              {roleConfig.permissions.length} permission{roleConfig.permissions.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+        )}
+      </div>
     </header>
   );
 };

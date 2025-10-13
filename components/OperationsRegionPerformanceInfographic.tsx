@@ -27,12 +27,16 @@ const PerformanceStat: React.FC<{
 
 const OperationsRegionPerformanceInfographic: React.FC<OperationsRegionPerformanceInfographicProps> = ({ submissions }) => {
   const performanceData = useMemo(() => {
+    console.log('OperationsRegionPerformanceInfographic - Processing submissions:', submissions.length);
+    
     if (submissions.length === 0) return { top: null, bottom: null };
 
     const scoresByRegion: { [key: string]: { totalPercent: number, count: number } } = {};
 
     submissions.forEach(s => {
       const region = s.region || 'Unknown';
+      console.log('Processing submission:', { region, score: s.percentageScore, store: s.storeName });
+      
       if (region && region !== 'Unknown') {
         if (!scoresByRegion[region]) {
           scoresByRegion[region] = { totalPercent: 0, count: 0 };
@@ -43,10 +47,14 @@ const OperationsRegionPerformanceInfographic: React.FC<OperationsRegionPerforman
       }
     });
 
+    console.log('Scores by region:', scoresByRegion);
+
     const aggregated = Object.entries(scoresByRegion).map(([name, { totalPercent, count }]) => ({
       name,
       averageScore: Math.round(totalPercent / count),
     }));
+
+    console.log('Aggregated regional data:', aggregated);
 
     if (aggregated.length === 0) return { top: null, bottom: null };
     
@@ -54,6 +62,8 @@ const OperationsRegionPerformanceInfographic: React.FC<OperationsRegionPerforman
     
     const top = aggregated[0];
     const bottom = aggregated.length > 1 ? aggregated[aggregated.length - 1] : top;
+
+    console.log('Final performance data:', { top, bottom });
 
     return { top, bottom };
   }, [submissions]);

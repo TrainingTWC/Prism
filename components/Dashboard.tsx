@@ -3,7 +3,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Users, Clipboard, GraduationCap, BarChart3 } from 'lucide-react';
 import { Submission, Store } from '../types';
-import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, AMOperationsSubmission, TrainingAuditSubmission } from '../services/dataService';
+import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission } from '../services/dataService';
 import { hapticFeedback } from '../utils/haptics';
 import StatCard from './StatCard';
 import Loader from './Loader';
@@ -21,6 +21,7 @@ import AMRadarChart from './AMRadarChart';
 // Operations Dashboard Components
 import OperationsRegionPerformanceInfographic from './OperationsRegionPerformanceInfographic';
 import OperationsAMPerformanceInfographic from './OperationsAMPerformanceInfographic';
+import OperationsMetricsInfographic from './OperationsMetricsInfographic';
 import OperationsHRPerformanceInfographic from './OperationsHRPerformanceInfographic';
 import OperationsScoreDistributionChart from './OperationsScoreDistributionChart';
 import OperationsAverageScoreChart from './OperationsAverageScoreChart';
@@ -36,16 +37,27 @@ import TrainingRadarChart from './TrainingRadarChart';
 import TrainingHealthPieChart from './TrainingHealthPieChart';
 import OperationsRadarChart from './OperationsRadarChart';
 import TrainingDetailModal from './TrainingDetailModal';
+// QA Dashboard Components
+import QARegionPerformanceInfographic from './QARegionPerformanceInfographic';
+import QAAuditorPerformanceInfographic from './QAAuditorPerformanceInfographic';
+import QAScoreDistributionChart from './QAScoreDistributionChart';
+import QASectionScoresInfographic from './QASectionScoresInfographic';
+import QARadarChart from './QARadarChart';
+import QAAMPerformanceInfographic from './QAAMPerformanceInfographic';
+import QAAverageScoreChart from './QAAverageScoreChart';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../roleMapping';
+import { useAuth } from '../contexts/AuthContext';
 
 interface DashboardProps {
   userRole: UserRole;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
+  const { userRole: authUserRole, hasPermission, hasDashboardAccess } = useAuth();
   const [submissions, setSubmissions] = useState<Submission[] | null>(null);
   const [amOperationsData, setAMOperationsData] = useState<AMOperationsSubmission[] | null>(null);
   const [trainingData, setTrainingData] = useState<TrainingAuditSubmission[] | null>(null);
+  const [qaData, setQAData] = useState<QASubmission[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,8 +74,37 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     hr: '',
   });
 
-  // Dashboard type selection
-  const [dashboardType, setDashboardType] = useState<'hr' | 'operations' | 'training' | 'consolidated'>('consolidated');
+  // Get available dashboard types based on user role
+  const getAvailableDashboardTypes = () => {
+    const allTypes = [
+      { id: 'hr', label: 'HR Employee Surveys', access: 'hr-dashboard' },
+      { id: 'operations', label: 'Operations Checklists', access: 'operations-dashboard' },
+      { id: 'training', label: 'Training Audits', access: 'training-dashboard' },
+      { id: 'qa', label: 'QA Assessments', access: 'qa-dashboard' },
+      { id: 'finance', label: 'Finance Reports', access: 'finance-dashboard' },
+      { id: 'consolidated', label: 'Consolidated View', access: 'all' }
+    ];
+
+    if (authUserRole === 'admin') {
+      return allTypes; // Admin can see everything
+    }
+
+    return allTypes.filter(type => {
+      if (type.id === 'consolidated') {
+        // Show consolidated only if user has access to multiple dashboards
+        return allTypes.filter(t => t.id !== 'consolidated' && hasDashboardAccess(t.access)).length > 1;
+      }
+      return hasDashboardAccess(type.access);
+    });
+  };
+
+  const availableDashboardTypes = getAvailableDashboardTypes();
+
+  // Dashboard type selection - default to first available type
+  const [dashboardType, setDashboardType] = useState<'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'consolidated'>(() => {
+    const available = getAvailableDashboardTypes();
+    return available.length > 0 ? available[0].id as any : 'consolidated';
+  });
 
   // Notification overlay state
   const [showNotification, setShowNotification] = useState(false);
@@ -255,6 +296,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       console.log('Dashboard loaded Training Audit data:', trainingAuditData.length, 'submissions');
       setTrainingData(trainingAuditData);
       
+      // Load QA Assessment data
+      const qaAssessmentData = await fetchQAData();
+      console.log('Dashboard loaded QA Assessment data:', qaAssessmentData.length, 'submissions');
+      console.log('QA data sample:', qaAssessmentData[0]);
+      if (qaAssessmentData.length > 0) {
+        console.log('QA data keys:', Object.keys(qaAssessmentData[0]));
+      }
+      setQAData(qaAssessmentData);
+      
       setError(null);
       setLastRefresh(new Date());
       
@@ -427,15 +477,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     
     let filtered = amOperationsData.filter((submission: AMOperationsSubmission) => {
       // Role-based access control
-      if (userRole.type === 'store') {
+      if (userRole.role === 'store') {
         if (!canAccessStore(userRole, submission.storeId)) {
           return false;
         }
-      } else if (userRole.type === 'am') {
+      } else if (userRole.role === 'area_manager') {
         if (!canAccessAM(userRole, submission.amId)) {
           return false;
         }
-      } else if (userRole.type === 'hr') {
+      } else if (userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') {
         if (!canAccessHR(userRole, submission.hrId)) {
           return false;
         }
@@ -474,15 +524,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     
     let filtered = trainingData.filter((submission: TrainingAuditSubmission) => {
       // Role-based access control (same as AM Operations but with trainer focus)
-      if (userRole.type === 'store') {
+      if (userRole.role === 'store') {
         if (!canAccessStore(userRole, submission.storeId)) {
           return false;
         }
-      } else if (userRole.type === 'am') {
+      } else if (userRole.role === 'area_manager') {
         if (!canAccessAM(userRole, submission.amId)) {
           return false;
         }
-      } else if (userRole.type === 'hr') {
+      } else if (userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') {
         // For training audit, trainers can also act as HR for access
         if (!canAccessHR(userRole, submission.amId)) { // Use amId as trainer check
           return false;
@@ -514,7 +564,72 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     return filtered;
   }, [trainingData, filters, userRole]);
 
+  // Filter QA Assessment data
+  const filteredQAData = useMemo(() => {
+    if (!qaData) {
+      return [];
+    }
+    
+    let filtered = qaData.filter((submission: QASubmission) => {
+      // Role-based access control
+      if (userRole.role === 'store') {
+        if (!canAccessStore(userRole, submission.storeId)) {
+          return false;
+        }
+      } else if (userRole.role === 'area_manager') {
+        if (!canAccessAM(userRole, submission.amId)) {
+          return false;
+        }
+      } else if (userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') {
+        if (!canAccessHR(userRole, submission.amId)) {
+          return false;
+        }
+      }
+      
+      // Apply filters
+      if (filters.region && submission.region !== filters.region) {
+        return false;
+      }
+      
+      if (filters.store && submission.storeId !== filters.store) {
+        return false;
+      }
+      
+      if (filters.am && submission.amId !== filters.am) {
+        return false;
+      }
+      
+      // For QA, hr filter can map to qaId
+      if (filters.hr && submission.qaId !== filters.hr) {
+        return false;
+      }
+      
+      return true;
+    });
+    
+    return filtered;
+  }, [qaData, filters, userRole]);
+
   const stats = useMemo(() => {
+    // For QA dashboard, use QA Assessment data
+    if (dashboardType === 'qa') {
+      if (!filteredQAData) return null;
+
+      const totalSubmissions = filteredQAData.length;
+      const avgScore = totalSubmissions > 0 
+        ? filteredQAData.reduce((acc, s) => acc + parseFloat(s.scorePercentage || '0'), 0) / totalSubmissions 
+        : 0;
+      const uniqueAuditors = new Set(filteredQAData.map(s => s.qaId)).size;
+      const uniqueStores = new Set(filteredQAData.map(s => s.storeId)).size;
+
+      return {
+        totalSubmissions,
+        avgScore: Math.round(avgScore * 100) / 100,
+        uniqueAuditors,
+        uniqueStores
+      };
+    }
+    
     // For Training dashboard, use Training Audit data
     if (dashboardType === 'training') {
       if (!filteredTrainingData) return null;
@@ -567,7 +682,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       uniqueEmployees,
       uniqueStores
     };
-  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, dashboardType]);
+  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, filteredQAData, dashboardType]);
 
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
     const newFilters = { ...filters, [filterName]: value };
@@ -635,14 +750,38 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         }
         reportData = filteredTrainingData;
         dataType = 'Training Audit Checklist';
+      } else if (dashboardType === 'qa') {
+        if (!filteredQAData || filteredQAData.length === 0) {
+          alert('No QA Assessment data available to generate report');
+          hapticFeedback.error();
+          return;
+        }
+        reportData = filteredQAData;
+        dataType = 'QA Assessment Checklist';
       } else { // consolidated
-        if ((!filteredSubmissions || filteredSubmissions.length === 0) && (!filteredAMOperations || filteredAMOperations.length === 0)) {
+        if ((!filteredSubmissions || filteredSubmissions.length === 0) && 
+            (!filteredAMOperations || filteredAMOperations.length === 0) && 
+            (!filteredTrainingData || filteredTrainingData.length === 0) &&
+            (!filteredQAData || filteredQAData.length === 0)) {
           alert('No data available to generate report');
           hapticFeedback.error();
           return;
         }
-        reportData = filteredSubmissions.length > 0 ? filteredSubmissions : filteredAMOperations;
-        dataType = filteredSubmissions.length > 0 ? 'HR Survey' : 'AM Operations Checklist';
+        
+        // Priority order: HR > Training > QA > Operations
+        if (filteredSubmissions.length > 0) {
+          reportData = filteredSubmissions;
+          dataType = 'HR Survey';
+        } else if (filteredTrainingData.length > 0) {
+          reportData = filteredTrainingData;
+          dataType = 'Training Audit Checklist';
+        } else if (filteredQAData.length > 0) {
+          reportData = filteredQAData;
+          dataType = 'QA Assessment Checklist';
+        } else {
+          reportData = filteredAMOperations;
+          dataType = 'AM Operations Checklist';
+        }
       }
 
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -1519,65 +1658,67 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       )}
 
       {/* Dashboard Type Selector */}
-      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3 sm:mb-4">Dashboard Type</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-          <button
-            onClick={() => setDashboardType('hr')}
-            className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
-              dashboardType === 'hr'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
-            }`}
-          >
-            <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline">HR Survey Dashboard</span>
-            <span className="sm:hidden">HR Survey</span>
-          </button>
-          <button
-            onClick={() => setDashboardType('operations')}
-            className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
-              dashboardType === 'operations'
-                ? 'bg-orange-600 text-white'
-                : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
-            }`}
-          >
-            <Clipboard className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline">Operations Checklist Dashboard</span>
-            <span className="sm:hidden">Operations</span>
-          </button>
-          <button
-            onClick={() => setDashboardType('training')}
-            className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
-              dashboardType === 'training'
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
-            }`}
-          >
-            <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline">Training Audit Dashboard</span>
-            <span className="sm:hidden">Training</span>
-          </button>
-          <button
-            onClick={() => setDashboardType('consolidated')}
-            className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
-              dashboardType === 'consolidated'
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline">Consolidated Dashboard</span>
-            <span className="sm:hidden">Consolidated</span>
-          </button>
+      {availableDashboardTypes.length > 1 && (
+        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3 sm:mb-4">
+            Available Dashboards ({authUserRole?.toUpperCase()} Access)
+          </h3>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${Math.min(availableDashboardTypes.length, 5)} gap-2 sm:gap-3`}>
+            {availableDashboardTypes.map((type) => {
+              const getIcon = () => {
+                switch (type.id) {
+                  case 'hr': return <Users className="w-4 h-4 sm:w-5 sm:h-5" />;
+                  case 'operations': return <Clipboard className="w-4 h-4 sm:w-5 sm:h-5" />;
+                  case 'training': return <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />;
+                  case 'qa': return (
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  );
+                  case 'finance': return (
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                  );
+                  default: return <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />;
+                }
+              };
+
+              const getColorClass = () => {
+                switch (type.id) {
+                  case 'hr': return dashboardType === 'hr' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'operations': return dashboardType === 'operations' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'training': return dashboardType === 'training' ? 'bg-purple-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'qa': return dashboardType === 'qa' ? 'bg-red-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'finance': return dashboardType === 'finance' ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'consolidated': return dashboardType === 'consolidated' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  default: return 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                }
+              };
+
+              return (
+                <button
+                  key={type.id}
+                  onClick={() => setDashboardType(type.id as any)}
+                  className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${getColorClass()}`}
+                >
+                  {getIcon()}
+                  <span className="hidden sm:inline">{type.label}</span>
+                  <span className="sm:hidden">{type.label.split(' ')[0]}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-sm text-gray-600 dark:text-slate-400 mt-2">
+            {dashboardType === 'hr' && 'View insights from HR Employee Satisfaction Surveys'}
+            {dashboardType === 'operations' && 'View insights from AM Operations Checklists'}
+            {dashboardType === 'training' && 'View insights from Training Audit Checklists'}
+            {dashboardType === 'qa' && 'View insights from Quality Assurance Assessments'}
+            {dashboardType === 'finance' && 'View insights from Finance Reports and Analytics'}
+            {dashboardType === 'consolidated' && 'View combined insights from all authorized checklist types'}
+          </p>
         </div>
-        <p className="text-sm text-gray-600 dark:text-slate-400 mt-2">
-          {dashboardType === 'hr' && 'View insights from HR Employee Satisfaction Surveys'}
-          {dashboardType === 'operations' && 'View insights from AM Operations Checklists'}
-          {dashboardType === 'training' && 'View insights from Training Audit Checklists'}
-          {dashboardType === 'consolidated' && 'View combined insights from all checklist types'}
-        </p>
-      </div>
+      )}
 
       <DashboardFilters
         regions={availableRegions}
@@ -1603,7 +1744,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       {((dashboardType === 'hr' && filteredSubmissions.length > 0) || 
         (dashboardType === 'operations' && filteredAMOperations.length > 0) ||
         (dashboardType === 'training' && filteredTrainingData.length > 0) ||
-        (dashboardType === 'consolidated' && (filteredSubmissions.length > 0 || filteredAMOperations.length > 0))) && (
+        (dashboardType === 'qa' && filteredQAData.length > 0) ||
+        (dashboardType === 'consolidated' && (filteredSubmissions.length > 0 || filteredAMOperations.length > 0 || filteredTrainingData.length > 0 || filteredQAData.length > 0))) && (
         <div className="flex justify-end">
           <button
             onClick={generatePDFReport}
@@ -1621,7 +1763,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       {((dashboardType === 'hr' && filteredSubmissions.length > 0) || 
         (dashboardType === 'operations' && filteredAMOperations.length > 0) ||
         (dashboardType === 'training' && filteredTrainingData.length > 0) ||
-        (dashboardType === 'consolidated' && (filteredSubmissions.length > 0 || filteredAMOperations.length > 0))) ? (
+        (dashboardType === 'qa' && filteredQAData.length > 0) ||
+        (dashboardType === 'consolidated' && (filteredSubmissions.length > 0 || filteredAMOperations.length > 0 || filteredTrainingData.length > 0 || filteredQAData.length > 0))) ? (
         <>
           {/* Dashboard Type Specific Content - Removed Coming Soon sections */}
           
@@ -1715,6 +1858,34 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                 <OperationsHRPerformanceInfographic submissions={filteredAMOperations} />
               </div>
               
+              {/* Temporary Debug Information */}
+              <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-lg mb-4">
+                <h3 className="font-bold text-yellow-800 dark:text-yellow-200 mb-2">🔍 Debug Info (AM Operations Data)</h3>
+                <div className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
+                  <p><strong>Total AM Operations:</strong> {amOperationsData?.length || 0}</p>
+                  <p><strong>Filtered Count:</strong> {filteredAMOperations?.length || 0}</p>
+                  <p><strong>Sample BSC Values:</strong> {filteredAMOperations?.slice(0, 5).map(s => s.bscAchievement).join(', ') || 'None'}</p>
+                  <p><strong>Sample Regions:</strong> {[...new Set(filteredAMOperations?.slice(0, 10).map(s => s.region))].join(', ') || 'None'}</p>
+                  <p><strong>Sample Store IDs:</strong> {filteredAMOperations?.slice(0, 5).map(s => s.storeId).join(', ') || 'None'}</p>
+                  <p><strong>Data Source Check:</strong> {amOperationsData?.length > 0 && amOperationsData[0].submissionTime?.includes('2024-10') ? 'Static Data' : 'Live Data'}</p>
+                </div>
+              </div>
+              
+              {/* New Operational Metrics Section with Error Boundary */}
+              {(() => {
+                try {
+                  return <OperationsMetricsInfographic submissions={filteredAMOperations} />;
+                } catch (error) {
+                  console.error('Error rendering OperationsMetricsInfographic:', error);
+                  return (
+                    <div className="bg-red-100 dark:bg-red-900 p-4 rounded-lg">
+                      <h3 className="font-bold text-red-800 dark:text-red-200">Component Error</h3>
+                      <p className="text-red-700 dark:text-red-300">Unable to render operations metrics</p>
+                    </div>
+                  );
+                }
+              })()}
+              
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <OperationsScoreDistributionChart submissions={filteredAMOperations} />
                 <OperationsAverageScoreChart submissions={filteredAMOperations} />
@@ -1727,15 +1898,39 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               </div>
             </>
           )}
+
+          {/* QA Dashboard Content */}
+          {dashboardType === 'qa' && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <QARegionPerformanceInfographic submissions={filteredQAData || []} />
+                <QAAMPerformanceInfographic submissions={filteredQAData || []} />
+                <QAAuditorPerformanceInfographic submissions={filteredQAData || []} />
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <QAScoreDistributionChart submissions={filteredQAData || []} />
+                <QAAverageScoreChart submissions={filteredQAData || []} />
+              </div>
+              
+              <QASectionScoresInfographic submissions={filteredQAData || []} />
+              
+              <div className="grid grid-cols-1 gap-6">
+                <QARadarChart submissions={filteredQAData || []} />
+              </div>
+            </>
+          )}
         </>
       ) : (
-        <div className="text-center py-10 bg-slate-800/50 rounded-xl border border-slate-700">
-            <h3 className="text-lg font-semibold text-slate-100">No Results Found</h3>
-            <p className="text-slate-400 mt-1">
+        <div className="text-center py-10 bg-white/70 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-xl backdrop-blur-sm">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">No Results Found</h3>
+            <p className="text-gray-600 dark:text-slate-400 mt-1">
               {dashboardType === 'operations' 
                 ? 'No AM Operations checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
                 : dashboardType === 'training'
                 ? 'No Training Audit checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
+                : dashboardType === 'qa'
+                ? 'No QA checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
                 : 'Try adjusting your filters to find data.'
               }
             </p>

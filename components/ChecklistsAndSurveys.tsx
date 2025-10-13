@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Settings, GraduationCap, CheckCircle, DollarSign, ArrowLeft, Home } from 'lucide-react';
 import { UserRole } from '../roleMapping';
+import { useAuth } from '../contexts/AuthContext';
 import HRChecklist from './checklists/HRChecklist';
 import OperationsChecklist from './checklists/OperationsChecklist';
 import TrainingChecklist from './checklists/TrainingChecklist';
@@ -14,6 +15,7 @@ interface ChecklistsAndSurveysProps {
 type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance';
 
 const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole }) => {
+  const { userRole: authUserRole, hasPermission } = useAuth();
   const [activeChecklist, setActiveChecklist] = useState<ChecklistType | null>(null);
   const [checklistStats, setChecklistStats] = useState({
     hr: { completed: 0, total: 0, score: 0 },
@@ -27,6 +29,29 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
   const urlParams = new URLSearchParams(window.location.search);
   const auditorName = urlParams.get('auditorName') || urlParams.get('name') || urlParams.get('hrName') || 'Unknown Auditor';
   const auditorId = urlParams.get('auditorId') || urlParams.get('id') || urlParams.get('hrId') || 'unknown';
+
+  // Filter checklists based on user permissions
+  const getAvailableChecklists = () => {
+    const allChecklists = [
+      { id: 'hr' as ChecklistType, label: 'HR', icon: Users, color: 'bg-blue-500' },
+      { id: 'operations' as ChecklistType, label: 'Operations', icon: Settings, color: 'bg-green-500' },
+      { id: 'training' as ChecklistType, label: 'Training', icon: GraduationCap, color: 'bg-purple-500' },
+      { id: 'qa' as ChecklistType, label: 'QA', icon: CheckCircle, color: 'bg-orange-500' },
+      { id: 'finance' as ChecklistType, label: 'Finance', icon: DollarSign, color: 'bg-red-500' }
+    ];
+
+    // For admin role, show all checklists
+    if (authUserRole === 'admin') {
+      return allChecklists;
+    }
+
+    // For other roles, show only the ones they have permission for
+    return allChecklists.filter(checklist => {
+      return hasPermission(checklist.id);
+    });
+  };
+
+  const availableChecklists = getAvailableChecklists();
 
   const checklists = [
     { id: 'hr' as ChecklistType, label: 'HR', icon: Users, color: 'bg-blue-500' },
@@ -148,12 +173,17 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
             </h1>
             <p className="text-gray-600 dark:text-slate-400">
               Complete departmental checklists and track compliance scores across all areas.
+              {authUserRole && authUserRole !== 'admin' && (
+                <span className="block mt-1 text-sm font-medium text-blue-600 dark:text-blue-400">
+                  Showing {authUserRole.toUpperCase()} accessible checklists ({availableChecklists.length} of 5 total)
+                </span>
+              )}
             </p>
           </div>
 
           {/* Checklist Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-            {checklists.map(checklist => {
+          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${availableChecklists.length > 3 ? 'xl:grid-cols-5' : availableChecklists.length === 3 ? 'xl:grid-cols-3' : 'xl:grid-cols-2'} gap-4`}>
+            {availableChecklists.map(checklist => {
               const stats = checklistStats[checklist.id];
               const completionPercentage = stats.total > 0 ? (stats.completed / stats.total) * 100 : 0;
               const IconComponent = checklist.icon;

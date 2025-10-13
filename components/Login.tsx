@@ -1,26 +1,48 @@
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, UserRole } from '../contexts/AuthContext';
 
 const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showError, setShowError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState<{ role: UserRole; permissions: string[] } | null>(null);
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setShowError(false);
+    setLoginSuccess(null);
 
     // Small delay to show loading state
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    const success = login(password);
+    const result = login(password);
     
-    if (!success) {
+    if (!result.success) {
       setShowError(true);
       setPassword('');
+    } else if (result.role) {
+      // Show success message briefly before redirecting
+      const roleConfig = {
+        operations: { permissions: ['Operations Dashboard', 'Store Analytics', 'Performance Reports'] },
+        hr: { permissions: ['HR Dashboard', 'Employee Data', 'Training Audit', 'HR Analytics'] },
+        qa: { permissions: ['QA Dashboard', 'Quality Reports', 'Audit Checklists'] },
+        training: { permissions: ['Training Dashboard', 'Learning Analytics', 'Training Reports'] },
+        finance: { permissions: ['Finance Dashboard', 'Financial Analytics', 'Budget Reports'] },
+        admin: { permissions: ['Full Access', 'All Dashboards', 'All Reports', 'System Administration'] }
+      };
+      
+      setLoginSuccess({
+        role: result.role,
+        permissions: roleConfig[result.role].permissions
+      });
+      
+      // Auto-redirect after showing success
+      setTimeout(() => {
+        // The auth context will handle the redirect
+      }, 2000);
     }
     
     setIsLoading(false);

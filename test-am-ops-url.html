@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test AM Operations Checklist URL Parameters</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-link {
+            display: block;
+            padding: 10px;
+            margin: 10px 0;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .test-link:hover {
+            background: #0056b3;
+        }
+        .description {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .url-example {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <h1>AM Operations Checklist - URL Parameter Testing</h1>
+    
+    <div class="test-section">
+        <h2>Test Cases</h2>
+        <p>Click the links below to test different URL parameter scenarios:</p>
+        
+        <div class="description">
+            <strong>Test 1:</strong> Auto-fill AM using amId parameter (Amar - H1766)
+        </div>
+        <div class="url-example">?amId=H1766</div>
+        <a href="?amId=H1766" class="test-link">Test AM ID: H1766 (Amar)</a>
+        
+        <div class="description">
+            <strong>Test 2:</strong> Auto-fill AM using am_id parameter (Amar - H1766)
+        </div>
+        <div class="url-example">?am_id=H1766</div>
+        <a href="?am_id=H1766" class="test-link">Test AM ID: H1766 (Amar) - Alternative param</a>
+        
+        <div class="description">
+            <strong>Test 3:</strong> Auto-fill AM using 'r' parameter (Amar - H1766)
+        </div>
+        <div class="url-example">?r=H1766</div>
+        <a href="?r=H1766" class="test-link">Test AM ID: H1766 (Amar) - Short param</a>
+        
+        <div class="description">
+            <strong>Test 4:</strong> Test with different AM (Vikram - H2396)
+        </div>
+        <div class="url-example">?amId=H2396</div>
+        <a href="?amId=H2396" class="test-link">Test AM ID: H2396 (Vikram)</a>
+        
+        <div class="description">
+            <strong>Test 5:</strong> Test with South region AM (Sheldon's AM - H546)
+        </div>
+        <div class="url-example">?amId=H546</div>
+        <a href="?amId=H546" class="test-link">Test AM ID: H546 (South Region)</a>
+        
+        <div class="description">
+            <strong>Test 6:</strong> Test without parameters (should show all options)
+        </div>
+        <div class="url-example">No parameters</div>
+        <a href="?" class="test-link">Test Without Parameters</a>
+    </div>
+    
+    <div class="test-section">
+        <h2>Expected Behavior</h2>
+        <ul>
+            <li><strong>AM Auto-fill:</strong> When you click a link with amId/am_id/r parameter, the AM name should be automatically filled</li>
+            <li><strong>HR Filtering:</strong> Only HR personnel associated with the selected AM should appear in the dropdown</li>
+            <li><strong>Trainer Filtering:</strong> Only trainers associated with the selected AM should appear in the dropdown</li>
+            <li><strong>Store Filtering:</strong> Only stores managed by the selected AM should appear in the dropdown</li>
+            <li><strong>Auto-fill HR/Trainer:</strong> When AM is selected from URL, the first available HR and trainer should be auto-filled</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Data Reference</h2>
+        <p>Based on the HR mapping data:</p>
+        <ul>
+            <li><strong>H1766 (Amar):</strong> North region, HR: H3578, Trainer: Kailash, Stores: Multiple Delhi/NCR stores</li>
+            <li><strong>H2396 (Vikram):</strong> North region, HR: H3578/H2165, Trainer: Kailash/Hema/Viraj, Stores: Multiple North stores</li>
+            <li><strong>H546:</strong> South region, HR: H2761/H1972, Trainer: Sheldon/Mahadev, Stores: Multiple Bangalore stores</li>
+        </ul>
+    </div>
+    
+    <script>
+        // Add some basic interactivity
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show current URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const amId = urlParams.get('amId') || urlParams.get('am_id') || urlParams.get('r');
+            
+            if (amId) {
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'test-section';
+                statusDiv.innerHTML = `
+                    <h2>Current Test Status</h2>
+                    <p><strong>AM ID from URL:</strong> ${amId}</p>
+                    <p><strong>Full URL:</strong> ${window.location.href}</p>
+                    <p>Navigate to the Operations Checklist to see the auto-fill functionality in action.</p>
+                `;
+                document.body.insertBefore(statusDiv, document.body.firstChild);
+            }
+        });
+    </script>
+</body>
+</html>
