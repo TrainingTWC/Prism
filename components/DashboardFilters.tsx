@@ -375,12 +375,11 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
           </svg>
           <span className="text-sm font-medium">Filters</span>
         </button>
-
-        <div className="w-36">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => { if (typeof onDownload === 'function') onDownload(); }}
             disabled={isGenerating}
-            className={`w-full inline-flex items-center justify-center gap-2 py-3 px-4 ${isGenerating ? 'opacity-80 pointer-events-none disabled:opacity-60' : ''} btn-primary-gradient text-white rounded-lg shadow-sm transition-transform duration-150 transform hover:scale-105`}
+            className={`inline-flex items-center justify-center gap-2 py-3 px-3 ${isGenerating ? 'opacity-80 pointer-events-none disabled:opacity-60' : ''} btn-primary-gradient text-white rounded-lg shadow-sm transition-transform duration-150 transform hover:scale-105`}
           >
             {isGenerating ? (
               <>
@@ -395,9 +394,17 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V3zM3 9a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" />
                 </svg>
-                <span className="text-sm">Download</span>
               </>
             )}
+          </button>
+
+          <button
+            onClick={() => { /* eslint-disable-next-line no-console */ console.log('Refresh requested'); window.dispatchEvent(new CustomEvent('prism-refresh')) }}
+            className="inline-flex items-center justify-center gap-2 py-3 px-3 bg-gray-100 dark:bg-slate-700 rounded-lg shadow-sm"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v6h6M20 20v-6h-6" />
+            </svg>
           </button>
         </div>
       </div>

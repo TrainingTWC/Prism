@@ -37,11 +37,11 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
       }
     });
 
-    const palette = getChartPalette();
+    // Use pastel red/yellow/green for clear semantics on the store health pie
     return [
-      { name: 'Needs Attention', value: needsAttention, color: palette[0] || '#ef4444' },
-      { name: 'Brewing', value: brewing, color: palette[1] || '#f59e0b' },
-      { name: 'Perfect Shot', value: perfectShot, color: palette[2] || '#10b981' }
+      { name: 'Needs Attention', value: needsAttention, color: '#FCA5A5' }, // pastel red
+      { name: 'Brewing', value: brewing, color: '#FDE68A' }, // pastel yellow
+      { name: 'Perfect Shot', value: perfectShot, color: '#86EFAC' } // pastel green
     ];
   }, [submissions]);
 

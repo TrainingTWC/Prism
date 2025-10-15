@@ -289,6 +289,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     loadMappingData();
   }, []);
 
+  
+
   const loadData = async (isRefresh = false, specificDashboard?: string) => {
     try {
       if (isRefresh) {
@@ -417,6 +419,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     loadData(true);
   };
 
+  // Listen for manual mobile refresh events dispatched from compact bar
+  useEffect(() => {
+    const onMobileRefresh = () => handleRefresh();
+    window.addEventListener('prism-refresh', onMobileRefresh as any);
+    return () => window.removeEventListener('prism-refresh', onMobileRefresh as any);
+  }, [handleRefresh]);
+
   const availableStores = useMemo(() => {
     let stores = allStores;
     
@@ -494,6 +503,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const availableHRPersonnel = useMemo(() => {
     return allHRPersonnel.filter(hr => canAccessHR(userRole, hr.id));
   }, [userRole, allHRPersonnel]);
+
+  // Listen for manual mobile refresh events dispatched from compact bar
+  useEffect(() => {
+    const onMobileRefresh = () => handleRefresh();
+    window.addEventListener('prism-refresh', onMobileRefresh as any);
+    return () => window.removeEventListener('prism-refresh', onMobileRefresh as any);
+  }, [handleRefresh]);
 
   const availableRegions = useMemo(() => {
     if (userRole.region) {
@@ -2012,7 +2028,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         (dashboardType === 'training' && filteredTrainingData.length > 0) ||
         (dashboardType === 'qa' && filteredQAData.length > 0) ||
         (dashboardType === 'consolidated' && (filteredSubmissions.length > 0 || filteredAMOperations.length > 0 || filteredTrainingData.length > 0 || filteredQAData.length > 0))) && (
-        <div className="flex justify-end">
+        <div className="hidden md:flex justify-end">
           <button
             onClick={generatePDFReport}
             data-tour="download-button"
