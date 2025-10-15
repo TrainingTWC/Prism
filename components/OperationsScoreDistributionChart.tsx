@@ -62,9 +62,12 @@ const OperationsScoreDistributionChart: React.FC<OperationsScoreDistributionChar
             }}
           />
           <Bar dataKey="count" name="Submissions">
-            {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={getChartPalette()[index % getChartPalette().length]} />
-            ))}
+            {(() => {
+              const palette = getChartPalette();
+              return data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={palette[index % palette.length]} />
+              ));
+            })()}
           </Bar>
         </BarChart>
       </ResponsiveContainer>

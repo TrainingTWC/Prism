@@ -89,9 +89,12 @@ const QuestionBreakdownChart: React.FC<QuestionBreakdownChartProps> = ({ submiss
             dataKey="value"
             nameKey="name"
           >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={getChartPalette()[index % getChartPalette().length]} />
-            ))}
+            {(() => {
+              const palette = getChartPalette();
+              return data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={palette[index % palette.length]} />
+              ));
+            })()}
           </Pie>
         </PieChart>
       </ResponsiveContainer>

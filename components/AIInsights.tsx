@@ -364,11 +364,11 @@ const AIInsights: React.FC<AIInsightsProps> = ({ userRole }) => {
   const problemData = (() => {
     const palette = getChartPalette();
     return safeResponses.length > 0 ? [
-      { category: 'Communication', value: Math.round(Math.random() * 30 + 20), color: palette[0] || '#ef4444' },
-      { category: 'Systems', value: Math.round(Math.random() * 25 + 15), color: palette[1] || '#f97316' },
-      { category: 'Training', value: Math.round(Math.random() * 20 + 10), color: palette[2] || '#eab308' },
-      { category: 'Satisfaction', value: Math.round(Math.random() * 15 + 10), color: palette[3] || '#22c55e' },
-      { category: 'Other', value: Math.round(Math.random() * 10 + 5), color: palette[4] || '#6b7280' }
+      { category: 'Communication', value: Math.round(Math.random() * 30 + 20), color: palette[0] },
+      { category: 'Systems', value: Math.round(Math.random() * 25 + 15), color: palette[1] },
+      { category: 'Training', value: Math.round(Math.random() * 20 + 10), color: palette[2] },
+      { category: 'Satisfaction', value: Math.round(Math.random() * 15 + 10), color: palette[3] },
+      { category: 'Other', value: Math.round(Math.random() * 10 + 5), color: palette[4] }
     ] : [];
   })();
 
