@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
+import { RefreshCw } from 'lucide-react';
 import { Store, AreaManager, HRPerson } from '../types';
 
 interface DashboardFiltersProps {
@@ -232,6 +233,13 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   // Mobile drawer state
   const [showMobileFilters, setShowMobileFilters] = React.useState(false);
 
+  const handleRefresh = (e?: React.KeyboardEvent | React.MouseEvent) => {
+    // allow keyboard activation via Enter/Space
+    /* eslint-disable-next-line no-console */
+    console.log('Refresh requested');
+    window.dispatchEvent(new CustomEvent('prism-refresh'));
+  };
+
   const Drawer = () => (
     <div className="fixed inset-0 z-50 flex md:hidden">
       {/* Backdrop */}
@@ -397,9 +405,10 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
       {/* Mobile compact bar with Filters button and Download/report actions */}
       <div className="block md:hidden flex items-center justify-between gap-3">
         <button
-          className="flex-1 inline-flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg shadow-sm"
+          className="flex-1 inline-flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
           onClick={() => setShowMobileFilters(true)}
           aria-label="Open filters"
+          aria-expanded={showMobileFilters}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 icon-muted" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
             <path d="M3 5a1 1 0 011-1h12a1 1 0 01.8 1.6l-4.6 6.13a1 1 0 00-.2.64V17a1 1 0 01-1 1H8a1 1 0 01-1-1v-3.63a1 1 0 00-.2-.64L2.2 5.6A1 1 0 013 5z" />
@@ -432,16 +441,19 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
         </button>
 
         <button
-          onClick={() => { /* eslint-disable-next-line no-console */ console.log('Refresh requested'); window.dispatchEvent(new CustomEvent('prism-refresh')) }}
-          className="inline-flex items-center justify-center gap-2 py-3 px-3 bg-gray-100 dark:bg-slate-700 rounded-lg shadow-sm"
+          onClick={(e) => handleRefresh(e as any)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleRefresh(e);
+            }
+          }}
+          className="inline-flex items-center justify-center gap-2 py-3 px-3 bg-gray-100 dark:bg-slate-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
           aria-label="Refresh data"
           title="Refresh data"
         >
-          {/* Improved refresh icon: circular arrow that better communicates refresh */}
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12a8 8 0 10-4.9 7.4l1.2-1.7a6 6 0 11.5-8.1L20 12z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 4v6h-6" />
-          </svg>
+          <RefreshCw className="w-5 h-5" aria-hidden="true" />
+          <span className="sr-only">Refresh data</span>
         </button>
       </div>
 

@@ -122,20 +122,34 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
               </ResponsiveContainer>
             </div>
             
-            {/* Legend - with more spacing */}
-            <div className="flex-1 flex flex-col justify-center gap-1 ml-6 min-w-0">
+            {/* Legend - with more spacing; items are keyboard accessible */}
+            <div className="flex-1 flex flex-col justify-center gap-1 ml-6 min-w-0" role="list" aria-label="Store health legend">
               {healthData.map((entry, index) => (
-                <div key={entry.name} className="flex items-center gap-2">
-                  <div 
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
-                    style={{ backgroundColor: entry.color }}
-                  ></div>
-                  <span className="text-xs text-gray-700 dark:text-slate-300 truncate">
-                    {entry.name}
-                  </span>
-                  <span className="text-xs font-semibold text-gray-900 dark:text-slate-100 ml-auto">
-                    {entry.value}
-                  </span>
+                <div key={entry.name} className="flex items-center gap-2" role="listitem">
+                  <button
+                    type="button"
+                    className="flex items-center gap-3 w-full text-left focus:outline-none focus:ring-2 focus:ring-sky-500 rounded-sm p-1"
+                    onClick={() => propsOnOpen('scoreRange', '', entry.name)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        propsOnOpen('scoreRange', '', entry.name);
+                      }
+                    }}
+                    aria-label={`Show details for ${entry.name}`}
+                  >
+                    <div 
+                      className="w-3 h-3 rounded-full flex-shrink-0" 
+                      style={{ backgroundColor: entry.color }}
+                      aria-hidden
+                    ></div>
+                    <span className="text-xs text-gray-700 dark:text-slate-300 truncate">
+                      {entry.name}
+                    </span>
+                    <span className="text-xs font-semibold text-gray-900 dark:text-slate-100 ml-auto">
+                      {entry.value}
+                    </span>
+                  </button>
                 </div>
               ))}
             </div>
