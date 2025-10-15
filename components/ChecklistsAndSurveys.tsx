@@ -173,11 +173,6 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
             </h1>
             <p className="text-gray-600 dark:text-slate-400">
               Complete departmental checklists and track compliance scores across all areas.
-              {authUserRole && authUserRole !== 'admin' && (
-                <span className="block mt-1 text-sm font-medium text-blue-600 dark:text-blue-400">
-                  Showing {authUserRole.toUpperCase()} accessible checklists ({availableChecklists.length} of 5 total)
-                </span>
-              )}
             </p>
           </div>
 

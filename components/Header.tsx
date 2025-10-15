@@ -116,19 +116,10 @@ const Header: React.FC = () => {
         </div>
       </div>
       
-      <div className="mt-2 flex items-center justify-between flex-wrap gap-2">
+      <div className="mt-2">
         <p className="text-gray-500 dark:text-slate-400 text-sm">
           Employee data, insights, and task management.
         </p>
-        
-        {userRole && roleConfig && (
-          <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-slate-500">
-            <span>Access Level:</span>
-            <span className={`font-medium ${getRoleColor(userRole)}`}>
-              {roleConfig.permissions.length} permission{roleConfig.permissions.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-        )}
       </div>
     </header>
   );
