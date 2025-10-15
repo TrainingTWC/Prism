@@ -7,6 +7,7 @@ import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData
 import { hapticFeedback } from '../utils/haptics';
 import StatCard from './StatCard';
 import Loader from './Loader';
+import SkeletonLoader from './SkeletonLoader';
 import NotificationOverlay from './NotificationOverlay';
 import ScoreDistributionChart from './ScoreDistributionChart';
 import AverageScoreByManagerChart from './AverageScoreByManagerChart';
@@ -54,10 +55,10 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const { userRole: authUserRole, hasPermission, hasDashboardAccess } = useAuth();
-  const [submissions, setSubmissions] = useState<Submission[] | null>(null);
-  const [amOperationsData, setAMOperationsData] = useState<AMOperationsSubmission[] | null>(null);
-  const [trainingData, setTrainingData] = useState<TrainingAuditSubmission[] | null>(null);
-  const [qaData, setQAData] = useState<QASubmission[] | null>(null);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [amOperationsData, setAMOperationsData] = useState<AMOperationsSubmission[]>([]);
+  const [trainingData, setTrainingData] = useState<TrainingAuditSubmission[]>([]);
+  const [qaData, setQAData] = useState<QASubmission[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +67,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const [allAreaManagers, setAllAreaManagers] = useState<any[]>([]);
   const [allHRPersonnel, setAllHRPersonnel] = useState<any[]>([]);
   const [hrMappingData, setHrMappingData] = useState<any[]>([]);
+  
+  // Cache flags to track what data has been loaded
+  const [dataLoadedFlags, setDataLoadedFlags] = useState({
+    hr: false,
+    operations: false,
+    training: false,
+    qa: false
+  });
   
   const [filters, setFilters] = useState({
     region: '',
@@ -114,7 +123,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   // Training detail modal state
   const [showTrainingDetail, setShowTrainingDetail] = useState(false);
   const [trainingDetailFilter, setTrainingDetailFilter] = useState<{
-    type: 'region' | 'am' | 'hr' | 'store' | 'section';
+    type: 'region' | 'am' | 'hr' | 'store' | 'section' | 'scoreRange';
     value: string;
     title: string;
   } | null>(null);
@@ -155,6 +164,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   const handleScoreRangeClick = (minScore: number, maxScore: number, label: string) => {
     console.log('Score range clicked:', label);
+    setTrainingDetailFilter({
+      type: 'scoreRange',
+      value: `${minScore}-${maxScore}`,
+      title: `Score Range: ${label}`
+    });
+    setShowTrainingDetail(true);
   };
 
   const handleStoreClick = (storeId: string, storeName: string) => {
@@ -273,7 +288,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     loadMappingData();
   }, []);
 
-  const loadData = async (isRefresh = false) => {
+  const loadData = async (isRefresh = false, specificDashboard?: string) => {
     try {
       if (isRefresh) {
         setRefreshing(true);
@@ -281,29 +296,96 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         setLoading(true);
       }
       
-      // Load HR survey data
-      const data = await fetchSubmissions();
-      console.log('Dashboard loaded HR survey data:', data.length, 'submissions');
-      setSubmissions(data);
+      // Determine which data to load based on user role and current dashboard
+      const targetDashboard = specificDashboard || dashboardType;
+      const isAdmin = userRole.role === 'admin';
       
-      // Load AM Operations data
-      const amOpsData = await fetchAMOperationsData();
-      console.log('Dashboard loaded AM Operations data:', amOpsData.length, 'submissions');
-      setAMOperationsData(amOpsData);
+      // Smart loading: only load data relevant to the user's permissions and current view
+      const loadPromises: Promise<any>[] = [];
       
-      // Load Training Audit data
-      const trainingAuditData = await fetchTrainingData();
-      console.log('Dashboard loaded Training Audit data:', trainingAuditData.length, 'submissions');
-      setTrainingData(trainingAuditData);
-      
-      // Load QA Assessment data
-      const qaAssessmentData = await fetchQAData();
-      console.log('Dashboard loaded QA Assessment data:', qaAssessmentData.length, 'submissions');
-      console.log('QA data sample:', qaAssessmentData[0]);
-      if (qaAssessmentData.length > 0) {
-        console.log('QA data keys:', Object.keys(qaAssessmentData[0]));
+      // Load HR survey data only if user has access and it's needed
+      if (isAdmin || userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head' || targetDashboard === 'hr' || targetDashboard === 'consolidated') {
+        if (!dataLoadedFlags.hr || isRefresh) {
+          loadPromises.push(
+            fetchSubmissions().then(data => {
+              console.log('Dashboard loaded HR survey data:', data.length, 'submissions');
+              setSubmissions(data);
+              setDataLoadedFlags(prev => ({ ...prev, hr: true }));
+            }).catch(err => {
+              console.error('Failed to load HR data:', err);
+              // Don't fail entire load if one dataset fails
+            })
+          );
+        } else {
+          console.log('Using cached HR data');
+        }
       }
-      setQAData(qaAssessmentData);
+      
+      // Load AM Operations data only if user has access and it's needed
+      if (isAdmin || userRole.role === 'area_manager' || targetDashboard === 'operations' || targetDashboard === 'consolidated') {
+        if (!dataLoadedFlags.operations || isRefresh) {
+          loadPromises.push(
+            fetchAMOperationsData().then(data => {
+              console.log('Dashboard loaded AM Operations data:', data.length, 'submissions');
+              setAMOperationsData(data);
+              setDataLoadedFlags(prev => ({ ...prev, operations: true }));
+            }).catch(err => {
+              console.error('Failed to load AM Operations data:', err);
+            })
+          );
+        } else {
+          console.log('Using cached Operations data');
+        }
+      }
+      
+      // Load Training Audit data only if user has access and it's needed
+      if (isAdmin || userRole.role === 'lms_head' || targetDashboard === 'training' || targetDashboard === 'consolidated') {
+        if (!dataLoadedFlags.training || isRefresh) {
+          loadPromises.push(
+            fetchTrainingData().then(data => {
+              console.log('Dashboard loaded Training Audit data:', data.length, 'submissions');
+              setTrainingData(data);
+              setDataLoadedFlags(prev => ({ ...prev, training: true }));
+            }).catch(err => {
+              console.error('Failed to load Training data:', err);
+            })
+          );
+        } else {
+          console.log('Using cached Training data');
+        }
+      }
+      
+      // Load QA Assessment data only if user has access and it's needed
+      if (isAdmin || targetDashboard === 'qa' || targetDashboard === 'consolidated') {
+        if (!dataLoadedFlags.qa || isRefresh) {
+          loadPromises.push(
+            fetchQAData().then(data => {
+              console.log('Dashboard loaded QA Assessment data:', data.length, 'submissions');
+              if (data.length > 0) {
+                console.log('QA data sample:', data[0]);
+                console.log('QA data keys:', Object.keys(data[0]));
+              }
+              setQAData(data);
+              setDataLoadedFlags(prev => ({ ...prev, qa: true }));
+            }).catch(err => {
+              console.error('Failed to load QA data:', err);
+            })
+          );
+        } else {
+          console.log('Using cached QA data');
+        }
+      }
+      
+      // If no promises to load, we're using all cached data
+      if (loadPromises.length === 0) {
+        console.log('All data loaded from cache - no network requests needed!');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+      
+      // Load all promises in parallel for better performance
+      await Promise.all(loadPromises);
       
       setError(null);
       setLastRefresh(new Date());
@@ -321,9 +403,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   };
 
   useEffect(() => {
-    // Load data immediately
-    loadData(false);
+    // Load data immediately for current dashboard
+    loadData(false, dashboardType);
   }, []);
+
+  // Load additional data when dashboard type changes
+  useEffect(() => {
+    loadData(false, dashboardType);
+  }, [dashboardType]);
 
   const handleRefresh = () => {
     loadData(true);
@@ -561,7 +648,50 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     });
     
     console.log('Dashboard filtering Training Audit - filtered:', filtered.length);
-    return filtered;
+
+    // Deduplicate by storeId: keep only the latest submission per store
+    const parseTime = (t: any) => {
+      try {
+        if (!t) return 0;
+        if (t instanceof Date) return t.getTime();
+        if (typeof t === 'number') return t;
+        if (typeof t === 'string') {
+          // Try ISO or common formats
+          if (t.includes('T') || t.includes('-')) {
+            const dt = new Date(t);
+            return isNaN(dt.getTime()) ? 0 : dt.getTime();
+          }
+          // numeric string timestamp
+          if (!isNaN(Number(t))) {
+            return Number(t);
+          }
+          // fallback: Date parse
+          const dt = new Date(t);
+          return isNaN(dt.getTime()) ? 0 : dt.getTime();
+        }
+      } catch (err) {
+        return 0;
+      }
+      return 0;
+    };
+
+    const latestByStore = new Map<string, any>();
+    filtered.forEach((submission: any) => {
+      const storeId = submission.storeId || submission.storeID || submission.store_id || '';
+      if (!storeId) return; // skip entries without store id
+
+      const existing = latestByStore.get(storeId);
+      const existingTime = existing ? parseTime(existing.submissionTime) : 0;
+      const thisTime = parseTime(submission.submissionTime);
+
+      if (!existing || thisTime >= existingTime) {
+        latestByStore.set(storeId, submission);
+      }
+    });
+
+    const deduped = Array.from(latestByStore.values());
+    console.log('Dashboard filtering Training Audit - deduped by store:', deduped.length);
+    return deduped;
   }, [trainingData, filters, userRole]);
 
   // Filter QA Assessment data
@@ -1612,15 +1742,51 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   };
 
   if (loading) {
-    return <Loader />;
+    return (
+      <div className="space-y-6">
+        {/* Dashboard Type Selector Skeleton */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 animate-pulse">
+          <div className="flex gap-2">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-10 bg-gray-200 dark:bg-slate-700 rounded-lg flex-1"></div>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats Grid Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <SkeletonLoader type="stat" count={4} />
+        </div>
+
+        {/* Charts Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SkeletonLoader type="chart" count={2} />
+        </div>
+
+        {/* Additional Content Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <SkeletonLoader type="card" count={3} />
+        </div>
+
+        <div className="text-center text-sm text-gray-500 dark:text-slate-400 mt-4">
+          Loading {dashboardType === 'training' ? 'training' : dashboardType === 'operations' ? 'operations' : dashboardType === 'qa' ? 'QA' : dashboardType === 'hr' ? 'HR' : ''} dashboard data...
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-center text-red-600 dark:text-red-400">{error}</div>;
-  }
-  
-  if (!submissions) {
-    return <div className="text-center text-gray-500 dark:text-slate-400">No submission data available.</div>
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="text-red-600 dark:text-red-400 text-lg font-medium mb-4">{error}</div>
+        <button
+          onClick={() => loadData(true)}
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -1720,15 +1886,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         </div>
       )}
 
-      <DashboardFilters
-        regions={availableRegions}
-        stores={availableStores}
-        areaManagers={availableAreaManagers}
-        hrPersonnel={availableHRPersonnel}
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        onReset={resetFilters}
-      />
+      <div data-tour="filters">
+        <DashboardFilters
+          regions={availableRegions}
+          stores={availableStores}
+          areaManagers={availableAreaManagers}
+          hrPersonnel={availableHRPersonnel}
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onReset={resetFilters}
+        />
+      </div>
 
       {/* RCA & CAPA Analysis - Only for Operations Dashboard */}
       {/* Commented out - RCACapaAnalysis component not found
@@ -1749,6 +1917,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         <div className="flex justify-end">
           <button
             onClick={generatePDFReport}
+            data-tour="download-button"
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-medium transition-colors duration-200 flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1815,7 +1984,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           {/* Training Dashboard Content */}
           {dashboardType === 'training' && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" data-tour="region-chart">
                 <TrainingRegionPerformanceInfographic 
                   submissions={filteredTrainingData} 
                   onRegionClick={handleRegionClick}
@@ -1831,10 +2000,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <TrainingScoreDistributionChart 
-                  submissions={filteredTrainingData} 
-                  onScoreRangeClick={handleScoreRangeClick}
-                />
+                <div data-tour="score-chart">
+                  <TrainingScoreDistributionChart 
+                    submissions={filteredTrainingData} 
+                    onScoreRangeClick={handleScoreRangeClick}
+                  />
+                </div>
                 <TrainingAverageScoreChart submissions={filteredTrainingData} />
               </div>
               

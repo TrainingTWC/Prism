@@ -163,27 +163,38 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
       };
     });
 
-    // Get top 5 trainers by average score
-    const topTrainers = trainerData
+    // Get all trainers sorted by average score
+    const allTrainers = trainerData
       .map(trainer => ({
         ...trainer,
         averageScore: trainer.data.reduce((a, b) => a + b) / trainer.data.length
       }))
-      .sort((a, b) => b.averageScore - a.averageScore)
-      .slice(0, 5);
+      .sort((a, b) => b.averageScore - a.averageScore);
 
-    console.log('Training Radar Chart - Top trainers:', topTrainers);
+    console.log('Training Radar Chart - All trainers:', allTrainers.length);
 
     const labels = TRAINING_SECTIONS.map(section => section.name);
+    
+    // Extended color palette for more trainers
     const colors = [
-      'rgba(139, 92, 246, 0.6)', // Purple
-      'rgba(59, 130, 246, 0.6)',  // Blue
-      'rgba(34, 197, 94, 0.6)',   // Green
-      'rgba(249, 115, 22, 0.6)',  // Orange
-      'rgba(239, 68, 68, 0.6)'    // Red
+      'rgba(139, 92, 246, 0.6)',  // Purple
+      'rgba(59, 130, 246, 0.6)',   // Blue
+      'rgba(34, 197, 94, 0.6)',    // Green
+      'rgba(249, 115, 22, 0.6)',   // Orange
+      'rgba(239, 68, 68, 0.6)',    // Red
+      'rgba(236, 72, 153, 0.6)',   // Pink
+      'rgba(14, 165, 233, 0.6)',   // Sky
+      'rgba(168, 85, 247, 0.6)',   // Violet
+      'rgba(251, 146, 60, 0.6)',   // Amber
+      'rgba(20, 184, 166, 0.6)',   // Teal
+      'rgba(132, 204, 22, 0.6)',   // Lime
+      'rgba(234, 179, 8, 0.6)',    // Yellow
+      'rgba(244, 63, 94, 0.6)',    // Rose
+      'rgba(99, 102, 241, 0.6)',   // Indigo
+      'rgba(6, 182, 212, 0.6)'     // Cyan
     ];
 
-    const datasets = topTrainers.map((trainer, index) => ({
+    const datasets = allTrainers.map((trainer, index) => ({
       label: trainer.trainerName,
       data: trainer.data,
       backgroundColor: colors[index % colors.length],
@@ -255,7 +266,7 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
 
   if (!chartData) {
     return (
-      <ChartContainer title="Training Performance Radar (Top 5 Trainers)" loading={false}>
+      <ChartContainer title="Training Performance Radar (All Trainers)">
         <div className="flex items-center justify-center h-96">
           <p className="text-slate-500">No training data available</p>
         </div>
@@ -264,7 +275,7 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
   }
 
   return (
-    <ChartContainer title="Training Performance Radar (Top 5 Trainers)" loading={false}>
+    <ChartContainer title="Training Performance Radar (All Trainers)">
       <div style={{ height: '400px' }}>
         <Radar data={chartData} options={options} />
       </div>

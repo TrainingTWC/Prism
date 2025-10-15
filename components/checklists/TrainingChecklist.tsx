@@ -940,67 +940,6 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     hapticFeedback.tap();
   };
 
-  // AUTO-FILL FUNCTION FOR TESTING (REMOVE LATER)
-  const autoFillForTesting = () => {
-    const testResponses: Record<string, string> = {};
-    const testRemarks: Record<string, string> = {};
-    
-    // Sample test data
-    const sampleNames = ['John Doe', 'Jane Smith', 'Alex Johnson', 'Sarah Wilson', 'Mike Brown'];
-    const sampleIds = ['EMP001', 'EMP002', 'EMP003', 'EMP004', 'EMP005'];
-    const sampleRemarks = [
-      'Excellent performance, all standards met',
-      'Good understanding, minor improvements needed',
-      'Requires additional training on specific areas',
-      'Outstanding knowledge and execution',
-      'Meets basic requirements, room for improvement'
-    ];
-
-    // Fill meta information
-    setMeta({
-      amName: 'Test AM',
-      amId: 'AM123',
-      trainerName: 'Test Trainer', 
-      trainerId: 'TR456',
-      storeName: 'Test Store',
-      storeId: 'ST789',
-      mod: 'Test MOD'
-    });
-
-    // Fill all sections
-    SECTIONS.forEach(section => {
-      section.items.forEach(item => {
-        const questionId = `${section.id}_${item.id}`;
-        
-        if (item.type === 'text') {
-          // Fill text fields with sample data
-          if (item.q.includes('name')) {
-            testResponses[questionId] = sampleNames[Math.floor(Math.random() * sampleNames.length)];
-          } else if (item.q.includes('ID')) {
-            testResponses[questionId] = sampleIds[Math.floor(Math.random() * sampleIds.length)];
-          }
-        } else {
-          // Randomly assign yes/no/na with weighted probability
-          const rand = Math.random();
-          if (rand < 0.7) {
-            testResponses[questionId] = 'yes'; // 70% yes
-          } else if (rand < 0.9) {
-            testResponses[questionId] = 'no';  // 20% no
-          } else {
-            testResponses[questionId] = 'na';  // 10% na
-          }
-        }
-      });
-      
-      // Add sample remarks for each section
-      testRemarks[section.id] = sampleRemarks[Math.floor(Math.random() * sampleRemarks.length)];
-    });
-
-    setResponses(testResponses);
-    setRemarks(testRemarks);
-    hapticFeedback.success();
-  };
-
   return (
     <>
       {/* Show submission success screen */}
@@ -1025,20 +964,20 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
           </div>
         </div>
       ) : (
-        <div className="space-y-6 p-6">
-          {/* Header Banner */}
-          <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-800">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
+        <div className="w-full">
+          {/* Header Banner - Full Width */}
+          <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 p-4 border-b border-purple-200 dark:border-purple-800">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-1">
               📚 Training Audit Checklist
             </h1>
-            <p className="text-gray-600 dark:text-slate-400">
-              Comprehensive training assessment covering all aspects of staff development and knowledge retention. Weighted scoring: Various weights per question, N/A excluded from scoring.
+            <p className="text-sm text-gray-600 dark:text-slate-400">
+              Comprehensive training assessment covering all aspects of staff development and knowledge retention.
             </p>
           </div>
 
-      {/* Meta Information Form */}
-      <div id="audit-information" className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">
+      {/* Meta Information Form - Full Width */}
+      <div id="audit-information" className="bg-gray-50 dark:bg-slate-900 p-4 border-b border-gray-200 dark:border-slate-700">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3">
           Audit Information
         </h2>
         
@@ -1103,7 +1042,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
               onFocus={() => setShowTrainerDropdown(true)}
               onBlur={() => setTimeout(() => setShowTrainerDropdown(false), 200)}
               placeholder="Search Trainer..."
-              readOnly={isTrainerIdFromURL && meta.trainerId}
+              readOnly={isTrainerIdFromURL && !!meta.trainerId}
               className={`w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md ${
                 isTrainerIdFromURL && meta.trainerId
                   ? 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 cursor-not-allowed'
@@ -1146,7 +1085,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             )}
           </div>
 
-          <div className="md:col-span-2">
+          <div className="md:col-span-2" data-tour="store-select">
             <div className="relative">
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                 Store Location
@@ -1208,13 +1147,13 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         </div>
       </div>
 
-      {/* Training Sections */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">
+      {/* Training Sections - Full Width */}
+      <div className="bg-white dark:bg-slate-800 p-4" data-tour="checklist-form">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3">
           Training Assessment
         </h2>
         
-        <div className="space-y-8">
+        <div className="space-y-4">
           {SECTIONS.map((section, sectionIndex) => {
             // Special handling for TSA Food section
             if (section.id === 'TSA_Food') {
@@ -1272,21 +1211,21 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                   </div>
 
                   {tsaExpanded && (
-                    <div className="space-y-6 bg-orange-50 dark:bg-orange-900/10 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+                    <div className="space-y-4 bg-orange-50 dark:bg-orange-900/10 p-3 border-l-4 border-orange-400 dark:border-orange-500">
                       {Object.entries(groupedItems).map(([subsectionName, items]) => (
-                        <div key={subsectionName} className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-orange-200 dark:border-orange-700">
-                          <h4 className="text-md font-semibold text-gray-900 dark:text-slate-100 mb-3 text-orange-700 dark:text-orange-300">
+                        <div key={subsectionName} className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-slate-600">
+                          <h4 className="text-sm font-semibold text-orange-700 dark:text-orange-300 mb-2">
                             {subsectionName}
                           </h4>
-                          <div className="space-y-3">
+                          <div className="space-y-2">
                             {items.map((item, itemIndex) => (
-                              <div key={item.id} className="p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                <div className="flex items-start gap-3">
-                                  <span className="inline-flex items-center justify-center w-5 h-5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
+                              <div key={item.id} className="p-2 border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div className="flex items-start gap-2">
+                                  <span className="inline-flex items-center justify-center w-4 h-4 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
                                     {itemIndex + 1}
                                   </span>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-3">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-tight mb-2">
                                       {item.q}
                                     </p>
                                     <div className="">
@@ -1299,9 +1238,9 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                                           placeholder="Enter value"
                                         />
                                       ) : (
-                                        <div className="flex gap-4">
+                                        <div className="flex gap-3">
                                           {['yes', 'no', 'na'].map(option => (
-                                            <label key={option} className="flex items-center space-x-2 cursor-pointer">
+                                            <label key={option} className="flex items-center space-x-1 cursor-pointer">
                                               <input
                                                 type="radio"
                                                 name={`${section.id}_${item.id}`}
@@ -1310,7 +1249,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                                                 onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
                                                 className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500"
                                               />
-                                              <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
+                                              <span className="text-sm text-gray-700 dark:text-slate-300 capitalize">{option}</span>
                                             </label>
                                           ))}
                                         </div>
@@ -1385,10 +1324,10 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                   </div>
 
                   {tsaCoffeeExpanded && (
-                    <div className="space-y-6 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+                    <div className="space-y-4 bg-yellow-50 dark:bg-yellow-900/10 p-3 border-l-4 border-yellow-400 dark:border-yellow-500">
                       {Object.entries(groupedItems).map(([subsectionName, items]) => (
-                        <div key={subsectionName} className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-yellow-200 dark:border-yellow-700">
-                          <h4 className="text-md font-semibold text-gray-900 dark:text-slate-100 mb-3 text-yellow-700 dark:text-yellow-300">
+                        <div key={subsectionName} className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-slate-600">
+                          <h4 className="text-sm font-semibold text-yellow-700 dark:text-yellow-300 mb-2">
                             {subsectionName}
                           </h4>
                           <div className="space-y-3">
@@ -1498,10 +1437,10 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                   </div>
 
                   {tsaCXExpanded && (
-                    <div className="space-y-6 bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                    <div className="space-y-4 bg-blue-50 dark:bg-blue-900/10 p-3 border-l-4 border-blue-400 dark:border-blue-500">
                       {Object.entries(groupedItems).map(([subsectionName, items]) => (
-                        <div key={subsectionName} className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
-                          <h4 className="text-md font-semibold text-gray-900 dark:text-slate-100 mb-3 text-blue-700 dark:text-blue-300">
+                        <div key={subsectionName} className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-slate-600">
+                          <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">
                             {subsectionName}
                           </h4>
                           <div className="space-y-3">
@@ -1595,15 +1534,15 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                 </div>
 
                 {/* Section Remarks */}
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                <div className="mt-3">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
                     Section Remarks
                   </label>
                   <textarea
                     value={remarks[section.id] || ''}
                     onChange={(e) => handleRemarks(section.id, e.target.value)}
                     placeholder={`Add remarks for ${section.title} section (optional)`}
-                    rows={3}
+                    rows={2}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
                   />
                 </div>
@@ -1614,28 +1553,24 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       </div>
 
       {/* Submit Buttons */}
-      <div className="flex justify-between items-center">
-        <div className="flex gap-3">
+      <div className="w-full px-4 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <button
             onClick={resetChecklist}
-            className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
+            className="w-full sm:w-1/2 px-5 py-3 bg-transparent border border-gray-300 dark:border-slate-600 text-gray-800 dark:text-slate-100 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
           >
             Reset Checklist
           </button>
+
           <button
-            onClick={autoFillForTesting}
-            className="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition-colors"
+            onClick={handleSubmit}
+            disabled={isLoading}
+            data-tour="submit-button"
+            className="w-full sm:w-1/2 px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 disabled:opacity-60 text-white rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-400"
           >
-            Auto Fill (Test)
+            {isLoading ? 'Submitting...' : 'Submit Training Audit'}
           </button>
         </div>
-        <button
-          onClick={handleSubmit}
-          disabled={isLoading}
-          className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg font-medium transition-colors"
-        >
-          {isLoading ? 'Submitting...' : 'Submit Training Audit'}
-        </button>
       </div>
         </div>
       )}

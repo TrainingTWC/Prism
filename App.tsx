@@ -1,14 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Brain, CheckSquare } from 'lucide-react';
+import { BarChart3, Brain, CheckSquare, HelpCircle } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import AIInsights from './components/AIInsights';
 import ChecklistsAndSurveys from './components/ChecklistsAndSurveys';
 import Header from './components/Header';
 import Login from './components/Login';
+import TourGuide from './components/TourGuide';
 import { getUserRole, UserRole } from './roleMapping';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { TourProvider, useTour } from './contexts/TourContext';
 
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'ai-insights' | 'checklists'>('dashboard');
@@ -16,9 +18,10 @@ const AppContent: React.FC = () => {
   const [userId, setUserId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isTourActive, startTour, completeTour, skipTour, shouldShowTour } = useTour();
 
+  // Get user ID from URL parameters - must be before any conditional returns
   useEffect(() => {
-    // Get user ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const userIdParam = urlParams.get('userId') || urlParams.get('id') || urlParams.get('user');
     const hrIdParam = urlParams.get('hrId') || urlParams.get('hr_id');
@@ -46,6 +49,17 @@ const AppContent: React.FC = () => {
     
     setLoading(false);
   }, []);
+
+  // Auto-start tour after login if user hasn't seen it
+  useEffect(() => {
+    if (isAuthenticated && shouldShowTour && !isTourActive) {
+      // Small delay to let the UI render
+      const timer = setTimeout(() => {
+        startTour();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, shouldShowTour, isTourActive, startTour]);
 
   // Show loading while checking authentication
   if (authLoading) {
@@ -97,8 +111,26 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
       <Header />
       
+      {/* Tour Guide */}
+      <TourGuide
+        isActive={isTourActive}
+        onComplete={completeTour}
+        onSkip={skipTour}
+      />
+
+      {/* Help Button - Floating */}
+      <button
+        onClick={startTour}
+        className="fixed bottom-6 right-6 z-[9999] bg-gradient-to-r from-blue-500 to-purple-500 text-white p-4 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 flex items-center gap-2"
+        title="Take a tour"
+        aria-label="Start guided tour"
+      >
+        <HelpCircle className="w-6 h-6" />
+        <span className="hidden sm:inline font-medium">Need Help?</span>
+      </button>
+      
       {/* Tab Navigation */}
-      <nav className="px-2 sm:px-4 lg:px-8 border-b border-gray-200 dark:border-slate-700">
+      <nav className="px-2 sm:px-4 lg:px-8 border-b border-gray-200 dark:border-slate-700" data-tour="tabs">
         <div className="flex space-x-4 sm:space-x-8 overflow-x-auto">
           {tabs.map(tab => {
             const IconComponent = tab.icon;
@@ -106,6 +138,7 @@ const AppContent: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as 'dashboard' | 'ai-insights' | 'checklists')}
+                data-tour={tab.id === 'checklists' ? 'checklist-tab' : tab.id === 'dashboard' ? 'dashboard-tab' : ''}
                 className={`flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 ${
                   activeTab === tab.id
                     ? 'border-sky-400 text-sky-400'
@@ -134,7 +167,9 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <AppContent />
+        <TourProvider>
+          <AppContent />
+        </TourProvider>
       </ThemeProvider>
     </AuthProvider>
   );

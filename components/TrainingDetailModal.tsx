@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { TrainingAuditSubmission } from '../services/dataService';
 import { useAuditNavigation } from '../contexts/auditNavigationStore';
 
@@ -7,7 +7,7 @@ interface TrainingDetailModalProps {
   onClose: () => void;
   submissions: TrainingAuditSubmission[];
   title: string;
-  filterType?: 'region' | 'trainer' | 'section' | 'scoreRange' | 'store';
+  filterType?: 'region' | 'trainer' | 'section' | 'scoreRange' | 'store' | 'am' | 'hr';
   filterValue?: string | number;
 }
 
@@ -42,6 +42,68 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
     setSelectedStore 
   } = useAuditNavigation();
 
+  // Touch and gesture handling for mobile
+  const [touchStart, setTouchStart] = useState<number>(0);
+  const [touchEnd, setTouchEnd] = useState<number>(0);
+  const modalContentRef = useRef<HTMLDivElement>(null);
+
+  // Handle escape key press
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
+  // Handle browser back button on mobile - disabled for now to prevent conflicts
+  // Can be re-enabled if needed with more sophisticated state management
+  /*
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePopState = () => {
+      onClose();
+    };
+
+    window.history.pushState({ modalOpen: true }, '');
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (window.history.state?.modalOpen) {
+        window.history.back();
+      }
+    };
+  }, [isOpen, onClose]);
+  */
+
+  // Handle swipe down gesture
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientY);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStart - touchEnd < -150) {
+      // Swipe down by more than 150px closes the modal
+      onClose();
+    }
+  };
+
+  // Handle backdrop click
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   const stats = useMemo(() => {
     console.log('TrainingDetailModal stats calculation:', { submissions: submissions?.length || 0 });
     
@@ -64,29 +126,87 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
       };
     }
 
-    const totalSubmissions = submissions.length;
-    const totalScore = submissions.reduce((sum, sub) => sum + parseFloat(sub.percentageScore || '0'), 0);
+    // Filter submissions based on filterType
+    let filteredSubmissions = submissions;
+    
+    if (filterType && filterValue) {
+      console.log('Filtering by:', { filterType, filterValue, totalSubmissions: submissions.length });
+      
+      if (filterType === 'scoreRange') {
+        // Parse score range like "90-100" or "60-69"
+        const rangeStr = filterValue.toString();
+        const [minStr, maxStr] = rangeStr.split('-');
+        const minScore = parseFloat(minStr);
+        const maxScore = parseFloat(maxStr);
+        
+        filteredSubmissions = submissions.filter(sub => {
+          const score = parseFloat(sub.percentageScore || '0');
+          return score >= minScore && score <= maxScore;
+        });
+      } else if (filterType === 'region') {
+        // Filter by region
+        filteredSubmissions = submissions.filter(sub => 
+          sub.region === filterValue
+        );
+      } else if (filterType === 'am' || filterType === 'trainer' || filterType === 'hr') {
+        // Filter by trainer name
+        filteredSubmissions = submissions.filter(sub => 
+          sub.trainerName === filterValue
+        );
+      } else if (filterType === 'store') {
+        // Filter by store ID
+        filteredSubmissions = submissions.filter(sub => 
+          (sub.storeId || sub.storeID) === filterValue
+        );
+      }
+      // Note: 'section' filterType doesn't need filtering here as it's used for 
+      // displaying section-specific question breakdown
+      
+      console.log('Filtered submissions:', filteredSubmissions.length);
+    }
+
+    const totalSubmissions = filteredSubmissions.length;
+    
+    if (totalSubmissions === 0) {
+      return {
+        totalSubmissions: 0,
+        avgScore: 0,
+        avgPercentage: 0,
+        avgTSAFood: 0,
+        avgTSACoffee: 0,
+        avgTSACX: 0,
+        excellent: 0,
+        good: 0,
+        average: 0,
+        belowAverage: 0,
+        regions: [],
+        trainers: [],
+        sectionBreakdown: [],
+        questionBreakdown: []
+      };
+    }
+    const totalScore = filteredSubmissions.reduce((sum, sub) => sum + parseFloat(sub.percentageScore || '0'), 0);
     const avgScore = totalScore / totalSubmissions;
     const avgPercentage = avgScore; // Already a percentage
 
     // Calculate TSA averages as percentages
-    const tsaFoodScores = submissions.map(sub => (sub.tsaFoodScore || 0) * 10).filter(score => score > 0);
-    const tsaCoffeeScores = submissions.map(sub => (sub.tsaCoffeeScore || 0) * 10).filter(score => score > 0);
-    const tsaCXScores = submissions.map(sub => (sub.tsaCXScore || 0) * 10).filter(score => score > 0);
+    const tsaFoodScores = filteredSubmissions.map(sub => (sub.tsaFoodScore || 0) * 10).filter(score => score > 0);
+    const tsaCoffeeScores = filteredSubmissions.map(sub => (sub.tsaCoffeeScore || 0) * 10).filter(score => score > 0);
+    const tsaCXScores = filteredSubmissions.map(sub => (sub.tsaCXScore || 0) * 10).filter(score => score > 0);
 
     const avgTSAFood = tsaFoodScores.length > 0 ? tsaFoodScores.reduce((sum, score) => sum + score, 0) / tsaFoodScores.length : 0;
     const avgTSACoffee = tsaCoffeeScores.length > 0 ? tsaCoffeeScores.reduce((sum, score) => sum + score, 0) / tsaCoffeeScores.length : 0;
     const avgTSACX = tsaCXScores.length > 0 ? tsaCXScores.reduce((sum, score) => sum + score, 0) / tsaCXScores.length : 0;
 
     // Score distribution
-    const excellent = submissions.filter(sub => parseFloat(sub.percentageScore || '0') >= 90).length;
-    const good = submissions.filter(sub => parseFloat(sub.percentageScore || '0') >= 75 && parseFloat(sub.percentageScore || '0') < 90).length;
-    const average = submissions.filter(sub => parseFloat(sub.percentageScore || '0') >= 60 && parseFloat(sub.percentageScore || '0') < 75).length;
-    const belowAverage = submissions.filter(sub => parseFloat(sub.percentageScore || '0') < 60).length;
+    const excellent = filteredSubmissions.filter(sub => parseFloat(sub.percentageScore || '0') >= 90).length;
+    const good = filteredSubmissions.filter(sub => parseFloat(sub.percentageScore || '0') >= 75 && parseFloat(sub.percentageScore || '0') < 90).length;
+    const average = filteredSubmissions.filter(sub => parseFloat(sub.percentageScore || '0') >= 60 && parseFloat(sub.percentageScore || '0') < 75).length;
+    const belowAverage = filteredSubmissions.filter(sub => parseFloat(sub.percentageScore || '0') < 60).length;
 
     // Region breakdown
     const regionMap = new Map<string, { count: number; totalScore: number }>();
-    submissions.forEach(sub => {
+    filteredSubmissions.forEach(sub => {
       if (sub.region) {
         const existing = regionMap.get(sub.region) || { count: 0, totalScore: 0 };
         regionMap.set(sub.region, {
@@ -104,7 +224,7 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
 
     // Trainer breakdown
     const trainerMap = new Map<string, { count: number; totalScore: number }>();
-    submissions.forEach(sub => {
+    filteredSubmissions.forEach(sub => {
       if (sub.trainerName) {
         const existing = trainerMap.get(sub.trainerName) || { count: 0, totalScore: 0 };
         trainerMap.set(sub.trainerName, {
@@ -128,7 +248,7 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
       
       questions.forEach((question, index) => {
         // Simulate question scores based on overall section performance
-        const questionScores = submissions.map(sub => {
+        const questionScores = filteredSubmissions.map(sub => {
           const baseScore = parseFloat(sub.percentageScore || '0');
           // Add some variance to simulate individual question performance
           const variance = (Math.random() - 0.5) * 20;
@@ -195,7 +315,10 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
   // Early return if no submissions data to prevent errors
   if (!submissions || submissions.length === 0) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        onClick={handleBackdropClick}
+      >
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -219,8 +342,18 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={handleBackdropClick}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div 
+        ref={modalContentRef}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
