@@ -163,7 +163,12 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
 
       // Process each question in the section
       for (const question of section.questions) {
-        const answer = sample[question.id];
+        let answer = sample[question.id];
+        
+        // Clean the answer - remove leading apostrophes and trim
+        if (typeof answer === 'string') {
+          answer = answer.replace(/^['"]/, '').trim();
+        }
         
         // Check if answer is N/A or missing
         const isNA = answer === 'N/A' || answer === 'NA' || answer === 'na';
@@ -186,7 +191,10 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
           maxScore = 0;
         } else if (question.choices) {
           // Radio button question - find the choice and get its score
-          const selectedChoice = question.choices.find(c => c.label === answer);
+          // Match case-insensitively
+          const selectedChoice = question.choices.find(c => 
+            c.label.toLowerCase() === String(answer).toLowerCase()
+          );
           if (selectedChoice) {
             score = selectedChoice.score;
           }
@@ -247,24 +255,11 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
 
       // Questions table
       const tableData = questionData.map(q => {
-        const answerLower = q.answer.toLowerCase();
-        const isYes = answerLower === 'yes';
-        const isNo = answerLower === 'no';
-        const isNA = answerLower === 'n/a' || answerLower === 'na';
-        
-        // For display: show actual answer, not icon
-        let displayAnswer = q.answer;
-        
-        // Add indicator if yes/no
-        if (isYes) {
-          displayAnswer = `✓ ${q.answer}`;
-        } else if (isNo) {
-          displayAnswer = `✗ ${q.answer}`;
-        }
-        
+        // Just show the answer as-is without any symbols
+        // The styling will be handled by didParseCell below
         return [
           q.text,
-          displayAnswer,
+          q.answer, // Show plain answer: "Yes", "No", "Excellent", etc.
           q.scoreDisplay // Use the pre-calculated score display
         ];
       });
@@ -292,13 +287,16 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
         },
         didParseCell: (data) => {
           if (data.section === 'body' && data.column.index === 1) {
-            const text = String(data.cell.raw);
-            if (text.includes('✓') || text.toLowerCase().includes('yes')) {
+            const text = String(data.cell.raw).toLowerCase().trim();
+            // Check for Yes/No and apply styling
+            if (text === 'yes') {
               data.cell.styles.textColor = [16, 185, 129]; // green-500
               data.cell.styles.fillColor = [220, 252, 231]; // green-100
-            } else if (text.includes('✗') || text.toLowerCase().includes('no')) {
+              data.cell.styles.fontStyle = 'bold';
+            } else if (text === 'no') {
               data.cell.styles.textColor = [239, 68, 68]; // red-500
               data.cell.styles.fillColor = [254, 226, 226]; // red-100
+              data.cell.styles.fontStyle = 'bold';
             }
           }
         },
