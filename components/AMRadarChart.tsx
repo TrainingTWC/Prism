@@ -13,6 +13,7 @@ import { Submission } from '../types';
 import { QUESTIONS } from '../constants';
 import ChartContainer from './ChartContainer';
 import { useTheme } from '../contexts/ThemeContext';
+import { getChartPaletteWithAlpha } from '../src/utils/chartColors';
 
 ChartJS.register(
   RadialLinearScale,
@@ -152,25 +153,20 @@ const AMRadarChart: React.FC<AMRadarChartProps> = ({ submissions }) => {
       return title;
     });
 
-    const colors = [
-      'rgba(59, 130, 246, 0.8)',   // Blue
-      'rgba(16, 185, 129, 0.8)',   // Green
-      'rgba(245, 158, 11, 0.8)',   // Amber
-      'rgba(239, 68, 68, 0.8)',    // Red
-      'rgba(139, 92, 246, 0.8)',   // Purple
-    ];
+      const palette = getChartPaletteWithAlpha(0.8);
+      const borderPalette = getChartPaletteWithAlpha(1);
 
-    const datasets = validAMs.map((am, index) => ({
-      label: am.amName,
-      data: am.scores,
-      backgroundColor: colors[index % colors.length].replace('0.8', '0.2'),
-      borderColor: colors[index % colors.length],
-      borderWidth: 2,
-      pointBackgroundColor: colors[index % colors.length],
-      pointBorderColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-      pointHoverBackgroundColor: theme === 'dark' ? '#ffffff' : '#1e293b',
-      pointHoverBorderColor: colors[index % colors.length],
-    }));
+      const datasets = validAMs.map((am, index) => ({
+        label: am.amName,
+        data: am.scores,
+        backgroundColor: (palette[index % palette.length] || 'rgba(59,130,246,0.8)').replace(/rgba\((\d+, \d+, \d+),\s*0?\.8\)/, 'rgba($1, 0.2)'),
+        borderColor: borderPalette[index % borderPalette.length] || 'rgba(59,130,246,1)',
+        borderWidth: 2,
+        pointBackgroundColor: borderPalette[index % borderPalette.length] || 'rgba(59,130,246,1)',
+        pointBorderColor: theme === 'dark' ? '#1e293b' : '#ffffff',
+        pointHoverBackgroundColor: theme === 'dark' ? '#ffffff' : '#1e293b',
+        pointHoverBorderColor: borderPalette[index % borderPalette.length] || 'rgba(59,130,246,1)',
+      }));
 
     return {
       labels,

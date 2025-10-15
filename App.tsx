@@ -121,7 +121,7 @@ const AppContent: React.FC = () => {
       {/* Help Button - Floating */}
       <button
         onClick={startTour}
-        className="fixed bottom-6 right-6 z-[9999] bg-gradient-to-r from-blue-500 to-purple-500 text-white p-4 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 flex items-center gap-2"
+        className="fixed bottom-6 right-6 z-[9999] btn-primary-gradient text-white p-4 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-transform duration-150 flex items-center gap-2"
         title="Take a tour"
         aria-label="Start guided tour"
       >

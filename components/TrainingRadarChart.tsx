@@ -12,6 +12,7 @@ import {
 import { TrainingAuditSubmission } from '../services/dataService';
 import ChartContainer from './ChartContainer';
 import { useTheme } from '../contexts/ThemeContext';
+import { getChartPaletteWithAlpha } from '../src/utils/chartColors';
 
 ChartJS.register(
   RadialLinearScale,
@@ -175,33 +176,17 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
 
     const labels = TRAINING_SECTIONS.map(section => section.name);
     
-    // Extended color palette for more trainers
-    const colors = [
-      'rgba(139, 92, 246, 0.6)',  // Purple
-      'rgba(59, 130, 246, 0.6)',   // Blue
-      'rgba(34, 197, 94, 0.6)',    // Green
-      'rgba(249, 115, 22, 0.6)',   // Orange
-      'rgba(239, 68, 68, 0.6)',    // Red
-      'rgba(236, 72, 153, 0.6)',   // Pink
-      'rgba(14, 165, 233, 0.6)',   // Sky
-      'rgba(168, 85, 247, 0.6)',   // Violet
-      'rgba(251, 146, 60, 0.6)',   // Amber
-      'rgba(20, 184, 166, 0.6)',   // Teal
-      'rgba(132, 204, 22, 0.6)',   // Lime
-      'rgba(234, 179, 8, 0.6)',    // Yellow
-      'rgba(244, 63, 94, 0.6)',    // Rose
-      'rgba(99, 102, 241, 0.6)',   // Indigo
-      'rgba(6, 182, 212, 0.6)'     // Cyan
-    ];
+    const palette = getChartPaletteWithAlpha(0.6);
+    const solidPalette = getChartPaletteWithAlpha(1);
 
     const datasets = allTrainers.map((trainer, index) => ({
       label: trainer.trainerName,
       data: trainer.data,
-      backgroundColor: colors[index % colors.length],
-      borderColor: colors[index % colors.length].replace('0.6', '1'),
+      backgroundColor: palette[index % palette.length],
+      borderColor: solidPalette[index % solidPalette.length],
       borderWidth: 2,
       pointRadius: 4,
-      pointBackgroundColor: colors[index % colors.length].replace('0.6', '1'),
+      pointBackgroundColor: solidPalette[index % solidPalette.length],
     }));
 
     return {
@@ -270,9 +255,9 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
         <div className="flex items-center justify-center h-96">
           <p className="text-slate-500">No training data available</p>
         </div>
-      </ChartContainer>
-    );
-  }
+    </ChartContainer>
+  );
+};
 
   return (
     <ChartContainer title="Training Performance Radar (All Trainers)">

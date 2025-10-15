@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { AMOperationsSubmission } from '../services/dataService';
 import ChartContainer from './ChartContainer';
 import { useTheme } from '../contexts/ThemeContext';
+import { getChartPaletteWithAlpha } from '../src/utils/chartColors';
 
 interface OperationsAverageScoreChartProps {
   submissions: AMOperationsSubmission[];
@@ -64,7 +65,7 @@ const OperationsAverageScoreChart: React.FC<OperationsAverageScoreChartProps> = 
             }}
             formatter={(value) => `${value}%`}
           />
-          <Bar dataKey="averageScore" fill="#22c55e" />
+          <Bar dataKey="averageScore" fill={getChartPaletteWithAlpha(1)[3]} />
         </BarChart>
       </ResponsiveContainer>
     </ChartContainer>

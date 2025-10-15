@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Submission } from '../types';
 import ChartContainer from './ChartContainer';
 import { useTheme } from '../contexts/ThemeContext';
+import { getChartPaletteWithAlpha } from '../src/utils/chartColors';
 
 interface AverageScoreByManagerChartProps {
   submissions: Submission[];
@@ -58,7 +59,7 @@ const AverageScoreByManagerChart: React.FC<AverageScoreByManagerChartProps> = ({
             }}
             formatter={(value) => `${value}%`}
           />
-          <Bar dataKey="averageScore" fill="#22c55e" />
+          <Bar dataKey="averageScore" fill={getChartPaletteWithAlpha(1)[3]} />
         </BarChart>
       </ResponsiveContainer>
     </ChartContainer>

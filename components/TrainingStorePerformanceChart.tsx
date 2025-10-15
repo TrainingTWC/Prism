@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrainingAuditSubmission } from '../services/dataService';
 import ChartContainer from './ChartContainer';
 import { useTheme } from '../contexts/ThemeContext';
+import { getChartPaletteWithAlpha } from '../src/utils/chartColors';
 
 interface TrainingStorePerformanceChartProps {
   submissions: TrainingAuditSubmission[];
@@ -73,7 +74,7 @@ const TrainingStorePerformanceChart: React.FC<TrainingStorePerformanceChartProps
     tooltipBg: theme === 'dark' ? '#1e293b' : '#ffffff',
     tooltipBorder: theme === 'dark' ? '#334155' : '#e2e8f0',
     tooltipColor: theme === 'dark' ? '#f1f5f9' : '#1e293b',
-    cursorFill: theme === 'dark' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)'
+    cursorFill: theme === 'dark' ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.08)'
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -140,7 +141,7 @@ const TrainingStorePerformanceChart: React.FC<TrainingStorePerformanceChartProps
           <Tooltip content={<CustomTooltip />} cursor={{ fill: chartStyles.cursorFill }} />
           <Bar 
             dataKey="averagePercentage" 
-            fill="#8b5cf6" 
+            fill={getChartPaletteWithAlpha(1)[0]}
             radius={[4, 4, 0, 0]}
             name="Training Score %"
             onClick={(payload) => {

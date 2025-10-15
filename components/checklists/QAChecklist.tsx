@@ -642,7 +642,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
           </button>
           <button
             onClick={autofillForTesting}
-            className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+            className="px-6 py-3 btn-primary-gradient text-white rounded-lg font-medium transition-transform duration-150 transform hover:scale-105"
           >
             🧪 Autofill Test Data
           </button>

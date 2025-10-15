@@ -12,6 +12,7 @@ import ProblemBreakdown from './ai/ProblemBreakdown';
 import CategoryAnalysis from './ai/CategoryAnalysis';
 import RecommendationsPanel from './ai/RecommendationsPanel';
 import InsightsCarousel from './ai/InsightsCarousel';
+import { getChartPalette } from '../src/utils/chartColors';
 
 interface AIInsightsProps {
   userRole: UserRole | null;
@@ -360,13 +361,16 @@ const AIInsights: React.FC<AIInsightsProps> = ({ userRole }) => {
     improvementAreas: safeInsights.filter(i => i && i.type === 'improvement').length
   };
 
-  const problemData = safeResponses.length > 0 ? [
-    { category: 'Communication', value: Math.round(Math.random() * 30 + 20), color: '#ef4444' },
-    { category: 'Systems', value: Math.round(Math.random() * 25 + 15), color: '#f97316' },
-    { category: 'Training', value: Math.round(Math.random() * 20 + 10), color: '#eab308' },
-    { category: 'Satisfaction', value: Math.round(Math.random() * 15 + 10), color: '#22c55e' },
-    { category: 'Other', value: Math.round(Math.random() * 10 + 5), color: '#6b7280' }
-  ] : [];
+  const problemData = (() => {
+    const palette = getChartPalette();
+    return safeResponses.length > 0 ? [
+      { category: 'Communication', value: Math.round(Math.random() * 30 + 20), color: palette[0] || '#ef4444' },
+      { category: 'Systems', value: Math.round(Math.random() * 25 + 15), color: palette[1] || '#f97316' },
+      { category: 'Training', value: Math.round(Math.random() * 20 + 10), color: palette[2] || '#eab308' },
+      { category: 'Satisfaction', value: Math.round(Math.random() * 15 + 10), color: palette[3] || '#22c55e' },
+      { category: 'Other', value: Math.round(Math.random() * 10 + 5), color: palette[4] || '#6b7280' }
+    ] : [];
+  })();
 
   const categoryData = safeResponses.length > 0 ? [
     { name: 'Communication', score: Math.random() * 40 + 60, trend: (Math.random() > 0.5 ? 'up' : 'down') as 'up' | 'down' | 'stable' },

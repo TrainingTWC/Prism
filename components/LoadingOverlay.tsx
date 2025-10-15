@@ -17,7 +17,7 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
         <div className="text-center">
           {/* Animated spinner */}
           <div className="mb-4 flex justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
+            <div className="animate-spin rounded-full h-12 w-12" style={{ borderBottom: '4px solid var(--color-primary)' }}></div>
           </div>
           
           {/* Loading message */}
@@ -30,9 +30,9 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
           
           {/* Animated dots */}
           <div className="flex justify-center mt-4 space-x-1">
-            <div className="w-2 h-2 bg-sky-500 rounded-full animate-bounce"></div>
-            <div className="w-2 h-2 bg-sky-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-            <div className="w-2 h-2 bg-sky-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-2 h-2 rounded-full animate-bounce" style={{ background: 'var(--color-primary)' }}></div>
+            <div className="w-2 h-2 rounded-full animate-bounce" style={{ background: 'var(--color-primary)', animationDelay: '0.1s' }}></div>
+            <div className="w-2 h-2 rounded-full animate-bounce" style={{ background: 'var(--color-primary)', animationDelay: '0.2s' }}></div>
           </div>
         </div>
       </div>

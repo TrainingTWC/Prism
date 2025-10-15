@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { TrainingAuditSubmission } from '../services/dataService';
 import { useTheme } from '../contexts/ThemeContext';
+import { getChartPalette } from '../src/utils/chartColors';
 
 interface TrainingHealthPieChartProps {
   submissions: TrainingAuditSubmission[];
@@ -12,10 +13,11 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
 
   const healthData = useMemo(() => {
     if (!submissions.length) {
+      const palette = getChartPalette();
       return [
-        { name: 'Needs Attention', value: 0, color: '#ef4444' },
-        { name: 'Brewing', value: 0, color: '#f59e0b' },
-        { name: 'Perfect Shot', value: 0, color: '#10b981' }
+        { name: 'Needs Attention', value: 0, color: palette[0] || '#ef4444' },
+        { name: 'Brewing', value: 0, color: palette[1] || '#f59e0b' },
+        { name: 'Perfect Shot', value: 0, color: palette[2] || '#10b981' }
       ];
     }
 
@@ -35,10 +37,11 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
       }
     });
 
+    const palette = getChartPalette();
     return [
-      { name: 'Needs Attention', value: needsAttention, color: '#ef4444' },
-      { name: 'Brewing', value: brewing, color: '#f59e0b' },
-      { name: 'Perfect Shot', value: perfectShot, color: '#10b981' }
+      { name: 'Needs Attention', value: needsAttention, color: palette[0] || '#ef4444' },
+      { name: 'Brewing', value: brewing, color: palette[1] || '#f59e0b' },
+      { name: 'Perfect Shot', value: perfectShot, color: palette[2] || '#10b981' }
     ];
   }, [submissions]);
 

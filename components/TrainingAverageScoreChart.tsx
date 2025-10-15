@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrainingAuditSubmission } from '../services/dataService';
 import ChartContainer from './ChartContainer';
 import { useTheme } from '../contexts/ThemeContext';
+import { getChartPaletteWithAlpha } from '../src/utils/chartColors';
 
 interface TrainingAverageScoreChartProps {
   submissions: TrainingAuditSubmission[];
@@ -74,7 +75,7 @@ const TrainingAverageScoreChart: React.FC<TrainingAverageScoreChartProps> = ({ s
             cursor={{ fill: chartStyles.cursorFill }}
             formatter={(value: number) => [`${value}%`, 'Average Score']}
           />
-          <Bar dataKey="averageScore" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="averageScore" fill={getChartPaletteWithAlpha(1)[0]} radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </ChartContainer>

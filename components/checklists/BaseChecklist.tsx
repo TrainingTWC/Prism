@@ -271,7 +271,7 @@ const BaseChecklist: React.FC<BaseChecklistProps> = ({
         <div className="flex gap-2">
           <button
             onClick={exportPDF}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 btn-primary-gradient text-white rounded-lg transition-transform duration-150 transform hover:scale-105"
           >
             Export PDF
           </button>

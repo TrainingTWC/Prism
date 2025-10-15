@@ -155,7 +155,7 @@ const Login: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading || !password.trim()}
-              className="w-full bg-sky-400 hover:bg-sky-500 disabled:bg-gray-300 dark:disabled:bg-slate-600 text-white py-3 px-4 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center"
+              className="w-full btn-primary-gradient disabled:opacity-60 text-white py-3 px-4 rounded-lg font-medium transition-transform duration-150 transform hover:scale-105 flex items-center justify-center"
             >
               {isLoading ? (
                 <>
@@ -170,10 +170,10 @@ const Login: React.FC = () => {
 
           {/* Additional Info */}
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-700">
-            <div className="bg-sky-50 dark:bg-slate-700 rounded-lg p-4">
+            <div className="bg-[color:var(--color-primary)/0.06] dark:bg-slate-700 rounded-lg p-4">
               <div className="flex items-start">
-                <span className="text-sky-400 mr-2 mt-0.5">ℹ️</span>
-                <div className="text-sm text-sky-700 dark:text-sky-300">
+                <span className="text-[var(--color-primary)] mr-2 mt-0.5">ℹ️</span>
+                <div className="text-sm text-[var(--color-primary)] dark:text-[var(--color-secondary)]">
                   <p className="font-medium mb-1">Secure Access</p>
                   <p>Your login session will remain active for 24 hours on this device.</p>
                 </div>
