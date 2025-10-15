@@ -328,7 +328,7 @@ export const TRAINING_QUESTIONS: Question[] = [
   ]},
 
   // Section 3: Buddy Trainer (Buddy_1 to Buddy_6)
-  { id: 'Buddy_1', title: 'Does the café have at least 20% of the staff certified Buddy Trainers?', type: 'radio', choices: [
+  { id: 'Buddy_1', title: 'Does the café have at least 2 certified Buddy Trainers?', type: 'radio', choices: [
     {label: 'Yes', score: 2}, {label: 'No', score: 0}
   ]},
   { id: 'Buddy_2', title: 'Have Buddy Trainers completed their Skill Check?', type: 'radio', choices: [
@@ -371,25 +371,27 @@ export const TRAINING_QUESTIONS: Question[] = [
   ]},
 
   // Section 5: Partner Knowledge (PK_1 to PK_7)
-  { id: 'PK_1', title: 'Are team members aware of current company communications?', type: 'radio', choices: [
-    {label: 'Yes', score: 1}, {label: 'No', score: 0}
+  { id: 'PK_1', title: 'Are team members aware of current company communication?', type: 'radio', choices: [
+    {label: 'Yes', score: 2}, {label: 'No', score: 0}
   ]},
-  { id: 'PK_2', title: 'Ask a team member to conduct a Coffee Tasting & Sampling', type: 'radio', choices: [
-    {label: 'Excellent', score: 5}, {label: 'Good', score: 3}, {label: 'Poor', score: 1}
+  { id: 'PK_2', title: 'Ask a team member to conduct a Coffee Tasting & a Sampling', type: 'radio', choices: [
+    {label: 'Yes', score: 2}, {label: 'No', score: 0}
   ]},
   { id: 'PK_3', title: 'Is Sampling being conducted as per the set guidelines?', type: 'radio', choices: [
     {label: 'Yes', score: 2}, {label: 'No', score: 0}
   ]},
   { id: 'PK_4', title: 'Is Coffee Tasting engaging and effective?', type: 'radio', choices: [
-    {label: 'Yes', score: 1}, {label: 'No', score: 0}
+    {label: 'Yes', score: 2}, {label: 'No', score: 0}
   ]},
   { id: 'PK_5', title: 'Are team members aware of manual brewing methods and standards?', type: 'radio', choices: [
     {label: 'Yes', score: 2}, {label: 'No', score: 0}
   ]},
   { id: 'PK_6', title: 'Are partners following grooming standards?', type: 'radio', choices: [
-    {label: 'Yes', score: 1}, {label: 'No', score: 0}
+    {label: 'Yes', score: 2}, {label: 'No', score: 0}
   ]},
-  { id: 'PK_7', title: 'Knowledge check on COFFEE, LEAST, ROAST, etc.', type: 'input' },
+  { id: 'PK_7', title: 'Ask questions about key topics: COFFEE, LEAST, ROAST, Dial-in, Milk Steaming, LTO, Values(RESPECT), MSDS, Chemical Dilution, Food Safety, and Security.', type: 'radio', choices: [
+    {label: 'Yes', score: 3}, {label: 'No', score: -3}
+  ]},
 
   // Section 6: TSA - Training Skill Assessment (TSA_1 to TSA_3)
   { id: 'TSA_1', title: 'Partner 1 – Hot & Cold stations work?', type: 'input' },
@@ -397,36 +399,42 @@ export const TRAINING_QUESTIONS: Question[] = [
   { id: 'TSA_3', title: 'Partner 3 – Customer Service quality?', type: 'input' },
 
   // Section 7: Customer Experience (CX_1 to CX_9)
-  { id: 'CX_1', title: 'Is background music at appropriate volume?', type: 'radio', choices: [
+  { id: 'CX_1', title: 'Is appropriate background music playing at the appropriate volume?', type: 'radio', choices: [
     {label: 'Yes', score: 1}, {label: 'No', score: 0}
   ]},
-  { id: 'CX_2', title: 'Is store temperature comfortable?', type: 'radio', choices: [
+  { id: 'CX_2', title: 'Is the store temperature comfortable?', type: 'radio', choices: [
     {label: 'Yes', score: 1}, {label: 'No', score: 0}
   ]},
-  { id: 'CX_3', title: 'Are washrooms clean and well-maintained?', type: 'radio', choices: [
+  { id: 'CX_3', title: 'Are the washrooms clean and well-maintained?', type: 'radio', choices: [
     {label: 'Yes', score: 1}, {label: 'No', score: 0}
   ]},
-  { id: 'CX_4', title: 'Is the store facade well-maintained?', type: 'radio', choices: [
+  { id: 'CX_4', title: 'Is WiFi available and functioning properly?', type: 'radio', choices: [
     {label: 'Yes', score: 1}, {label: 'No', score: 0}
   ]},
-  { id: 'CX_5', title: 'Are promotional materials displayed correctly?', type: 'radio', choices: [
+  { id: 'CX_5', title: 'Are marketing elements and displays (Merchandise rack and FDU) displayed appropriately as per VM guide?', type: 'radio', choices: [
+    {label: 'Yes', score: 2}, {label: 'No', score: 0}
+  ]},
+  { id: 'CX_6', title: 'Is the store furniture clean and well-kept?', type: 'radio', choices: [
     {label: 'Yes', score: 1}, {label: 'No', score: 0}
   ]},
-  { id: 'CX_6', title: 'Is the seating area clean and welcoming?', type: 'radio', choices: [
+  { id: 'CX_7', title: 'Ask - What do you understand by MA, CPI, Google, HD, QA, and App Feedback Scores?', type: 'radio', choices: [
     {label: 'Yes', score: 1}, {label: 'No', score: 0}
   ]},
-  { id: 'CX_7', title: 'Are safety protocols visible and followed?', type: 'radio', choices: [
+  { id: 'CX_8', title: 'Ask - What was the latest Mystery Audit score for the store?', type: 'radio', choices: [
     {label: 'Yes', score: 1}, {label: 'No', score: 0}
   ]},
-  { id: 'CX_8', title: 'Is the queue management effective?', type: 'radio', choices: [
+  { id: 'CX_9', title: 'Ask - What were the top two opportunity areas in Customer Experience (last month)? (1 Mark - No partial marks)', type: 'radio', choices: [
     {label: 'Yes', score: 1}, {label: 'No', score: 0}
-  ]},
-  { id: 'CX_9', title: 'Overall customer experience rating', type: 'radio', choices: [
-    {label: 'Excellent', score: 5}, {label: 'Good', score: 3}, {label: 'Average', score: 2}, {label: 'Poor', score: 1}
   ]},
 
   // Section 8: Action Plan (AP_1 to AP_3)
-  { id: 'AP_1', title: 'Immediate action items identified', type: 'textarea' },
-  { id: 'AP_2', title: 'Long-term improvement plan', type: 'textarea' },
-  { id: 'AP_3', title: 'Follow-up schedule established', type: 'textarea' }
+  { id: 'AP_1', title: 'SMART action plan - Is the action plan Specific, Measurable, Achievable, Relevant, and Time-bound?', type: 'radio', choices: [
+    {label: 'Yes', score: 1}, {label: 'No', score: -1}
+  ]},
+  { id: 'AP_2', title: 'Has the action plan been discussed with the trainee and agreed upon?', type: 'radio', choices: [
+    {label: 'Yes', score: 2}, {label: 'No', score: 0}
+  ]},
+  { id: 'AP_3', title: 'Are follow-up dates scheduled to review progress on the action plan?', type: 'radio', choices: [
+    {label: 'Yes', score: 2}, {label: 'No', score: 0}
+  ]}
 ];
