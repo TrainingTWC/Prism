@@ -165,31 +165,51 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
       for (const question of section.questions) {
         const answer = sample[question.id];
         
-        // Skip if no answer
-        if (answer === undefined || answer === null || answer === '' || answer === 'N/A') {
+        // Check if answer is N/A or missing
+        const isNA = answer === 'N/A' || answer === 'NA' || answer === 'na';
+        const isMissing = answer === undefined || answer === null || answer === '';
+        
+        // Skip completely missing answers
+        if (isMissing) {
           continue;
         }
 
         // Calculate score based on question type
         let score = 0;
         let maxScore = 0;
+        let scoreDisplay = 'N/A';
         
-        if (question.choices) {
+        if (isNA) {
+          // N/A responses - show N/A
+          scoreDisplay = 'N/A';
+          score = 0;
+          maxScore = 0;
+        } else if (question.choices) {
           // Radio button question - find the choice and get its score
           const selectedChoice = question.choices.find(c => c.label === answer);
           if (selectedChoice) {
             score = selectedChoice.score;
           }
-          // Max score is the highest choice score
-          maxScore = Math.max(...question.choices.map(c => c.score));
+          // Max score is the highest positive score from choices
+          const scores = question.choices.map(c => c.score);
+          maxScore = Math.max(...scores.filter(s => s > 0));
+          
+          // For negative scores, show them properly (e.g., -4/4)
+          if (score < 0) {
+            scoreDisplay = `${score}/${maxScore}`;
+          } else {
+            scoreDisplay = `${score}/${maxScore}`;
+          }
         } else if (question.type === 'input') {
           // Input questions (TSA) - score is numeric input
           score = parseFloat(answer) || 0;
           maxScore = 10; // TSA questions are out of 10
+          scoreDisplay = `${score}/${maxScore}`;
         } else {
           // Textarea questions - no scoring
           score = 0;
           maxScore = 0;
+          scoreDisplay = '-';
         }
 
         const remarks = sample[question.id + '_remarks'] || '';
@@ -199,11 +219,15 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
           answer: String(answer),
           score: score,
           maxScore: maxScore,
+          scoreDisplay: scoreDisplay,
           remarks: remarks
         });
 
-        sectionScore += score;
-        sectionMax += maxScore;
+        // Only add to section totals if not N/A
+        if (!isNA) {
+          sectionScore += score;
+          sectionMax += maxScore;
+        }
       }
 
       if (questionData.length === 0) continue;
@@ -226,6 +250,7 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
         const answerLower = q.answer.toLowerCase();
         const isYes = answerLower === 'yes';
         const isNo = answerLower === 'no';
+        const isNA = answerLower === 'n/a' || answerLower === 'na';
         
         // For display: show actual answer, not icon
         let displayAnswer = q.answer;
@@ -240,7 +265,7 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
         return [
           q.text,
           displayAnswer,
-          q.maxScore > 0 ? `${q.score}/${q.maxScore}` : '-'
+          q.scoreDisplay // Use the pre-calculated score display
         ];
       });
 
