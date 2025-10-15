@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { TRAINING_QUESTIONS } from '../../constants';
 
 type Submission = any;
 
@@ -7,9 +8,9 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
   const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
   let yPos = 15;
   
-  // Get base URL for logo
+  // Get base URL for logo - use prism-logo.png
   const base = (import.meta as any).env?.BASE_URL || '/';
-  const logoPath = `${base}assets/logo.png`.replace(/\/+/g, '/');
+  const logoPath = `${base}prism-logo.png`.replace(/\/+/g, '/');
 
   // Try to load and add logo
   try {
@@ -110,52 +111,102 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
   // === SECTIONS ===
   if (submissions && submissions.length > 0) {
     const sample = submissions[0];
-    const excludeKeys = ['submissionTime','trainerName','trainerId','amName','amId','storeName','storeId','region','totalScore','maxScore','percentageScore','percentage','tsaFoodScore','tsaCoffeeScore','tsaCXScore','mod'];
-    const questionKeys = Object.keys(sample).filter(k => !excludeKeys.includes(k) && !k.endsWith('_remarks') && !k.endsWith('_score'));
 
-    // Group by prefix
-    const groups: Record<string, string[]> = {};
-    questionKeys.forEach(k => {
-      const prefix = k.includes('_') ? k.split('_')[0] : 'Other';
-      if (!groups[prefix]) groups[prefix] = [];
-      groups[prefix].push(k);
-    });
+    // Define sections with their questions in exact order from TRAINING_QUESTIONS
+    const sections = [
+      { 
+        id: 'TM', 
+        title: 'Training Material', 
+        questions: TRAINING_QUESTIONS.filter(q => q.id.startsWith('TM_'))
+      },
+      { 
+        id: 'LMS', 
+        title: 'LMS Completion', 
+        questions: TRAINING_QUESTIONS.filter(q => q.id.startsWith('LMS_'))
+      },
+      { 
+        id: 'Buddy', 
+        title: 'Buddy Training', 
+        questions: TRAINING_QUESTIONS.filter(q => q.id.startsWith('Buddy_'))
+      },
+      { 
+        id: 'NJ', 
+        title: 'New Joiner Process', 
+        questions: TRAINING_QUESTIONS.filter(q => q.id.startsWith('NJ_'))
+      },
+      { 
+        id: 'PK', 
+        title: 'Partner Knowledge', 
+        questions: TRAINING_QUESTIONS.filter(q => q.id.startsWith('PK_'))
+      },
+      { 
+        id: 'TSA', 
+        title: 'TSA (Technical Skills Assessment)', 
+        questions: TRAINING_QUESTIONS.filter(q => q.id.startsWith('TSA_'))
+      },
+      { 
+        id: 'CX', 
+        title: 'Customer Experience', 
+        questions: TRAINING_QUESTIONS.filter(q => q.id.startsWith('CX_'))
+      },
+      { 
+        id: 'AP', 
+        title: 'Action Plan', 
+        questions: TRAINING_QUESTIONS.filter(q => q.id.startsWith('AP_'))
+      }
+    ];
 
-    const sectionTitles: Record<string, string> = {
-      'TM': 'Training Material',
-      'LMS': 'LMS Completion',
-      'Buddy': 'Buddy Training',
-      'NJ': 'New Joiner Process',
-      'PK': 'Product Knowledge',
-      'TSA': 'TSA (Technical Skills Assessment)',
-      'CX': 'Customer Experience',
-      'AP': 'Appearance & Presentation'
-    };
-
-    for (const prefix of Object.keys(groups).sort()) {
-      const title = sectionTitles[prefix] || prefix;
-      const questions: any[] = [];
+    for (const section of sections) {
+      const questionData: any[] = [];
       let sectionScore = 0;
       let sectionMax = 0;
 
-      groups[prefix].forEach(qk => {
-        const answer = sample[qk];
-        if (answer !== undefined && answer !== null && answer !== '' && answer !== 'N/A') {
-          const score = parseFloat(sample[qk + '_score']) || 0;
-          const remarks = sample[qk + '_remarks'] || '';
-          questions.push({ 
-            text: formatQuestionText(qk), 
-            answer: String(answer), 
-            score: score,
-            remarks: remarks
-          });
-          sectionScore += score;
-          // Estimate max - this would need to come from metadata ideally
-          sectionMax += (score > 0 ? score : 1);
+      // Process each question in the section
+      for (const question of section.questions) {
+        const answer = sample[question.id];
+        
+        // Skip if no answer
+        if (answer === undefined || answer === null || answer === '' || answer === 'N/A') {
+          continue;
         }
-      });
 
-      if (questions.length === 0) continue;
+        // Calculate score based on question type
+        let score = 0;
+        let maxScore = 0;
+        
+        if (question.choices) {
+          // Radio button question - find the choice and get its score
+          const selectedChoice = question.choices.find(c => c.label === answer);
+          if (selectedChoice) {
+            score = selectedChoice.score;
+          }
+          // Max score is the highest choice score
+          maxScore = Math.max(...question.choices.map(c => c.score));
+        } else if (question.type === 'input') {
+          // Input questions (TSA) - score is numeric input
+          score = parseFloat(answer) || 0;
+          maxScore = 10; // TSA questions are out of 10
+        } else {
+          // Textarea questions - no scoring
+          score = 0;
+          maxScore = 0;
+        }
+
+        const remarks = sample[question.id + '_remarks'] || '';
+        
+        questionData.push({
+          text: question.title, // Use the actual question title from constants
+          answer: String(answer),
+          score: score,
+          maxScore: maxScore,
+          remarks: remarks
+        });
+
+        sectionScore += score;
+        sectionMax += maxScore;
+      }
+
+      if (questionData.length === 0) continue;
 
       // Check if we need a new page
       if (yPos > 240) {
@@ -167,20 +218,29 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(12);
       pdf.setTextColor(15, 23, 42);
-      pdf.text(`${title} (Score: ${sectionScore} / ${sectionMax})`, 15, yPos);
+      pdf.text(`${section.title} (Score: ${sectionScore} / ${sectionMax})`, 15, yPos);
       yPos += 7;
 
       // Questions table
-      const tableData = questions.map(q => {
+      const tableData = questionData.map(q => {
         const answerLower = q.answer.toLowerCase();
         const isYes = answerLower === 'yes';
         const isNo = answerLower === 'no';
-        const statusIcon = isYes ? '✓' : isNo ? '✗' : '-';
+        
+        // For display: show actual answer, not icon
+        let displayAnswer = q.answer;
+        
+        // Add indicator if yes/no
+        if (isYes) {
+          displayAnswer = `✓ ${q.answer}`;
+        } else if (isNo) {
+          displayAnswer = `✗ ${q.answer}`;
+        }
         
         return [
           q.text,
-          `${statusIcon} ${q.answer}`,
-          String(q.score)
+          displayAnswer,
+          q.maxScore > 0 ? `${q.score}/${q.maxScore}` : '-'
         ];
       });
 
@@ -202,16 +262,16 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
         },
         columnStyles: {
           0: { cellWidth: 100 },
-          1: { cellWidth: 60, halign: 'center' },
+          1: { cellWidth: 60, halign: 'left' },
           2: { cellWidth: 20, halign: 'center', fontStyle: 'bold' }
         },
         didParseCell: (data) => {
           if (data.section === 'body' && data.column.index === 1) {
             const text = String(data.cell.raw);
-            if (text.includes('✓')) {
+            if (text.includes('✓') || text.toLowerCase().includes('yes')) {
               data.cell.styles.textColor = [16, 185, 129]; // green-500
               data.cell.styles.fillColor = [220, 252, 231]; // green-100
-            } else if (text.includes('✗')) {
+            } else if (text.includes('✗') || text.toLowerCase().includes('no')) {
               data.cell.styles.textColor = [239, 68, 68]; // red-500
               data.cell.styles.fillColor = [254, 226, 226]; // red-100
             }
@@ -223,7 +283,7 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
       yPos = (pdf as any).lastAutoTable.finalY + 5;
 
       // Remarks if any
-      const remarksText = questions.map(q => q.remarks).filter(r => r).join('; ');
+      const remarksText = questionData.map(q => q.remarks).filter(r => r).join('; ');
       if (remarksText) {
         if (yPos > 260) {
           pdf.addPage();
@@ -268,11 +328,6 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
   const fileName = options.fileName || `TrainingReport-${metadata.storeName || 'store'}.pdf`;
   pdf.save(fileName);
   return pdf;
-}
-
-function formatQuestionText(key: string): string {
-  // Convert question keys like "TM_1" to readable text
-  return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
 async function loadImage(url: string): Promise<string> {
