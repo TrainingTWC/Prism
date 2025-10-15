@@ -15,6 +15,7 @@ interface DashboardFiltersProps {
   };
   onFilterChange: (filterName: 'region' | 'store' | 'am' | 'hr', value: string) => void;
   onReset: () => void;
+  onDownload?: () => void;
 }
 
 // Searchable Filter Component
@@ -373,7 +374,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
         </button>
 
         <div className="w-36">
-          <button className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 bg-sky-600 text-white rounded-lg shadow-sm">
+          <button onClick={() => { if (typeof (onDownload as any) === 'function') (onDownload as any)(); }} className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 bg-sky-600 text-white rounded-lg shadow-sm">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V3zM3 9a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" />
             </svg>

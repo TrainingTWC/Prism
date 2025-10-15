@@ -1895,6 +1895,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           filters={filters}
           onFilterChange={handleFilterChange}
           onReset={resetFilters}
+          onDownload={generatePDFReport}
         />
       </div>
 
