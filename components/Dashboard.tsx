@@ -82,6 +82,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     store: '',
     am: '',
     hr: '',
+    health: ''
   });
 
   // Get available dashboard types based on user role
@@ -660,6 +661,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       if (filters.hr && submission.trainerId !== filters.hr) {
         return false;
       }
+
+      // Apply store health semantic filter if provided
+      if (filters.health) {
+        const pct = parseFloat(submission.percentageScore || '0');
+        if (filters.health === 'Needs Attention' && pct >= 56) return false;
+        if (filters.health === 'Brewing' && (pct < 56 || pct >= 81)) return false;
+        if (filters.health === 'Perfect Shot' && pct < 81) return false;
+      }
       
       return true;
     });
@@ -848,7 +857,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   };
 
   const resetFilters = () => {
-    setFilters({ region: '', store: '', am: '', hr: '' });
+    setFilters({ region: '', store: '', am: '', hr: '', health: '' });
   };
 
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -2050,7 +2059,20 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               <StatCard title="Total Submissions" value={stats?.totalSubmissions} />
               <StatCard title="Average Score" value={`${stats?.avgScore}%`} />
               <div className="sm:col-span-1 lg:col-span-1">
-                <TrainingHealthPieChart submissions={filteredTrainingData} />
+                <TrainingHealthPieChart
+                  submissions={filteredTrainingData}
+                  onOpenDetails={(filterType, value, title) => {
+                    // Open the training detail modal with a filter matching the clicked slice
+                    if (title === 'Needs Attention') {
+                      setTrainingDetailFilter({ type: 'scoreRange', value: '0-55', title: 'Needs Attention' });
+                    } else if (title === 'Brewing') {
+                      setTrainingDetailFilter({ type: 'scoreRange', value: '56-80', title: 'Brewing' });
+                    } else if (title === 'Perfect Shot') {
+                      setTrainingDetailFilter({ type: 'scoreRange', value: '81-100', title: 'Perfect Shot' });
+                    }
+                    setShowTrainingDetail(true);
+                  }}
+                />
               </div>
               <StatCard title="Stores Covered" value={stats?.uniqueStores} />
             </div>

@@ -6,10 +6,16 @@ import { getChartPalette } from '../src/utils/chartColors';
 
 interface TrainingHealthPieChartProps {
   submissions: TrainingAuditSubmission[];
+  // optional callback to request opening the detailed breakdown modal
+  onOpenDetails?: (filterType: 'region' | 'am' | 'trainer' | 'store' | 'hr' | 'scoreRange', value: string, title: string) => void;
 }
 
-const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submissions }) => {
+const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submissions, onOpenDetails }) => {
   const { theme } = useTheme();
+
+  const propsOnOpen = (filterType: 'region' | 'am' | 'trainer' | 'store' | 'hr' | 'scoreRange', value: string, title: string) => {
+    if (typeof onOpenDetails === 'function') onOpenDetails(filterType, value, title);
+  };
 
   const healthData = useMemo(() => {
     if (!submissions.length) {
@@ -37,11 +43,11 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
       }
     });
 
-    // Use pastel red/yellow/green for clear semantics on the store health pie
+    // Use bright semantic red/yellow/green for store health (clickable)
     return [
-      { name: 'Needs Attention', value: needsAttention, color: '#FCA5A5' }, // pastel red
-      { name: 'Brewing', value: brewing, color: '#FDE68A' }, // pastel yellow
-      { name: 'Perfect Shot', value: perfectShot, color: '#86EFAC' } // pastel green
+      { name: 'Needs Attention', value: needsAttention, color: '#ef4444' }, // bright red
+      { name: 'Brewing', value: brewing, color: '#f59e0b' }, // bright yellow/orange
+      { name: 'Perfect Shot', value: perfectShot, color: '#10b981' } // bright green
     ];
   }, [submissions]);
 
@@ -93,9 +99,23 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
                     paddingAngle={2}
                     dataKey="value"
                   >
-                    {healthData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
+                      {healthData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.color}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => {
+                            // Map slice name to filterType/value/title
+                            if (entry.name === 'Needs Attention') {
+                              propsOnOpen('region', '', 'Needs Attention');
+                            } else if (entry.name === 'Brewing') {
+                              propsOnOpen('region', '', 'Brewing');
+                            } else if (entry.name === 'Perfect Shot') {
+                              propsOnOpen('region', '', 'Perfect Shot');
+                            }
+                          }}
+                        />
+                      ))}
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
                 </PieChart>

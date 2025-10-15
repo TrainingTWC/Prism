@@ -12,8 +12,10 @@ interface DashboardFiltersProps {
     store: string;
     am: string;
     hr: string;
+    // store health filter - '', 'Needs Attention', 'Brewing', 'Perfect Shot'
+    health?: string;
   };
-  onFilterChange: (filterName: 'region' | 'store' | 'am' | 'hr', value: string) => void;
+  onFilterChange: (filterName: 'region' | 'store' | 'am' | 'hr' | 'health', value: string) => void;
   onReset: () => void;
   onDownload?: () => void;
   isGenerating?: boolean;
@@ -267,6 +269,34 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             onChange={(e) => onFilterChange('region', e.target.value)}
             placeholder="All Regions"
             options={regions.map(r => ({ value: r, label: r }))}
+          />
+
+          {/* Store Health - mobile drawer */}
+          <FilterSelect
+            label="Store Health"
+            value={filters.health || ''}
+            onChange={(e) => onFilterChange('health', e.target.value)}
+            placeholder="All Health"
+            options={[
+              { value: '', label: 'All Health' },
+              { value: 'Needs Attention', label: 'Needs Attention' },
+              { value: 'Brewing', label: 'Brewing' },
+              { value: 'Perfect Shot', label: 'Perfect Shot' }
+            ]}
+          />
+
+          {/* Store Health - semantic filter */}
+          <FilterSelect
+            label="Store Health"
+            value={filters.health || ''}
+            onChange={(e) => onFilterChange('health', e.target.value)}
+            placeholder="All Health"
+            options={[
+              { value: '', label: 'All Health' },
+              { value: 'Needs Attention', label: 'Needs Attention' },
+              { value: 'Brewing', label: 'Brewing' },
+              { value: 'Perfect Shot', label: 'Perfect Shot' }
+            ]}
           />
 
           <SearchableFilter
