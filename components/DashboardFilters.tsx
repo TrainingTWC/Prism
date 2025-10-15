@@ -16,6 +16,7 @@ interface DashboardFiltersProps {
   onFilterChange: (filterName: 'region' | 'store' | 'am' | 'hr', value: string) => void;
   onReset: () => void;
   onDownload?: () => void;
+  isGenerating?: boolean;
 }
 
 // Searchable Filter Component
@@ -223,6 +224,8 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   filters,
   onFilterChange,
   onReset,
+  onDownload,
+  isGenerating = false,
 }) => {
   // Mobile drawer state
   const [showMobileFilters, setShowMobileFilters] = React.useState(false);
@@ -374,11 +377,27 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
         </button>
 
         <div className="w-36">
-          <button onClick={() => { if (typeof (onDownload as any) === 'function') (onDownload as any)(); }} className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 bg-sky-600 text-white rounded-lg shadow-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V3zM3 9a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" />
-            </svg>
-            <span className="text-sm">Download</span>
+          <button
+            onClick={() => { if (typeof onDownload === 'function') onDownload(); }}
+            disabled={isGenerating}
+            className={`w-full inline-flex items-center justify-center gap-2 py-3 px-4 ${isGenerating ? 'bg-sky-500 opacity-80 pointer-events-none' : 'bg-sky-600 hover:bg-sky-700'} text-white rounded-lg shadow-sm`}
+          >
+            {isGenerating ? (
+              <>
+                <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                Generating...
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V3zM3 9a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" />
+                </svg>
+                <span className="text-sm">Download</span>
+              </>
+            )}
           </button>
         </div>
       </div>

@@ -834,6 +834,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     setFilters({ region: '', store: '', am: '', hr: '' });
   };
 
+  const [isGenerating, setIsGenerating] = React.useState(false);
+
   // Function to show notifications
   const showNotificationMessage = (message: string, type: 'success' | 'error' | 'info' = 'success', duration: number = 2000) => {
     setNotificationMessage(message);
@@ -846,7 +848,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     }, duration);
   };
 
-  const generatePDFReport = () => {
+  const generatePDFReport = async () => {
+    setIsGenerating(true);
     try {
       console.log('Starting PDF generation...');
       // Strong haptic feedback when starting PDF generation
@@ -1738,6 +1741,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       hapticFeedback.error();
       // Show error notification overlay
       showNotificationMessage('Error generating report', 'error');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -1896,6 +1901,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           onFilterChange={handleFilterChange}
           onReset={resetFilters}
           onDownload={generatePDFReport}
+          isGenerating={isGenerating}
         />
       </div>
 
@@ -1919,12 +1925,25 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           <button
             onClick={generatePDFReport}
             data-tour="download-button"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-medium transition-colors duration-200 flex items-center gap-2"
+            disabled={isGenerating}
+            className={`bg-blue-600 ${isGenerating ? 'opacity-70 pointer-events-none' : 'hover:bg-blue-700'} text-white px-6 py-2 rounded-xl font-medium transition-colors duration-200 flex items-center gap-2`}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Download Report
+            {isGenerating ? (
+              <>
+                <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                Generating...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Download Report
+              </>
+            )}
           </button>
         </div>
       )}
