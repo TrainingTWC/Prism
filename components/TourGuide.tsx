@@ -113,7 +113,7 @@ const TourGuide: React.FC<TourGuideProps> = ({ isActive, onComplete, onSkip }) =
         
         // Highlight the element
         element.style.position = 'relative';
-        element.style.zIndex = '10001';
+        element.style.zIndex = '99999';
       } else {
         // Element not found, try again after a short delay
         setTimeout(findElement, 500);
@@ -204,7 +204,7 @@ const TourGuide: React.FC<TourGuideProps> = ({ isActive, onComplete, onSkip }) =
   // Center screen overlay for welcome/completion steps
   if (!step.target) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[10000]">
+      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[99999]">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8 relative">
           <button
             onClick={handleSkip}
@@ -280,7 +280,7 @@ const TourGuide: React.FC<TourGuideProps> = ({ isActive, onComplete, onSkip }) =
   return (
     <>
       {/* Dark overlay with spotlight */}
-      <div className="fixed inset-0 z-[10000] pointer-events-none">
+      <div className="fixed inset-0 z-[99998] pointer-events-none">
         <div className="absolute inset-0 bg-black opacity-70" />
         {targetElement && (
           <div
@@ -298,7 +298,7 @@ const TourGuide: React.FC<TourGuideProps> = ({ isActive, onComplete, onSkip }) =
 
       {/* Tooltip */}
       <div
-        className="fixed z-[10001] bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-sm pointer-events-auto"
+        className="fixed z-[99999] bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-sm pointer-events-auto"
         style={{
           top: tooltipPosition.top,
           left: tooltipPosition.left,
