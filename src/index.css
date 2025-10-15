@@ -1,6 +1,10 @@
 /* Import theme toggle styles */
 @import url('../toggle/style.css');
 
+/* Global design tokens and fonts for Group 1 refresh */
+@import url('./styles/global.css');
+@import url('./styles/components.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

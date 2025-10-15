@@ -1,0 +1,12 @@
+@layer components {
+  .caption {
+    @apply text-[13px] text-[#666666];
+  }
+  .icon-muted {
+    @apply text-[#4B4B4B];
+  }
+  /* Button utility alias for using in JSX className strings */
+  .btn-primary-gradient {
+    @apply bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)];
+  }
+}

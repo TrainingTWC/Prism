@@ -7,7 +7,21 @@ export default {
   ],
   darkMode: 'class',
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        primary: '#6C63FF',
+        secondary: '#4DD0E1',
+        'neutral-bg': '#F6F7FB',
+        'neutral-dark': '#0B0E16',
+      },
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+        display: ['Geologica', 'Tilt Prism', 'Inter', 'ui-sans-serif', 'system-ui'],
+      },
+      transitionDuration: {
+        150: '150ms',
+      }
+    },
   },
   plugins: [],
 }
