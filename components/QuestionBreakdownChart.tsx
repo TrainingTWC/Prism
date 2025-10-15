@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, PieLabelRenderProps } from 'recharts';
 import { Submission, Question } from '../types';
 import ChartContainer from './ChartContainer';
 import { useTheme } from '../contexts/ThemeContext';
@@ -48,7 +48,8 @@ const QuestionBreakdownChart: React.FC<QuestionBreakdownChartProps> = ({ submiss
   };
   
   const RADIAN = Math.PI / 180;
-  const renderCustomizedLabel = <T extends { cx: number; cy: number; midAngle: number; innerRadius: number; outerRadius: number; percent: number; index: number; }>({ cx, cy, midAngle, innerRadius, outerRadius, percent }: T) => {
+  const renderCustomizedLabel = (props: PieLabelRenderProps) => {
+    const { cx, cy, midAngle = 0, innerRadius = 0, outerRadius = 0, percent = 0 } = props as any;
     if (percent < 0.05) return null;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);

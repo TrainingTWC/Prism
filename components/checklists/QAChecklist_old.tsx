@@ -5,6 +5,11 @@ import { hapticFeedback } from '../../utils/haptics';
 import LoadingOverlay from '../LoadingOverlay';
 import hrMappingData from '../../src/hr_mapping.json';
 
+// Minimal legacy types to satisfy TypeScript for the old checklist file
+type ChecklistSection = any;
+// Provide a minimal BaseChecklist placeholder so old JSX compiles (this file is legacy)
+const BaseChecklist: React.FC<any> = (_props: any) => null;
+
 // Google Sheets endpoint for logging data
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKMVh-lnNBnINskIqD10CnQHvGsW_R2SLASGSdBDN9lTGj1gznlNbHORQ/exec';
 

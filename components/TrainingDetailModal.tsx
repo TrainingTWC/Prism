@@ -190,9 +190,9 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
     const avgPercentage = avgScore; // Already a percentage
 
     // Calculate TSA averages as percentages
-    const tsaFoodScores = filteredSubmissions.map(sub => (sub.tsaFoodScore || 0) * 10).filter(score => score > 0);
-    const tsaCoffeeScores = filteredSubmissions.map(sub => (sub.tsaCoffeeScore || 0) * 10).filter(score => score > 0);
-    const tsaCXScores = filteredSubmissions.map(sub => (sub.tsaCXScore || 0) * 10).filter(score => score > 0);
+  const tsaFoodScores = filteredSubmissions.map(sub => (Number(sub.tsaFoodScore) || 0) * 10).filter(score => score > 0);
+  const tsaCoffeeScores = filteredSubmissions.map(sub => (Number(sub.tsaCoffeeScore) || 0) * 10).filter(score => score > 0);
+  const tsaCXScores = filteredSubmissions.map(sub => (Number(sub.tsaCXScore) || 0) * 10).filter(score => score > 0);
 
     const avgTSAFood = tsaFoodScores.length > 0 ? tsaFoodScores.reduce((sum, score) => sum + score, 0) / tsaFoodScores.length : 0;
     const avgTSACoffee = tsaCoffeeScores.length > 0 ? tsaCoffeeScores.reduce((sum, score) => sum + score, 0) / tsaCoffeeScores.length : 0;

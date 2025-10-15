@@ -54,7 +54,7 @@ export interface Submission {
 export interface Store {
   name: string;
   id: string;
-  region: string;
+  region?: string;
 }
 
 export interface AreaManager {

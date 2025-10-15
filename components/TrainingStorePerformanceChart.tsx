@@ -143,9 +143,14 @@ const TrainingStorePerformanceChart: React.FC<TrainingStorePerformanceChartProps
             fill="#8b5cf6" 
             radius={[4, 4, 0, 0]}
             name="Training Score %"
-            onClick={(data) => {
-              if (onStoreClick && data) {
-                onStoreClick(data.storeId, data.storeName);
+            onClick={(payload) => {
+              try {
+                const item = (payload as any)?.payload || (payload as any)?.activePayload?.[0]?.payload;
+                if (onStoreClick && item) {
+                  onStoreClick(String(item.storeId), String(item.storeName));
+                }
+              } catch (e) {
+                // ignore
               }
             }}
             style={{ cursor: onStoreClick ? 'pointer' : 'default' }}

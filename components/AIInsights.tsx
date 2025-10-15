@@ -369,20 +369,20 @@ const AIInsights: React.FC<AIInsightsProps> = ({ userRole }) => {
   ] : [];
 
   const categoryData = safeResponses.length > 0 ? [
-    { name: 'Communication', score: Math.random() * 40 + 60, trend: Math.random() > 0.5 ? 'up' : 'down' },
-    { name: 'Operations', score: Math.random() * 40 + 50, trend: Math.random() > 0.5 ? 'up' : 'down' },
-    { name: 'Training', score: Math.random() * 40 + 55, trend: Math.random() > 0.5 ? 'up' : 'stable' },
-    { name: 'Satisfaction', score: Math.random() * 30 + 70, trend: 'up' }
+    { name: 'Communication', score: Math.random() * 40 + 60, trend: (Math.random() > 0.5 ? 'up' : 'down') as 'up' | 'down' | 'stable' },
+    { name: 'Operations', score: Math.random() * 40 + 50, trend: (Math.random() > 0.5 ? 'up' : 'down') as 'up' | 'down' | 'stable' },
+    { name: 'Training', score: Math.random() * 40 + 55, trend: (Math.random() > 0.5 ? 'up' : 'stable') as 'up' | 'down' | 'stable' },
+    { name: 'Satisfaction', score: Math.random() * 30 + 70, trend: 'up' as 'up' }
   ] : [];
 
   const recommendations = safeInsights.length > 0 ? safeInsights.map(insight => ({
-    id: insight.id,
-    title: insight.title,
-    description: insight.recommendation,
-    impact: insight.impact === 'critical' ? 'high' : insight.impact,
-    effort: insight.confidence > 80 ? 'low' : insight.confidence > 60 ? 'medium' : 'high',
+    id: String(insight.id),
+    title: String(insight.title),
+    description: String(insight.recommendation),
+    impact: (insight.impact === 'critical' ? 'high' : (insight.impact || 'medium')) as 'high' | 'medium' | 'low',
+    effort: (insight.confidence > 80 ? 'low' : insight.confidence > 60 ? 'medium' : 'high') as 'low' | 'medium' | 'high',
     timeframe: insight.type === 'urgent' ? '1 week' : insight.type === 'critical' ? '2 weeks' : '1 month',
-    category: insight.category || 'operational'
+    category: String(insight.category || 'operational')
   })) : [];
 
   if (loading || !dataLoaded) {

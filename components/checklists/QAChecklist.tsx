@@ -284,7 +284,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
         if (meta.storeId) {
           let storeMapping = hrMappingData.find((item: any) => item.storeId === meta.storeId);
           
-          if (!storeMapping && !isNaN(meta.storeId) && !meta.storeId.startsWith('S')) {
+          if (!storeMapping && !isNaN(Number(meta.storeId)) && !meta.storeId.startsWith('S')) {
             const sFormattedId = `S${meta.storeId.padStart(3, '0')}`;
             storeMapping = hrMappingData.find((item: any) => item.storeId === sFormattedId);
           }
@@ -306,30 +306,32 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
       }
 
       // Prepare data for Google Sheets
-      const params = {
+      const params: Record<string, string> = {
         submissionTime: new Date().toLocaleString('en-GB', {hour12: false}),
         qaName: meta.qaName || '',
         qaId: meta.qaId || '',
         amName: meta.amName || '',
         amId: meta.amId || '',
         storeName: meta.storeName || '',
-        storeID: correctedStoreId,
-        region: detectedRegion || 'Unknown',
-        totalScore: totalScore,
-        maxScore: maxScore,
-        scorePercentage: scorePercentage,
-        ...responses
+        storeID: String(correctedStoreId || ''),
+        region: String(detectedRegion || 'Unknown'),
+        totalScore: String(totalScore),
+        maxScore: String(maxScore),
+        scorePercentage: String(scorePercentage),
+        // responses may contain non-string values; ensure we stringify them
+        ...Object.fromEntries(Object.entries(responses).map(([k, v]) => [k, String(v)]))
       };
 
       console.log('QA Survey data being sent:', params);
 
+      const bodyString = new URLSearchParams(params).toString();
       const response = await fetch(LOG_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams(params).toString()
+        body: bodyString
       });
 
       console.log('QA Survey submitted successfully');

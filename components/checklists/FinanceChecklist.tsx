@@ -275,7 +275,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         if (meta.storeId) {
           let storeMapping = hrMappingData.find((item: any) => item.storeId === meta.storeId);
           
-          if (!storeMapping && !isNaN(meta.storeId) && !meta.storeId.startsWith('S')) {
+          const storeIdNum = Number(meta.storeId);
+          if (!storeMapping && !Number.isNaN(storeIdNum) && typeof meta.storeId === 'string' && !meta.storeId.startsWith('S')) {
             const sFormattedId = `S${meta.storeId.padStart(3, '0')}`;
             storeMapping = hrMappingData.find((item: any) => item.storeId === sFormattedId);
           }
@@ -314,13 +315,18 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
       console.log('Finance Survey data being sent:', params);
 
+      // Ensure all values are strings for URLSearchParams
+      const stringParams: Record<string, string> = Object.fromEntries(
+        Object.entries(params).map(([k, v]) => [k, String(v)])
+      );
+
       const response = await fetch(LOG_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams(params).toString()
+        body: new URLSearchParams(stringParams).toString()
       });
 
       console.log('Finance Survey submitted successfully');
@@ -377,7 +383,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
   return (
     <div className="p-6 space-y-6">
-      {isLoading && <LoadingOverlay />}
+  {isLoading && <LoadingOverlay isVisible={true} />}
       
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg p-6 border border-emerald-200 dark:border-emerald-800">

@@ -1555,9 +1555,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                 // Try parsing the date - handle both ISO strings and other formats
                 let date: Date;
                 
-                // If it's already a Date object
-                if (submission.submissionTime instanceof Date) {
-                  date = submission.submissionTime;
+                // If it's already a Date object-like, or a string
+                if (submission.submissionTime && typeof submission.submissionTime === 'object' && (submission.submissionTime as any).getTime) {
+                  date = submission.submissionTime as unknown as Date;
                 } else if (typeof submission.submissionTime === 'string') {
                   // Handle ISO strings, timestamps, or other string formats
                   if (submission.submissionTime.includes('T') || submission.submissionTime.includes('-')) {

@@ -30,4 +30,12 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   }
+  ,
+  "exclude": [
+    "node_modules",
+    "dist",
+    "am-capa-planner/**",
+    "**/*_backup.tsx",
+    "**/*.html"
+  ]
 }

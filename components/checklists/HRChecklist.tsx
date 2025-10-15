@@ -114,10 +114,10 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
       } catch (error) {
         console.warn('Could not load stores from mapping data:', error);
         setAllStores([
-          { name: 'Defence Colony', id: 'S027' },
-          { name: 'Khan Market', id: 'S037' },
-          { name: 'UB City', id: 'S007' },
-          { name: 'Koramangala 1', id: 'S001' }
+          { name: 'Defence Colony', id: 'S027', region: 'Unknown' },
+          { name: 'Khan Market', id: 'S037', region: 'Unknown' },
+          { name: 'UB City', id: 'S007', region: 'Unknown' },
+          { name: 'Koramangala 1', id: 'S001', region: 'Unknown' }
         ]);
       }
     };
@@ -352,7 +352,7 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
           let storeMapping = hrMappingData.find((item: any) => item.storeId === meta.storeId);
           
           // If not found and storeId is numeric, try with S prefix
-          if (!storeMapping && !isNaN(meta.storeId) && !meta.storeId.startsWith('S')) {
+          if (!storeMapping && !isNaN(Number(meta.storeId)) && !meta.storeId.startsWith('S')) {
             const sFormattedId = `S${meta.storeId.padStart(3, '0')}`;
             storeMapping = hrMappingData.find((item: any) => item.storeId === sFormattedId);
           }

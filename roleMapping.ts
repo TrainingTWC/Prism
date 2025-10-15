@@ -4,7 +4,7 @@ import { HR_PERSONNEL } from './constants';
 export interface UserRole {
   userId: string;
   name: string;
-  role: 'admin' | 'area_manager' | 'hrbp' | 'regional_hr' | 'hr_head' | 'lms_head' | 'trainer';
+  role: 'admin' | 'area_manager' | 'hrbp' | 'regional_hr' | 'hr_head' | 'lms_head' | 'store' | 'trainer';
   allowedStores: string[]; // Store IDs they can access
   allowedAMs: string[]; // Area Manager IDs they can see
   allowedHRs: string[]; // HR Personnel IDs they can see
@@ -86,7 +86,6 @@ const createRoleMappings = (hrMappingData: any[]): UserRole[] => {
   const regionalHrs = new Set<string>();
   const hrHeads = new Set<string>();
   const lmsHeads = new Set<string>();
-  const trainers = new Set<string>();
 
   // Group data by roles
   const amStores: { [key: string]: string[] } = {};
@@ -102,12 +101,11 @@ const createRoleMappings = (hrMappingData: any[]): UserRole[] => {
   hrMappingData.forEach((item: any) => {
     // Handle both old and new field formats
     const storeId = item['Store ID'] || item.storeId;
-    const areaManagerId = item['Area Manager ID'] || item.areaManagerId || item['AM'];
-    const hrbpId = item['HRBP ID'] || item.hrbpId || item['HRBP'];
+    const areaManagerId = item['Area Manager ID'] || item.areaManagerId;
+    const hrbpId = item['HRBP ID'] || item.hrbpId;
     const regionalHrId = item['Regional HR ID'] || item.regionalHrId;
     const hrHeadId = item['HR Head ID'] || item.hrHeadId;
     const lmsHeadId = item['LMS Head ID'] || item.lmsHeadId;
-    const trainerId = item['Trainer ID'] || item.trainerId || item['Trainer'];
     const region = item['Region'] || item.region;
 
     // Collect unique IDs
@@ -116,7 +114,6 @@ const createRoleMappings = (hrMappingData: any[]): UserRole[] => {
     if (regionalHrId) regionalHrs.add(regionalHrId);
     if (hrHeadId) hrHeads.add(hrHeadId);
     if (lmsHeadId) lmsHeads.add(lmsHeadId);
-    if (trainerId) trainers.add(trainerId);
 
     // Area Manager mappings
     if (areaManagerId) {
@@ -229,21 +226,6 @@ const createRoleMappings = (hrMappingData: any[]): UserRole[] => {
     });
   });
 
-  // Create Trainer roles
-  trainers.forEach(trainerId => {
-    const hrPerson = HR_PERSONNEL.find(hr => hr.id === trainerId);
-    const trainerName = hrPerson ? hrPerson.name : `Trainer ${trainerId}`;
-    
-    mappings.push({
-      userId: trainerId,
-      name: trainerName,
-      role: 'trainer',
-      allowedStores: [], // Can see all stores (trainers need access to all)
-      allowedAMs: [], // Can see all AMs
-      allowedHRs: [] // Can see all HR personnel
-    });
-  });
-
   return mappings;
 };
 
@@ -259,24 +241,23 @@ loadMappingData().then(data => {
 });
 
 export const getUserRole = (userId: string): UserRole | null => {
-  // Make the lookup case-insensitive to handle both h541 and H541
-  return ROLE_MAPPINGS.find(role => role.userId.toLowerCase() === userId.toLowerCase()) || null;
+  return ROLE_MAPPINGS.find(role => role.userId === userId) || null;
 };
 
 export const canAccessStore = (userRole: UserRole, storeId: string): boolean => {
-  // If allowedStores is empty, user can access all stores (admin, hr_head, lms_head, trainer)
+  // If allowedStores is empty, user can access all stores (admin, hr_head, lms_head)
   if (userRole.allowedStores.length === 0) return true;
   return userRole.allowedStores.includes(storeId);
 };
 
 export const canAccessAM = (userRole: UserRole, amId: string): boolean => {
-  // If allowedAMs is empty, user can access all AMs (admin, hr_head, lms_head, trainer)
+  // If allowedAMs is empty, user can access all AMs (admin, hr_head, lms_head)
   if (userRole.allowedAMs.length === 0) return true;
   return userRole.allowedAMs.includes(amId);
 };
 
 export const canAccessHR = (userRole: UserRole, hrId: string): boolean => {
-  // If allowedHRs is empty, user can access all HR personnel (admin, hr_head, lms_head, trainer)
+  // If allowedHRs is empty, user can access all HR personnel (admin, hr_head, lms_head)
   if (userRole.allowedHRs.length === 0) return true;
   return userRole.allowedHRs.includes(hrId);
 };

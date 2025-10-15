@@ -3,6 +3,7 @@ import React from 'react';
 
 interface ChartContainerProps {
   title: string;
+  loading?: boolean;
   children: React.ReactNode;
 }
 

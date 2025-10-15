@@ -1,12 +1,12 @@
 import React from 'react';
 
 interface LoadingOverlayProps {
-  isVisible: boolean;
+  isVisible?: boolean;
   message?: string;
 }
 
 const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ 
-  isVisible, 
+  isVisible = true, 
   message = 'Submitting survey...' 
 }) => {
   if (!isVisible) return null;

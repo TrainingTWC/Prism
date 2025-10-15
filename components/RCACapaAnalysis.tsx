@@ -455,25 +455,25 @@ const RCACapaAnalysis: React.FC<RCACapaAnalysisProps> = ({ submissions, question
                     {analysis.problems.map((problem, index) => (
                       <div key={index} className="bg-slate-800/50 rounded p-3 border border-slate-700">
                         <div className="flex items-start justify-between mb-2">
-                          <h5 className="font-medium text-slate-200">{typeof problem === 'string' ? problem : problem.area}</h5>
+                          <h5 className="font-medium text-slate-200">{typeof problem === 'string' ? problem : (problem && (problem as any).area) || String(problem)}</h5>
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            problem.severity === 'High' ? 'bg-red-900/50 text-red-300' : 'bg-yellow-900/50 text-yellow-300'
+                            (problem && (problem as any).severity) === 'High' ? 'bg-red-900/50 text-red-300' : 'bg-yellow-900/50 text-yellow-300'
                           }`}>
-                            {problem.severity || 'Medium'}
+                            {(problem && (problem as any).severity) || 'Medium'}
                           </span>
                         </div>
                         {typeof problem === 'object' && (
                           <>
-                            <p className="text-slate-300 text-sm mb-2">{problem.description}</p>
+                            <p className="text-slate-300 text-sm mb-2">{(problem && (problem as any).description) || ''}</p>
                             <div className="flex flex-wrap gap-4 text-xs text-slate-400">
-                              <span>🔢 {problem.frequency} instances</span>
-                              <span>📊 {problem.nonComplianceRate}% non-compliance</span>
-                              <span>🏪 {problem.stores ? problem.stores.length : 0} stores affected</span>
+                              <span>🔢 {(problem && (problem as any).frequency) || 0} instances</span>
+                              <span>📊 {(problem && (problem as any).nonComplianceRate) || 0}% non-compliance</span>
+                              <span>🏪 {(problem && (problem as any).stores ? (problem as any).stores.length : 0)} stores affected</span>
                             </div>
-                            {problem.stores && problem.stores.length > 0 && (
+                            {problem && (problem as any).stores && (problem as any).stores.length > 0 && (
                               <div className="mt-2">
                                 <span className="text-xs text-slate-500">Affected stores: </span>
-                                <span className="text-xs text-slate-400">{problem.stores.slice(0, 3).join(', ')}{problem.stores.length > 3 ? ` +${problem.stores.length - 3} more` : ''}</span>
+                                <span className="text-xs text-slate-400">{(problem as any).stores.slice(0, 3).join(', ')}{(problem as any).stores.length > 3 ? ` +${(problem as any).stores.length - 3} more` : ''}</span>
                               </div>
                             )}
                           </>
