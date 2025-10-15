@@ -1,90 +1,119 @@
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import autoTable from 'jspdf-autotable';
 
 type Submission = any;
 
 export async function buildTrainingPDFHtml(submissions: Submission[], metadata: any = {}, options: { fileName?: string } = {}) {
-  // Create container element
-  const container = document.createElement('div');
-  container.style.position = 'fixed';
-  container.style.left = '-9999px';
-  container.style.top = '0';
-  container.style.width = '1024px';
-  container.style.padding = '24px';
-  container.style.background = '#ffffff';
-  container.style.color = '#111827';
-  container.style.boxSizing = 'border-box';
-  container.id = 'training-pdf-container';
-
-  // Get base URL for assets
+  const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+  let yPos = 15;
+  
+  // Get base URL for logo
   const base = (import.meta as any).env?.BASE_URL || '/';
   const logoPath = `${base}assets/logo.png`.replace(/\/+/g, '/');
 
-  // Basic styles to mimic screenshot layout
-  container.innerHTML = `
-    <div id="pdf-root" style="font-family: Arial, Helvetica, sans-serif; color:#111827;">
-      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e7eb;padding-bottom:12px;margin-bottom:12px;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <img src="${logoPath}" alt="logo" style="width:84px;height:84px;object-fit:contain;background:#fff;padding:8px;border-radius:8px;" crossorigin="anonymous"/>
-          <div>
-            <div style="font-size:18px;font-weight:700;color:#0f172a;">Training Audit Report</div>
-            <div style="font-size:12px;color:#6b7280;">${metadata.storeName || ''} ${metadata.storeId ? ' - ' + metadata.storeId : ''}</div>
-          </div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:12px;color:#6b7280;">Generated:</div>
-          <div style="font-size:14px;font-weight:600;">${new Date().toLocaleString()}</div>
-        </div>
-      </div>
+  // Try to load and add logo
+  try {
+    const logoImg = await loadImage(logoPath);
+    pdf.addImage(logoImg, 'PNG', 160, 10, 40, 20);
+  } catch (err) {
+    console.warn('Could not load logo:', err);
+  }
 
-      <div style="display:flex;gap:16px;margin-bottom:20px;">
-        <div style="flex:1;border:2px solid #3b82f6;padding:16px;border-radius:10px;background:linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);text-align:center;">
-          <div style="font-size:13px;color:#6b7280;margin-bottom:4px;">Overall Score</div>
-          <div style="font-size:32px;font-weight:800;color:#1e40af;margin:8px 0;">${metadata.percentage ?? ''}%</div>
-          <div style="font-size:13px;color:#6b7280;font-weight:600;">${metadata.totalScore ?? ''} / ${metadata.maxScore ?? ''}</div>
-        </div>
-        <div style="flex:2;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px;">
-          <div>
-            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Trainer</div>
-            <div style="font-size:14px;font-weight:600;color:#0f172a;">${metadata.trainerName || 'N/A'}</div>
-          </div>
-          <div>
-            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Trainer ID</div>
-            <div style="font-size:14px;font-weight:600;color:#0f172a;">${metadata.trainerId || 'N/A'}</div>
-          </div>
-          <div>
-            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Auditor</div>
-            <div style="font-size:14px;font-weight:600;color:#0f172a;">${metadata.auditorName || metadata.amName || 'N/A'}</div>
-          </div>
-          <div>
-            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Date</div>
-            <div style="font-size:14px;font-weight:600;color:#0f172a;">${metadata.date || new Date().toLocaleDateString()}</div>
-          </div>
-        </div>
-      </div>
+  // === HEADER ===
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(24);
+  pdf.setTextColor(15, 23, 42); // slate-900
+  pdf.text('Training Audit Report', 15, yPos);
+  yPos += 8;
+  
+  pdf.setFontSize(16);
+  pdf.setTextColor(71, 85, 105); // slate-600
+  pdf.text(metadata.storeName || 'Store Name', 15, yPos);
+  yPos += 12;
 
-      <div id="sections">
-      </div>
+  // Metadata row
+  pdf.setFontSize(9);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(100, 116, 139); // slate-500
+  
+  const metaY = yPos;
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Date/Time:', 15, metaY);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text(metadata.date || new Date().toLocaleString(), 35, metaY);
+  
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Auditor:', 85, metaY);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text(`${metadata.auditorName || 'N/A'} (${metadata.amId || 'N/A'})`, 102, metaY);
+  
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Store:', 150, metaY);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text(metadata.storeId || 'N/A', 163, metaY);
+  
+  yPos += 8;
+  
+  // Border line
+  pdf.setDrawColor(226, 232, 240); // slate-200
+  pdf.setLineWidth(0.5);
+  pdf.line(15, yPos, 195, yPos);
+  yPos += 8;
 
-      <div style="margin-top:20px;padding-top:16px;border-top:2px solid #e5e7eb;">
-        <div style="font-size:13px;color:#374151;font-weight:700;margin-bottom:8px;">Remarks & Observations</div>
-        <div style="min-height:60px;border:1px solid #d1d5db;padding:14px;border-radius:8px;background:#f9fafb;font-size:12px;color:#1f2937;line-height:1.6;">${metadata.remarks || 'No remarks provided.'}</div>
-      </div>
-    </div>
-  `.trim();
+  // === OVERALL PERFORMANCE ===
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(14);
+  pdf.setTextColor(15, 23, 42);
+  pdf.text('Overall Performance', 15, yPos);
+  yPos += 8;
 
-  document.body.appendChild(container);
+  // Score cards using rectangles
+  // Card 1: Overall Score
+  pdf.setFillColor(224, 242, 254); // blue-100
+  pdf.setDrawColor(147, 197, 253); // blue-300
+  pdf.roundedRect(15, yPos, 85, 30, 2, 2, 'FD');
+  
+  pdf.setFontSize(10);
+  pdf.setTextColor(79, 70, 229); // indigo-600
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Overall Score', 57.5, yPos + 8, { align: 'center' });
+  
+  pdf.setFontSize(20);
+  pdf.text(`${metadata.totalScore || 0} / ${metadata.maxScore || 100}`, 57.5, yPos + 20, { align: 'center' });
+  
+  // Card 2: Percentage
+  const percentage = metadata.percentage || 0;
+  const percentColor = percentage >= 80 ? [16, 185, 129] : percentage >= 60 ? [245, 158, 11] : [239, 68, 68];
+  
+  pdf.setFillColor(209, 250, 229); // green-100
+  pdf.setDrawColor(167, 243, 208); // green-200
+  pdf.roundedRect(110, yPos, 85, 30, 2, 2, 'FD');
+  
+  pdf.setFontSize(10);
+  pdf.setTextColor(13, 148, 136); // teal-600
+  pdf.text('Percentage', 152.5, yPos + 8, { align: 'center' });
+  
+  pdf.setFontSize(20);
+  pdf.setTextColor(percentColor[0], percentColor[1], percentColor[2]);
+  pdf.text(`${percentage}%`, 152.5, yPos + 20, { align: 'center' });
+  
+  // Progress bar
+  pdf.setFillColor(229, 231, 235); // gray-200
+  pdf.rect(110, yPos + 25, 85, 3, 'F');
+  
+  const progressWidth = (percentage / 100) * 85;
+  pdf.setFillColor(percentColor[0], percentColor[1], percentColor[2]);
+  pdf.rect(110, yPos + 25, progressWidth, 3, 'F');
+  
+  yPos += 38;
 
-  // Group questions by prefix heuristics
-  const sections: { title: string; rows: any[] }[] = [];
-
-  if (submissions && submissions.length) {
-    // Use the first submission as source of questions
+  // === SECTIONS ===
+  if (submissions && submissions.length > 0) {
     const sample = submissions[0];
     const excludeKeys = ['submissionTime','trainerName','trainerId','amName','amId','storeName','storeId','region','totalScore','maxScore','percentageScore','percentage','tsaFoodScore','tsaCoffeeScore','tsaCXScore','mod'];
     const questionKeys = Object.keys(sample).filter(k => !excludeKeys.includes(k) && !k.endsWith('_remarks') && !k.endsWith('_score'));
 
-    // Group by prefix before underscore
+    // Group by prefix
     const groups: Record<string, string[]> = {};
     questionKeys.forEach(k => {
       const prefix = k.includes('_') ? k.split('_')[0] : 'Other';
@@ -92,7 +121,6 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
       groups[prefix].push(k);
     });
 
-    // Section title mapping
     const sectionTitles: Record<string, string> = {
       'TM': 'Training Material',
       'LMS': 'LMS Completion',
@@ -106,71 +134,164 @@ export async function buildTrainingPDFHtml(submissions: Submission[], metadata: 
 
     for (const prefix of Object.keys(groups).sort()) {
       const title = sectionTitles[prefix] || prefix;
-      const rows: any[] = [];
+      const questions: any[] = [];
+      let sectionScore = 0;
+      let sectionMax = 0;
+
       groups[prefix].forEach(qk => {
         const answer = sample[qk];
-        // Only include questions that have answers
         if (answer !== undefined && answer !== null && answer !== '' && answer !== 'N/A') {
-          rows.push({ question: qk, answer: answer, score: sample[qk + '_score'] ?? '' });
+          const score = parseFloat(sample[qk + '_score']) || 0;
+          const remarks = sample[qk + '_remarks'] || '';
+          questions.push({ 
+            text: formatQuestionText(qk), 
+            answer: String(answer), 
+            score: score,
+            remarks: remarks
+          });
+          sectionScore += score;
+          // Estimate max - this would need to come from metadata ideally
+          sectionMax += (score > 0 ? score : 1);
         }
       });
-      if (rows.length > 0) {
-        sections.push({ title, rows });
+
+      if (questions.length === 0) continue;
+
+      // Check if we need a new page
+      if (yPos > 240) {
+        pdf.addPage();
+        yPos = 15;
+      }
+
+      // Section header
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(`${title} (Score: ${sectionScore} / ${sectionMax})`, 15, yPos);
+      yPos += 7;
+
+      // Questions table
+      const tableData = questions.map(q => {
+        const answerLower = q.answer.toLowerCase();
+        const isYes = answerLower === 'yes';
+        const isNo = answerLower === 'no';
+        const statusIcon = isYes ? '✓' : isNo ? '✗' : '-';
+        
+        return [
+          q.text,
+          `${statusIcon} ${q.answer}`,
+          String(q.score)
+        ];
+      });
+
+      autoTable(pdf, {
+        startY: yPos,
+        head: [['Question', 'Response', 'Score']],
+        body: tableData,
+        styles: { 
+          fontSize: 8,
+          cellPadding: 2,
+          lineColor: [226, 232, 240],
+          lineWidth: 0.1
+        },
+        headStyles: {
+          fillColor: [241, 245, 249], // slate-100
+          textColor: [51, 65, 85], // slate-700
+          fontStyle: 'bold',
+          halign: 'left'
+        },
+        columnStyles: {
+          0: { cellWidth: 100 },
+          1: { cellWidth: 60, halign: 'center' },
+          2: { cellWidth: 20, halign: 'center', fontStyle: 'bold' }
+        },
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 1) {
+            const text = String(data.cell.raw);
+            if (text.includes('✓')) {
+              data.cell.styles.textColor = [16, 185, 129]; // green-500
+              data.cell.styles.fillColor = [220, 252, 231]; // green-100
+            } else if (text.includes('✗')) {
+              data.cell.styles.textColor = [239, 68, 68]; // red-500
+              data.cell.styles.fillColor = [254, 226, 226]; // red-100
+            }
+          }
+        },
+        margin: { left: 15, right: 15 }
+      });
+
+      yPos = (pdf as any).lastAutoTable.finalY + 5;
+
+      // Remarks if any
+      const remarksText = questions.map(q => q.remarks).filter(r => r).join('; ');
+      if (remarksText) {
+        if (yPos > 260) {
+          pdf.addPage();
+          yPos = 15;
+        }
+        
+        pdf.setFillColor(249, 250, 251); // gray-50
+        pdf.setDrawColor(209, 213, 219); // gray-300
+        pdf.roundedRect(15, yPos, 180, 20, 2, 2, 'FD');
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9);
+        pdf.setTextColor(71, 85, 105);
+        pdf.text('Remarks:', 17, yPos + 5);
+        
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 116, 139);
+        const lines = pdf.splitTextToSize(remarksText, 175);
+        pdf.text(lines, 17, yPos + 10);
+        
+        yPos += 25;
       }
     }
   }
 
-  const sectionsRoot = container.querySelector('#sections') as HTMLElement;
-  sections.forEach(sec => {
-    const secEl = document.createElement('div');
-    secEl.style.marginBottom = '16px';
-    secEl.innerHTML = `
-      <div style="font-size:15px;font-weight:700;margin-bottom:10px;color:#0f172a;padding:8px 0;border-bottom:2px solid #e5e7eb">${sec.title}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        ${sec.rows.map(r => {
-          const answer = String(r.answer).toLowerCase();
-          const isYes = answer === 'yes';
-          const isNo = answer === 'no';
-          const badgeColor = isYes ? '#059669' : isNo ? '#ef4444' : '#6b7280';
-          const badgeBg = isYes ? '#d1fae5' : isNo ? '#fee2e2' : '#f3f4f6';
-          
-          return `
-          <div style="border:1px solid #e5e7eb;padding:10px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;background:#fafafa;">
-            <div style="font-size:11px;color:#374151;line-height:1.4;flex:1;padding-right:8px;">${escapeHtml(String(r.question).replace(/_/g, ' '))}</div>
-            <div style="font-size:11px;font-weight:700;color:${badgeColor};background:${badgeBg};padding:4px 10px;border-radius:12px;white-space:nowrap;">${escapeHtml(String(r.answer))}</div>
-          </div>
-        `}).join('')}
-      </div>
-    `.trim();
-    sectionsRoot.appendChild(secEl);
-  });
-
-  // Render with html2canvas and build PDF
-  await new Promise<void>(resolve => setTimeout(resolve, 50));
-
-  const root = container.querySelector('#pdf-root') as HTMLElement;
-  const canvas = await html2canvas(root, { scale: 2 });
-  const imgData = canvas.toDataURL('image/png');
-
-  const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-
-  // Fit canvas to page width
-  const imgProps = { width: canvas.width, height: canvas.height };
-  const ratio = Math.min(pageWidth / imgProps.width, pageHeight / imgProps.height);
-  const imgWidth = imgProps.width * ratio;
-  const imgHeight = imgProps.height * ratio;
-  pdf.addImage(imgData, 'PNG', (pageWidth - imgWidth) / 2, 20, imgWidth, imgHeight);
-
-  // cleanup
-  document.body.removeChild(container);
+  // === FOOTER ===
+  const pageCount = (pdf as any).internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    pdf.setPage(i);
+    pdf.setFontSize(8);
+    pdf.setTextColor(156, 163, 175); // gray-400
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(
+      `Report generated via Prism Training Audit System. Page ${i} of ${pageCount}`,
+      105,
+      287,
+      { align: 'center' }
+    );
+  }
 
   const fileName = options.fileName || `TrainingReport-${metadata.storeName || 'store'}.pdf`;
   pdf.save(fileName);
   return pdf;
 }
 
-function escapeHtml(s: string) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function formatQuestionText(key: string): string {
+  // Convert question keys like "TM_1" to readable text
+  return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
+async function loadImage(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } else {
+        reject(new Error('Could not get canvas context'));
+      }
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
 }
