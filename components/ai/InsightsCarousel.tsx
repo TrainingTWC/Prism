@@ -194,8 +194,9 @@ const InsightsCarousel: React.FC<InsightsCarouselProps> = ({ insights = [] }) =>
         <div className="absolute bottom-2 right-2">
           <div className="w-8 h-1 bg-gray-200 dark:bg-slate-600 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-blue-500 transition-all duration-[5000ms] ease-linear"
-              style={{ 
+              className="h-full transition-all duration-[5000ms] ease-linear"
+              style={{
+                background: 'linear-gradient(90deg, var(--color-primary), var(--color-secondary))',
                 width: currentIndex === mockInsights.indexOf(insight) ? '100%' : '0%',
                 animation: currentIndex === mockInsights.indexOf(insight) ? 'progress 5s linear infinite' : 'none'
               }}
@@ -212,9 +213,10 @@ const InsightsCarousel: React.FC<InsightsCarouselProps> = ({ insights = [] }) =>
             onClick={() => goToInsight(index)}
             className={`w-3 h-3 rounded-full transition-all duration-300 ${
               index === currentIndex
-                ? 'bg-blue-500 scale-110'
+                ? 'scale-110'
                 : 'bg-gray-300 dark:bg-slate-600 hover:bg-gray-400 dark:hover:bg-slate-500'
             }`}
+            style={ index === currentIndex ? { background: 'linear-gradient(90deg, var(--color-primary), var(--color-secondary))' } : undefined }
           />
         ))}
       </div>

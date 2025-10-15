@@ -98,7 +98,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ insights = [] }) => {
                   <span>{action.timeToComplete}</span>
                 </span>
               </div>
-              <button className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
+              <button className="text-[var(--color-primary)] hover:text-[var(--color-secondary)] dark:text-[var(--color-primary)] transition-colors font-medium">
                 Take Action →
               </button>
             </div>
@@ -109,7 +109,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ insights = [] }) => {
         ))}
       </div>
 
-      <button className="w-full mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105">
+      <button className="w-full mt-4 px-4 py-2 btn-primary-gradient text-white text-sm font-medium rounded-lg transition-transform duration-150 transform hover:scale-105">
         View All Actions
       </button>
     </div>

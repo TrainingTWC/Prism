@@ -1877,7 +1877,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         <div className="text-red-600 dark:text-red-400 text-lg font-medium mb-4">{error}</div>
         <button
           onClick={() => loadData(true)}
-          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          className="px-6 py-2 btn-primary-gradient text-white rounded-lg transition-transform duration-150 transform hover:scale-105"
         >
           Try Again
         </button>
@@ -2017,7 +2017,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             onClick={generatePDFReport}
             data-tour="download-button"
             disabled={isGenerating}
-            className={`bg-blue-600 ${isGenerating ? 'opacity-70 pointer-events-none' : 'hover:bg-blue-700'} text-white px-6 py-2 rounded-xl font-medium transition-colors duration-200 flex items-center gap-2`}
+            className={`btn-primary-gradient ${isGenerating ? 'opacity-70 pointer-events-none' : ''} px-6 py-2 rounded-xl font-medium transition-transform duration-150 transform hover:scale-105 flex items-center gap-2`}
           >
             {isGenerating ? (
               <>

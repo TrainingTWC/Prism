@@ -370,7 +370,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
           className="flex-1 inline-flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg shadow-sm"
           onClick={() => setShowMobileFilters(true)}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-sky-600" viewBox="0 0 20 20" fill="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 icon-muted" viewBox="0 0 20 20" fill="currentColor">
             <path d="M3 5a1 1 0 011-1h12a1 1 0 01.8 1.6l-4.6 6.13a1 1 0 00-.2.64V17a1 1 0 01-1 1H8a1 1 0 01-1-1v-3.63a1 1 0 00-.2-.64L2.2 5.6A1 1 0 013 5z" />
           </svg>
           <span className="text-sm font-medium">Filters</span>
@@ -380,7 +380,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
           <button
             onClick={() => { if (typeof onDownload === 'function') onDownload(); }}
             disabled={isGenerating}
-            className={`w-full inline-flex items-center justify-center gap-2 py-3 px-4 ${isGenerating ? 'bg-sky-500 opacity-80 pointer-events-none' : 'bg-sky-600 hover:bg-sky-700'} text-white rounded-lg shadow-sm`}
+            className={`w-full inline-flex items-center justify-center gap-2 py-3 px-4 ${isGenerating ? 'opacity-80 pointer-events-none disabled:opacity-60' : ''} btn-primary-gradient text-white rounded-lg shadow-sm transition-transform duration-150 transform hover:scale-105`}
           >
             {isGenerating ? (
               <>

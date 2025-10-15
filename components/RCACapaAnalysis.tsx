@@ -382,7 +382,7 @@ const RCACapaAnalysis: React.FC<RCACapaAnalysisProps> = ({ submissions, question
                 generateRCAAndCAPA();
               }}
               disabled={isAnalyzing}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              className="btn-primary-gradient disabled:opacity-60 text-white px-4 py-2 rounded-lg text-sm font-medium transition-transform duration-150 transform hover:scale-105 flex items-center gap-2"
             >
               <MagnifyingGlassIcon className="w-4 h-4" />
               {isAnalyzing ? 'Analyzing...' : 'Generate Analysis'}
@@ -402,7 +402,7 @@ const RCACapaAnalysis: React.FC<RCACapaAnalysisProps> = ({ submissions, question
             <div className="text-center py-8">
               <button
                 onClick={generateRCAAndCAPA}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 mx-auto"
+                className="btn-primary-gradient text-white px-6 py-3 rounded-lg font-medium transition-transform duration-150 transform hover:scale-105 flex items-center gap-2 mx-auto"
               >
                 <MagnifyingGlassIcon className="w-5 h-5" />
                 Generate AI Analysis
