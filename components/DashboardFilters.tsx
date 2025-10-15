@@ -223,62 +223,167 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   onFilterChange,
   onReset,
 }) => {
+  // Mobile drawer state
+  const [showMobileFilters, setShowMobileFilters] = React.useState(false);
+
+  const Drawer = () => (
+    <div className="fixed inset-0 z-50 flex md:hidden">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/30"
+        onClick={() => setShowMobileFilters(false)}
+        aria-hidden
+      />
+
+      {/* Slide-over panel */}
+      <div className="relative ml-auto w-full max-w-md bg-white dark:bg-slate-800 p-5 shadow-xl border-l border-gray-200 dark:border-slate-700 overflow-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Filters</h3>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { onReset(); }}
+              className="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-sm rounded-md"
+            >
+              Reset
+            </button>
+            <button
+              onClick={() => setShowMobileFilters(false)}
+              className="px-3 py-1.5 bg-sky-600 text-white text-sm rounded-md"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {/* Stacked filters for mobile */}
+          <FilterSelect
+            label="Region"
+            value={filters.region}
+            onChange={(e) => onFilterChange('region', e.target.value)}
+            placeholder="All Regions"
+            options={regions.map(r => ({ value: r, label: r }))}
+          />
+
+          <SearchableFilter
+            label="Area Manager"
+            value={filters.am}
+            onChange={(value) => onFilterChange('am', value)}
+            placeholder={filters.hr ? "All AMs under selected HR" : "All AMs"}
+            options={areaManagers.map(am => ({ value: am.id, label: am.name, id: am.id }))}
+            disabled={areaManagers.length === 0}
+          />
+
+          <SearchableFilter
+            label="Store"
+            value={filters.store}
+            onChange={(value) => onFilterChange('store', value)}
+            placeholder={
+              filters.am ? "All stores under selected AM" :
+              filters.hr ? "All stores under selected HR" :
+              "All Stores"
+            }
+            options={stores.map(s => ({ value: s.id, label: s.name, id: s.id }))}
+            disabled={stores.length === 0}
+          />
+
+          <SearchableFilter
+            label="HR Personnel"
+            value={filters.hr}
+            onChange={(value) => onFilterChange('hr', value)}
+            placeholder="All HR"
+            options={hrPersonnel.map(hr => ({ value: hr.id, label: hr.name, id: hr.id }))}
+            disabled={hrPersonnel.length === 0}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700 mb-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 items-end">
-        {/* Region - Keep as simple select since usually limited options */}
-        <FilterSelect
-          label="Region"
-          value={filters.region}
-          onChange={(e) => onFilterChange('region', e.target.value)}
-          placeholder="All Regions"
-          options={regions.map(r => ({ value: r, label: r }))}
-        />
-        
-        {/* Area Manager - Searchable (filtered by HR) */}
-        <SearchableFilter
-          label="Area Manager"
-          value={filters.am}
-          onChange={(value) => onFilterChange('am', value)}
-          placeholder={filters.hr ? "All AMs under selected HR" : "All AMs"}
-          options={areaManagers.map(am => ({ value: am.id, label: am.name, id: am.id }))}
-          disabled={areaManagers.length === 0}
-        />
-        
-        {/* Store - Searchable (filtered by AM or HR) */}
-        <SearchableFilter
-          label="Store"
-          value={filters.store}
-          onChange={(value) => onFilterChange('store', value)}
-          placeholder={
-            filters.am ? "All stores under selected AM" :
-            filters.hr ? "All stores under selected HR" :
-            "All Stores"
-          }
-          options={stores.map(s => ({ value: s.id, label: s.name, id: s.id }))}
-          disabled={stores.length === 0}
-        />
-        
-        {/* HR Personnel - Searchable */}
-        <SearchableFilter
-          label="HR Personnel"
-          value={filters.hr}
-          onChange={(value) => onFilterChange('hr', value)}
-          placeholder="All HR"
-          options={hrPersonnel.map(hr => ({ value: hr.id, label: hr.name, id: hr.id }))}
-          disabled={hrPersonnel.length === 0}
-        />
-        
-        {/* Reset Button */}
-        <div className="pt-4 sm:pt-6">
-          <button
-            onClick={onReset}
-            className="w-full bg-gray-500 dark:bg-slate-600 hover:bg-gray-600 dark:hover:bg-slate-500 text-white dark:text-slate-100 font-semibold py-2.5 px-4 rounded-md transition-colors duration-200 text-sm sm:text-base"
-          >
-            Reset Filters
+    <div className="mb-6">
+      {/* Desktop/tablet inline filters */}
+      <div className="hidden md:block bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 items-end">
+          {/* Region - Keep as simple select since usually limited options */}
+          <FilterSelect
+            label="Region"
+            value={filters.region}
+            onChange={(e) => onFilterChange('region', e.target.value)}
+            placeholder="All Regions"
+            options={regions.map(r => ({ value: r, label: r }))}
+          />
+          
+          {/* Area Manager - Searchable (filtered by HR) */}
+          <SearchableFilter
+            label="Area Manager"
+            value={filters.am}
+            onChange={(value) => onFilterChange('am', value)}
+            placeholder={filters.hr ? "All AMs under selected HR" : "All AMs"}
+            options={areaManagers.map(am => ({ value: am.id, label: am.name, id: am.id }))}
+            disabled={areaManagers.length === 0}
+          />
+          
+          {/* Store - Searchable (filtered by AM or HR) */}
+          <SearchableFilter
+            label="Store"
+            value={filters.store}
+            onChange={(value) => onFilterChange('store', value)}
+            placeholder={
+              filters.am ? "All stores under selected AM" :
+              filters.hr ? "All stores under selected HR" :
+              "All Stores"
+            }
+            options={stores.map(s => ({ value: s.id, label: s.name, id: s.id }))}
+            disabled={stores.length === 0}
+          />
+          
+          {/* HR Personnel - Searchable */}
+          <SearchableFilter
+            label="HR Personnel"
+            value={filters.hr}
+            onChange={(value) => onFilterChange('hr', value)}
+            placeholder="All HR"
+            options={hrPersonnel.map(hr => ({ value: hr.id, label: hr.name, id: hr.id }))}
+            disabled={hrPersonnel.length === 0}
+          />
+          
+          {/* Reset Button */}
+          <div className="pt-4 sm:pt-6">
+            <button
+              onClick={onReset}
+              className="w-full bg-gray-500 dark:bg-slate-600 hover:bg-gray-600 dark:hover:bg-slate-500 text-white dark:text-slate-100 font-semibold py-2.5 px-4 rounded-md transition-colors duration-200 text-sm sm:text-base"
+            >
+              Reset Filters
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile compact bar with Filters button and Download/report actions */}
+      <div className="block md:hidden flex items-center justify-between gap-3">
+        <button
+          className="flex-1 inline-flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg shadow-sm"
+          onClick={() => setShowMobileFilters(true)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-sky-600" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M3 5a1 1 0 011-1h12a1 1 0 01.8 1.6l-4.6 6.13a1 1 0 00-.2.64V17a1 1 0 01-1 1H8a1 1 0 01-1-1v-3.63a1 1 0 00-.2-.64L2.2 5.6A1 1 0 013 5z" />
+          </svg>
+          <span className="text-sm font-medium">Filters</span>
+        </button>
+
+        <div className="w-36">
+          <button className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 bg-sky-600 text-white rounded-lg shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V3zM3 9a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" />
+            </svg>
+            <span className="text-sm">Download</span>
           </button>
         </div>
       </div>
+
+      {/* Mobile drawer render */}
+      {showMobileFilters && <Drawer />}
     </div>
   );
 };
