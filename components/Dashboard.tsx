@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { buildTrainingPDFHtml } from '../src/utils/trainingReportHtml';
 import { Users, Clipboard, GraduationCap, BarChart3 } from 'lucide-react';
 import { Submission, Store } from '../types';
 import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission } from '../services/dataService';
@@ -110,7 +111,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const availableDashboardTypes = getAvailableDashboardTypes();
 
   // Dashboard type selection - default to first available type
-  const [dashboardType, setDashboardType] = useState<'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'consolidated'>(() => {
+  const [dashboardType, setDashboardType] = useState<string>(() => {
     const available = getAvailableDashboardTypes();
     return available.length > 0 ? available[0].id as any : 'consolidated';
   });
@@ -881,7 +882,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           hapticFeedback.error();
           return;
         }
-        reportData = filteredTrainingData;
+        // Ensure we only include training audit records and exclude HR/connect or other types
+        reportData = (filteredTrainingData || []).filter((r: any) => {
+          return r && (r.trainerName || r.trainer || r.tsaFoodScore !== undefined || r.section);
+        });
         dataType = 'Training Audit Checklist';
       } else if (dashboardType === 'qa') {
         if (!filteredQAData || filteredQAData.length === 0) {
@@ -917,6 +921,50 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         }
       }
 
+      // If this is a training report, delegate to the training PDF builder for a richer layout
+      if (dashboardType === 'training') {
+        const meta: any = {};
+        
+        // Extract metadata from the first submission if available
+        if (reportData.length > 0) {
+          const firstRecord = reportData[0] as any;
+          meta.storeName = firstRecord.storeName || firstRecord.store_name || '';
+          meta.storeId = firstRecord.storeId || firstRecord.storeID || '';
+          meta.trainerName = firstRecord.trainerName || firstRecord.trainer_name || '';
+          meta.trainerId = firstRecord.trainerId || firstRecord.trainer_id || '';
+          meta.amName = firstRecord.amName || firstRecord.am_name || '';
+          meta.totalScore = firstRecord.totalScore || 0;
+          meta.maxScore = firstRecord.maxScore || 100;
+          meta.percentage = Math.round(firstRecord.percentageScore || firstRecord.percentage_score || 0);
+          meta.auditorName = firstRecord.amName || firstRecord.am_name || 'N/A';
+        }
+        
+        // Override with filter-based info if available
+        if (filters.store) {
+          const s = allStores.find(s => s.id === filters.store);
+          if (s) meta.storeName = s.name;
+        }
+        if (filters.hr) {
+          const t = HR_PERSONNEL.find(h => h.id === filters.hr) || AREA_MANAGERS.find(a => a.id === filters.hr);
+          if (t) {
+            meta.trainerName = t.name;
+            meta.trainerId = filters.hr;
+          }
+        }
+        if (filters.am) {
+          const am = AREA_MANAGERS.find(a => a.id === filters.am);
+          if (am) meta.auditorName = am.name;
+        }
+        
+        // Use component-level lastRefresh state for date
+        if (lastRefresh) meta.date = lastRefresh.toLocaleString();
+
+        await buildTrainingPDFHtml(reportData as any, meta, { fileName: `TrainingAudit_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf` });
+        setIsGenerating(false);
+        showNotificationMessage('Training PDF generated successfully!', 'success');
+        return;
+      }
+
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
       let y = 15;
 
@@ -931,11 +979,53 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       doc.setTextColor(0, 0, 0);
       y += 12;
 
-      // Determine report type and entity details based on current filters
+  // Determine report type and entity details based on current filters
       let reportTitle = `${dataType} Dashboard Report`;
       let entityDetails = {};
 
-      if (filters.store) {
+      if (dashboardType === 'training') {
+        // Training-specific report header
+        reportTitle = `Training Audit Report`;
+        // If a store filter is applied, show store-level training report
+        if (filters.store) {
+          const storeInfo = allStores.find(s => s.id === filters.store);
+          entityDetails = {
+            'Store Name': storeInfo?.name || filters.store,
+            'Store ID': filters.store,
+            'Data Type': dataType,
+            'Total Training Records': reportData.length
+          };
+        } else if (filters.hr) {
+          // HR filter used as trainer selection for training dashboard
+          const trainerInfo = HR_PERSONNEL.find(hr => hr.id === filters.hr) || AREA_MANAGERS.find(am => am.id === filters.hr);
+          entityDetails = {
+            'Trainer Name': trainerInfo?.name || filters.hr,
+            'Trainer ID': filters.hr,
+            'Data Type': dataType,
+            'Total Training Records': reportData.length
+          };
+        } else if (filters.am) {
+          const amInfo = AREA_MANAGERS.find(am => am.id === filters.am);
+          entityDetails = {
+            'Area Manager': amInfo?.name || filters.am,
+            'AM ID': filters.am,
+            'Total Training Records': reportData.length,
+            'Data Type': dataType
+          };
+        } else if (filters.region) {
+          reportTitle = `${dataType} Region Report`;
+          entityDetails = {
+            'Region': filters.region,
+            'Total Training Records': reportData.length,
+            'Data Type': dataType
+          };
+        } else {
+          entityDetails = {
+            'Total Training Records': reportData.length,
+            'Data Type': dataType
+          };
+        }
+      } else if (filters.store) {
         const storeInfo = allStores.find(s => s.id === filters.store);
         reportTitle = `${dataType} Store Report`;
         entityDetails = {
@@ -964,7 +1054,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         };
       } else if (filters.hr) {
         const hrInfo = HR_PERSONNEL.find(hr => hr.id === filters.hr);
-        const roleName = dashboardType === 'training' ? 'Trainer' : 'HR Personnel';
+  // dashboardType may be a union; perform a runtime string check for 'training'
+  const roleName = String(dashboardType) === 'training' ? 'Trainer' : 'HR Personnel';
         reportTitle = `${dataType} ${roleName} Report`;
         entityDetails = {
           [`${roleName} Name`]: hrInfo?.name || filters.hr,
