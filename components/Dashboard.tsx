@@ -1122,6 +1122,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       doc.setTextColor(0, 0, 0);
       
       const entityEntries = Object.entries(entityDetails);
+      // Add a 'Filters Applied' entry so reports clearly show which filters were used
+      const filtersApplied = [] as string[];
+      if (filters.region) filtersApplied.push(`Region=${filters.region}`);
+      if (filters.store) filtersApplied.push(`Store=${filters.store}`);
+      if (filters.am) filtersApplied.push(`AM=${filters.am}`);
+      if (filters.hr) filtersApplied.push(`Trainer/HR=${filters.hr}`);
+      if (filters.health) filtersApplied.push(`StoreHealth=${filters.health}`);
+      if (filtersApplied.length > 0) {
+        entityEntries.push(['Filters Applied', filtersApplied.join(', ')]);
+      }
       for (let i = 0; i < entityEntries.length; i += 2) {
         const [key1, value1] = entityEntries[i];
         const [key2, value2] = entityEntries[i + 1] || ['', ''];
