@@ -279,20 +279,6 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             options={regions.map(r => ({ value: r, label: r }))}
           />
 
-          {/* Store Health - mobile drawer */}
-          <FilterSelect
-            label="Store Health"
-            value={filters.health || ''}
-            onChange={(e) => onFilterChange('health', e.target.value)}
-            placeholder="All Health"
-            options={[
-              { value: '', label: 'All Health' },
-              { value: 'Needs Attention', label: 'Needs Attention' },
-              { value: 'Brewing', label: 'Brewing' },
-              { value: 'Perfect Shot', label: 'Perfect Shot' }
-            ]}
-          />
-
           {/* Store Health - semantic filter */}
           <FilterSelect
             label="Store Health"

@@ -950,35 +950,66 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       if (dashboardType === 'training') {
         const meta: any = {};
         
-        // Extract metadata from the first submission if available
-        if (reportData.length > 0) {
+        // Prioritize filters for metadata; fallback to first record only when no relevant filters are set
+        // This ensures region/AM/trainer/store filters correctly label the report
+        
+        // Store filter
+        if (filters.store) {
+          const s = allStores.find(s => s.id === filters.store);
+          meta.storeName = s?.name || filters.store;
+          meta.storeId = filters.store;
+        } else if (reportData.length > 0 && reportData.length === 1) {
+          // Single submission with no store filter: use first record store
           const firstRecord = reportData[0] as any;
           meta.storeName = firstRecord.storeName || firstRecord.store_name || '';
           meta.storeId = firstRecord.storeId || firstRecord.storeID || '';
+        } else if (filters.region) {
+          // Region filter: show region as primary identifier
+          meta.storeName = `${filters.region} Region`;
+          meta.storeId = '';
+        } else if (reportData.length > 0) {
+          // Multiple records, no filter: use "All Stores" or aggregate
+          meta.storeName = 'All Stores (Filtered)';
+          meta.storeId = '';
+        }
+        
+        // Trainer filter (HR field in training context)
+        if (filters.hr) {
+          const t = HR_PERSONNEL.find(h => h.id === filters.hr) || AREA_MANAGERS.find(a => a.id === filters.hr);
+          meta.trainerName = t?.name || filters.hr;
+          meta.trainerId = filters.hr;
+        } else if (reportData.length > 0 && reportData.length === 1) {
+          const firstRecord = reportData[0] as any;
           meta.trainerName = firstRecord.trainerName || firstRecord.trainer_name || '';
           meta.trainerId = firstRecord.trainerId || firstRecord.trainer_id || '';
+        } else if (reportData.length > 0) {
+          meta.trainerName = 'Multiple Trainers';
+          meta.trainerId = '';
+        }
+        
+        // AM filter
+        if (filters.am) {
+          const am = AREA_MANAGERS.find(a => a.id === filters.am);
+          meta.amName = am?.name || filters.am;
+          meta.auditorName = am?.name || filters.am;
+        } else if (reportData.length > 0 && reportData.length === 1) {
+          const firstRecord = reportData[0] as any;
           meta.amName = firstRecord.amName || firstRecord.am_name || '';
-          meta.totalScore = firstRecord.totalScore || 0;
-          meta.maxScore = firstRecord.maxScore || 100;
-          meta.percentage = Math.round(firstRecord.percentageScore || firstRecord.percentage_score || 0);
           meta.auditorName = firstRecord.amName || firstRecord.am_name || 'N/A';
         }
         
-        // Override with filter-based info if available
-        if (filters.store) {
-          const s = allStores.find(s => s.id === filters.store);
-          if (s) meta.storeName = s.name;
-        }
-        if (filters.hr) {
-          const t = HR_PERSONNEL.find(h => h.id === filters.hr) || AREA_MANAGERS.find(a => a.id === filters.hr);
-          if (t) {
-            meta.trainerName = t.name;
-            meta.trainerId = filters.hr;
-          }
-        }
-        if (filters.am) {
-          const am = AREA_MANAGERS.find(a => a.id === filters.am);
-          if (am) meta.auditorName = am.name;
+        // Score aggregation: compute average if multiple submissions
+        if (reportData.length === 1) {
+          const firstRecord = reportData[0] as any;
+          meta.totalScore = firstRecord.totalScore || 0;
+          meta.maxScore = firstRecord.maxScore || 100;
+          meta.percentage = Math.round(firstRecord.percentageScore || firstRecord.percentage_score || 0);
+        } else if (reportData.length > 1) {
+          // Compute average score across filtered submissions
+          const totalPct = reportData.reduce((sum, r: any) => sum + parseFloat(r.percentageScore || r.percentage_score || 0), 0);
+          meta.percentage = Math.round(totalPct / reportData.length);
+          meta.totalScore = `Avg`;
+          meta.maxScore = 100;
         }
         
         // Use component-level lastRefresh state for date
