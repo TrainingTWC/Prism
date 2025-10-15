@@ -4,13 +4,14 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, PieLabelRend
 import { Submission, Question } from '../types';
 import ChartContainer from './ChartContainer';
 import { useTheme } from '../contexts/ThemeContext';
+import { getChartPalette } from '../src/utils/chartColors';
 
 interface QuestionBreakdownChartProps {
   submissions: Submission[];
   question: Question;
 }
 
-const COLORS = ['#3b82f6', '#22c55e', '#eab308', '#f97316', '#ef4444'];
+// const COLORS = ['#3b82f6', '#22c55e', '#eab308', '#f97316', '#ef4444'];
 
 const QuestionBreakdownChart: React.FC<QuestionBreakdownChartProps> = ({ submissions, question }) => {
   const { theme } = useTheme();
@@ -89,7 +90,7 @@ const QuestionBreakdownChart: React.FC<QuestionBreakdownChartProps> = ({ submiss
             nameKey="name"
           >
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Cell key={`cell-${index}`} fill={getChartPalette()[index % getChartPalette().length]} />
             ))}
           </Pie>
         </PieChart>

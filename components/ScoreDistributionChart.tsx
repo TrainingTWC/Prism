@@ -4,12 +4,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Submission } from '../types';
 import ChartContainer from './ChartContainer';
 import { useTheme } from '../contexts/ThemeContext';
+import { getChartPalette } from '../src/utils/chartColors';
 
 interface ScoreDistributionChartProps {
   submissions: Submission[];
 }
 
-const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'];
+// const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'];
 
 const ScoreDistributionChart: React.FC<ScoreDistributionChartProps> = ({ submissions }) => {
   const { theme } = useTheme();
@@ -60,9 +61,9 @@ const ScoreDistributionChart: React.FC<ScoreDistributionChartProps> = ({ submiss
               borderRadius: '8px'
             }}
           />
-          <Bar dataKey="count" name="Submissions" fill="#0ea5e9">
+          <Bar dataKey="count" name="Submissions">
             {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                <Cell key={`cell-${index}`} fill={getChartPalette()[index % getChartPalette().length]} />
             ))}
           </Bar>
         </BarChart>
