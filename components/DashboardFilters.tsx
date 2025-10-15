@@ -369,44 +369,50 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
         <button
           className="flex-1 inline-flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg shadow-sm"
           onClick={() => setShowMobileFilters(true)}
+          aria-label="Open filters"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 icon-muted" viewBox="0 0 20 20" fill="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 icon-muted" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
             <path d="M3 5a1 1 0 011-1h12a1 1 0 01.8 1.6l-4.6 6.13a1 1 0 00-.2.64V17a1 1 0 01-1 1H8a1 1 0 01-1-1v-3.63a1 1 0 00-.2-.64L2.2 5.6A1 1 0 013 5z" />
           </svg>
           <span className="text-sm font-medium">Filters</span>
         </button>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => { if (typeof onDownload === 'function') onDownload(); }}
-            disabled={isGenerating}
-            className={`inline-flex items-center justify-center gap-2 py-3 px-3 ${isGenerating ? 'opacity-80 pointer-events-none disabled:opacity-60' : ''} btn-primary-gradient text-white rounded-lg shadow-sm transition-transform duration-150 transform hover:scale-105`}
-          >
-            {isGenerating ? (
-              <>
-                <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                </svg>
-                Generating...
-              </>
-            ) : (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V3zM3 9a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" />
-                </svg>
-              </>
-            )}
-          </button>
 
-          <button
-            onClick={() => { /* eslint-disable-next-line no-console */ console.log('Refresh requested'); window.dispatchEvent(new CustomEvent('prism-refresh')) }}
-            className="inline-flex items-center justify-center gap-2 py-3 px-3 bg-gray-100 dark:bg-slate-700 rounded-lg shadow-sm"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v6h6M20 20v-6h-6" />
-            </svg>
-          </button>
-        </div>
+        <button
+          onClick={() => { if (typeof onDownload === 'function') onDownload(); }}
+          disabled={isGenerating}
+          className={`flex-1 inline-flex items-center justify-center gap-2 py-3 px-3 ${isGenerating ? 'opacity-80 pointer-events-none disabled:opacity-60' : ''} btn-primary-gradient text-white rounded-lg shadow-sm transition-transform duration-150 transform hover:scale-105`}
+          aria-label="Download report"
+        >
+          {isGenerating ? (
+            <>
+              <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" aria-hidden>
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+              </svg>
+              <span className="text-sm">Generating</span>
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                <path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V3zM3 9a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" />
+              </svg>
+              <span className="text-sm">Download</span>
+            </>
+          )}
+        </button>
+
+        <button
+          onClick={() => { /* eslint-disable-next-line no-console */ console.log('Refresh requested'); window.dispatchEvent(new CustomEvent('prism-refresh')) }}
+          className="inline-flex items-center justify-center gap-2 py-3 px-3 bg-gray-100 dark:bg-slate-700 rounded-lg shadow-sm"
+          aria-label="Refresh data"
+          title="Refresh data"
+        >
+          {/* Improved refresh icon: circular arrow that better communicates refresh */}
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12a8 8 0 10-4.9 7.4l1.2-1.7a6 6 0 11.5-8.1L20 12z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 4v6h-6" />
+          </svg>
+        </button>
       </div>
 
       {/* Mobile drawer render */}
