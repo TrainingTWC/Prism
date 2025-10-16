@@ -103,6 +103,16 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
                         <Cell
                           key={`cell-${index}`}
                           fill={entry.color}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => {
+                            if (entry.name === 'Needs Attention') {
+                              propsOnOpen('region', '', 'Needs Attention');
+                            } else if (entry.name === 'Brewing') {
+                              propsOnOpen('region', '', 'Brewing');
+                            } else if (entry.name === 'Perfect Shot') {
+                              propsOnOpen('region', '', 'Perfect Shot');
+                            }
+                          }}
                         />
                       ))}
                   </Pie>
@@ -111,10 +121,22 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
               </ResponsiveContainer>
             </div>
             
-            {/* Legend - with more spacing; non-interactive display */}
+            {/* Legend - with more spacing; clickable items */}
             <div className="flex-1 flex flex-col justify-center gap-1 ml-6 min-w-0" role="list" aria-label="Store health legend">
               {healthData.map((entry, index) => (
-                <div key={entry.name} className="flex items-center gap-3" role="listitem">
+                <button
+                  key={entry.name}
+                  type="button"
+                  className="flex items-center gap-3 w-full text-left focus:outline-none focus:ring-2 focus:ring-sky-500 rounded-sm p-1 hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors"
+                  onClick={() => propsOnOpen('scoreRange', '', entry.name)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      propsOnOpen('scoreRange', '', entry.name);
+                    }
+                  }}
+                  aria-label={`Show details for ${entry.name}`}
+                >
                   <div 
                     className="w-3 h-3 rounded-full flex-shrink-0" 
                     style={{ backgroundColor: entry.color }}
@@ -126,7 +148,7 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
                   <span className="text-xs font-semibold text-gray-900 dark:text-slate-100 ml-auto">
                     {entry.value}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           </>
