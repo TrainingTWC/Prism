@@ -2109,10 +2109,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           
           {/* Stats Grid - Different layouts based on dashboard type */}
           {dashboardType === 'training' ? (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard title="Total Submissions" value={stats?.totalSubmissions} />
-              <StatCard title="Average Score" value={`${stats?.avgScore}%`} />
-              <div className="sm:col-span-1 lg:col-span-1">
+            <>
+              {/* Training Stats - Horizontal on mobile, then pie chart below */}
+              <div className="grid grid-cols-3 gap-3 mb-5">
+                <StatCard title="Total Submissions" value={stats?.totalSubmissions} />
+                <StatCard title="Stores Covered" value={stats?.uniqueStores} />
+                <StatCard title="Average Score" value={`${stats?.avgScore}%`} />
+              </div>
+              {/* Pie chart on its own row */}
+              <div className="mb-5">
                 <TrainingHealthPieChart
                   submissions={filteredTrainingData}
                   onOpenDetails={(filterType, value, title) => {
@@ -2128,8 +2133,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                   }}
                 />
               </div>
-              <StatCard title="Stores Covered" value={stats?.uniqueStores} />
-            </div>
+            </>
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard title="Total Submissions" value={stats?.totalSubmissions} />
