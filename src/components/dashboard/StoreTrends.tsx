@@ -153,7 +153,7 @@ export default function StoreTrends({
 
   return (
     <div className="store-trends card">
-      <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Monthly Performance Trend</h3>
+      <h3 className="text-base font-semibold mb-4 text-gray-900 dark:text-slate-100">Monthly Performance Trend</h3>
 
       {/* Mobile-Friendly Layout: Stack on mobile, side-by-side on desktop */}
       <div className="trends-grid">
@@ -161,9 +161,9 @@ export default function StoreTrends({
         <div className="chart-section">
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={combined} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-              <XAxis dataKey="period" style={{ fontSize: 11 }} />
-              <YAxis style={{ fontSize: 11 }} domain={[0, 100]} />
-              <Tooltip />
+              <XAxis dataKey="period" style={{ fontSize: 11 }} stroke="currentColor" className="text-gray-600 dark:text-slate-400" />
+              <YAxis style={{ fontSize: 11 }} domain={[0, 100]} stroke="currentColor" className="text-gray-600 dark:text-slate-400" />
+              <Tooltip contentStyle={{ backgroundColor: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: '6px' }} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Line type="monotone" dataKey="percentage" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Percentage" />
             </LineChart>
@@ -209,8 +209,26 @@ export default function StoreTrends({
       </div>
 
       <style>{`
+        :root {
+          --tooltip-bg: #fff;
+          --tooltip-border: #e5e7eb;
+        }
+        
+        .dark {
+          --tooltip-bg: #1e293b;
+          --tooltip-border: #475569;
+        }
+        
         .store-trends { padding: 12px; }
-        .card { background: #fff; padding: 8px; border-radius: 6px; }
+        .card { 
+          background: #fff; 
+          padding: 8px; 
+          border-radius: 6px;
+        }
+        
+        .dark .card {
+          background: #1e293b;
+        }
         
         /* Mobile-friendly grid layout */
         .trends-grid {
@@ -252,8 +270,16 @@ export default function StoreTrends({
           background: #f9fafb;
         }
         
+        .dark .mover-card.improvers {
+          background: #16a34a1a;
+        }
+        
         .mover-card.decliners {
           background: #fef2f2;
+        }
+        
+        .dark .mover-card.decliners {
+          background: #dc26261a;
         }
         
         .mover-header {
@@ -266,13 +292,25 @@ export default function StoreTrends({
           color: #16a34a;
         }
         
+        .dark .mover-card.improvers .mover-header {
+          color: #4ade80;
+        }
+        
         .mover-card.decliners .mover-header {
           color: #dc2626;
+        }
+        
+        .dark .mover-card.decliners .mover-header {
+          color: #f87171;
         }
         
         .no-data {
           font-size: 12px;
           color: #6b7280;
+        }
+        
+        .dark .no-data {
+          color: #94a3b8;
         }
         
         .mover-item {
@@ -283,8 +321,16 @@ export default function StoreTrends({
           border-bottom: 1px solid #e5e7eb;
         }
         
+        .dark .mover-card.improvers .mover-item {
+          border-bottom: 1px solid #16a34a33;
+        }
+        
         .mover-card.decliners .mover-item {
           border-bottom: 1px solid #fecaca;
+        }
+        
+        .dark .mover-card.decliners .mover-item {
+          border-bottom: 1px solid #dc262633;
         }
         
         .mover-item:last-child {
@@ -310,6 +356,10 @@ export default function StoreTrends({
           white-space: nowrap;
         }
         
+        .dark .mover-name {
+          color: #e2e8f0;
+        }
+        
         .mover-change {
           font-weight: 700;
           font-size: 13px;
@@ -320,13 +370,25 @@ export default function StoreTrends({
           color: #16a34a;
         }
         
+        .dark .mover-change.positive {
+          color: #4ade80;
+        }
+        
         .mover-change.negative {
           color: #dc2626;
+        }
+        
+        .dark .mover-change.negative {
+          color: #f87171;
         }
         
         .mover-details {
           font-size: 11px;
           color: #6b7280;
+        }
+        
+        .dark .mover-details {
+          color: #94a3b8;
         }
         
         /* Mobile optimization */

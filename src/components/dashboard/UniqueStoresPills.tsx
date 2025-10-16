@@ -60,7 +60,7 @@ export function UniqueStoresPills({ filters, rows: propRows, loading: propLoadin
 
   if (loading) {
     return (
-      <div style={{ padding: '12px', textAlign: 'center', color: '#888', fontSize: 12 }}>
+      <div className="p-3 text-center text-gray-500 dark:text-slate-400 text-xs">
         Loading store data...
       </div>
     );
@@ -71,16 +71,8 @@ export function UniqueStoresPills({ filters, rows: propRows, loading: propLoadin
   }
 
   return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: 8, 
-        marginBottom: 12,
-        fontSize: 14,
-        fontWeight: 600,
-        color: '#374151'
-      }}>
+    <div className="mb-5">
+      <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-700 dark:text-slate-200">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 3h7v7H3z"/>
           <path d="M14 3h7v7h-7z"/>
@@ -89,44 +81,25 @@ export function UniqueStoresPills({ filters, rows: propRows, loading: propLoadin
         </svg>
         Unique Stores per Month
       </div>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+      <div className="flex gap-3 flex-wrap">
         {combined.map((item, idx) => {
           const prevCount = idx > 0 ? combined[idx - 1].storeCount : null;
           const change = prevCount !== null ? item.storeCount - prevCount : null;
           return (
-            <div key={item.period} className="card" style={{ 
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '10px 16px', 
-              background: '#fff',
-              boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-              borderRadius: 20,
-              transition: 'all 0.2s',
-              minWidth: 'fit-content'
-            }}>
-              <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500, whiteSpace: 'nowrap' }}>{item.period}</div>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'baseline', 
-                gap: 4 
-              }}>
-                <span style={{ fontSize: 20, fontWeight: 700, color: '#374151' }}>{item.storeCount}</span>
-                <span style={{ fontSize: 10, color: '#9ca3af' }}>stores</span>
+            <div key={item.period} className="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-slate-800 shadow-sm rounded-full transition-all min-w-fit border border-gray-100 dark:border-slate-700">
+              <div className="text-xs text-gray-500 dark:text-slate-400 font-medium whitespace-nowrap">{item.period}</div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-bold text-gray-700 dark:text-slate-100">{item.storeCount}</span>
+                <span className="text-[10px] text-gray-400 dark:text-slate-500">stores</span>
               </div>
               {change !== null && (
-                <div style={{ 
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  padding: '3px 8px',
-                  borderRadius: 12,
-                  fontSize: 10,
-                  fontWeight: 600,
-                  background: change > 0 ? '#dcfce7' : change < 0 ? '#fee2e2' : '#f3f4f6',
-                  color: change > 0 ? '#16a34a' : change < 0 ? '#dc2626' : '#6b7280',
-                  whiteSpace: 'nowrap'
-                }}>
+                <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-xl text-[10px] font-semibold whitespace-nowrap ${
+                  change > 0 
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' 
+                    : change < 0 
+                    ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' 
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400'
+                }`}>
                   {change > 0 ? '↗' : change < 0 ? '↘' : '→'} {change > 0 ? '+' : ''}{change}
                 </div>
               )}

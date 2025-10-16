@@ -118,16 +118,18 @@ const AppContent: React.FC = () => {
         onSkip={skipTour}
       />
 
-      {/* Help Button - Floating */}
-      <button
-        onClick={startTour}
-        className="fixed bottom-6 right-6 z-[9999] btn-primary-gradient text-white p-4 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-transform duration-150 flex items-center gap-2"
-        title="Take a tour"
-        aria-label="Start guided tour"
-      >
-        <HelpCircle className="w-6 h-6" />
-        <span className="hidden sm:inline font-medium">Need Help?</span>
-      </button>
+      {/* Help Button - Floating - HIDDEN */}
+      {false && (
+        <button
+          onClick={startTour}
+          className="fixed bottom-6 right-6 z-[9999] btn-primary-gradient text-white p-4 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-transform duration-150 flex items-center gap-2"
+          title="Take a tour"
+          aria-label="Start guided tour"
+        >
+          <HelpCircle className="w-6 h-6" />
+          <span className="hidden sm:inline font-medium">Need Help?</span>
+        </button>
+      )}
       
       {/* Tab Navigation */}
       <nav className="px-2 sm:px-4 lg:px-8 border-b border-gray-200 dark:border-slate-700" data-tour="tabs">
