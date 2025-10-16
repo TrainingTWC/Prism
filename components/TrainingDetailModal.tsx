@@ -122,7 +122,8 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
         regions: [],
         trainers: [],
         sectionBreakdown: [],
-        questionBreakdown: []
+        questionBreakdown: [],
+        filteredSubmissions: [] // Add filtered submissions to return value
       };
     }
 
@@ -182,7 +183,8 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
         regions: [],
         trainers: [],
         sectionBreakdown: [],
-        questionBreakdown: []
+        questionBreakdown: [],
+        filteredSubmissions: [] // Add filtered submissions to return value
       };
     }
     const totalScore = filteredSubmissions.reduce((sum, sub) => sum + parseFloat(sub.percentageScore || '0'), 0);
@@ -281,7 +283,8 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
       regions: regions.sort((a, b) => b.avgScore - a.avgScore),
       trainers: trainers.sort((a, b) => b.avgScore - a.avgScore),
       sectionBreakdown,
-      questionBreakdown: []
+      questionBreakdown: [],
+      filteredSubmissions // Add filtered submissions to return value
     };
   }, [submissions, filterType, filterValue]);
 
@@ -631,7 +634,7 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {(submissions || []).slice(0, 10).map((submission, index) => (
+                  {(stats.filteredSubmissions || []).slice(0, 10).map((submission, index) => (
                     <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         {submission.submissionTime ? new Date(submission.submissionTime).toLocaleDateString() : 'N/A'}
