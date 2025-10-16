@@ -6,6 +6,9 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import ImportMetrics from '../../../components/dashboard/ImportMetrics';
+import StoreTrends from '../../components/dashboard/StoreTrends';
+import HeaderSummary from '../../components/dashboard/HeaderSummary';
 import { useFilters, navigationActions } from '../state';
 import {
   fetchSummary,
@@ -103,12 +106,26 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Audit Dashboard</h1>
-        <p className="text-gray-600">Organization-wide training audit performance and insights</p>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Audit Dashboard</h1>
+            <p className="text-gray-600">Organization-wide training audit performance and insights</p>
+          </div>
+          <div>
+            <ImportMetrics />
+          </div>
+        </div>
+        {/* Header Summary Cards */}
+        <HeaderSummary />
       </div>
 
-      {/* Summary Cards */}
-      {summary && (
+      {/* Store trends from embedded dataset */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <StoreTrends metric="score" top={15} filters={filters} />
+      </div>
+
+      {/* OLD Summary Cards - HIDDEN (using new HeaderSummary instead) */}
+      {false && summary && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Audits</div>

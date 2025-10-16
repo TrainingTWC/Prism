@@ -13,10 +13,6 @@
     "types": [
       "node"
     ],
-    "typeRoots": [
-      "./node_modules/@types",
-      "./types"
-    ],
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",
@@ -30,13 +26,4 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   }
-  ,
-  "exclude": [
-    "node_modules",
-    "dist",
-    "am-capa-planner/**",
-    "live-audio (1)/**",
-    "**/*_backup.tsx",
-    "**/*.html"
-  ]
 }

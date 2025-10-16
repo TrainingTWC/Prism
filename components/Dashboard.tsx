@@ -39,6 +39,12 @@ import TrainingRadarChart from './TrainingRadarChart';
 import TrainingHealthPieChart from './TrainingHealthPieChart';
 import OperationsRadarChart from './OperationsRadarChart';
 import TrainingDetailModal from './TrainingDetailModal';
+// Multi-Month Trends Components (Google Sheets Integration)
+import HeaderSummary from '../src/components/dashboard/HeaderSummary';
+import StoreTrends from '../src/components/dashboard/StoreTrends';
+import { UniqueStoresPills } from '../src/components/dashboard/UniqueStoresPills';
+import { HistoricTrendsSection } from '../src/components/dashboard/HistoricTrendsSection';
+import { useTrendsData } from '../src/components/dashboard/useTrendsData';
 // QA Dashboard Components
 import QARegionPerformanceInfographic from './QARegionPerformanceInfographic';
 import QAAuditorPerformanceInfographic from './QAAuditorPerformanceInfographic';
@@ -84,6 +90,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     hr: '',
     health: ''
   });
+
+  // Monthly Trends data for Training Dashboard
+  const { rows: trendsData, loading: trendsLoading } = useTrendsData();
 
   // Get available dashboard types based on user role
   const getAvailableDashboardTypes = () => {
@@ -304,80 +313,71 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       const targetDashboard = specificDashboard || dashboardType;
       const isAdmin = userRole.role === 'admin';
       
-      // Smart loading: only load data relevant to the user's permissions and current view
+      // Smart loading: only load data relevant to current view
+      // NO PRELOADING - load only what's needed for the current dashboard
       const loadPromises: Promise<any>[] = [];
       
-      // Load HR survey data only if user has access and it's needed
-      if (isAdmin || userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head' || targetDashboard === 'hr' || targetDashboard === 'consolidated') {
-        if (!dataLoadedFlags.hr || isRefresh) {
-          loadPromises.push(
-            fetchSubmissions().then(data => {
-              console.log('Dashboard loaded HR survey data:', data.length, 'submissions');
-              setSubmissions(data);
-              setDataLoadedFlags(prev => ({ ...prev, hr: true }));
-            }).catch(err => {
-              console.error('Failed to load HR data:', err);
-              // Don't fail entire load if one dataset fails
-            })
-          );
-        } else {
-          console.log('Using cached HR data');
-        }
+      // Load HR survey data ONLY if currently viewing HR dashboard OR consolidated view
+      if ((targetDashboard === 'hr' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.hr || isRefresh)) {
+        loadPromises.push(
+          fetchSubmissions().then(data => {
+            console.log('✅ Loaded HR survey data:', data.length, 'submissions');
+            setSubmissions(data);
+            setDataLoadedFlags(prev => ({ ...prev, hr: true }));
+          }).catch(err => {
+            console.error('❌ Failed to load HR data:', err);
+          })
+        );
+      } else if (targetDashboard === 'hr' && dataLoadedFlags.hr) {
+        console.log('♻️ Using cached HR data');
       }
       
-      // Load AM Operations data only if user has access and it's needed
-      if (isAdmin || userRole.role === 'area_manager' || targetDashboard === 'operations' || targetDashboard === 'consolidated') {
-        if (!dataLoadedFlags.operations || isRefresh) {
-          loadPromises.push(
-            fetchAMOperationsData().then(data => {
-              console.log('Dashboard loaded AM Operations data:', data.length, 'submissions');
-              setAMOperationsData(data);
-              setDataLoadedFlags(prev => ({ ...prev, operations: true }));
-            }).catch(err => {
-              console.error('Failed to load AM Operations data:', err);
-            })
-          );
-        } else {
-          console.log('Using cached Operations data');
-        }
+      // Load AM Operations data ONLY if currently viewing Operations dashboard OR consolidated view
+      if ((targetDashboard === 'operations' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.operations || isRefresh)) {
+        loadPromises.push(
+          fetchAMOperationsData().then(data => {
+            console.log('✅ Loaded AM Operations data:', data.length, 'submissions');
+            setAMOperationsData(data);
+            setDataLoadedFlags(prev => ({ ...prev, operations: true }));
+          }).catch(err => {
+            console.error('❌ Failed to load AM Operations data:', err);
+          })
+        );
+      } else if (targetDashboard === 'operations' && dataLoadedFlags.operations) {
+        console.log('♻️ Using cached Operations data');
       }
       
-      // Load Training Audit data only if user has access and it's needed
-      if (isAdmin || userRole.role === 'lms_head' || targetDashboard === 'training' || targetDashboard === 'consolidated') {
-        if (!dataLoadedFlags.training || isRefresh) {
-          loadPromises.push(
-            fetchTrainingData().then(data => {
-              console.log('Dashboard loaded Training Audit data:', data.length, 'submissions');
-              setTrainingData(data);
-              setDataLoadedFlags(prev => ({ ...prev, training: true }));
-            }).catch(err => {
-              console.error('Failed to load Training data:', err);
-            })
-          );
-        } else {
-          console.log('Using cached Training data');
-        }
+      // Load Training Audit data ONLY if currently viewing Training dashboard OR consolidated view
+      if ((targetDashboard === 'training' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.training || isRefresh)) {
+        loadPromises.push(
+          fetchTrainingData().then(data => {
+            console.log('✅ Loaded Training Audit data:', data.length, 'submissions');
+            setTrainingData(data);
+            setDataLoadedFlags(prev => ({ ...prev, training: true }));
+          }).catch(err => {
+            console.error('❌ Failed to load Training data:', err);
+          })
+        );
+      } else if (targetDashboard === 'training' && dataLoadedFlags.training) {
+        console.log('♻️ Using cached Training data');
       }
       
-      // Load QA Assessment data only if user has access and it's needed
-      if (isAdmin || targetDashboard === 'qa' || targetDashboard === 'consolidated') {
-        if (!dataLoadedFlags.qa || isRefresh) {
-          loadPromises.push(
-            fetchQAData().then(data => {
-              console.log('Dashboard loaded QA Assessment data:', data.length, 'submissions');
-              if (data.length > 0) {
-                console.log('QA data sample:', data[0]);
-                console.log('QA data keys:', Object.keys(data[0]));
-              }
-              setQAData(data);
-              setDataLoadedFlags(prev => ({ ...prev, qa: true }));
-            }).catch(err => {
-              console.error('Failed to load QA data:', err);
-            })
-          );
-        } else {
-          console.log('Using cached QA data');
-        }
+      // Load QA Assessment data ONLY if currently viewing QA dashboard OR consolidated view
+      if ((targetDashboard === 'qa' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.qa || isRefresh)) {
+        loadPromises.push(
+          fetchQAData().then(data => {
+            console.log('✅ Loaded QA Assessment data:', data.length, 'submissions');
+            if (data.length > 0) {
+              console.log('QA data sample:', data[0]);
+            }
+            setQAData(data);
+            setDataLoadedFlags(prev => ({ ...prev, qa: true }));
+          }).catch(err => {
+            console.error('❌ Failed to load QA data:', err);
+          })
+        );
+      } else if (targetDashboard === 'qa' && dataLoadedFlags.qa) {
+        console.log('♻️ Using cached QA data');
       }
       
       // If no promises to load, we're using all cached data
@@ -786,16 +786,29 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       };
     }
     
-    // For Training dashboard, use Training Audit data
+    // For Training dashboard, use Monthly_Trends data
     if (dashboardType === 'training') {
-      if (!filteredTrainingData) return null;
+      if (!trendsData || trendsLoading) return null;
 
-      const totalSubmissions = filteredTrainingData.length;
+      // Filter to only percentage rows to avoid double counting
+      // Each submission has 2 rows: one for 'score' and one for 'percentage'
+      const percentageRows = trendsData.filter((r: any) => r.metric_name === 'percentage');
+      
+      const totalSubmissions = percentageRows.length;
+      
+      // Calculate average score from percentage rows
       const avgScore = totalSubmissions > 0 
-        ? filteredTrainingData.reduce((acc, s) => acc + parseFloat(s.percentageScore || '0'), 0) / totalSubmissions 
+        ? percentageRows.reduce((acc: number, r: any) => acc + (parseFloat(r.metric_value) || 0), 0) / totalSubmissions 
         : 0;
-      const uniqueTrainers = new Set(filteredTrainingData.map(s => s.trainerId)).size;
-      const uniqueStores = new Set(filteredTrainingData.map(s => s.storeId)).size;
+      
+      // Get unique stores from the trends data
+      const uniqueStores = new Set(percentageRows.map((r: any) => r.store_id)).size;
+      
+      // For unique employees/trainers, we need to use the actual training data
+      // since Monthly_Trends doesn't have trainer information
+      const uniqueTrainers = filteredTrainingData 
+        ? new Set(filteredTrainingData.map(s => s.trainerId)).size 
+        : 0;
 
       return {
         totalSubmissions,
@@ -838,7 +851,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       uniqueEmployees,
       uniqueStores
     };
-  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, filteredQAData, dashboardType]);
+  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, filteredQAData, dashboardType, trendsData, trendsLoading]);
 
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
     const newFilters = { ...filters, [filterName]: value };
@@ -2154,6 +2167,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           {/* Training Dashboard Content */}
           {dashboardType === 'training' && (
             <>
+              {/* Historic Trends Section - Collapsible */}
+              <HistoricTrendsSection />
+
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" data-tour="region-chart">
                 <TrainingRegionPerformanceInfographic 
                   submissions={filteredTrainingData} 

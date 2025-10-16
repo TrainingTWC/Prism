@@ -75,8 +75,11 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
             // Training Materials questions: TM_1 to TM_9
             for (let i = 1; i <= 9; i++) {
               const response = submission[`TM_${i}`];
-              if (response === 'yes') sectionScore += 1;
-              if (response !== 'na') maxSectionScore += 1;
+              // ✅ Skip blank, undefined, null, or 'na' responses
+              if (response && response !== '' && response !== 'na') {
+                if (response === 'yes') sectionScore += 1;
+                maxSectionScore += 1;
+              }
             }
           } else if (section.id === 'LMS') {
             // LMS questions: LMS_1 to LMS_3
@@ -87,25 +90,34 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
             ];
             responses.forEach(q => {
               const response = submission[q.key];
-              if (response === 'yes') sectionScore += q.weight;
-              else if (response === 'no' && q.negWeight) sectionScore += q.negWeight;
-              if (response !== 'na') maxSectionScore += Math.abs(q.weight);
+              // ✅ Skip blank, undefined, null, or 'na' responses
+              if (response && response !== '' && response !== 'na') {
+                if (response === 'yes') sectionScore += q.weight;
+                else if (response === 'no' && q.negWeight) sectionScore += q.negWeight;
+                maxSectionScore += Math.abs(q.weight);
+              }
             });
           } else if (section.id === 'Buddy') {
             // Buddy questions: Buddy_1 to Buddy_6
             const weights = [2, 2, 1, 2, 2, 1];
             weights.forEach((weight, i) => {
               const response = submission[`Buddy_${i + 1}`];
-              if (response === 'yes') sectionScore += weight;
-              if (response !== 'na') maxSectionScore += weight;
+              // ✅ Skip blank, undefined, null, or 'na' responses
+              if (response && response !== '' && response !== 'na') {
+                if (response === 'yes') sectionScore += weight;
+                maxSectionScore += weight;
+              }
             });
           } else if (section.id === 'NJ') {
             // New Joiner questions: NJ_1 to NJ_7
             const weights = [1, 1, 1, 1, 2, 2, 2];
             weights.forEach((weight, i) => {
               const response = submission[`NJ_${i + 1}`];
-              if (response === 'yes') sectionScore += weight;
-              if (response !== 'na') maxSectionScore += weight;
+              // ✅ Skip blank, undefined, null, or 'na' responses
+              if (response && response !== '' && response !== 'na') {
+                if (response === 'yes') sectionScore += weight;
+                maxSectionScore += weight;
+              }
             });
           } else if (section.id === 'PK') {
             // Partner Knowledge questions: PK_1 to PK_7
@@ -113,25 +125,34 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
             const negWeights = [0, 0, 0, 0, 0, 0, -3];
             weights.forEach((weight, i) => {
               const response = submission[`PK_${i + 1}`];
-              if (response === 'yes') sectionScore += weight;
-              else if (response === 'no' && negWeights[i]) sectionScore += negWeights[i];
-              if (response !== 'na') maxSectionScore += Math.abs(weight);
+              // ✅ Skip blank, undefined, null, or 'na' responses
+              if (response && response !== '' && response !== 'na') {
+                if (response === 'yes') sectionScore += weight;
+                else if (response === 'no' && negWeights[i]) sectionScore += negWeights[i];
+                maxSectionScore += Math.abs(weight);
+              }
             });
           } else if (section.id === 'TSA') {
             // TSA questions: TSA_1 to TSA_3 (numeric 0-10 scores)
             for (let i = 1; i <= 3; i++) {
               const response = submission[`TSA_${i}`];
-              const score = parseInt(response) || 0;
-              sectionScore += score;
-              maxSectionScore += 10;
+              // ✅ Skip blank, undefined, null responses
+              if (response !== undefined && response !== null && response !== '') {
+                const score = parseInt(response) || 0;
+                sectionScore += score;
+                maxSectionScore += 10;
+              }
             }
           } else if (section.id === 'CX') {
             // Customer Experience questions: CX_1 to CX_9
             const weights = [1, 1, 1, 1, 2, 1, 1, 1, 1];
             weights.forEach((weight, i) => {
               const response = submission[`CX_${i + 1}`];
-              if (response === 'yes') sectionScore += weight;
-              if (response !== 'na') maxSectionScore += weight;
+              // ✅ Skip blank, undefined, null, or 'na' responses
+              if (response && response !== '' && response !== 'na') {
+                if (response === 'yes') sectionScore += weight;
+                maxSectionScore += weight;
+              }
             });
           } else if (section.id === 'AP') {
             // Action Plan questions: AP_1 to AP_3
@@ -142,21 +163,38 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
             ];
             responses.forEach(q => {
               const response = submission[q.key];
-              if (response === 'yes') sectionScore += q.weight;
-              else if (response === 'no' && q.negWeight) sectionScore += q.negWeight;
-              if (response !== 'na') maxSectionScore += Math.abs(q.weight);
+              // ✅ Skip blank, undefined, null, or 'na' responses
+              if (response && response !== '' && response !== 'na') {
+                if (response === 'yes') sectionScore += q.weight;
+                else if (response === 'no' && q.negWeight) sectionScore += q.negWeight;
+                maxSectionScore += Math.abs(q.weight);
+              }
             });
           }
           
-          // Convert to percentage
-          const percentage = maxSectionScore > 0 ? (sectionScore / maxSectionScore) * 100 : 0;
-          sectionScores.push(Math.max(0, percentage)); // Ensure non-negative
+          // ✅ Only add to scores if section had ANY answered questions
+          if (maxSectionScore > 0) {
+            // Convert to percentage
+            const percentage = (sectionScore / maxSectionScore) * 100;
+            sectionScores.push(Math.max(0, percentage)); // Ensure non-negative
+          }
         });
         
+        // ✅ Return 0 if no valid scores for this section, otherwise average them
         return sectionScores.length > 0 ? sectionScores.reduce((a, b) => a + b) / sectionScores.length : 0;
       });
       
       const trainerName = trainerSubmissions[0]?.trainerName || `Trainer ${trainerId}`;
+      
+      // ✅ Debug logging to see what data is being calculated
+      console.log(`Training Radar - ${trainerName}:`, {
+        submissions: trainerSubmissions.length,
+        sections: TRAINING_SECTIONS.map((sec, idx) => ({
+          name: sec.name,
+          score: Math.round(sectionAverages[idx] * 10) / 10
+        }))
+      });
+      
       return {
         trainerId,
         trainerName: trainerName.split(' ')[0], // Use first name for brevity

@@ -103,7 +103,7 @@ const AppContent: React.FC = () => {
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'ai-insights', label: 'AI Insights', icon: Brain },
+    // { id: 'ai-insights', label: 'AI Insights', icon: Brain }, // Hidden per user request
     { id: 'checklists', label: 'Checklists & Surveys', icon: CheckSquare }
   ];
 

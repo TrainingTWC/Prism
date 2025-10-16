@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InterpretResponse",
+  "type": "object",
+  "required": ["version", "wakeWordDetected", "rawTranscript", "intent", "updates"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+(\\.\\d+)?$" },
+    "wakeWordDetected": { "type": "boolean" },
+    "rawTranscript": { "type": "string", "minLength": 0 },
+    "intent": { "type": "string", "minLength": 1 },
+    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "updates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["questionId", "value"],
+        "additionalProperties": false,
+        "properties": {
+          "questionId": { "type": "string", "pattern": "^[A-Za-z0-9_:\\-]+$" },
+          "value": { "type": "string", "enum": ["yes", "no", "na", "n/a", "unknown"] },
+          "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+          "reason": { "type": "string" },
+          "suggestedBy": { "type": "string" },
+          "span": {
+            "type": "object",
+            "required": ["start", "end"],
+            "additionalProperties": false,
+            "properties": { "start": { "type": "integer", "minimum": 0 }, "end": { "type": "integer", "minimum": 0 } }
+          }
+        }
+      }
+    },
+    "metadata": { "type": ["object", "null"], "additionalProperties": true }
+  }
+}

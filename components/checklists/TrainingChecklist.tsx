@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { GraduationCap } from 'lucide-react';
 import { AREA_MANAGERS } from '../../constants';
 import { hapticFeedback } from '../../utils/haptics';
 import hrMappingData from '../../src/hr_mapping.json';
@@ -573,6 +574,444 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   const [tsaCoffeeExpanded, setTsaCoffeeExpanded] = useState(false);
   const [tsaCXExpanded, setTsaCXExpanded] = useState(false);
 
+  // --- Speech recognition state ---
+  const [isSpeechSupported] = useState<boolean>(() => !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition));
+  const recognitionRef = useRef<any>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [lastCommand, setLastCommand] = useState('');
+  const [voiceStatus, setVoiceStatus] = useState<string>('');
+  // If true, after a single wake word the app remains in command mode and will treat subsequent speech as commands
+  const [commandMode, setCommandMode] = useState(false);
+  const commandTimerRef = useRef<number | null>(null);
+  const [commandCountdown, setCommandCountdown] = useState<number>(0);
+  const COMMAND_MODE_SECONDS = 20; // keep listening for commands for 20s after wake word
+  const [proposedUpdates, setProposedUpdates] = useState<{
+    questionId: string;
+    value: string;
+    confidence?: number;
+    reason?: string;
+    suggestedBy?: string;
+  }[] | null>(null);
+  // Push-to-talk state (walkie-talkie style)
+  const [pushToTalkActive, setPushToTalkActive] = useState(false);
+  const pushTranscriptRef = useRef('');
+  // Preview/toast for captured voice before auto-applying
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewTranscript, setPreviewTranscript] = useState('');
+  const [previewUpdates, setPreviewUpdates] = useState<Array<{ questionId: string; value: string; confidence?: number; reason?: string; suggestedBy?: string }> | null>(null);
+  const previewTimerRef = useRef<number | null>(null);
+
+  // Initialize SpeechRecognition (if supported)
+  useEffect(() => {
+    if (!isSpeechSupported) return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    try {
+  const rec = new SpeechRecognition();
+  rec.lang = (navigator.language || 'en-IN');
+      rec.continuous = true;
+      rec.interimResults = false;
+
+      rec.onresult = (event: any) => {
+        try {
+          const text = Array.from(event.results).map((r: any) => r[0].transcript).join(' ').trim();
+          setTranscript(text);
+          if (pushToTalkActive) {
+            // accumulate into push transcript buffer
+            pushTranscriptRef.current = (pushTranscriptRef.current ? pushTranscriptRef.current + ' ' : '') + text;
+          } else {
+            handleSpeechText(text);
+          }
+        } catch (e) {
+          console.error('Error parsing speech result', e);
+        }
+      };
+
+      rec.onerror = (err: any) => {
+        console.error('Speech recognition error', err);
+        setVoiceStatus('Error: ' + (err?.error || 'unknown'));
+        setIsListening(false);
+      };
+
+      recognitionRef.current = rec;
+    } catch (e) {
+      console.warn('SpeechRecognition init failed', e);
+      recognitionRef.current = null;
+    }
+
+    return () => {
+      try {
+        recognitionRef.current && recognitionRef.current.stop();
+      } catch (e) {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSpeechSupported]);
+
+  // Auto-start recognition when possible (no buttons). Keep running continuously.
+  useEffect(() => {
+    // Do NOT auto-start recognition. Use push-to-talk button to start/stop.
+    if (!recognitionRef.current) return;
+    setIsListening(false);
+    setVoiceStatus('Idle — press and hold the mic to speak');
+
+    // Ensure we mark stopped if recognition ends; do NOT auto-restart here to avoid restart loops.
+    recognitionRef.current.onend = () => {
+      setIsListening(false);
+      // do not auto-start here; push-to-talk will start recognition when needed
+    };
+
+    const handleVisibility = () => {
+      // Do not auto-start recognition on visibility changes. Push-to-talk must be used.
+      // Keep this hook to possibly adjust UI in the future.
+      if (document.visibilityState === 'visible') {
+        // no-op for now
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
+  // Ensure command timer is cleaned up if component unmounts
+  useEffect(() => {
+    return () => {
+      if (commandTimerRef.current) {
+        window.clearInterval(commandTimerRef.current as any);
+        commandTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleSpeechText = (text: string) => {
+    const lower = text.toLowerCase();
+    // If we're already in command mode, or if this was triggered by push-to-talk,
+    // treat the transcript as a direct command and interpret immediately.
+    const cmd = lower.trim();
+    if (!cmd) return;
+    // If commandMode is active, extend timer and treat as command
+    if (commandMode) {
+      setLastCommand(cmd);
+      setVoiceStatus('Processing command...');
+      startOrResetCommandTimer();
+      interpretAndApply(cmd, text);
+      return;
+    }
+
+    // For non-commandMode captures (ambient listens), do nothing by default.
+    // Push-to-talk will capture and call interpret directly on release. This
+    // removes the requirement to say a wake word when using the mic button.
+    return;
+  };
+
+  const interpretAndApply = (cmd: string, rawText: string) => {
+    callInterpretAPI(rawText).then(result => {
+      if (result && result.updates) {
+        // apply updates immediately without requiring manual confirmation
+        setResponses(prev => {
+          const next = { ...prev };
+          result.updates.forEach((u: any) => { if (u.questionId && u.value) next[u.questionId] = u.value; });
+          return next;
+        });
+        setVoiceStatus('Applied changes from voice command');
+      } else {
+        // fallback to local parse (applies automatically)
+        const updates = processVoiceCommandAuto(cmd);
+        if (updates) {
+          setResponses(prev => ({ ...prev, ...updates }));
+          setVoiceStatus('Applied fallback parsed changes');
+        } else {
+          setVoiceStatus('Could not parse command');
+        }
+      }
+    }).catch(err => {
+      console.error('Interpret API failed', err);
+      const updates = processVoiceCommandAuto(cmd);
+      if (updates) {
+        setResponses(prev => ({ ...prev, ...updates }));
+        setVoiceStatus('Applied fallback parsed changes');
+      } else {
+        setVoiceStatus('Could not parse command');
+      }
+    });
+  };
+
+  const startOrResetCommandTimer = () => {
+    // clear previous timers
+    if (commandTimerRef.current) {
+      window.clearInterval(commandTimerRef.current as any);
+      commandTimerRef.current = null;
+    }
+    setCommandCountdown(COMMAND_MODE_SECONDS);
+    // decrement countdown every second
+    const id = window.setInterval(() => {
+      setCommandCountdown(c => {
+        if (c <= 1) {
+          // stop
+          stopCommandMode();
+          return 0;
+        }
+        return c - 1;
+      });
+    }, 1000);
+    commandTimerRef.current = id as any;
+  };
+
+  const stopCommandMode = () => {
+    if (commandTimerRef.current) { window.clearInterval(commandTimerRef.current as any); commandTimerRef.current = null; }
+    setCommandMode(false);
+    setCommandCountdown(0);
+  setVoiceStatus('Listening (automatic)');
+  };
+
+  // Floating voice blob visibility state derived from isListening/voiceStatus
+  const [showVoiceBlob, setShowVoiceBlob] = useState(false);
+
+  // Vibrate and show floating blob when wake word/listening is active
+  useEffect(() => {
+    const active = commandMode || (!!isListening && /listening/i.test(voiceStatus));
+    setShowVoiceBlob(active);
+    // Do NOT auto-start recognition when entering commandMode. Use push-to-talk instead.
+    if (active && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate?.([30, 40, 30]); } catch {}
+    }
+  }, [isListening, voiceStatus, commandMode]);
+
+  const startPushToTalk = () => {
+    if (!recognitionRef.current) return;
+    try {
+      pushTranscriptRef.current = '';
+      setPushToTalkActive(true);
+      recognitionRef.current.start();
+      setIsListening(true);
+      setVoiceStatus('Push-to-talk: recording...');
+    } catch (e) {
+      console.warn('Failed to start push-to-talk', e);
+    }
+  };
+
+  const stopPushToTalk = () => {
+    if (!recognitionRef.current) return;
+    try {
+      recognitionRef.current.stop();
+    } catch (e) {}
+    setPushToTalkActive(false);
+    setIsListening(false);
+    setVoiceStatus('Processing push-to-talk...');
+    const captured = pushTranscriptRef.current.trim();
+    pushTranscriptRef.current = '';
+    if (!captured) {
+      setVoiceStatus('No speech captured');
+      return;
+    }
+
+    // Show preview: first try server interpretation, then fallback to local parser
+    setPreviewTranscript(captured);
+    setPreviewVisible(true);
+    setPreviewUpdates(null);
+    setVoiceStatus('Interpreting voice command...');
+    // Clear any previous preview timer
+    if (previewTimerRef.current) { window.clearTimeout(previewTimerRef.current as any); previewTimerRef.current = null; }
+
+    callInterpretAPI(captured).then((result) => {
+      if (result && result.updates && result.updates.length > 0) {
+        const staged = result.updates.map((u: any) => ({ questionId: u.questionId, value: u.value, confidence: u.confidence || 0.9, reason: u.reason || 'LLM' }));
+        setPreviewUpdates(staged);
+        setVoiceStatus('Suggested changes ready');
+        // schedule auto-apply in 6s
+        previewTimerRef.current = window.setTimeout(() => applyPreview(), 6000) as any;
+      } else {
+        // fallback local parse
+        const local = processVoiceCommandAuto(captured);
+        if (local && Object.keys(local).length > 0) {
+          const staged = Object.keys(local).map(k => ({ questionId: k, value: local[k], confidence: 0.8, reason: 'local' }));
+          setPreviewUpdates(staged);
+          setVoiceStatus('Suggested changes ready (fallback)');
+          previewTimerRef.current = window.setTimeout(() => applyPreview(), 6000) as any;
+        } else {
+          setPreviewUpdates(null);
+          setVoiceStatus('No suggested changes');
+          // hide preview after short delay
+          previewTimerRef.current = window.setTimeout(() => { setPreviewVisible(false); setPreviewTranscript(''); }, 2000) as any;
+        }
+      }
+    }).catch(err => {
+      console.error('Interpret API failed', err);
+      const local = processVoiceCommandAuto(captured);
+      if (local && Object.keys(local).length > 0) {
+        const staged = Object.keys(local).map(k => ({ questionId: k, value: local[k], confidence: 0.8, reason: 'local' }));
+        setPreviewUpdates(staged);
+        setVoiceStatus('Suggested changes ready (fallback)');
+        previewTimerRef.current = window.setTimeout(() => applyPreview(), 6000) as any;
+      } else {
+        setPreviewUpdates(null);
+        setVoiceStatus('No suggested changes');
+        previewTimerRef.current = window.setTimeout(() => { setPreviewVisible(false); setPreviewTranscript(''); }, 2000) as any;
+      }
+    });
+  };
+
+  const applyUpdates = (updates: Array<{ questionId: string; value: string }>) => {
+    setResponses(prev => {
+      const next = { ...prev };
+      updates.forEach(u => { if (u.questionId && u.value) next[u.questionId] = u.value; });
+      return next;
+    });
+    hapticFeedback.tap();
+  };
+
+  const applyPreview = () => {
+    if (!previewUpdates || previewUpdates.length === 0) {
+      setPreviewVisible(false);
+      setPreviewTranscript('');
+      return;
+    }
+    applyUpdates(previewUpdates.map(p => ({ questionId: p.questionId, value: p.value })));
+    setPreviewVisible(false);
+    setPreviewTranscript('');
+    setPreviewUpdates(null);
+    setVoiceStatus('Applied suggested changes');
+    if (previewTimerRef.current) { window.clearTimeout(previewTimerRef.current as any); previewTimerRef.current = null; }
+  };
+
+  const cancelPreview = () => {
+    setPreviewVisible(false);
+    setPreviewTranscript('');
+    setPreviewUpdates(null);
+    setVoiceStatus('Voice changes cancelled');
+    if (previewTimerRef.current) { window.clearTimeout(previewTimerRef.current as any); previewTimerRef.current = null; }
+  };
+
+  const callInterpretAPI = async (transcript: string) => {
+    try {
+      const r = await fetch('/api/interpret', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript })
+      });
+      if (!r.ok) throw new Error('bad response');
+      return await r.json();
+    } catch (e) {
+      throw e;
+    }
+  };
+
+  // Map TM keywords to ids
+  const TM_KEYWORDS: { id: string; keywords: string[] }[] = [
+    { id: 'TM_1', keywords: ['frm', 'f r m'] },
+    { id: 'TM_2', keywords: ['brm', 'b r m'] },
+    { id: 'TM_3', keywords: ['one-pager hot', 'hot cue', 'hot cue cards', 'one pager hot'] },
+    { id: 'TM_4', keywords: ['one-pager cold', 'cold cue', 'cold cue cards', 'one pager cold'] },
+    { id: 'TM_5', keywords: ['dial-in', 'dial in', 'dialin'] },
+    { id: 'TM_6', keywords: ['new-launch', 'new launch', 'new-launch learning', 'new launch learning'] },
+    { id: 'TM_7', keywords: ['coffee & hd', 'coffee and hd', 'playbook', 'hd playbook'] },
+    { id: 'TM_8', keywords: ['msds', 'chemical chart', 'shelf life chart'] },
+    { id: 'TM_9', keywords: ['career progression', 'reward poster', 'career progression chart'] }
+  ];
+
+  // Auto-apply fallback parser: scan all SECTIONS and return map of questionId -> value
+  const processVoiceCommandAuto = (rawCmd: string) => {
+    const cmd = rawCmd.toLowerCase();
+
+    // global intents
+    if (/\b(all|everything) (is )?(available|present)\b/.test(cmd) || /all training materials/.test(cmd)) {
+      const updates: Record<string, string> = {};
+      SECTIONS.forEach(section => {
+        section.items.forEach(item => {
+          if (item.type === 'text') return;
+          updates[`${section.id}_${item.id}`] = 'yes';
+        });
+      });
+      return updates;
+    }
+
+    if (/\b(all|everything) (is )?(not available|unavailable|missing|none)\b/.test(cmd) || /none of the (training )?materials/.test(cmd)) {
+      const updates: Record<string, string> = {};
+      SECTIONS.forEach(section => {
+        section.items.forEach(item => {
+          if (item.type === 'text') return;
+          updates[`${section.id}_${item.id}`] = 'no';
+        });
+      });
+      return updates;
+    }
+
+    // Build a list of searchable keyword phrases from all items
+    type ItemKeyword = { sectionId: string; itemId: string; phrase: string };
+    const keywords: ItemKeyword[] = [];
+    SECTIONS.forEach(section => {
+      section.items.forEach(item => {
+        const base = (item.q || '').toLowerCase();
+        if (!base) return;
+        // split on punctuation and small words to create key phrases
+        const tokens = base.split(/[,\/\-()]+/).map(s => s.trim()).filter(Boolean);
+        // also include individual significant words
+        const words = base.split(/\s+/).filter(w => w.length > 2);
+        const phrases = Array.from(new Set([...tokens, ...words]));
+        phrases.forEach(p => {
+          keywords.push({ sectionId: section.id, itemId: item.id, phrase: p });
+        });
+      });
+    });
+
+    // Now attempt to match phrases in the command
+    const matches: { sectionId: string; itemId: string; index: number }[] = [];
+    for (const k of keywords) {
+      try {
+        const re = new RegExp('\\b' + k.phrase.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '\\b', 'i');
+        const m = re.exec(cmd);
+        if (m && typeof m.index === 'number') matches.push({ sectionId: k.sectionId, itemId: k.itemId, index: m.index });
+      } catch (e) {}
+    }
+
+    // Use simple heuristics around matches to determine yes/no/na
+    const negativeWords = ['cant', "can't", 'cannot', 'not', 'no', 'missing', 'none', 'dont', "don't", 'without'];
+    const naPatterns = [/not applicable/, /n a\b/, /\bna\b/];
+    const positiveWords = ['available', 'present', 'yes', 'have', 'found', 'ok', 'okay'];
+
+    const updates: Record<string, string> = {};
+    // Sort matches by index to handle phrases in order
+    matches.sort((a, b) => a.index - b.index);
+    matches.forEach(m => {
+      const key = `${m.sectionId}_${m.itemId}`;
+      // examine a small window around the match
+      const start = Math.max(0, m.index - 40);
+      const end = Math.min(cmd.length, m.index + 80);
+      const window = cmd.slice(start, end);
+      if (naPatterns.some(p => p.test(window))) { updates[key] = 'na'; return; }
+      if (negativeWords.some(n => window.includes(n))) { updates[key] = 'no'; return; }
+      if (positiveWords.some(n => window.includes(n))) { updates[key] = 'yes'; return; }
+      updates[key] = 'yes';
+    });
+
+    // If user said 'no other' and mentioned some items, mark rest as no
+    if (Object.keys(updates).length > 0 && /\b(no other|none of the other|no other training)\b/.test(cmd)) {
+      const mentioned = new Set(Object.keys(updates).map(k => k.split('_')[1]));
+      SECTIONS.forEach(section => {
+        section.items.forEach(item => {
+          const key = `${section.id}_${item.id}`;
+          if (item.type === 'text') return;
+          if (!updates[key]) {
+            updates[key] = 'no';
+          }
+        });
+      });
+    }
+
+    return Object.keys(updates).length > 0 ? updates : null;
+  };
+
+  // Keep original processVoiceCommand for compatibility (no-op wrapper)
+  const processVoiceCommand = (rawCmd: string) => {
+    const res = processVoiceCommandAuto(rawCmd);
+    if (res) {
+      // For backwards compatibility: stage these if needed
+      const staged = Object.keys(res).map(k => ({ questionId: k, value: res[k], confidence: 0.9, reason: 'voice parse', suggestedBy: 'local' }));
+      setProposedUpdates(staged);
+      setVoiceStatus('Proposed changes ready for review');
+    }
+  };
+
   // Calculate TSA Food score and auto-assign points
   const calculateTSAFoodScore = () => {
     const tsaSection = SECTIONS.find(s => s.id === 'TSA_Food');
@@ -871,7 +1310,9 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                              section.id === 'Buddy' ? 'Buddy' :
                              section.id === 'NewJoiner' ? 'NJ' :
                              section.id === 'PartnerKnowledge' ? 'PK' :
-                             section.id === 'TSA' ? 'TSA' :
+                             section.id === 'TSA_Food' ? 'TSA_Food' :
+                             section.id === 'TSA_Coffee' ? 'TSA_Coffee' :
+                             section.id === 'TSA_CX' ? 'TSA_CX' :
                              section.id === 'CustomerExperience' ? 'CX' :
                              section.id === 'ActionPlan' ? 'AP' : section.id;
           formData.append(`${sectionAbbr}_remarks`, remarks[section.id]);
@@ -942,6 +1383,140 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
   return (
     <>
+      {/* Proposed updates modal */}
+      {proposedUpdates && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setProposedUpdates(null)} />
+          <div className="relative bg-white dark:bg-slate-800 w-11/12 max-w-2xl rounded shadow-lg p-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">Proposed voice changes</h3>
+            <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">Review suggested answers and apply when ready.</p>
+            <div className="max-h-64 overflow-auto mb-3">
+              {proposedUpdates.map((u, i) => (
+                <div key={u.questionId} className="flex items-center justify-between p-2 border-b border-gray-100 dark:border-slate-700">
+                  <div>
+                    <div className="text-sm text-gray-900 dark:text-slate-100 font-medium">{u.questionId}</div>
+                    <div className="text-xs text-gray-500 dark:text-slate-400">{u.reason || ''} — confidence {(u.confidence || 0).toFixed(2)}</div>
+                  </div>
+                  <div className="text-sm font-medium text-gray-700 dark:text-slate-300">{u.value.toUpperCase()}</div>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setProposedUpdates(null)} className="px-3 py-1 bg-gray-200 dark:bg-slate-700 rounded">Reject</button>
+              <button onClick={() => {
+                // Apply all proposed updates
+                setResponses(prev => {
+                  const next = { ...prev };
+                  proposedUpdates.forEach(u => { next[u.questionId] = u.value; });
+                  return next;
+                });
+                setProposedUpdates(null);
+                setVoiceStatus('Applied proposed updates');
+              }} className="px-3 py-1 bg-green-600 text-white rounded">Apply All</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+        {/* Floating voice blob (appears when listening/wake word detected) */}
+        {showVoiceBlob && (
+          <div
+            role="status"
+            aria-live="polite"
+            style={{
+              position: 'fixed',
+              right: 20,
+              bottom: 24,
+              zIndex: 60,
+              width: 160,
+              maxWidth: '30vw',
+              background: 'rgba(255,255,255,0.95)',
+              backdropFilter: 'blur(6px)',
+              boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
+              borderRadius: 28,
+              padding: '8px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10
+            }}
+          >
+            <div style={{
+              width: 14,
+              height: 14,
+              borderRadius: 14,
+              background: '#ef4444',
+              boxShadow: '0 0 12px rgba(239,68,68,0.9)',
+              animation: 'prism-voice-pulse 1200ms infinite'
+            }} aria-hidden="true" />
+            <div style={{ fontSize: 12, color: '#0f172a' }}>
+              <div style={{ fontWeight: 600 }}>Listening</div>
+              <div style={{ fontSize: 11, color: '#475569', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lastCommand || voiceStatus}</div>
+            </div>
+            <style>{`@keyframes prism-voice-pulse { 0% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.35); opacity: 0.6 } 100% { transform: scale(1); opacity: 1 } }`}</style>
+          </div>
+        )}
+        {/* Push-to-talk microphone button (hold to talk) - HIDDEN */}
+        {false && (
+          <div style={{ position: 'fixed', right: 22, bottom: 96, zIndex: 80, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end' }}>
+            <button
+              title="Hold to talk"
+              onMouseDown={(e) => { e.preventDefault(); startPushToTalk(); }}
+              onMouseUp={(e) => { e.preventDefault(); stopPushToTalk(); }}
+              onMouseLeave={(e) => { if (pushToTalkActive) stopPushToTalk(); }}
+              onTouchStart={(e) => { e.preventDefault(); startPushToTalk(); }}
+              onTouchEnd={(e) => { e.preventDefault(); stopPushToTalk(); }}
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                background: pushToTalkActive ? 'linear-gradient(135deg,#ef4444,#f97316)' : 'linear-gradient(135deg,#3b82f6,#06b6d4)',
+                boxShadow: '0 6px 18px rgba(15,23,42,0.16)',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontSize: 14,
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M19 11v1a7 7 0 0 1-14 0v-1" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <div style={{ fontSize: 11, marginTop: 4 }}>{pushToTalkActive ? 'Release' : 'Hold'}</div>
+              </div>
+            </button>
+          </div>
+        )}
+        {/* Preview toast for captured voice */}
+        {previewVisible && (
+          <div style={{ position: 'fixed', right: 22 + 80, bottom: 110, zIndex: 100, width: 320, maxWidth: '40vw' }}>
+            <div style={{ background: 'linear-gradient(180deg,#fff,#f8fafc)', border: '1px solid rgba(15,23,42,0.06)', borderRadius: 12, padding: 12, boxShadow: '0 8px 30px rgba(2,6,23,0.12)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>Voice preview</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>{previewUpdates ? `${previewUpdates.length} changes` : 'No changes'}</div>
+              </div>
+              <div style={{ marginTop: 8, fontSize: 13, color: '#0f172a', maxHeight: 72, overflow: 'auto' }}>{previewTranscript}</div>
+              {previewUpdates && previewUpdates.length > 0 && (
+                <div style={{ marginTop: 8, borderTop: '1px dashed rgba(15,23,42,0.06)', paddingTop: 8 }}>
+                  <div style={{ fontSize: 12, color: '#334155', marginBottom: 6 }}>Suggested updates:</div>
+                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', maxHeight: 120, overflow: 'auto' }}>
+                    {previewUpdates.slice(0, 6).map((p, idx) => (
+                      <li key={idx} style={{ fontSize: 13, color: '#0f172a', padding: '4px 0' }}>{p.questionId.replace('TrainingMaterials_', '')}: <strong>{p.value}</strong></li>
+                    ))}
+                    {previewUpdates.length > 6 && <li style={{ fontSize: 12, color: '#64748b', paddingTop: 6 }}>and {previewUpdates.length - 6} more...</li>}
+                  </ul>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
+                <button onClick={cancelPreview} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(15,23,42,0.06)', background: '#fff' }}>Cancel</button>
+                <button onClick={applyPreview} style={{ padding: '6px 10px', borderRadius: 8, background: 'linear-gradient(90deg,#10b981,#06b6d4)', color: '#fff', border: 'none' }}>Apply now</button>
+              </div>
+            </div>
+          </div>
+        )}
       {/* Show submission success screen */}
       {submitted ? (
         <div className="p-6 space-y-6 max-w-4xl mx-auto">
@@ -967,8 +1542,9 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         <div className="w-full">
           {/* Header Banner - Full Width */}
           <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 p-4 border-b border-purple-200 dark:border-purple-800">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-1">
-              📚 Training Audit Checklist
+            <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-1 flex items-center gap-2">
+              <GraduationCap className="w-6 h-6" />
+              Training Audit Checklist
             </h1>
             <p className="text-sm text-gray-600 dark:text-slate-400">
               Comprehensive training assessment covering all aspects of staff development and knowledge retention.
@@ -1149,6 +1725,25 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
       {/* Training Sections - Full Width */}
       <div className="bg-white dark:bg-slate-800 p-4" data-tour="checklist-form">
+        {/* Voice controls for quick filling - HIDDEN */}
+        {false && (
+          <div className="mb-4 p-3 border border-dashed rounded bg-gray-50 dark:bg-slate-900/50">
+            <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="text-sm font-medium">Voice Commands</div>
+                  <div className="text-xs text-gray-500 dark:text-slate-400">Push-to-talk: press and hold the mic, speak, then release to apply</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!isSpeechSupported && (
+                    <div className="text-xs text-red-500">Speech not supported in this browser</div>
+                  )}
+                </div>
+              </div>
+
+            <div className="text-sm text-gray-700 dark:text-slate-300 mb-1">Status: <span className="font-medium">{voiceStatus || (isSpeechSupported ? 'Idle' : 'Unavailable')}</span>{commandMode ? <span className="ml-2 text-xs text-green-600"> • Command mode ({commandCountdown}s)</span> : null}</div>
+          </div>
+        )}
+
         <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3">
           Training Assessment
         </h2>
@@ -1264,6 +1859,20 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                       ))}
                     </div>
                   )}
+
+                  {/* Section Remarks for TSA Food */}
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Section Remarks
+                    </label>
+                    <textarea
+                      value={remarks[section.id] || ''}
+                      onChange={(e) => handleRemarks(section.id, e.target.value)}
+                      placeholder={`Add remarks for ${section.title} section (optional)`}
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-orange-500 dark:focus:border-orange-400 focus:outline-none"
+                    />
+                  </div>
                 </div>
               );
             }
@@ -1377,6 +1986,20 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                       ))}
                     </div>
                   )}
+
+                  {/* Section Remarks for TSA Coffee */}
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Section Remarks
+                    </label>
+                    <textarea
+                      value={remarks[section.id] || ''}
+                      onChange={(e) => handleRemarks(section.id, e.target.value)}
+                      placeholder={`Add remarks for ${section.title} section (optional)`}
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:outline-none"
+                    />
+                  </div>
                 </div>
               );
             }
@@ -1490,6 +2113,20 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                       ))}
                     </div>
                   )}
+
+                  {/* Section Remarks for TSA CX */}
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Section Remarks
+                    </label>
+                    <textarea
+                      value={remarks[section.id] || ''}
+                      onChange={(e) => handleRemarks(section.id, e.target.value)}
+                      placeholder={`Add remarks for ${section.title} section (optional)`}
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none"
+                    />
+                  </div>
                 </div>
               );
             }

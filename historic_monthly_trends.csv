@@ -1,0 +1,29 @@
+store_id,store_name,metric_name,metric_value,period_type,observed_period,auditor_name,auditor_id,am_name,am_id,region,source,notes
+S001,Koramangala,score,76,monthly,2025-07,Mahadev Nayak,h1761,Suresh,H1355,South,historic_data,July audit
+S001,Koramangala,percentage,89,monthly,2025-07,Mahadev Nayak,h1761,Suresh,H1355,South,historic_data,July audit
+S001,Koramangala,score,84,monthly,2025-08,Mahadev Nayak,h1761,Suresh,H1355,South,historic_data,August audit
+S001,Koramangala,percentage,94,monthly,2025-08,Mahadev Nayak,h1761,Suresh,H1355,South,historic_data,August audit
+S001,Koramangala,score,71,monthly,2025-09,Mahadev Nayak,h1761,Suresh,H1355,South,historic_data,September audit
+S001,Koramangala,percentage,74,monthly,2025-09,Mahadev Nayak,h1761,Suresh,H1355,South,historic_data,September audit
+S002,Cmh,score,54,monthly,2025-07,Mahadev Nayak,h1761,Ajay H,H546,South,historic_data,July audit
+S002,Cmh,percentage,58,monthly,2025-07,Mahadev Nayak,h1761,Ajay H,H546,South,historic_data,July audit
+S002,Cmh,score,85,monthly,2025-08,Mahadev Nayak,h1761,Ajay H,H546,South,historic_data,August audit
+S002,Cmh,percentage,87,monthly,2025-08,Mahadev Nayak,h1761,Ajay H,H546,South,historic_data,August audit
+S003,HSR1,score,45,monthly,2025-07,Mallika M,h701,Umakanth,H3270,South,historic_data,July audit - average of 2 audits
+S003,HSR1,percentage,68.5,monthly,2025-07,Mallika M,h701,Umakanth,H3270,South,historic_data,July audit - average of 2 audits
+S003,HSR1,score,65,monthly,2025-08,Mallika M,h701,Umakanth,H3270,South,historic_data,August audit
+S003,HSR1,percentage,79,monthly,2025-08,Mallika M,h701,Umakanth,H3270,South,historic_data,August audit
+S003,HSR1,score,55,monthly,2025-10,Mallika M,h701,Umakanth,H3270,South,historic_data,October audit
+S003,HSR1,percentage,73,monthly,2025-10,Mallika M,h701,Umakanth,H3270,South,historic_data,October audit
+S004,Sadashivnagar,score,73,monthly,2025-07,Sheldon Antonio Xavier DSouza,h1697,Jagruti,H2155,South,historic_data,July audit
+S004,Sadashivnagar,percentage,78,monthly,2025-07,Sheldon Antonio Xavier DSouza,h1697,Jagruti,H2155,South,historic_data,July audit
+S004,Sadashivnagar,score,72,monthly,2025-08,Mahadev Nayak,h1761,Jagruti,H2155,South,historic_data,August audit
+S004,Sadashivnagar,percentage,81,monthly,2025-08,Mahadev Nayak,h1761,Jagruti,H2155,South,historic_data,August audit
+S004,Sadashivnagar,score,70,monthly,2025-09,Mahadev Nayak,h1761,Jagruti,H2155,South,historic_data,September audit
+S004,Sadashivnagar,percentage,80,monthly,2025-09,Mahadev Nayak,h1761,Jagruti,H2155,South,historic_data,September audit
+S005,Forum Shantiniketan,score,42,monthly,2025-07,Mahadev Nayak,h1761,Ajay H,H546,South,historic_data,July audit
+S005,Forum Shantiniketan,percentage,46,monthly,2025-07,Mahadev Nayak,h1761,Ajay H,H546,South,historic_data,July audit
+S005,Forum Shantiniketan,score,29,monthly,2025-08,Sheldon Antonio Xavier DSouza,h1697,Ajay H,H546,South,historic_data,August audit
+S005,Forum Shantiniketan,percentage,36,monthly,2025-08,Sheldon Antonio Xavier DSouza,h1697,Ajay H,H546,South,historic_data,August audit
+S005,Forum Shantiniketan,score,68,monthly,2025-10,Sheldon Antonio Xavier DSouza,h1697,Ajay H,H546,South,historic_data,October audit
+S005,Forum Shantiniketan,percentage,76,monthly,2025-10,Sheldon Antonio Xavier DSouza,h1697,Ajay H,H546,South,historic_data,October audit

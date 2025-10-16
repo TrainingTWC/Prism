@@ -108,7 +108,8 @@ function doPost(e) {
       
       // Section Remarks
       'TM_remarks', 'LMS_remarks', 'Buddy_remarks', 'NJ_remarks', 
-      'PK_remarks', 'TSA_remarks', 'CX_remarks', 'AP_remarks',
+      'PK_remarks', 'TSA_Food_remarks', 'TSA_Coffee_remarks', 'TSA_CX_remarks', 
+      'CX_remarks', 'AP_remarks',
       
       // Scoring
       'Total Score', 'Max Score', 'Percentage'
@@ -175,7 +176,8 @@ function doPost(e) {
       // Section Remarks
       params.TM_remarks || '', params.LMS_remarks || '',
       params.Buddy_remarks || '', params.NJ_remarks || '',
-      params.PK_remarks || '', params.TSA_remarks || '',
+      params.PK_remarks || '', params.TSA_Food_remarks || '', 
+      params.TSA_Coffee_remarks || '', params.TSA_CX_remarks || '',
       params.CX_remarks || '', params.AP_remarks || '',
       
       // Scoring
@@ -324,7 +326,9 @@ function getTrainingChecklistData() {
       obj.Buddy_remarks = row[colIndex++] || '';
       obj.NJ_remarks = row[colIndex++] || '';
       obj.PK_remarks = row[colIndex++] || '';
-      obj.TSA_remarks = row[colIndex++] || '';
+      obj.TSA_Food_remarks = row[colIndex++] || '';
+      obj.TSA_Coffee_remarks = row[colIndex++] || '';
+      obj.TSA_CX_remarks = row[colIndex++] || '';
       obj.CX_remarks = row[colIndex++] || '';
       obj.AP_remarks = row[colIndex++] || '';
       
