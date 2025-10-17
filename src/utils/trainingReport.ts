@@ -11,6 +11,18 @@ interface ReportOptions {
 
 const mm = (val: number) => val; // placeholder for conversions if needed
 
+// treat common NA-like values as Not Applicable
+function isNA(v: any) {
+  if (v === undefined || v === null) return false;
+  const s = String(v).trim().toLowerCase();
+  if (!s) return false;
+  if (s === 'na' || s === 'n/a' || s === 'not applicable' || s === 'n.a.' || s === 'n a') return true;
+  // allow patterns like 'n a' or variations with punctuation
+  if (/^n\s*\/?\s*a$/.test(s)) return true;
+  if (/not\s+applicab/.test(s)) return true;
+  return false;
+}
+
 async function addCompanyLogo(doc: jsPDF): Promise<void> {
   // Try common asset locations and extensions for the project logo
   const logoPaths = [
@@ -123,6 +135,10 @@ function computeOverall(submission: any): { total: number; max: number; pct: num
   for (const q of TRAINING_QUESTIONS) {
     // Resolve possible sheet key variations for TSA fields
     const ans = resolveSubmissionValue(submission, q.id);
+    if (isNA(ans)) {
+      // Not applicable - skip adding this question to the denominator
+      continue;
+    }
     let qMax = 0;
     if (q.choices && q.choices.length) qMax = Math.max(...q.choices.map((c: any) => Number(c.score) || 0));
     else if (q.type === 'input') qMax = 10;
@@ -394,10 +410,14 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
     let sectionKey = q.id.startsWith('TSA_') ? q.id : (q.id.includes('_') ? q.id.split('_')[0] : 'Misc');
     const questionTitle = q.title || q.id;
 
-    // push row
-    sections[sectionKey].rows.push({ id: q.id, question: questionTitle, answer: display, score: numeric, maxScore: maxForQuestion });
+    // If answer is NA, show as 'NA' but do NOT include its weight in the section max
+    const rowAnswer = isNA(ans) ? 'NA' : (display || '');
+    sections[sectionKey].rows.push({ id: q.id, question: questionTitle, answer: rowAnswer, score: numeric, maxScore: maxForQuestion });
+    // Add score always (numeric will be 0 for NA) but only add max if not NA
     sections[sectionKey].score += numeric;
-    sections[sectionKey].maxScore += maxForQuestion;
+    if (!isNA(ans)) {
+      sections[sectionKey].maxScore += maxForQuestion;
+    }
   }
 
   // Also gather remarks fields from submission (they may be named like PK_remarks or TSA_Food_Score_remarks)

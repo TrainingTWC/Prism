@@ -786,8 +786,92 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       };
     }
     
-    // For Training dashboard, use Monthly_Trends data
+    // For Training dashboard, prefer filtered Training Audit records when any filter is applied
     if (dashboardType === 'training') {
+      // If a filter is active, use the deduped, filtered training data so the header cards change
+      const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.hr || filters.health);
+
+      if (hasFilters) {
+        // If a specific store filter is applied, we must count ALL submissions for that store
+        // (not the deduped latest-per-store view). This ensures store-level totals reflect every
+        // submission (percentage rows) recorded for that store.
+        let rawFiltered: any[] = [];
+        if (trainingData && trainingData.length > 0) {
+          rawFiltered = trainingData.filter((submission: any) => {
+            // Role-based access
+            if (userRole.role === 'store' && !canAccessStore(userRole, submission.storeId)) return false;
+            if (userRole.role === 'area_manager' && !canAccessAM(userRole, submission.amId)) return false;
+            if ((userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') && !canAccessHR(userRole, submission.amId)) return false;
+
+            // Apply filters (same semantics as filteredTrainingData but WITHOUT deduplication)
+            if (filters.region && submission.region !== filters.region) return false;
+            if (filters.store && (submission.storeId !== filters.store && submission.storeID !== filters.store && submission.store_id !== filters.store)) return false;
+            if (filters.am && submission.amId !== filters.am) return false;
+            if (filters.hr && submission.trainerId !== filters.hr) return false;
+
+            if (filters.health) {
+              const pct = parseFloat(submission.percentageScore || submission.percentage_score || '0');
+              if (filters.health === 'Needs Attention' && pct >= 56) return false;
+              if (filters.health === 'Brewing' && (pct < 56 || pct >= 81)) return false;
+              if (filters.health === 'Perfect Shot' && pct < 81) return false;
+            }
+
+            return true;
+          });
+        }
+
+        const totalSubmissions = rawFiltered.length;
+        const uniqueStores = new Set(rawFiltered.map((r: any) => r.storeId || r.storeID || r.store_id)).size;
+        const uniqueTrainers = new Set(rawFiltered.map((r: any) => r.trainerId || r.trainer_id || r.trainer)).size;
+
+        // Determine latest and previous scores by sorting by submission time (newest first)
+        const withTime = rawFiltered.map(r => ({
+          score: parseFloat(r.percentageScore || r.percentage_score || '0') || 0,
+          time: (r.submissionTime && !isNaN(new Date(r.submissionTime).getTime())) ? new Date(r.submissionTime).getTime() : 0
+        })).sort((a, b) => b.time - a.time);
+
+  let latestScore = withTime.length > 0 ? Math.round(withTime[0].score) : null;
+  let previousScore = withTime.length > 1 ? Math.round(withTime[1].score) : null;
+
+        // If we don't have a previous score from raw submissions and a single store is selected,
+        // try to pick latest/previous from monthly trends (trendsData) which stores historical percentages per store.
+        if ((previousScore === null || previousScore === undefined) && filters.store && trendsData && !trendsLoading) {
+          try {
+            const storePctRows = trendsData
+              .filter((r: any) => (r.metric_name === 'percentage' || r.metric_name === 'Percentage') && (r.store_id === filters.store || r.store_id === (filters.store as any)))
+              .map((r: any) => ({ period: r.observed_period, value: parseFloat(r.metric_value) || 0 }))
+              .filter((r: any) => r.period)
+              .sort((a: any, b: any) => (a.period > b.period ? 1 : a.period < b.period ? -1 : 0));
+
+            if (storePctRows.length > 0) {
+              const last = storePctRows[storePctRows.length - 1];
+              const secondLast = storePctRows.length > 1 ? storePctRows[storePctRows.length - 2] : null;
+              // If no raw latest exists, use trends latest as fallback
+              if ((latestScore === null || latestScore === undefined) && last) {
+                latestScore = Math.round(last.value);
+              }
+              // If previous missing, try to get from trends (second last period)
+              if ((previousScore === null || previousScore === undefined) && secondLast) {
+                previousScore = Math.round(secondLast.value);
+              }
+            }
+          } catch (e) {
+            // ignore trends fallback errors
+          }
+        }
+
+        return {
+          totalSubmissions,
+          // Keep avgScore for backward compatibility but set it to latest
+          avgScore: latestScore,
+          latestScore,
+          previousScore,
+          uniqueEmployees: uniqueTrainers,
+          uniqueStores
+        };
+      }
+
+      // No filters: fall back to Monthly_Trends aggregated view (preserves historical monthly totals)
       if (!trendsData || trendsLoading) return null;
 
       // Filter to only percentage rows to avoid double counting
@@ -851,7 +935,34 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       uniqueEmployees,
       uniqueStores
     };
-  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, filteredQAData, dashboardType, trendsData, trendsLoading]);
+  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, filteredQAData, dashboardType, trendsData, trendsLoading, trainingData, filters]);
+
+  // Helper to compute the Average Score display string robustly
+  const getAverageScoreDisplay = () => {
+    // Training dashboard special handling
+    if (dashboardType === 'training') {
+      const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.hr || filters.health);
+      if (hasFilters) {
+        if (!stats) return '—';
+        const prevPart = stats.previousScore !== null && stats.previousScore !== undefined ? ` (Prev ${stats.previousScore}%)` : '';
+        return `${stats.latestScore}%${prevPart}`;
+      }
+
+      // No filters: prefer trendsData aggregated average
+      if (stats && stats.avgScore != null) return `${stats.avgScore}%`;
+      if (!trendsLoading && trendsData) {
+        const percentageRows = trendsData.filter((r: any) => r.metric_name === 'percentage');
+        if (percentageRows.length > 0) {
+          const avg = percentageRows.reduce((acc: number, r: any) => acc + (parseFloat(r.metric_value) || 0), 0) / percentageRows.length;
+          return `${Math.round(avg)}%`;
+        }
+      }
+      return '—';
+    }
+
+    // Default: use stats.avgScore when available
+    return `${stats?.avgScore ?? '—'}%`;
+  };
 
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
     const newFilters = { ...filters, [filterName]: value };
@@ -2121,7 +2232,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               <div className="grid grid-cols-3 gap-3 mb-5">
                 <StatCard title="Total Submissions" value={stats?.totalSubmissions} />
                 <StatCard title="Stores Covered" value={stats?.uniqueStores} />
-                <StatCard title="Average Score" value={`${stats?.avgScore}%`} />
+                {/* For training dashboard, provide structured avg data so StatCard can render trend */}
+                <StatCard title="Average Score" value={{
+                  latest: stats?.latestScore ?? (typeof stats?.avgScore === 'number' ? Math.round(stats.avgScore) : undefined),
+                  previous: stats?.previousScore ?? null,
+                  aggregate: (!stats?.latestScore && stats?.avgScore) ? Math.round(stats.avgScore) : undefined
+                }} />
               </div>
               {/* Pie chart on its own row */}
               <div className="mb-5">
@@ -2144,7 +2260,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard title="Total Submissions" value={stats?.totalSubmissions} />
-              <StatCard title="Average Score" value={`${stats?.avgScore}%`} />
+              <StatCard title="Average Score" value={String(getAverageScoreDisplay())} />
               <StatCard 
                 title={dashboardType === 'operations' ? "Trainers Involved" : "Employees Surveyed"} 
                 value={stats?.uniqueEmployees} 
