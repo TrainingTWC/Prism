@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { TrainingAuditSubmission } from '../../services/dataService';
+import { TRAINING_QUESTIONS } from '../../constants';
 
 interface ReportOptions {
   title?: string;
@@ -9,108 +10,385 @@ interface ReportOptions {
 
 const mm = (val: number) => val; // placeholder for conversions if needed
 
-export const buildTrainingPDF = (submissions: TrainingAuditSubmission[], metadata: any = {}, options: ReportOptions = {}) => {
+async function addCompanyLogo(doc: jsPDF): Promise<void> {
+  // Try common asset locations and extensions for the project logo
+  const logoPaths = [
+    '/assets/logo.png',
+    '/assets/logo.svg',
+    '/assets/logo.webp',
+    `${window.location.origin}/assets/logo.png`,
+    `${window.location.origin}/assets/logo.svg`,
+    `${window.location.origin}/assets/logo.webp`,
+    `${window.location.origin}/prism-logo.png`,
+    '/prism-logo.png',
+    './prism-logo.png'
+  ];
+
+  let logoLoaded = false;
+  for (const logoPath of logoPaths) {
+    try {
+      const logoImg = await loadImage(logoPath);
+      doc.addImage(logoImg, 'PNG', 160, 8, 34, 24);
+      logoLoaded = true;
+      break;
+    } catch (err) {
+      console.warn(`Could not load logo from: ${logoPath}`);
+    }
+  }
+  
+  if (!logoLoaded) {
+    // Fallback: Styled text logo
+    doc.setFillColor(30, 64, 175);
+    doc.roundedRect(160, 8, 34, 24, 2, 2, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(255, 255, 255);
+    doc.text('PRISM', 177, 22, { align: 'center' });
+  }
+}
+
+async function loadImage(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    const timeout = setTimeout(() => {
+      reject(new Error('Image load timeout'));
+    }, 5000);
+    
+    img.onload = () => {
+      clearTimeout(timeout);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        } else {
+          reject(new Error('Could not get canvas context'));
+        }
+      } catch (err) {
+        reject(err);
+      }
+    };
+    
+    img.onerror = () => {
+      clearTimeout(timeout);
+      reject(new Error(`Failed to load image: ${url}`));
+    };
+    
+    const fullUrl = url.startsWith('http') ? url : 
+      `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`;
+    img.src = fullUrl;
+  });
+}
+
+// Compute overall total and max from submission using TRAINING_QUESTIONS
+function computeOverall(submission: any): { total: number; max: number; pct: number } {
+  let total = 0;
+  let max = 0;
+  for (const q of TRAINING_QUESTIONS) {
+    const ans = submission[q.id];
+    let qMax = 0;
+    if (q.choices && q.choices.length) qMax = Math.max(...q.choices.map((c: any) => Number(c.score) || 0));
+    else if (q.type === 'input') qMax = 10;
+    else qMax = 1;
+
+    let numeric = 0;
+    if (ans !== undefined && ans !== null && ans !== '') {
+      if (q.choices && q.choices.length) {
+        const found = q.choices.find((c: any) => String(c.label).toLowerCase() === String(ans).toLowerCase());
+        if (found) numeric = Number(found.score) || 0;
+      } else if (q.type === 'input') {
+        const n = parseFloat(String(ans));
+        numeric = isNaN(n) ? 0 : n;
+      } else {
+        const low = String(ans).toLowerCase();
+        if (low === 'yes' || low === 'y' || low === 'true') numeric = 1;
+        if (low === 'no' || low === 'n' || low === 'false') numeric = 0;
+      }
+    }
+
+    total += numeric;
+    max += qMax;
+  }
+  const pct = max > 0 ? Math.round((total / max) * 100) : 0;
+  return { total, max, pct };
+}
+
+export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], metadata: any = {}, options: ReportOptions = {}) => {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   let y = 15;
+  const first = submissions[0] || {} as any;
 
   const title = options.title || 'Training Audit';
-
-  // Header
-  doc.setFontSize(20);
+  // Header: Title, Store, Metadata and Logo on the right
+  doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(17, 24, 39);
   doc.text(title, 14, y);
 
-  if (options.logoDataUrl) {
-    try { doc.addImage(options.logoDataUrl, 'PNG', 160, 8, 34, 24); } catch (e) { /* ignore */ }
+  // Add logo to top-right (bigger)
+  try {
+    await addCompanyLogo(doc);
+  } catch (e) {
+    // ignore
   }
 
-  y += 10;
-  doc.setFontSize(10);
+  // Store subtitle below title (make bigger and bolder) — tighten gap
+  y += 4;
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(31, 41, 55);
+  const storeName = metadata.storeName || first.storeName || first.store_name || '';
+  if (storeName) {
+    doc.text(storeName, 14, y + 2);
+  }
+
+  // Metadata row: Date/Time | Auditor | Store ID & MOD (use metadata fallback to submission)
+  const metaY = y + 8;
+  const metaParts = [] as string[];
+  const dateStr = metadata.date || first.submissionTime || first.date || '';
+  if (dateStr) metaParts.push(`Date/Time: ${dateStr}`);
+  const auditor = metadata.trainerName || first.trainerName || first.auditor || '';
+  if (auditor) metaParts.push(`Auditor: ${auditor}`);
+  const sid = metadata.storeId || first.storeId || '';
+  const mod = (metadata.mod || first.mod || first.MOD) || '';
+  if (sid || mod) {
+    const storePart = `${sid ? `Store: ${sid}` : ''}${sid && mod ? ' | ' : ''}${mod ? `MOD: ${mod}` : ''}`;
+    metaParts.push(storePart);
+  }
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(120, 130, 145);
+  if (metaParts.length) doc.text(metaParts.join('   |   '), 14, metaY);
+  y = metaY + 12;
 
-  // Metadata row
-  const leftMeta = [] as string[];
-  if (metadata.storeName) leftMeta.push(`Store: ${metadata.storeName}`);
-  if (metadata.storeId) leftMeta.push(`Store ID: ${metadata.storeId}`);
-  if (metadata.trainerName) leftMeta.push(`Trainer: ${metadata.trainerName}`);
-  if (metadata.auditor) leftMeta.push(`Auditor: ${metadata.auditor}`);
-  if (metadata.date) leftMeta.push(`Date/Time: ${metadata.date}`);
+  // Overall performance summary (calculated from TRAINING_QUESTIONS & first submission)
+  // Overall performance summary - prefer sheet values if present (totalScore, maxScore), else compute
+  const computed = computeOverall(first);
+  const totalFromSheet = (first.totalScore !== undefined && first.maxScore !== undefined);
+  const total = totalFromSheet ? Number(first.totalScore) : computed.total;
+  const max = totalFromSheet ? Number(first.maxScore) : computed.max;
+  const pct = max > 0 ? Math.round((total / max) * 100) : 0;
 
-  doc.text(leftMeta.join('   |   '), 14, y + 6);
-  y += 12;
+  // Draw summary cards with larger layout
+  const cardHeight = 42;
+  const leftX = 14;
+  const rightX = 110;
 
-  // Overall performance summary (take first submission as representative if multiple)
-  const first = submissions[0] || null;
-  if (first) {
-    const overallScore = `${first.totalScore || ''} / ${first.maxScore || ''}`;
-    const pct = first.percentageScore || '';
+  // Left card: Overall Score (use sheet values when available)
+  doc.setFillColor(247, 249, 255);
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(leftX, y, 90, cardHeight, 6, 6, 'FD');
+  doc.setFontSize(10);
+  doc.setTextColor(99, 102, 241);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Overall Score', leftX + 8, y + 10);
+  doc.setFontSize(20);
+  doc.setTextColor(17, 24, 39);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${total} / ${max}`, leftX + 8, y + 30);
 
-    // Draw two boxes side-by-side
-    doc.setDrawColor(220);
-    doc.roundedRect(14, y, 90, 22, 2, 2);
-    doc.roundedRect(110, y, 80, 22, 2, 2);
-    doc.setFontSize(9);
-    doc.text('Overall Score', 18, y + 8);
-    doc.setFontSize(16);
-    doc.text(overallScore, 18, y + 18);
+  // Right card: Percentage with progress bar
+  doc.setFillColor(247, 249, 255);
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(rightX, y, 84, cardHeight, 6, 6, 'FD');
+  doc.setFontSize(10);
+  doc.setTextColor(99, 102, 241);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Percentage', rightX + 8, y + 10);
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  const pctColor = pct >= 80 ? [16, 185, 129] : pct >= 60 ? [245, 158, 11] : [239, 68, 68];
+  doc.setTextColor(pctColor[0], pctColor[1], pctColor[2]);
+  doc.text(`${pct}%`, rightX + 8, y + 30);
+  // Draw progress bar below the percentage
+  const barX = rightX + 8;
+  const barY = y + 34;
+  const barWidth = 84 - 16;
+  const barHeight = 4;
+  doc.setFillColor(226, 232, 240);
+  doc.roundedRect(barX, barY, barWidth, barHeight, 2, 2, 'F');
+  doc.setFillColor(pctColor[0], pctColor[1], pctColor[2]);
+  doc.roundedRect(barX, barY, Math.max(4, Math.min(barWidth, Math.round((pct / 100) * barWidth))), barHeight, 2, 2, 'F');
 
-    doc.setFontSize(9);
-    doc.text('Percentage', 114, y + 8);
-    doc.setFontSize(16);
-    doc.text(String(pct) + '%', 114, y + 18);
+  y += cardHeight + 12;
 
-    y += 28;
+  // Build sections from TRAINING_QUESTIONS to preserve order, titles and weightage
+  const sections: Record<string, { rows: any[]; score: number; maxScore: number; remarks?: string }> = {};
+
+  // Map short section keys to readable titles
+  const SECTION_TITLES: Record<string, string> = {
+    TM: 'Training Materials',
+    LMS: 'LMS Completion',
+    Buddy: 'Buddy Training',
+    NJ: 'New Joiner Process',
+    PK: 'Partner Knowledge',
+    CX: 'Customer Experience',
+    AP: 'Action Plan',
+    'TSA_Food_Score': 'TSA - Food Assessment',
+    'TSA_Coffee_Score': 'TSA - Coffee Assessment',
+    'TSA_CX_Score': 'TSA - Customer Experience'
+  };
+
+  // Initialize sections from TRAINING_QUESTIONS
+  for (const q of TRAINING_QUESTIONS) {
+    // section key is prefix before first underscore, or full id for TSA entries
+    let sectionKey = q.id;
+    if (q.id.startsWith('TSA_')) {
+      // TSA entries are standalone sections
+      sectionKey = q.id; // e.g. TSA_Food_Score
+    } else if (q.id.includes('_')) {
+      sectionKey = q.id.split('_')[0];
+    } else {
+      sectionKey = 'Misc';
+    }
+    if (!sections[sectionKey]) sections[sectionKey] = { rows: [], score: 0, maxScore: 0 };
   }
 
-  // Group questions by section (heuristic: keys with prefixes like TM_, LMS_, BTA_, etc.)
-  const sections: Record<string, {rows: any[], score: number, maxScore: number, remarks?: string}> = {};
+  // Fill rows using submissions (take first submission as source of answers)
+  const sub = submissions[0] || {} as any;
 
-  submissions.forEach(sub => {
-    Object.keys(sub).forEach(k => {
-      if (['submissionTime','trainerName','trainerId','amName','amId','storeName','storeId','region','mod','totalScore','maxScore','percentageScore','tsaFoodScore','tsaCoffeeScore','tsaCXScore'].includes(k)) return;
-      const match = k.match(/^([A-Z]{2,})_(.*)/);
-      const val = (sub as any)[k];
-      if (match) {
-        const sec = match[1];
-        const qid = match[2];
-        if (!sections[sec]) sections[sec] = { rows: [], score: 0, maxScore: 0 };
-        // Determine display answer and numeric score if possible
-        let display = String(val || '');
-        let numeric = 0;
-        if (display === 'yes' || display === 'Yes' || display === 'Y') numeric = 1;
-        if (display === 'no' || display === 'No' || display === 'N') numeric = 0;
-        sections[sec].rows.push({ question: qid, answer: display, score: numeric, raw: val });
+  for (const q of TRAINING_QUESTIONS) {
+    const ans = sub[q.id];
+    // compute max score from choices or input/default
+    let maxForQuestion = 0;
+    if (q.choices && q.choices.length) {
+      maxForQuestion = Math.max(...q.choices.map((c: any) => (typeof c.score === 'number' ? c.score : 0)));
+    } else if (q.type === 'input') {
+      maxForQuestion = 10; // assume out of 10
+    } else {
+      maxForQuestion = 1;
+    }
+
+    // compute numeric score
+    let numeric = 0;
+    let display = '';
+    if (ans === undefined || ans === null || ans === '') {
+      display = '';
+      numeric = 0;
+    } else {
+      display = String(ans);
+      if (q.choices && q.choices.length) {
+        const choice = q.choices.find((c: any) => String(c.label).toLowerCase() === display.toLowerCase());
+        if (choice) numeric = Number(choice.score) || 0;
+      } else if (q.type === 'input') {
+        const n = parseFloat(display);
+        numeric = isNaN(n) ? 0 : n;
+      } else {
+        // fallback for yes/no
+        const low = display.toLowerCase();
+        if (low === 'yes' || low === 'y' || low === 'true') numeric = 1;
+        if (low === 'no' || low === 'n' || low === 'false') numeric = 0;
       }
-    });
+    }
+
+    // Determine section key and title
+    let sectionKey = q.id.startsWith('TSA_') ? q.id : (q.id.includes('_') ? q.id.split('_')[0] : 'Misc');
+    const questionTitle = q.title || q.id;
+
+    // push row
+    sections[sectionKey].rows.push({ id: q.id, question: questionTitle, answer: display, score: numeric, maxScore: maxForQuestion });
+    sections[sectionKey].score += numeric;
+    sections[sectionKey].maxScore += maxForQuestion;
+  }
+
+  // Also gather remarks fields from submission (they may be named like PK_remarks or TSA_Food_Score_remarks)
+  Object.keys(sub).forEach(k => {
+    if (k.endsWith('_remarks')) {
+      const key = k.replace('_remarks', '');
+      // try direct match first
+      if (sections[key]) sections[key].remarks = sub[k];
+      else if (sections[key.replace(' ', '_')]) sections[key.replace(' ', '_')].remarks = sub[k];
+      else if (sections[key.replace('_Score', '')]) sections[key.replace('_Score', '')].remarks = sub[k];
+    }
   });
 
   // Render each section
   Object.keys(sections).forEach(secKey => {
     const sec = sections[secKey];
     if (y > 250) { doc.addPage(); y = 15; }
+    
+    // Section header with score
+  const sectionTitle = SECTION_TITLES[secKey] || secKey.replace('_',' ');
+    const sectionPercentage = sec.maxScore > 0 ? Math.round((sec.score / sec.maxScore) * 100) : 0;
+    
+  doc.setFillColor(59, 130, 246); // Blue background
+  doc.roundedRect(14, y, 180, 12, 2, 2, 'F');
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text(secKey.replace('_',' '), 14, y);
-    y += 6;
+    doc.setTextColor(255, 255, 255); // White text
+  doc.text(sectionTitle, 18, y + 8);
+  // Right-align score text and make sure it doesn't overflow the header
+  const scoreLabel = `Score: ${sec.score}/${sec.maxScore} (${sectionPercentage}%)`;
+  const scoreWidth = (doc as any).getTextWidth(scoreLabel) || scoreLabel.length * 3.5;
+  const maxRight = 14 + 180 - 8; // right padding inside header
+  const scoreX = Math.min(maxRight - scoreWidth, 160);
+  doc.text(scoreLabel, scoreX, y + 8);
+    y += 18;
 
-    // Table of questions
-    const tableRows = sec.rows.map(r => [r.question, r.answer, String(r.score)]);
+    // Table of questions (include weightage/max column)
+    const tableRows = sec.rows.map(r => [r.question, r.answer || '-', String(r.score), String(r.maxScore)]);
     autoTable(doc as any, {
       startY: y,
-      head: [['Question', 'Answer', 'Score']],
+      head: [['Question', 'Response', 'Score', 'Max']],
       body: tableRows,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [245,245,250], textColor: [34,34,80], halign: 'left' }
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [248, 250, 252], textColor: [51, 65, 85], fontStyle: 'bold' },
+      columnStyles: {
+        0: { cellWidth: 95 },
+        1: { cellWidth: 40, halign: 'center' },
+        2: { cellWidth: 20, halign: 'center' },
+        3: { cellWidth: 20, halign: 'center' }
+      },
+      didParseCell: (data: any) => {
+        if (data.section === 'body') {
+          if (data.column.index === 1) {
+            const text = String(data.cell.raw).toLowerCase();
+            if (text === 'yes') {
+              data.cell.styles.textColor = [34, 197, 94];
+              data.cell.styles.fillColor = [240, 253, 244];
+              data.cell.styles.fontStyle = 'bold';
+            } else if (text === 'no') {
+              data.cell.styles.textColor = [239, 68, 68];
+              data.cell.styles.fillColor = [254, 242, 242];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+          if (data.column.index === 2) {
+            // color score positive/zero
+            const scoreNum = Number(data.cell.raw);
+            if (!isNaN(scoreNum) && scoreNum > 0) data.cell.styles.textColor = [34, 197, 94];
+          }
+        }
+      }
     });
-    y = (doc as any).lastAutoTable.finalY + 8;
+    y = (doc as any).lastAutoTable.finalY + 6;
 
-    // If any remarks fields exist for this section, print them
-    const remarks = sec.rows.map(r => r.raw).filter((v: any) => typeof v === 'string' && v.toLowerCase().includes('remark'));
-    if (remarks.length > 0) {
-      doc.setFontSize(9);
+    // Display section remarks if they exist  
+    if (sec.remarks && sec.remarks.trim()) {
+      const remarksLines = doc.splitTextToSize(sec.remarks, 160);
+      const remarksHeight = Math.max(18, (remarksLines.length * 4) + 12);
+      // If remarks won't fit on current page, add a new page
+      const pageBottomLimit = 285; // leave margin for footer
+      if (y + remarksHeight + 20 > pageBottomLimit) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.setFillColor(254, 249, 195); // Light yellow background
+      doc.setDrawColor(251, 191, 36);
+      doc.roundedRect(14, y, 180, remarksHeight, 2, 2, 'FD');
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(146, 64, 14); // Dark orange text
+      doc.text('Remarks:', 18, y + 8);
       doc.setFont('helvetica', 'normal');
-      doc.text('Remarks: ' + remarks.join(' | '), 14, y);
-      y += 8;
+      doc.setTextColor(51, 65, 85);
+      doc.text(remarksLines, 18, y + 14);
+      y += remarksHeight + 8;
     }
   });
 

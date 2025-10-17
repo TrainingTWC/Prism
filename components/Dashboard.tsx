@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { buildTrainingPDFHtml } from '../src/utils/trainingReportHtml';
+import { buildTrainingPDF } from '../src/utils/trainingReport';
 import { Users, Clipboard, GraduationCap, BarChart3 } from 'lucide-react';
 import { Submission, Store } from '../types';
 import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission } from '../services/dataService';
@@ -976,6 +976,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           const firstRecord = reportData[0] as any;
           meta.storeName = firstRecord.storeName || firstRecord.store_name || '';
           meta.storeId = firstRecord.storeId || firstRecord.storeID || '';
+          // Capture MOD from single record if present
+          if (firstRecord.mod) meta.mod = firstRecord.mod;
         } else if (filters.region) {
           // Region filter: show region as primary identifier
           meta.storeName = `${filters.region} Region`;
@@ -995,6 +997,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           const firstRecord = reportData[0] as any;
           meta.trainerName = firstRecord.trainerName || firstRecord.trainer_name || '';
           meta.trainerId = firstRecord.trainerId || firstRecord.trainer_id || '';
+          // Capture MOD from single record if present
+          if (firstRecord.mod) meta.mod = firstRecord.mod;
         } else if (reportData.length > 0) {
           meta.trainerName = 'Multiple Trainers';
           meta.trainerId = '';
@@ -1009,6 +1013,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           const firstRecord = reportData[0] as any;
           meta.amName = firstRecord.amName || firstRecord.am_name || '';
           meta.auditorName = firstRecord.amName || firstRecord.am_name || 'N/A';
+          if (firstRecord.mod) meta.mod = firstRecord.mod;
         }
         
         // Score aggregation: compute average if multiple submissions
@@ -1028,7 +1033,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         // Use component-level lastRefresh state for date
         if (lastRefresh) meta.date = lastRefresh.toLocaleString();
 
-        await buildTrainingPDFHtml(reportData as any, meta, { fileName: `TrainingAudit_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf` });
+        const fileName = `TrainingAudit_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+        const pdf = await buildTrainingPDF(reportData as any, meta, { title: 'Training Audit Report' });
+        pdf.save(fileName);
         setIsGenerating(false);
         showNotificationMessage('Training PDF generated successfully!', 'success');
         return;

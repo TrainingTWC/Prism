@@ -97,7 +97,7 @@ function doPost(e) {
       // Partner Knowledge (PK_1 to PK_7)
       'PK_1', 'PK_2', 'PK_3', 'PK_4', 'PK_5', 'PK_6', 'PK_7',
       
-      // Training Store Audit Scores (New TSA sections)
+      // Training Store Audit Scores (TSA Food, Coffee, CX)
       'TSA_Food_Score', 'TSA_Coffee_Score', 'TSA_CX_Score',
       
       // Customer Experience (CX_1 to CX_9)
@@ -108,7 +108,7 @@ function doPost(e) {
       
       // Section Remarks
       'TM_remarks', 'LMS_remarks', 'Buddy_remarks', 'NJ_remarks', 
-      'PK_remarks', 'TSA_Food_remarks', 'TSA_Coffee_remarks', 'TSA_CX_remarks', 
+      'PK_remarks', 'TSA_Food_Score_remarks', 'TSA_Coffee_Score_remarks', 'TSA_CX_Score_remarks', 
       'CX_remarks', 'AP_remarks',
       
       // Scoring
@@ -162,8 +162,8 @@ function doPost(e) {
       params.PK_1 || '', params.PK_2 || '', params.PK_3 || '',
       params.PK_4 || '', params.PK_5 || '', params.PK_6 || '', params.PK_7 || '',
       
-      // Training Store Audit Scores (New TSA sections)
-      params.tsaFoodScore || '', params.tsaCoffeeScore || '', params.tsaCXScore || '',
+      // Training Store Audit Scores (TSA Food, Coffee, CX)
+      params.TSA_Food_Score || '', params.TSA_Coffee_Score || '', params.TSA_CX_Score || '',
       
       // Customer Experience (CX_1 to CX_9)
       params.CX_1 || '', params.CX_2 || '', params.CX_3 || '',
@@ -176,8 +176,8 @@ function doPost(e) {
       // Section Remarks
       params.TM_remarks || '', params.LMS_remarks || '',
       params.Buddy_remarks || '', params.NJ_remarks || '',
-      params.PK_remarks || '', params.TSA_Food_remarks || '', 
-      params.TSA_Coffee_remarks || '', params.TSA_CX_remarks || '',
+      params.PK_remarks || '', params.TSA_Food_Score_remarks || '', 
+      params.TSA_Coffee_Score_remarks || '', params.TSA_CX_Score_remarks || '',
       params.CX_remarks || '', params.AP_remarks || '',
       
       // Scoring
@@ -305,10 +305,10 @@ function getTrainingChecklistData() {
         obj['PK_' + i] = row[colIndex++] || '';
       }
       
-      // Training Store Audit Scores (New TSA sections)
-      obj['tsaFoodScore'] = row[colIndex++] || '';
-      obj['tsaCoffeeScore'] = row[colIndex++] || '';
-      obj['tsaCXScore'] = row[colIndex++] || '';
+      // Training Store Audit Scores (TSA Food, Coffee, CX)
+      obj['TSA_Food_Score'] = row[colIndex++] || '';
+      obj['TSA_Coffee_Score'] = row[colIndex++] || '';
+      obj['TSA_CX_Score'] = row[colIndex++] || '';
       
       // Customer Experience (CX_1 to CX_9)
       for (var i = 1; i <= 9; i++) {
@@ -326,9 +326,9 @@ function getTrainingChecklistData() {
       obj.Buddy_remarks = row[colIndex++] || '';
       obj.NJ_remarks = row[colIndex++] || '';
       obj.PK_remarks = row[colIndex++] || '';
-      obj.TSA_Food_remarks = row[colIndex++] || '';
-      obj.TSA_Coffee_remarks = row[colIndex++] || '';
-      obj.TSA_CX_remarks = row[colIndex++] || '';
+      obj.TSA_Food_Score_remarks = row[colIndex++] || '';
+      obj.TSA_Coffee_Score_remarks = row[colIndex++] || '';
+      obj.TSA_CX_Score_remarks = row[colIndex++] || '';
       obj.CX_remarks = row[colIndex++] || '';
       obj.AP_remarks = row[colIndex++] || '';
       

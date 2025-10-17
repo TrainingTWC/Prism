@@ -393,12 +393,16 @@ export const TRAINING_QUESTIONS: Question[] = [
     {label: 'Yes', score: 3}, {label: 'No', score: -3}
   ]},
 
-  // Section 6: TSA - Training Skill Assessment (TSA_1 to TSA_3)
-  { id: 'TSA_1', title: 'Partner 1 – Hot & Cold stations work?', type: 'input' },
-  { id: 'TSA_2', title: 'Partner 2 – Food station cleanliness?', type: 'input' },
-  { id: 'TSA_3', title: 'Partner 3 – Customer Service quality?', type: 'input' },
+  // Section 6: TSA Food - Training Skill Assessment Food (TSA_Food_Score)
+  { id: 'TSA_Food_Score', title: 'TSA Food Score (out of 10)', type: 'input' },
 
-  // Section 7: Customer Experience (CX_1 to CX_9)
+  // Section 7: TSA Coffee - Training Skill Assessment Coffee (TSA_Coffee_Score)
+  { id: 'TSA_Coffee_Score', title: 'TSA Coffee Score (out of 10)', type: 'input' },
+
+  // Section 8: TSA CX - Training Skill Assessment Customer Experience (TSA_CX_Score)
+  { id: 'TSA_CX_Score', title: 'TSA CX Score (out of 10)', type: 'input' },
+
+  // Section 9: Customer Experience (CX_1 to CX_9)
   { id: 'CX_1', title: 'Is appropriate background music playing at the appropriate volume?', type: 'radio', choices: [
     {label: 'Yes', score: 1}, {label: 'No', score: 0}
   ]},
@@ -427,7 +431,7 @@ export const TRAINING_QUESTIONS: Question[] = [
     {label: 'Yes', score: 1}, {label: 'No', score: 0}
   ]},
 
-  // Section 8: Action Plan (AP_1 to AP_3)
+  // Section 10: Action Plan (AP_1 to AP_3)
   { id: 'AP_1', title: 'SMART action plan - Is the action plan Specific, Measurable, Achievable, Relevant, and Time-bound?', type: 'radio', choices: [
     {label: 'Yes', score: 1}, {label: 'No', score: -1}
   ]},
