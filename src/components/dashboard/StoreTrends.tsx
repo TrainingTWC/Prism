@@ -175,7 +175,21 @@ export default function StoreTrends({
             <LineChart data={combined} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
               <XAxis dataKey="period" style={{ fontSize: 11 }} stroke="currentColor" className="text-gray-600 dark:text-slate-400" />
               <YAxis style={{ fontSize: 11 }} domain={[0, 100]} stroke="currentColor" className="text-gray-600 dark:text-slate-400" />
-              <Tooltip contentStyle={{ backgroundColor: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: '6px' }} />
+              <Tooltip
+                contentStyle={{ backgroundColor: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: '6px' }}
+                content={({ active, payload, label }: any) => {
+                  if (!active || !payload || payload.length === 0) return null;
+                  // Show only the numeric value (rounded to 2 decimals)
+                  const val = payload[0].value;
+                  const formatted = val === null || val === undefined ? '—' : (Math.round(val * 100) / 100).toFixed(2) + '%';
+                  return (
+                    <div style={{ padding: 8, background: 'var(--tooltip-bg)', borderRadius: 6, border: '1px solid var(--tooltip-border)', color: 'inherit' }}>
+                      <div style={{ fontSize: 12 }}>{label}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700 }}>{formatted}</div>
+                    </div>
+                  );
+                }}
+              />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Line type="monotone" dataKey="percentage" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Percentage" />
             </LineChart>

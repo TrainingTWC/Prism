@@ -3,6 +3,7 @@ import { GraduationCap } from 'lucide-react';
 import { AREA_MANAGERS } from '../../constants';
 import { hapticFeedback } from '../../utils/haptics';
 import hrMappingData from '../../src/hr_mapping.json';
+import compStoreMapping from '../../dist/comprehensive_store_mapping.json';
 
 interface Store {
   name: string;
@@ -410,21 +411,47 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     id: am.id
   }));
 
-  // Extract trainers from HR mapping data (now includes trainer info)
-  const uniqueTrainers = Array.from(new Set(
-    hrMappingData
-      .filter((item: any) => item.trainer)
-      .map((item: any) => item.trainer)
-  ))
-    .map(trainerName => {
-      const trainerData = hrMappingData.find((item: any) => item.trainer === trainerName);
-      return { 
-        name: trainerName, 
-        id: trainerData?.trainerId || '' 
-      };
-    })
-    .filter(trainer => trainer.name) // Remove empty names
-    .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
+  // Build trainers list from comprehensive store mapping (preferred). Fall back to hrMappingData.
+  const trainerNameOverrides: Record<string, string> = {
+    H1761: 'Mahadev',
+    H701: 'Mallika',
+    H1697: 'Sheldon',
+    H3595: 'Bhawna',
+    H2595: 'Kailash',
+    H3252: 'Priyanka',
+    H1278: 'Viraj',
+    H3247: 'Sunil',
+    H0541: 'Amritanshu',
+    H541: 'Amritanshu',
+    H3237: 'Karam'
+  };
+
+  const uniqueTrainers = (() => {
+    try {
+      const ids = Array.from(new Set((compStoreMapping as any[]).map((r: any) => r.Trainer).filter(Boolean)));
+      const trainers = ids.map((id: string) => ({
+        id,
+        name: trainerNameOverrides[id] || id
+      }));
+      return trainers.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
+    } catch (e) {
+      // fallback to old hrMappingData extraction
+      return Array.from(new Set(
+        hrMappingData
+          .filter((item: any) => item.trainer)
+          .map((item: any) => item.trainer)
+      ))
+        .map(trainerName => {
+          const trainerData = hrMappingData.find((item: any) => item.trainer === trainerName);
+          return { 
+            name: trainerName, 
+            id: trainerData?.trainerId || '' 
+          };
+        })
+        .filter(trainer => trainer.name) // Remove empty names
+        .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
+    }
+  })();
 
   // Extract stores from HR mapping data (same as HR Checklist)
   const uniqueStores = Array.from(new Set(
@@ -443,24 +470,34 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   // Cascading filter functions for dropdown searches
   
   // 1. Area Managers filtered by selected trainer (if any)
+  const normalizeId = (v: any) => (v || '').toString().trim().toUpperCase();
+
   const filteredAMs = uniqueAMs.filter(am => {
     // First apply search filter
     const matchesSearch = amSearchTerm === '' || 
       (am.name as string).toLowerCase().includes(amSearchTerm.toLowerCase()) ||
       (am.id as string).toLowerCase().includes(amSearchTerm.toLowerCase());
-    
+
     // If no trainer is selected, show all AMs that match search
-    if (!meta.trainerId || !meta.trainerName) {
-      return matchesSearch;
+    if (!meta.trainerId) return matchesSearch;
+
+    // If trainer is selected, use comprehensive mapping to find AMs for that trainer
+    try {
+      const trainerIdNorm = normalizeId(meta.trainerId);
+      const amsForTrainer = Array.from(new Set((compStoreMapping as any[])
+        .filter((r: any) => normalizeId(r.Trainer) === trainerIdNorm)
+        .map((r: any) => normalizeId(r.AM))
+        .filter(Boolean)));
+      const trainerWorksWithAM = amsForTrainer.includes(normalizeId(am.id));
+      return matchesSearch && trainerWorksWithAM;
+    } catch (e) {
+      // fallback to hrMappingData check
+      const trainerWorksWithAM = hrMappingData.some((item: any) => 
+        normalizeId(item.trainerId || item.trainer) === normalizeId(meta.trainerId) && 
+        normalizeId(item.areaManagerId) === normalizeId(am.id)
+      );
+      return matchesSearch && trainerWorksWithAM;
     }
-    
-    // If trainer is selected, only show AMs that work with this trainer
-    const trainerWorksWithAM = hrMappingData.some((item: any) => 
-      item.trainer === meta.trainerName && 
-      item.areaManagerId === am.id
-    );
-    
-    return matchesSearch && trainerWorksWithAM;
   });
 
   // 2. Trainers - no cascading filter needed (they are the top level)
@@ -476,19 +513,29 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     const matchesSearch = storeSearchTerm === '' || 
       (store.name as string).toLowerCase().includes(storeSearchTerm.toLowerCase()) ||
       (store.id as string).toLowerCase().includes(storeSearchTerm.toLowerCase());
-    
+
     // If no AM is selected, show all stores that match search
-    if (!meta.amId || !meta.amName) {
-      return matchesSearch;
+    if (!meta.amId) return matchesSearch;
+
+    // If AM is selected, use comprehensive mapping to find stores for that AM
+    try {
+      const amIdNorm = normalizeId(meta.amId);
+      const storesForAM = Array.from(new Set((compStoreMapping as any[])
+        .filter((r: any) => normalizeId(r.AM) === amIdNorm)
+        .map((r: any) => ({ name: r['Store Name'], id: r['Store ID'] }))
+        .filter((s: any) => s.name || s.id)
+        .map((s: any) => ({ name: s.name, id: s.id }))
+      ));
+      const storeUnderAM = storesForAM.some((s: any) => normalizeId(s.name) === normalizeId(store.name) || normalizeId(s.id) === normalizeId(store.id));
+      return matchesSearch && storeUnderAM;
+    } catch (e) {
+      // fallback to hrMappingData check
+      const storeUnderAM = hrMappingData.some((item: any) => 
+        normalizeId(item.locationName) === normalizeId(store.name) && 
+        normalizeId(item.areaManagerId) === normalizeId(meta.amId)
+      );
+      return matchesSearch && storeUnderAM;
     }
-    
-    // If AM is selected, only show stores under this AM
-    const storeUnderAM = hrMappingData.some((item: any) => 
-      item.locationName === store.name && 
-      item.areaManagerId === meta.amId
-    );
-    
-    return matchesSearch && storeUnderAM;
   });
 
   // Auto-fill function with cascading filters (same as HR Checklist)
@@ -497,15 +544,21 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     
     switch (field) {
       case 'trainer':
-        // Find trainer in hrMappingData (TOP LEVEL - clears AM and Store)
-        mappingItem = hrMappingData.find((item: any) => 
-          item.trainer === value || item.trainerId === value
+        // Find trainer in comprehensive mapping first (TOP LEVEL - clears AM and Store)
+        mappingItem = (compStoreMapping as any[]).find((item: any) => 
+          item.Trainer === value || item.Trainer === value.toUpperCase() || item['Trainer Name'] === value || item['Trainer Name'] === (value as string).split(' (')[0]
         );
+        // fallback to hrMappingData
+        if (!mappingItem) {
+          mappingItem = hrMappingData.find((item: any) => 
+            item.trainer === value || item.trainerId === value
+          );
+        }
         if (mappingItem) {
           setMeta(prev => ({
             ...prev,
-            trainerName: mappingItem.trainer || '',
-            trainerId: mappingItem.trainerId || '',
+            trainerName: mappingItem.trainer || mappingItem['Trainer Name'] || '',
+            trainerId: mappingItem.trainerId || mappingItem['Trainer'] || mappingItem['Trainer ID'] || '',
             // Clear dependent fields when trainer changes
             amName: '',
             amId: '',
@@ -537,22 +590,27 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         break;
         
       case 'store':
-        // Find store in hrMappingData
-        mappingItem = hrMappingData.find((item: any) => 
-          item.locationName === value || item.storeId === value
+        // Find store in compStoreMapping first, then hrMappingData
+        mappingItem = (compStoreMapping as any[]).find((item: any) => 
+          item['Store Name'] === value || item['Store ID'] === value
         );
+        if (!mappingItem) {
+          mappingItem = hrMappingData.find((item: any) => 
+            item.locationName === value || item.storeId === value
+          );
+        }
         if (mappingItem) {
           // Get the AM info for this store
-          const amFromStoreMapping = AREA_MANAGERS.find(am => am.id === mappingItem.areaManagerId);
+          const amFromStoreMapping = AREA_MANAGERS.find(am => am.id === mappingItem.areaManagerId || am.id === mappingItem.AM);
           setMeta(prev => ({
             ...prev,
-            storeName: mappingItem.locationName || '',
-            storeId: mappingItem.storeId || '',
+            storeName: mappingItem.locationName || mappingItem['Store Name'] || '',
+            storeId: mappingItem.storeId || mappingItem['Store ID'] || '',
             amName: amFromStoreMapping?.name || prev.amName,
             amId: amFromStoreMapping?.id || prev.amId,
             // Auto-populate trainer based on store selection
-            trainerName: mappingItem.trainer || prev.trainerName,
-            trainerId: mappingItem.trainerId || prev.trainerId
+            trainerName: mappingItem.trainer || mappingItem['Trainer Name'] || prev.trainerName,
+            trainerId: mappingItem.trainerId || mappingItem['Trainer'] || prev.trainerId
             // MOD remains as user input - not auto-populated
           }));
         }

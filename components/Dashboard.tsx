@@ -73,7 +73,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const [allStores, setAllStores] = useState<Store[]>([]);
   const [allAreaManagers, setAllAreaManagers] = useState<any[]>([]);
   const [allHRPersonnel, setAllHRPersonnel] = useState<any[]>([]);
+  const [allTrainers, setAllTrainers] = useState<any[]>([]);
   const [hrMappingData, setHrMappingData] = useState<any[]>([]);
+  const [compStoreMapping, setCompStoreMapping] = useState<any[] | null>(null);
   
   // Cache flags to track what data has been loaded
   const [dataLoadedFlags, setDataLoadedFlags] = useState({
@@ -87,9 +89,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     region: '',
     store: '',
     am: '',
-    hr: '',
+    trainer: '',
     health: ''
   });
+
+  // Normalized trainer filter id for robust comparisons (handle h3595 vs H3595 etc.)
+  const normalizeId = (v: any) => (v === undefined || v === null) ? '' : String(v).toUpperCase();
+  const trainerFilterId = normalizeId(filters.trainer);
 
   // Monthly Trends data for Training Dashboard
   const { rows: trendsData, loading: trendsLoading } = useTrendsData();
@@ -200,8 +206,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   // Auto-populate filters from URL parameters - but only when explicitly intended for dashboard filtering
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const hrId = urlParams.get('hrId') || urlParams.get('hr_id');
-    const hrName = urlParams.get('hrName') || urlParams.get('hr_name');
+  const trainerId = urlParams.get('hrId') || urlParams.get('hr_id');
+  const trainerName = urlParams.get('hrName') || urlParams.get('hr_name');
     const storeId = urlParams.get('storeId') || urlParams.get('store_id');
     const amId = urlParams.get('amId') || urlParams.get('am_id');
     const region = urlParams.get('region');
@@ -211,7 +217,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     if (dashboardFilter || storeId || amId || region) {
       setFilters(prev => ({
         ...prev,
-        hr: hrId || prev.hr,
+        trainer: trainerId || prev.trainer,
         store: storeId || prev.store,
         am: amId || prev.am,
         region: region || prev.region
@@ -275,11 +281,61 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         
         const stores = Array.from(storeMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
         const areaManagers = Array.from(amMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
-        const hrPersonnel = Array.from(hrMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
+  const hrPersonnel = Array.from(hrMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
         
         setAllStores(stores);
         setAllAreaManagers(areaManagers);
         setAllHRPersonnel(hrPersonnel);
+
+        // Also try to load comprehensive trainer mapping and prefer its trainer names
+        try {
+          const compResp = await fetch(`${base}dist/comprehensive_store_mapping.json`);
+          if (compResp.ok) {
+            const comp = await compResp.json();
+            setCompStoreMapping(comp);
+            // Build a map of Trainer ID -> occurrences
+            const trainerIds = new Set<string>();
+            comp.forEach((row: any) => {
+              if (row.Trainer) trainerIds.add(String(row.Trainer).toUpperCase());
+            });
+
+            // User-provided mapping overrides (ID -> Name)
+            const provided: Record<string, string> = {
+              'H1761': 'Mahadev',
+              'H701': 'Mallika',
+              'H1697': 'Sheldon',
+              'H3595': 'Bhawna',
+              'H2595': 'Kailash',
+              'H3252': 'Priyanka',
+              'H1278': 'Viraj',
+              'H3247': 'Sunil',
+              'H0541': 'Amritanshu',
+              'H541': 'Amritanshu',
+              'H3237': 'Karam'
+            };
+
+            const trainersArr: any[] = [];
+            trainerIds.forEach((tid) => {
+              const nameFromProvided = provided[tid.toUpperCase()];
+              // try to find in hrPersonnel as fallback
+              const found = hrPersonnel.find((h: any) => String(h.id).toUpperCase() === tid);
+              const name = nameFromProvided || found?.name || tid;
+              trainersArr.push({ id: tid, name });
+            });
+
+            // Sort by name
+            trainersArr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+            setAllTrainers(trainersArr);
+          } else {
+            // Fallback: use HR personnel names where trainer ids appear
+            const fallbackTrainers = Array.from(new Set(Array.from(hrMap.values()).map((h:any)=>h.id))).map((id:any)=>({ id, name: (HR_PERSONNEL.find(x=>x.id===id)?.name || id) }));
+            setAllTrainers(fallbackTrainers);
+          }
+        } catch (err) {
+          // On any error, fallback to using HR personnel constants
+          const fallbackTrainers = Array.from(new Set(Array.from(hrMap.values()).map((h:any)=>h.id))).map((id:any)=>({ id, name: (HR_PERSONNEL.find(x=>x.id===id)?.name || id) }));
+          setAllTrainers(fallbackTrainers);
+        }
         
         console.log(`Dashboard loaded ${stores.length} stores, ${areaManagers.length} AMs, ${hrPersonnel.length} HR personnel from mapping data`);
       } catch (error) {
@@ -428,7 +484,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   }, [handleRefresh]);
 
   const availableStores = useMemo(() => {
-    let stores = allStores;
+  let stores = allStores;
     
     // Filter by region first
     if (filters.region) {
@@ -438,7 +494,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     // Filter by user role permissions
     stores = stores.filter(store => canAccessStore(userRole, store.id));
     
-    // If Area Manager is selected, filter stores based on AM mapping
+  // If Area Manager is selected, filter stores based on AM mapping
     if (filters.am && hrMappingData.length > 0) {
       console.log('Filtering Stores for Area Manager:', filters.am);
       
@@ -450,60 +506,51 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       stores = stores.filter(store => amStoreIds.includes(store.id));
       console.log(`Found ${stores.length} stores for AM ${filters.am}:`, stores);
     }
-    // If HR is selected but no AM, show stores under that HR
-    else if (filters.hr && hrMappingData.length > 0) {
-      console.log('Filtering Stores for HR:', filters.hr);
-      
-      // Get stores where this HR is responsible (HRBP > Regional HR > HR Head priority)
-      const hrStoreIds = hrMappingData
-        .filter((mapping: any) => 
-          mapping.hrbpId === filters.hr || 
-          mapping.regionalHrId === filters.hr || 
-          mapping.hrHeadId === filters.hr
-        )
-        .map((mapping: any) => mapping.storeId);
-      
-      stores = stores.filter(store => hrStoreIds.includes(store.id));
-      console.log(`Found ${stores.length} stores for HR ${filters.hr}:`, stores);
+    // If Trainer is selected but no AM, show stores under that Trainer using comprehensive mapping
+    else if (trainerFilterId && compStoreMapping && compStoreMapping.length > 0) {
+      console.log('Filtering Stores for Trainer via comprehensive mapping:', trainerFilterId);
+      const trainerStoreIds = compStoreMapping
+        .filter((m: any) => normalizeId(m.Trainer) === trainerFilterId)
+        .map((m: any) => (m['Store ID'] || m.storeId || m.StoreID || m.store_id));
+      const uniqueIds = new Set(trainerStoreIds.filter(Boolean));
+      stores = stores.filter(store => uniqueIds.has(store.id));
+      console.log(`Found ${stores.length} stores for Trainer ${trainerFilterId}:`, stores);
     }
     
     return stores;
-  }, [filters.region, filters.am, filters.hr, userRole, allStores, hrMappingData]);
+  }, [filters.region, filters.am, filters.trainer, userRole, allStores, hrMappingData]);
 
   const availableAreaManagers = useMemo(() => {
     let areaManagers = allAreaManagers.filter(am => canAccessAM(userRole, am.id));
     
     // If HR is selected, filter AMs based on HR mapping
-    if (filters.hr && hrMappingData.length > 0) {
-      console.log('Filtering Area Managers for HR:', filters.hr);
-      
-      // Check if this is a senior HR role that should have access to all AMs
-      if (SENIOR_HR_ROLES.includes(filters.hr)) {
-        console.log(`HR ${filters.hr} is a senior role with access to all Area Managers (${areaManagers.length} AMs)`);
-        return areaManagers; // Return all accessible AMs without filtering
-      }
-      
-      // Get unique Area Manager IDs that work under this HR
-      const hrAreaManagerIds = new Set<string>();
-      
-      hrMappingData.forEach((mapping: any) => {
-        if (mapping.hrbpId === filters.hr || 
-            mapping.regionalHrId === filters.hr || 
-            mapping.hrHeadId === filters.hr) {
-          hrAreaManagerIds.add(mapping.areaManagerId);
+    if (trainerFilterId) {
+      console.log('Filtering Area Managers for Trainer via comprehensive mapping:', trainerFilterId);
+      // If comp mapping available, use it to find AM IDs
+      if (compStoreMapping && compStoreMapping.length > 0) {
+        const amIds = new Set<string>();
+        compStoreMapping.forEach((m: any) => {
+          if (normalizeId(m.Trainer) === trainerFilterId) {
+            const am = m.AM || m.am || m.areaManager || m.AMId || m.amId;
+            if (am) amIds.add(String(am));
+          }
+        });
+        if (amIds.size > 0) {
+          areaManagers = areaManagers.filter(am => amIds.has(am.id));
+          console.log(`Found ${areaManagers.length} Area Managers for Trainer ${trainerFilterId}:`, areaManagers);
         }
-      });
-      
-      areaManagers = areaManagers.filter(am => hrAreaManagerIds.has(am.id));
-      console.log(`Found ${areaManagers.length} Area Managers for HR ${filters.hr}:`, areaManagers);
+      }
     }
     
     return areaManagers;
-  }, [userRole, allAreaManagers, filters.hr, hrMappingData]);
+  }, [userRole, allAreaManagers, filters.trainer, hrMappingData, compStoreMapping]);
 
   const availableHRPersonnel = useMemo(() => {
     return allHRPersonnel.filter(hr => canAccessHR(userRole, hr.id));
   }, [userRole, allHRPersonnel]);
+
+  // expose availableTrainers as same list for downstream components
+  const availableTrainers = availableHRPersonnel;
 
   // Listen for manual mobile refresh events dispatched from compact bar
   useEffect(() => {
@@ -561,10 +608,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     }
 
     // Filter by HR personnel
-    if (filters.hr) {
-      const beforeHRFilter = filtered.length;
-      filtered = filtered.filter(submission => submission.hrId === filters.hr);
-      console.log(`HR filter (${filters.hr}): ${beforeHRFilter} -> ${filtered.length} submissions`);
+    if (trainerFilterId) {
+      const beforeTrainerFilter = filtered.length;
+  filtered = filtered.filter(submission => normalizeId(submission.hrId) === trainerFilterId || normalizeId((submission as any).trainerId) === trainerFilterId || normalizeId((submission as any).trainer) === trainerFilterId);
+      console.log(`Trainer filter (${filters.trainer} -> ${trainerFilterId}): ${beforeTrainerFilter} -> ${filtered.length} submissions`);
     }
 
     console.log('Final filtered submissions:', filtered.length);
@@ -609,7 +656,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         return false;
       }
       
-      if (filters.hr && submission.hrId !== filters.hr) {
+      if (filters.trainer && submission.hrId !== filters.trainer) {
         return false;
       }
       
@@ -658,8 +705,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       }
       
       // For training, trainer filter maps to trainer field
-      if (filters.hr && submission.trainerId !== filters.hr) {
-        return false;
+      if (trainerFilterId) {
+        const sTrainer = normalizeId((submission as any).trainerId) || normalizeId((submission as any).trainer) || normalizeId(submission.hrId);
+        if (!sTrainer || sTrainer !== trainerFilterId) return false;
       }
 
       // Apply store health semantic filter if provided
@@ -756,7 +804,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       }
       
       // For QA, hr filter can map to qaId
-      if (filters.hr && submission.qaId !== filters.hr) {
+      if (filters.trainer && submission.qaId !== filters.trainer) {
         return false;
       }
       
@@ -789,7 +837,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     // For Training dashboard, prefer filtered Training Audit records when any filter is applied
     if (dashboardType === 'training') {
       // If a filter is active, use the deduped, filtered training data so the header cards change
-      const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.hr || filters.health);
+  const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health);
 
       if (hasFilters) {
         // If a specific store filter is applied, we must count ALL submissions for that store
@@ -807,7 +855,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             if (filters.region && submission.region !== filters.region) return false;
             if (filters.store && (submission.storeId !== filters.store && submission.storeID !== filters.store && submission.store_id !== filters.store)) return false;
             if (filters.am && submission.amId !== filters.am) return false;
-            if (filters.hr && submission.trainerId !== filters.hr) return false;
+            if (trainerFilterId) {
+              const sTrainer = normalizeId((submission as any).trainerId) || normalizeId((submission as any).trainer) || normalizeId(submission.hrId);
+              if (!sTrainer || sTrainer !== trainerFilterId) return false;
+            }
 
             if (filters.health) {
               const pct = parseFloat(submission.percentageScore || submission.percentage_score || '0');
@@ -822,7 +873,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
         const totalSubmissions = rawFiltered.length;
         const uniqueStores = new Set(rawFiltered.map((r: any) => r.storeId || r.storeID || r.store_id)).size;
-        const uniqueTrainers = new Set(rawFiltered.map((r: any) => r.trainerId || r.trainer_id || r.trainer)).size;
+  const uniqueTrainers = new Set(rawFiltered.map((r: any) => normalizeId(r.trainerId) || normalizeId(r.trainer_id) || normalizeId(r.trainer) || normalizeId(r.hrId))).size;
 
         // Determine per-store latest and previous scores using cutoffs so each store contributes once
         const parseTime = (t: any) => {
@@ -1010,7 +1061,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       const avgScore = totalSubmissions > 0 
         ? filteredAMOperations.reduce((acc, s) => acc + parseFloat(s.percentageScore || '0'), 0) / totalSubmissions 
         : 0;
-      const uniqueTrainers = new Set(filteredAMOperations.map(s => s.trainerId)).size;
+  const uniqueTrainers = new Set(filteredAMOperations.map(s => normalizeId((s as any).trainerId) || normalizeId((s as any).trainer) || normalizeId((s as any).hrId))).size;
       const uniqueStores = new Set(filteredAMOperations.map(s => s.storeId)).size;
 
       return {
@@ -1041,7 +1092,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const getAverageScoreDisplay = () => {
     // Training dashboard special handling
     if (dashboardType === 'training') {
-      const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.hr || filters.health);
+    const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health);
       if (hasFilters) {
         if (!stats) return '—';
         const prevPart = stats.previousScore !== null && stats.previousScore !== undefined ? ` (Prev ${stats.previousScore}%)` : '';
@@ -1077,7 +1128,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     // Cascading reset logic for hierarchical filters
     if (filterName === 'region') {
       newFilters.store = ''; // Reset store when region changes
-    } else if (filterName === 'hr') {
+    } else if (filterName === 'trainer') {
       newFilters.am = '';    // Reset AM when HR changes
       newFilters.store = ''; // Reset store when HR changes
     } else if (filterName === 'am') {
@@ -1088,7 +1139,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   };
 
   const resetFilters = () => {
-    setFilters({ region: '', store: '', am: '', hr: '', health: '' });
+    setFilters({ region: '', store: '', am: '', trainer: '', health: '' });
   };
 
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -1207,10 +1258,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         }
         
         // Trainer filter (HR field in training context)
-        if (filters.hr) {
-          const t = HR_PERSONNEL.find(h => h.id === filters.hr) || AREA_MANAGERS.find(a => a.id === filters.hr);
-          meta.trainerName = t?.name || filters.hr;
-          meta.trainerId = filters.hr;
+        if (filters.trainer) {
+          const t = HR_PERSONNEL.find(h => h.id === filters.trainer) || AREA_MANAGERS.find(a => a.id === filters.trainer);
+          meta.trainerName = t?.name || filters.trainer;
+          meta.trainerId = filters.trainer;
         } else if (reportData.length > 0 && reportData.length === 1) {
           const firstRecord = reportData[0] as any;
           meta.trainerName = firstRecord.trainerName || firstRecord.trainer_name || '';
@@ -1289,12 +1340,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             'Data Type': dataType,
             'Total Training Records': reportData.length
           };
-        } else if (filters.hr) {
-          // HR filter used as trainer selection for training dashboard
-          const trainerInfo = HR_PERSONNEL.find(hr => hr.id === filters.hr) || AREA_MANAGERS.find(am => am.id === filters.hr);
+        } else if (filters.trainer) {
+          // Trainer filter used as trainer selection for training dashboard
+          const trainerInfo = HR_PERSONNEL.find(hr => hr.id === filters.trainer) || AREA_MANAGERS.find(am => am.id === filters.trainer);
           entityDetails = {
-            'Trainer Name': trainerInfo?.name || filters.hr,
-            'Trainer ID': filters.hr,
+            'Trainer Name': trainerInfo?.name || filters.trainer,
+            'Trainer ID': filters.trainer,
             'Data Type': dataType,
             'Total Training Records': reportData.length
           };
@@ -1346,14 +1397,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           'Stores Covered': stats?.uniqueStores || 0,
           'Data Type': dataType
         };
-      } else if (filters.hr) {
-        const hrInfo = HR_PERSONNEL.find(hr => hr.id === filters.hr);
+      } else if (filters.trainer) {
+        const hrInfo = HR_PERSONNEL.find(hr => hr.id === filters.trainer);
   // dashboardType may be a union; perform a runtime string check for 'training'
   const roleName = String(dashboardType) === 'training' ? 'Trainer' : 'HR Personnel';
         reportTitle = `${dataType} ${roleName} Report`;
         entityDetails = {
-          [`${roleName} Name`]: hrInfo?.name || filters.hr,
-          [`${roleName} ID`]: filters.hr,
+          [`${roleName} Name`]: hrInfo?.name || filters.trainer,
+          [`${roleName} ID`]: filters.trainer,
           'Total Submissions': reportData.length,
           'Stores Covered': stats?.uniqueStores || 0,
           'Data Type': dataType
@@ -1396,7 +1447,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       if (filters.region) filtersApplied.push(`Region=${filters.region}`);
       if (filters.store) filtersApplied.push(`Store=${filters.store}`);
       if (filters.am) filtersApplied.push(`AM=${filters.am}`);
-      if (filters.hr) filtersApplied.push(`Trainer/HR=${filters.hr}`);
+  if (filters.trainer) filtersApplied.push(`Trainer/HR=${filters.trainer}`);
       if (filters.health) filtersApplied.push(`StoreHealth=${filters.health}`);
       if (filtersApplied.length > 0) {
         entityEntries.push(['Filters Applied', filtersApplied.join(', ')]);
@@ -2109,9 +2160,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       } else if (filters.am) {
         const amInfo = AREA_MANAGERS.find(am => am.id === filters.am);
         filename = `HRConnect_AM_${(amInfo?.name || filters.am).replace(/\s+/g, '_')}`;
-      } else if (filters.hr) {
-        const hrInfo = HR_PERSONNEL.find(hr => hr.id === filters.hr);
-        filename = `HRConnect_HR_${(hrInfo?.name || filters.hr).replace(/\s+/g, '_')}`;
+      } else if (filters.trainer) {
+        const hrInfo = HR_PERSONNEL.find(hr => hr.id === filters.trainer);
+        filename = `HRConnect_HR_${(hrInfo?.name || filters.trainer).replace(/\s+/g, '_')}`;
       } else if (filters.region) {
         filename = `HRConnect_Region_${filters.region.replace(/\s+/g, '_')}`;
       }
@@ -2271,7 +2322,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           regions={availableRegions}
           stores={availableStores}
           areaManagers={availableAreaManagers}
-          hrPersonnel={availableHRPersonnel}
+          // Prefer comprehensive trainer mapping when available
+          hrPersonnel={allTrainers && allTrainers.length > 0 ? allTrainers : availableHRPersonnel}
           filters={filters}
           onFilterChange={handleFilterChange}
           onReset={resetFilters}

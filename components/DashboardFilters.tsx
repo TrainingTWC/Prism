@@ -12,11 +12,11 @@ interface DashboardFiltersProps {
     region: string;
     store: string;
     am: string;
-    hr: string;
+    trainer: string;
     // store health filter - '', 'Needs Attention', 'Brewing', 'Perfect Shot'
     health?: string;
   };
-  onFilterChange: (filterName: 'region' | 'store' | 'am' | 'hr' | 'health', value: string) => void;
+  onFilterChange: (filterName: 'region' | 'store' | 'am' | 'trainer' | 'health', value: string) => void;
   onReset: () => void;
   onDownload?: () => void;
   isGenerating?: boolean;
@@ -297,7 +297,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             label="Area Manager"
             value={filters.am}
             onChange={(value) => onFilterChange('am', value)}
-            placeholder={filters.hr ? "All AMs under selected HR" : "All AMs"}
+            placeholder={filters.trainer ? "All AMs under selected Trainer" : "All AMs"}
             options={areaManagers.map(am => ({ value: am.id, label: am.name, id: am.id }))}
             disabled={areaManagers.length === 0}
           />
@@ -308,7 +308,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             onChange={(value) => onFilterChange('store', value)}
             placeholder={
               filters.am ? "All stores under selected AM" :
-              filters.hr ? "All stores under selected HR" :
+              filters.trainer ? "All stores under selected Trainer" :
               "All Stores"
             }
             options={stores.map(s => ({ value: s.id, label: s.name, id: s.id }))}
@@ -316,10 +316,10 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
           />
 
           <SearchableFilter
-            label="HR Personnel"
-            value={filters.hr}
-            onChange={(value) => onFilterChange('hr', value)}
-            placeholder="All HR"
+            label="Trainer"
+            value={filters.trainer}
+            onChange={(value) => onFilterChange('trainer', value)}
+            placeholder="All Trainers"
             options={hrPersonnel.map(hr => ({ value: hr.id, label: hr.name, id: hr.id }))}
             disabled={hrPersonnel.length === 0}
           />
@@ -342,36 +342,36 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             options={regions.map(r => ({ value: r, label: r }))}
           />
           
-          {/* Area Manager - Searchable (filtered by HR) */}
+          {/* Area Manager - Searchable (filtered by Trainer) */}
           <SearchableFilter
             label="Area Manager"
             value={filters.am}
             onChange={(value) => onFilterChange('am', value)}
-            placeholder={filters.hr ? "All AMs under selected HR" : "All AMs"}
+            placeholder={filters.trainer ? "All AMs under selected Trainer" : "All AMs"}
             options={areaManagers.map(am => ({ value: am.id, label: am.name, id: am.id }))}
             disabled={areaManagers.length === 0}
           />
           
-          {/* Store - Searchable (filtered by AM or HR) */}
+          {/* Store - Searchable (filtered by AM or Trainer) */}
           <SearchableFilter
             label="Store"
             value={filters.store}
             onChange={(value) => onFilterChange('store', value)}
             placeholder={
               filters.am ? "All stores under selected AM" :
-              filters.hr ? "All stores under selected HR" :
+              filters.trainer ? "All stores under selected Trainer" :
               "All Stores"
             }
             options={stores.map(s => ({ value: s.id, label: s.name, id: s.id }))}
             disabled={stores.length === 0}
           />
           
-          {/* HR Personnel - Searchable */}
+          {/* Trainer - Searchable */}
           <SearchableFilter
-            label="HR Personnel"
-            value={filters.hr}
-            onChange={(value) => onFilterChange('hr', value)}
-            placeholder="All HR"
+            label="Trainer"
+            value={filters.trainer}
+            onChange={(value) => onFilterChange('trainer', value)}
+            placeholder="All Trainers"
             options={hrPersonnel.map(hr => ({ value: hr.id, label: hr.name, id: hr.id }))}
             disabled={hrPersonnel.length === 0}
           />
