@@ -2324,6 +2324,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           areaManagers={availableAreaManagers}
           // Prefer comprehensive trainer mapping when available
           hrPersonnel={allTrainers && allTrainers.length > 0 ? allTrainers : availableHRPersonnel}
+          trainers={allTrainers && allTrainers.length > 0 ? allTrainers : undefined}
           filters={filters}
           onFilterChange={handleFilterChange}
           onReset={resetFilters}

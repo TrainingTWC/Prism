@@ -7,7 +7,9 @@ interface DashboardFiltersProps {
   regions: string[];
   stores: Store[];
   areaManagers: AreaManager[];
+  // Legacy HR personnel list (kept for fallback). Prefer `trainers` for authoritative trainer list.
   hrPersonnel: HRPerson[];
+  trainers?: { id: string; name: string }[];
   filters: {
     region: string;
     store: string;
@@ -224,6 +226,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   stores,
   areaManagers,
   hrPersonnel,
+  trainers,
   filters,
   onFilterChange,
   onReset,
@@ -320,8 +323,8 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             value={filters.trainer}
             onChange={(value) => onFilterChange('trainer', value)}
             placeholder="All Trainers"
-            options={hrPersonnel.map(hr => ({ value: hr.id, label: hr.name, id: hr.id }))}
-            disabled={hrPersonnel.length === 0}
+            options={(trainers && trainers.length > 0 ? trainers.map(t => ({ value: t.id, label: t.name, id: t.id })) : hrPersonnel.map(hr => ({ value: hr.id, label: hr.name, id: hr.id })))}
+            disabled={(trainers && trainers.length > 0 ? trainers.length === 0 : hrPersonnel.length === 0)}
           />
         </div>
       </div>
