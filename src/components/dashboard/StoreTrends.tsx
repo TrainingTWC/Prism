@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Filters } from '../../audit-dashboard/state';
-import { applyFilters, aggregatePeriodAverages, computeStoreSeries, computeMoM, computePerStoreLatestAverages } from './trendsUtils';
+import { applyFilters, aggregatePeriodAverages, computeStoreSeries, computeMoM, computePerStoreLatestAverages, computePerPeriodLatestAverages } from './trendsUtils';
 import { useTrendsData } from './useTrendsData';
 
 type Row = any;
@@ -49,7 +49,8 @@ export default function StoreTrends({
   const filteredRows = useMemo(() => applyFilters(rows, filters), [rows, filters]);
 
   const scoreTrend = useMemo(() => aggregatePeriodAverages(filteredRows, 'score'), [filteredRows]);
-  const pctTrend = useMemo(() => aggregatePeriodAverages(filteredRows, 'percentage'), [filteredRows]);
+  // Use per-period averages computed from per-store latest-up-to-period-end values
+  const pctTrend = useMemo(() => computePerPeriodLatestAverages(filteredRows, 'percentage'), [filteredRows]);
 
   // Compute per-store latest averages up to now and up to previous month end
   const perStoreAvgs = useMemo(() => computePerStoreLatestAverages(filteredRows, {}), [filteredRows]);

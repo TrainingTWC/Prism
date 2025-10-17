@@ -135,3 +135,18 @@ export function computePerStoreLatestAverages(rows: Row[], opts?: { cutoffNow?: 
     storeCount: storeMap.size,
   };
 }
+
+// For each observed_period present in rows, compute the average of per-store latest
+// values up to the end of that period. Returns array of { period, avg } sorted by period.
+export function computePerPeriodLatestAverages(rows: Row[], metricName: string = 'percentage') {
+  // Collect unique periods from rows
+  const periods = Array.from(new Set(rows.map((r: any) => r.observed_period).filter(Boolean))).sort();
+  const out: { period: string; avg: number | null }[] = [];
+  for (const p of periods) {
+    const cutoff = parsePeriodDate(p);
+    if (!cutoff) continue;
+    const res = computePerStoreLatestAverages(rows, { cutoffNow: cutoff, metricName });
+    out.push({ period: p, avg: res.avgLatest });
+  }
+  return out;
+}
