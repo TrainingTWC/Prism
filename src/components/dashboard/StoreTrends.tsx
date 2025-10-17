@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Filters } from '../../audit-dashboard/state';
-import { applyFilters, aggregatePeriodAverages, computeStoreSeries, computeMoM } from './trendsUtils';
+import { applyFilters, aggregatePeriodAverages, computeStoreSeries, computeMoM, computePerStoreLatestAverages } from './trendsUtils';
 import { useTrendsData } from './useTrendsData';
 
 type Row = any;
@@ -50,6 +50,9 @@ export default function StoreTrends({
 
   const scoreTrend = useMemo(() => aggregatePeriodAverages(filteredRows, 'score'), [filteredRows]);
   const pctTrend = useMemo(() => aggregatePeriodAverages(filteredRows, 'percentage'), [filteredRows]);
+
+  // Compute per-store latest averages up to now and up to previous month end
+  const perStoreAvgs = useMemo(() => computePerStoreLatestAverages(filteredRows, {}), [filteredRows]);
 
   // Helper function to convert YYYY-MM to month name
   const formatPeriod = (period: string) => {
@@ -153,7 +156,15 @@ export default function StoreTrends({
 
   return (
     <div className="store-trends card">
-      <h3 className="text-base font-semibold mb-4 text-gray-900 dark:text-slate-100">Monthly Performance Trend</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-slate-100">Monthly Performance Trend</h3>
+        <div className="text-sm text-gray-600 dark:text-slate-300">
+          <span className="font-semibold mr-2">Current avg:</span>
+          <span className="mr-4">{perStoreAvgs.avgLatest !== null ? `${perStoreAvgs.avgLatest}%` : '—'}</span>
+          <span className="font-semibold mr-2">Last month:</span>
+          <span>{perStoreAvgs.avgPrev !== null ? `${perStoreAvgs.avgPrev}%` : '—'}</span>
+        </div>
+      </div>
 
       {/* Mobile-Friendly Layout: Stack on mobile, side-by-side on desktop */}
       <div className="trends-grid">

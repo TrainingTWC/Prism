@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Filters } from '../../audit-dashboard/state';
-import { applyFilters, aggregatePeriodAverages } from './trendsUtils';
+import { applyFilters, aggregatePeriodAverages, computePerStoreLatestAverages } from './trendsUtils';
 import { useTrendsData } from './useTrendsData';
 
 interface UniqueStoresPillsProps {
@@ -40,6 +40,8 @@ export function UniqueStoresPills({ filters, rows: propRows, loading: propLoadin
   }, [filteredRows]);
 
   const pctTrend = useMemo(() => aggregatePeriodAverages(filteredRows, 'percentage'), [filteredRows]);
+
+  const perStoreAvgs = useMemo(() => computePerStoreLatestAverages(filteredRows, {}), [filteredRows]);
 
   // Build combined dataset with store counts
   const combined = useMemo(() => {

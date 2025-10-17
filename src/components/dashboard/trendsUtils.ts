@@ -73,3 +73,65 @@ export function computeMoM(series: { period: string; value: number }[]) {
   if (prev === 0) return null;
   return ((last - prev) / prev) * 100;
 }
+
+// Parse observed_period strings into Date objects. Supports YYYY-MM-DD, ISO, and YYYY-MM (returns last day of month).
+export function parsePeriodDate(period: string): Date | null {
+  if (!period) return null;
+  // Try ISO/regular Date parse
+  const d = new Date(period);
+  if (!isNaN(d.getTime())) return d;
+  // YYYY-MM -> return last day of that month
+  const m = /^\s*(\d{4})-(\d{2})\s*$/.exec(period);
+  if (m) {
+    const y = parseInt(m[1], 10);
+    const mm = parseInt(m[2], 10);
+    return new Date(y, mm, 0);
+  }
+  return null;
+}
+
+// Compute per-store latest values up to cutoffNow and up to cutoffPrev (end of previous month).
+// Returns averages (mean of one latest value per store) and optional per-store maps.
+export function computePerStoreLatestAverages(rows: Row[], opts?: { cutoffNow?: Date; cutoffPrev?: Date; metricName?: string }) {
+  const metric = (opts?.metricName || 'percentage').toLowerCase();
+  const cutoffNow = opts?.cutoffNow ?? new Date();
+  const cutoffPrev = opts?.cutoffPrev ?? new Date(cutoffNow.getFullYear(), cutoffNow.getMonth(), 0, 23, 59, 59, 999);
+
+  const storeMap = new Map<string, { date: Date; value: number }[]>();
+  for (const r of rows) {
+    if (!r || !r.metric_name) continue;
+    if ((r.metric_name || '').toLowerCase() !== metric) continue;
+    const storeId = (r as any).store_id || (r as any).storeId || '';
+    if (!storeId) continue;
+    const date = parsePeriodDate((r as any).observed_period || (r as any).period || (r as any).submission_time_utc || '');
+    if (!date) continue;
+    const v = Number((r as any).metric_value ?? (r as any).metric_value) || 0;
+    if (!storeMap.has(storeId)) storeMap.set(storeId, []);
+    storeMap.get(storeId)!.push({ date, value: v });
+  }
+
+  const latestValues: Record<string, number> = {};
+  const prevValues: Record<string, number> = {};
+
+  for (const [storeId, arr] of storeMap.entries()) {
+    const upToNow = arr.filter(x => x.date.getTime() <= cutoffNow.getTime()).sort((a, b) => a.date.getTime() - b.date.getTime());
+    if (upToNow.length > 0) latestValues[storeId] = upToNow[upToNow.length - 1].value;
+
+    const upToPrev = arr.filter(x => x.date.getTime() <= cutoffPrev.getTime()).sort((a, b) => a.date.getTime() - b.date.getTime());
+    if (upToPrev.length > 0) prevValues[storeId] = upToPrev[upToPrev.length - 1].value;
+  }
+
+  const latestArr = Object.values(latestValues);
+  const prevArr = Object.values(prevValues);
+
+  const avgLatest = latestArr.length > 0 ? +(latestArr.reduce((s, x) => s + x, 0) / latestArr.length) : null;
+  const avgPrev = prevArr.length > 0 ? +(prevArr.reduce((s, x) => s + x, 0) / prevArr.length) : null;
+
+  return {
+    avgLatest: avgLatest !== null ? Math.round(avgLatest) : null,
+    avgPrev: avgPrev !== null ? Math.round(avgPrev) : null,
+    latestValues,
+    prevValues,
+    storeCount: storeMap.size,
+  };
+}
