@@ -894,40 +894,71 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         ? new Set(filteredTrainingData.map(s => s.trainerId)).size
         : 0;
 
-      // Compute per-period (monthly) averages so we can expose latest and previous month values
-      const periodMap = new Map<string, number[]>();
+      // Compute per-store latest values up to a cutoff (now) and up to previous month end.
+      // We treat observed_period as a date (supports YYYY-MM-DD or YYYY-MM). For YYYY-MM we
+      // consider the period to end on the last day of that month.
+      const parsePeriodDate = (period: string) => {
+        if (!period) return null as Date | null;
+        // Try direct Date parsing first
+        const d = new Date(period);
+        if (!isNaN(d.getTime())) return d;
+        // If period looks like YYYY-MM, set to last day of that month
+        const m = /^\s*(\d{4})-(\d{2})\s*$/.exec(period);
+        if (m) {
+          const y = parseInt(m[1], 10);
+          const mm = parseInt(m[2], 10);
+          // month passed as 1-based; to get last day of month use new Date(y, mm, 0)
+          return new Date(y, mm, 0);
+        }
+        return null;
+      };
+
+      const storeMap = new Map<string, { date: Date; value: number }[]>();
       percentageRows.forEach((r: any) => {
-        const period = r.observed_period || r.period || '';
-        if (!period) return;
+        const storeId = r.store_id || r.storeId || r.store || '';
+        if (!storeId) return;
+        const periodStr = r.observed_period || r.observed_period || r.period || '';
+        const dt = parsePeriodDate(periodStr);
+        if (!dt) return;
         const v = parseFloat(r.metric_value) || 0;
-        if (!periodMap.has(period)) periodMap.set(period, []);
-        periodMap.get(period)!.push(v);
+        if (!storeMap.has(storeId)) storeMap.set(storeId, []);
+        storeMap.get(storeId)!.push({ date: dt, value: v });
       });
 
-      const periods = Array.from(periodMap.keys()).sort((a, b) => (a > b ? 1 : a < b ? -1 : 0));
-      let latestScore: number | null = null;
-      let previousScore: number | null = null;
+      const cutoffNow = lastRefresh ? new Date(lastRefresh) : new Date();
+      // previous cutoff = end of previous month relative to cutoffNow
+      const cutoffPrev = new Date(cutoffNow.getFullYear(), cutoffNow.getMonth(), 0, 23, 59, 59, 999);
 
-      if (periods.length > 0) {
-        const last = periods[periods.length - 1];
-        const vals = periodMap.get(last) || [];
-        if (vals.length > 0) latestScore = Math.round(vals.reduce((s, x) => s + x, 0) / vals.length);
+      const latestValues: number[] = [];
+      const prevValues: number[] = [];
 
-        if (periods.length > 1) {
-          const prev = periods[periods.length - 2];
-          const vals2 = periodMap.get(prev) || [];
-          if (vals2.length > 0) previousScore = Math.round(vals2.reduce((s, x) => s + x, 0) / vals2.length);
+      storeMap.forEach((arr) => {
+        // find latest up to cutoffNow
+        const upToNow = arr.filter(x => x.date.getTime() <= cutoffNow.getTime());
+        if (upToNow.length > 0) {
+          upToNow.sort((a, b) => a.date.getTime() - b.date.getTime());
+          latestValues.push(upToNow[upToNow.length - 1].value);
         }
-      }
+
+        // find latest up to cutoffPrev (end of previous month)
+        const upToPrev = arr.filter(x => x.date.getTime() <= cutoffPrev.getTime());
+        if (upToPrev.length > 0) {
+          upToPrev.sort((a, b) => a.date.getTime() - b.date.getTime());
+          prevValues.push(upToPrev[upToPrev.length - 1].value);
+        }
+      });
+
+      const avgLatestPerStore = latestValues.length > 0 ? Math.round(latestValues.reduce((s, x) => s + x, 0) / latestValues.length) : null;
+      const avgPrevPerStore = prevValues.length > 0 ? Math.round(prevValues.reduce((s, x) => s + x, 0) / prevValues.length) : null;
 
       return {
         totalSubmissions,
-        // overall average across all percentage rows
-        avgScore: Math.round(avgScore),
-        // expose monthly latest/previous so the header can show current vs last month
-        latestScore,
-        previousScore,
-        uniqueEmployees: uniqueTrainers, // Using trainers for training dashboard
+        // overall average: mean of each store's latest response up to now
+        avgScore: avgLatestPerStore !== null ? avgLatestPerStore : Math.round(avgScore),
+        // expose monthly latest/previous as requested (latest = all latest up to now; previous = all latest up to previous month end)
+        latestScore: avgLatestPerStore,
+        previousScore: avgPrevPerStore,
+        uniqueEmployees: uniqueTrainers,
         uniqueStores
       };
     }
