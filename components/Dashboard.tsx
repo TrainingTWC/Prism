@@ -876,27 +876,57 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
       // Filter to only percentage rows to avoid double counting
       // Each submission has 2 rows: one for 'score' and one for 'percentage'
-      const percentageRows = trendsData.filter((r: any) => r.metric_name === 'percentage');
-      
+      const percentageRows = trendsData.filter((r: any) => (r.metric_name || '').toLowerCase() === 'percentage');
+
       const totalSubmissions = percentageRows.length;
-      
-      // Calculate average score from percentage rows
-      const avgScore = totalSubmissions > 0 
-        ? percentageRows.reduce((acc: number, r: any) => acc + (parseFloat(r.metric_value) || 0), 0) / totalSubmissions 
+
+      // Calculate overall average score from all percentage rows
+      const avgScore = totalSubmissions > 0
+        ? percentageRows.reduce((acc: number, r: any) => acc + (parseFloat(r.metric_value) || 0), 0) / totalSubmissions
         : 0;
-      
+
       // Get unique stores from the trends data
       const uniqueStores = new Set(percentageRows.map((r: any) => r.store_id)).size;
-      
+
       // For unique employees/trainers, we need to use the actual training data
       // since Monthly_Trends doesn't have trainer information
-      const uniqueTrainers = filteredTrainingData 
-        ? new Set(filteredTrainingData.map(s => s.trainerId)).size 
+      const uniqueTrainers = filteredTrainingData
+        ? new Set(filteredTrainingData.map(s => s.trainerId)).size
         : 0;
+
+      // Compute per-period (monthly) averages so we can expose latest and previous month values
+      const periodMap = new Map<string, number[]>();
+      percentageRows.forEach((r: any) => {
+        const period = r.observed_period || r.period || '';
+        if (!period) return;
+        const v = parseFloat(r.metric_value) || 0;
+        if (!periodMap.has(period)) periodMap.set(period, []);
+        periodMap.get(period)!.push(v);
+      });
+
+      const periods = Array.from(periodMap.keys()).sort((a, b) => (a > b ? 1 : a < b ? -1 : 0));
+      let latestScore: number | null = null;
+      let previousScore: number | null = null;
+
+      if (periods.length > 0) {
+        const last = periods[periods.length - 1];
+        const vals = periodMap.get(last) || [];
+        if (vals.length > 0) latestScore = Math.round(vals.reduce((s, x) => s + x, 0) / vals.length);
+
+        if (periods.length > 1) {
+          const prev = periods[periods.length - 2];
+          const vals2 = periodMap.get(prev) || [];
+          if (vals2.length > 0) previousScore = Math.round(vals2.reduce((s, x) => s + x, 0) / vals2.length);
+        }
+      }
 
       return {
         totalSubmissions,
+        // overall average across all percentage rows
         avgScore: Math.round(avgScore),
+        // expose monthly latest/previous so the header can show current vs last month
+        latestScore,
+        previousScore,
         uniqueEmployees: uniqueTrainers, // Using trainers for training dashboard
         uniqueStores
       };
@@ -949,9 +979,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       }
 
       // No filters: prefer trendsData aggregated average
+      // Prefer monthly latest/previous values when available (computed in stats)
+      if (stats && (stats.latestScore !== null && stats.latestScore !== undefined)) {
+        const prevPart = stats.previousScore !== null && stats.previousScore !== undefined ? ` (Prev ${stats.previousScore}%)` : '';
+        return `${stats.latestScore}%${prevPart}`;
+      }
+
+      // Fallback to aggregated average if monthly breakdown not present
       if (stats && stats.avgScore != null) return `${stats.avgScore}%`;
       if (!trendsLoading && trendsData) {
-        const percentageRows = trendsData.filter((r: any) => r.metric_name === 'percentage');
+        const percentageRows = trendsData.filter((r: any) => (r.metric_name || '').toLowerCase() === 'percentage');
         if (percentageRows.length > 0) {
           const avg = percentageRows.reduce((acc: number, r: any) => acc + (parseFloat(r.metric_value) || 0), 0) / percentageRows.length;
           return `${Math.round(avg)}%`;
