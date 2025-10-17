@@ -2297,32 +2297,32 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           {dashboardType === 'training' ? (
             <>
               {/* Training Stats - Horizontal on mobile, then pie chart below */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5 items-stretch">
                 <StatCard title="Total Submissions" value={stats?.totalSubmissions} />
                 <StatCard title="Stores Covered" value={stats?.uniqueStores} />
                 {/* For training dashboard, provide structured avg data so StatCard can render trend */}
-                <StatCard title="Average Score" value={{
+                <StatCard title="Audit Percentage" value={{
                   latest: stats?.latestScore ?? (typeof stats?.avgScore === 'number' ? Math.round(stats.avgScore) : undefined),
                   previous: stats?.previousScore ?? null,
                   aggregate: (!stats?.latestScore && stats?.avgScore) ? Math.round(stats.avgScore) : undefined
                 }} />
-              </div>
-              {/* Pie chart on its own row */}
-              <div className="mb-5">
-                <TrainingHealthPieChart
-                  submissions={filteredTrainingData}
-                  onOpenDetails={(filterType, value, title) => {
-                    // Open the training detail modal with a filter matching the clicked slice
-                    if (title === 'Needs Attention') {
-                      setTrainingDetailFilter({ type: 'scoreRange', value: '0-55', title: 'Needs Attention' });
-                    } else if (title === 'Brewing') {
-                      setTrainingDetailFilter({ type: 'scoreRange', value: '56-80', title: 'Brewing' });
-                    } else if (title === 'Perfect Shot') {
-                      setTrainingDetailFilter({ type: 'scoreRange', value: '81-100', title: 'Perfect Shot' });
-                    }
-                    setShowTrainingDetail(true);
-                  }}
-                />
+                {/* Store Health rendered as a card in the grid */}
+                <div className="bg-white dark:bg-slate-800/50 backdrop-blur-sm p-3 sm:p-5 rounded-xl shadow-lg border border-gray-200 dark:border-slate-700">
+                  <TrainingHealthPieChart
+                    submissions={filteredTrainingData}
+                    onOpenDetails={(filterType, value, title) => {
+                      // Open the training detail modal with a filter matching the clicked slice
+                      if (title === 'Needs Attention') {
+                        setTrainingDetailFilter({ type: 'scoreRange', value: '0-55', title: 'Needs Attention' });
+                      } else if (title === 'Brewing') {
+                        setTrainingDetailFilter({ type: 'scoreRange', value: '56-80', title: 'Brewing' });
+                      } else if (title === 'Perfect Shot') {
+                        setTrainingDetailFilter({ type: 'scoreRange', value: '81-100', title: 'Perfect Shot' });
+                      }
+                      setShowTrainingDetail(true);
+                    }}
+                  />
+                </div>
               </div>
             </>
           ) : (
