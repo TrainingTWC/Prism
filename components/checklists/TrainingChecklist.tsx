@@ -3,7 +3,7 @@ import { GraduationCap } from 'lucide-react';
 import { AREA_MANAGERS } from '../../constants';
 import { hapticFeedback } from '../../utils/haptics';
 import hrMappingData from '../../src/hr_mapping.json';
-import compStoreMapping from '../../dist/comprehensive_store_mapping.json';
+import compStoreMapping from '../../src/comprehensive_store_mapping.json';
 
 interface Store {
   name: string;
