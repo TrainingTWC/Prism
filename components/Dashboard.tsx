@@ -824,18 +824,57 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         const uniqueStores = new Set(rawFiltered.map((r: any) => r.storeId || r.storeID || r.store_id)).size;
         const uniqueTrainers = new Set(rawFiltered.map((r: any) => r.trainerId || r.trainer_id || r.trainer)).size;
 
-        // Determine latest and previous scores by sorting by submission time (newest first)
-        const withTime = rawFiltered.map(r => ({
-          score: parseFloat(r.percentageScore || r.percentage_score || '0') || 0,
-          time: (r.submissionTime && !isNaN(new Date(r.submissionTime).getTime())) ? new Date(r.submissionTime).getTime() : 0
-        })).sort((a, b) => b.time - a.time);
+        // Determine per-store latest and previous scores using cutoffs so each store contributes once
+        const parseTime = (t: any) => {
+          try {
+            if (!t) return 0;
+            if (t instanceof Date) return t.getTime();
+            if (typeof t === 'number') return t;
+            if (typeof t === 'string') {
+              if (t.includes('T') || t.includes('-')) {
+                const dt = new Date(t);
+                return isNaN(dt.getTime()) ? 0 : dt.getTime();
+              }
+              if (!isNaN(Number(t))) return Number(t);
+              const dt = new Date(t);
+              return isNaN(dt.getTime()) ? 0 : dt.getTime();
+            }
+          } catch (err) {
+            return 0;
+          }
+          return 0;
+        };
 
-  let latestScore = withTime.length > 0 ? Math.round(withTime[0].score) : null;
-  let previousScore = withTime.length > 1 ? Math.round(withTime[1].score) : null;
+        const cutoffNow = lastRefresh ? new Date(lastRefresh) : new Date();
+        const cutoffPrev = new Date(cutoffNow.getFullYear(), cutoffNow.getMonth(), 0, 23, 59, 59, 999);
+
+        const perStoreMap: Map<string, { time: number; score: number }[]> = new Map();
+        rawFiltered.forEach((r: any) => {
+          const sid = r.storeId || r.storeID || r.store_id || '';
+          if (!sid) return;
+          const time = parseTime(r.submissionTime || r.submission_time || r.submitted_at || '');
+          const score = parseFloat(r.percentageScore || r.percentage_score || r.percentage || '0') || 0;
+          if (!perStoreMap.has(sid)) perStoreMap.set(sid, []);
+          perStoreMap.get(sid)!.push({ time, score });
+        });
+
+        const latestVals: number[] = [];
+        const prevVals: number[] = [];
+
+        perStoreMap.forEach(arr => {
+          const upToNow = arr.filter(x => x.time <= cutoffNow.getTime()).sort((a, b) => a.time - b.time);
+          if (upToNow.length > 0) latestVals.push(upToNow[upToNow.length - 1].score);
+
+          const upToPrev = arr.filter(x => x.time <= cutoffPrev.getTime()).sort((a, b) => a.time - b.time);
+          if (upToPrev.length > 0) prevVals.push(upToPrev[upToPrev.length - 1].score);
+        });
+
+  let headerLatestScore = latestVals.length > 0 ? Math.round(latestVals.reduce((s, x) => s + x, 0) / latestVals.length) : null;
+  let headerPreviousScore = prevVals.length > 0 ? Math.round(prevVals.reduce((s, x) => s + x, 0) / prevVals.length) : null;
 
         // If we don't have a previous score from raw submissions and a single store is selected,
         // try to pick latest/previous from monthly trends (trendsData) which stores historical percentages per store.
-        if ((previousScore === null || previousScore === undefined) && filters.store && trendsData && !trendsLoading) {
+  if ((headerPreviousScore === null || headerPreviousScore === undefined) && filters.store && trendsData && !trendsLoading) {
           try {
             const storePctRows = trendsData
               .filter((r: any) => (r.metric_name === 'percentage' || r.metric_name === 'Percentage') && (r.store_id === filters.store || r.store_id === (filters.store as any)))
@@ -847,12 +886,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               const last = storePctRows[storePctRows.length - 1];
               const secondLast = storePctRows.length > 1 ? storePctRows[storePctRows.length - 2] : null;
               // If no raw latest exists, use trends latest as fallback
-              if ((latestScore === null || latestScore === undefined) && last) {
-                latestScore = Math.round(last.value);
+              if ((headerLatestScore === null || headerLatestScore === undefined) && last) {
+                headerLatestScore = Math.round(last.value);
               }
               // If previous missing, try to get from trends (second last period)
-              if ((previousScore === null || previousScore === undefined) && secondLast) {
-                previousScore = Math.round(secondLast.value);
+              if ((headerPreviousScore === null || headerPreviousScore === undefined) && secondLast) {
+                headerPreviousScore = Math.round(secondLast.value);
               }
             }
           } catch (e) {
@@ -862,12 +901,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
         return {
           totalSubmissions,
-          // Keep avgScore for backward compatibility but set it to latest
-          avgScore: latestScore,
-          latestScore,
-          previousScore,
+          // overall avg is mean of per-store latest values up to now
+          avgScore: headerLatestScore,
+          latestScore: headerLatestScore,
+          previousScore: headerPreviousScore,
           uniqueEmployees: uniqueTrainers,
-          uniqueStores
+          uniqueStores: new Set(Array.from(perStoreMap.keys())).size
         };
       }
 
