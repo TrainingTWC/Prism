@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { TrainingAuditSubmission } from '../../services/dataService';
 import { TRAINING_QUESTIONS } from '../../constants';
+import { EMBEDDED_LOGO } from '../assets/embeddedLogo';
 
 interface ReportOptions {
   title?: string;
@@ -25,12 +26,42 @@ async function addCompanyLogo(doc: jsPDF): Promise<void> {
   ];
 
   let logoLoaded = false;
+  // draw fallback logo into the same reserved area we use in the header
+  const areaX = 162;
+  const areaY = 8;
+  const areaW = 28;
+  const areaH = 28;
+    const innerPadding = 4; // mm padding inside the reserved box (increased to avoid clipping)
+
   for (const logoPath of logoPaths) {
     try {
-      const logoImg = await loadImage(logoPath);
-      doc.addImage(logoImg, 'PNG', 160, 8, 34, 24);
-      logoLoaded = true;
-      break;
+      const logoData = await loadImage(logoPath);
+      // create an image element to get natural dimensions
+      await new Promise<void>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const naturalW = img.naturalWidth || img.width || areaW;
+            const naturalH = img.naturalHeight || img.height || areaH;
+            const usableW = Math.max(4, areaW - innerPadding * 2);
+            const usableH = Math.max(4, areaH - innerPadding * 2);
+            const ratio = Math.min(1, usableW / naturalW, usableH / naturalH);
+            const drawW = Math.round(naturalW * ratio);
+            const drawH = Math.round(naturalH * ratio);
+            const drawX = areaX + innerPadding + Math.round((usableW - drawW) / 2);
+            const drawY = areaY + innerPadding + Math.round((usableH - drawH) / 2);
+            doc.addImage(logoData, 'PNG', drawX, drawY, drawW, drawH);
+            logoLoaded = true;
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        };
+        img.onerror = () => reject(new Error('failed to load fallback image'));
+        img.src = logoData;
+      });
+      if (logoLoaded) break;
     } catch (err) {
       console.warn(`Could not load logo from: ${logoPath}`);
     }
@@ -51,11 +82,11 @@ async function loadImage(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    
+
     const timeout = setTimeout(() => {
       reject(new Error('Image load timeout'));
     }, 5000);
-    
+
     img.onload = () => {
       clearTimeout(timeout);
       try {
@@ -73,13 +104,13 @@ async function loadImage(url: string): Promise<string> {
         reject(err);
       }
     };
-    
+
     img.onerror = () => {
       clearTimeout(timeout);
       reject(new Error(`Failed to load image: ${url}`));
     };
-    
-    const fullUrl = url.startsWith('http') ? url : 
+
+    const fullUrl = url.startsWith('http') ? url :
       `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`;
     img.src = fullUrl;
   });
@@ -90,7 +121,8 @@ function computeOverall(submission: any): { total: number; max: number; pct: num
   let total = 0;
   let max = 0;
   for (const q of TRAINING_QUESTIONS) {
-    const ans = submission[q.id];
+    // Resolve possible sheet key variations for TSA fields
+    const ans = resolveSubmissionValue(submission, q.id);
     let qMax = 0;
     if (q.choices && q.choices.length) qMax = Math.max(...q.choices.map((c: any) => Number(c.score) || 0));
     else if (q.type === 'input') qMax = 10;
@@ -118,6 +150,27 @@ function computeOverall(submission: any): { total: number; max: number; pct: num
   return { total, max, pct };
 }
 
+// Resolve submission value with fallbacks for known legacy keys (TSA_* variations)
+function resolveSubmissionValue(submission: any, qId: string) {
+  if (!submission) return undefined;
+  // direct match first
+  if (submission[qId] !== undefined) return submission[qId];
+
+  // Handle TSA score legacy keys: sheet may store TSA_1/TSA_2/TSA_3 or prefixed TSA_TSA_1
+  if (qId === 'TSA_Food_Score') return submission['TSA_Food_Score'] ?? submission['TSA_TSA_1'] ?? submission['TSA_1'] ?? submission['TSA_1_score'] ?? submission['TSA_1 - Partner 1'] ?? submission['TSA_1 - Partner 1 – Hot & Cold stations work?'] ?? undefined;
+  if (qId === 'TSA_Coffee_Score') return submission['TSA_Coffee_Score'] ?? submission['TSA_TSA_2'] ?? submission['TSA_2'] ?? submission['TSA_2_score'] ?? undefined;
+  if (qId === 'TSA_CX_Score') return submission['TSA_CX_Score'] ?? submission['TSA_TSA_3'] ?? submission['TSA_3'] ?? submission['TSA_3_score'] ?? undefined;
+
+  // Generic TSA_* fallback: try stripped variants
+  if (qId.startsWith('TSA_')) {
+    const simple = qId.replace(/TSA_|_Score/g, '');
+    const alt = `TSA_${simple}`;
+    if (submission[alt] !== undefined) return submission[alt];
+  }
+
+  return submission[qId];
+}
+
 export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], metadata: any = {}, options: ReportOptions = {}) => {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   let y = 15;
@@ -125,14 +178,66 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
 
   const title = options.title || 'Training Audit';
   // Header: Title, Store, Metadata and Logo on the right
-  doc.setFontSize(22);
+  doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(17, 24, 39);
   doc.text(title, 14, y);
 
-  // Add logo to top-right (bigger)
+  // Add logo to top-right (prefer repo public path first)
   try {
+    // Try to load the project's public assets/logo.png first
+    // If we have an embedded logo, use it directly (guaranteed in PDF)
+  // reserved area for logo (reduced size and with inner padding to avoid visual crowding)
+  const areaX = 162;
+  const areaY = 8;
+  const areaW = 28; // reduced from 34 to 28 mm
+  const areaH = 28; // reduced from 34 to 28 mm
+    const innerPadding = 4; // mm padding inside the reserved box (increased to avoid clipping)
+    if (EMBEDDED_LOGO && EMBEDDED_LOGO.startsWith('data:image')) {
+      // load embedded image to get natural dimensions
+      const imgEl = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = EMBEDDED_LOGO;
+      });
+      const naturalW = imgEl.naturalWidth || imgEl.width || areaW;
+      const naturalH = imgEl.naturalHeight || imgEl.height || areaH;
+      const ratio = Math.min(1, areaW / naturalW, areaH / naturalH);
+  // apply inner padding so the image doesn't touch the header edges
+  const usableW = Math.max(4, areaW - innerPadding * 2);
+  const usableH = Math.max(4, areaH - innerPadding * 2);
+  const ratioEmbedded = Math.min(1, usableW / naturalW, usableH / naturalH);
+  const drawW = Math.round(naturalW * ratioEmbedded);
+  const drawH = Math.round(naturalH * ratioEmbedded);
+  const drawX = areaX + innerPadding + Math.round((usableW - drawW) / 2);
+  const drawY = areaY + innerPadding + Math.round((usableH - drawH) / 2);
+  doc.addImage(EMBEDDED_LOGO, 'PNG', drawX, drawY, drawW, drawH);
+    } else {
+      const base = (window as any).location?.origin || '';
+      const preferred = `${base}/assets/logo.png`;
+      try {
+        const imgData = await loadImage(preferred);
+        const imgEl = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const i = new Image();
+          i.onload = () => resolve(i);
+          i.onerror = reject;
+          i.src = imgData;
+        });
+  const naturalW = imgEl.naturalWidth || imgEl.width || areaW;
+  const naturalH = imgEl.naturalHeight || imgEl.height || areaH;
+  const usableW = Math.max(4, areaW - innerPadding * 2);
+  const usableH = Math.max(4, areaH - innerPadding * 2);
+  const ratioLoaded = Math.min(1, usableW / naturalW, usableH / naturalH);
+  const drawW = Math.round(naturalW * ratioLoaded);
+  const drawH = Math.round(naturalH * ratioLoaded);
+  const drawX = areaX + innerPadding + Math.round((usableW - drawW) / 2);
+  const drawY = areaY + innerPadding + Math.round((usableH - drawH) / 2);
+  doc.addImage(imgData, 'PNG', drawX, drawY, drawW, drawH);
+      } catch (err) {
     await addCompanyLogo(doc);
+      }
+    }
   } catch (e) {
     // ignore
   }
@@ -148,22 +253,21 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
   }
 
   // Metadata row: Date/Time | Auditor | Store ID & MOD (use metadata fallback to submission)
+  // Simplified metadata row (compact single-line)
   const metaY = y + 8;
-  const metaParts = [] as string[];
   const dateStr = metadata.date || first.submissionTime || first.date || '';
-  if (dateStr) metaParts.push(`Date/Time: ${dateStr}`);
   const auditor = metadata.trainerName || first.trainerName || first.auditor || '';
-  if (auditor) metaParts.push(`Auditor: ${auditor}`);
   const sid = metadata.storeId || first.storeId || '';
   const mod = (metadata.mod || first.mod || first.MOD) || '';
-  if (sid || mod) {
-    const storePart = `${sid ? `Store: ${sid}` : ''}${sid && mod ? ' | ' : ''}${mod ? `MOD: ${mod}` : ''}`;
-    metaParts.push(storePart);
-  }
+  const metaLine = [] as string[];
+  if (dateStr) metaLine.push(`${dateStr}`);
+  if (auditor) metaLine.push(`Auditor: ${auditor}`);
+  if (sid) metaLine.push(`Store: ${sid}`);
+  if (mod) metaLine.push(`MOD: ${mod}`);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(120, 130, 145);
-  if (metaParts.length) doc.text(metaParts.join('   |   '), 14, metaY);
+  if (metaLine.length) doc.text(metaLine.join('   |   '), 14, metaY);
   y = metaY + 12;
 
   // Overall performance summary (calculated from TRAINING_QUESTIONS & first submission)
@@ -253,7 +357,7 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
   const sub = submissions[0] || {} as any;
 
   for (const q of TRAINING_QUESTIONS) {
-    const ans = sub[q.id];
+    const ans = resolveSubmissionValue(sub, q.id);
     // compute max score from choices or input/default
     let maxForQuestion = 0;
     if (q.choices && q.choices.length) {
