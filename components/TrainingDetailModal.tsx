@@ -104,6 +104,16 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
     }
   };
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      const previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = previousOverflow; };
+    }
+    return;
+  }, [isOpen]);
+
   const stats = useMemo(() => {
     console.log('TrainingDetailModal stats calculation:', { submissions: submissions?.length || 0 });
     
@@ -316,13 +326,15 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
   if (!isOpen) return null;
 
   // Early return if no submissions data to prevent errors
-  if (!submissions || submissions.length === 0) {
+    if (!submissions || submissions.length === 0) {
     return (
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        className="fixed inset-0 flex items-center justify-center z-50"
         onClick={handleBackdropClick}
+        style={{ background: 'rgba(2,6,23,0.72)', backdropFilter: 'blur(18px) saturate(120%)' }}
       >
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+        <div className="rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
+             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
               {title}
@@ -346,16 +358,18 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 flex items-center justify-center z-50"
       onClick={handleBackdropClick}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      style={{ background: 'rgba(2,6,23,0.72)', backdropFilter: 'blur(20px) saturate(120%)' }}
     >
       <div 
         ref={modalContentRef}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+        className="rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
+        style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.06)' }}
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">

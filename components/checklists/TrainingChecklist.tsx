@@ -651,6 +651,16 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     reason?: string;
     suggestedBy?: string;
   }[] | null>(null);
+
+  // Lock body scroll when proposed updates modal is open
+  useEffect(() => {
+    if (proposedUpdates) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prev; };
+    }
+    return;
+  }, [proposedUpdates]);
   // Push-to-talk state (walkie-talkie style)
   const [pushToTalkActive, setPushToTalkActive] = useState(false);
   const pushTranscriptRef = useRef('');
@@ -1443,9 +1453,9 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     <>
       {/* Proposed updates modal */}
       {proposedUpdates && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setProposedUpdates(null)} />
-          <div className="relative bg-white dark:bg-slate-800 w-11/12 max-w-2xl rounded shadow-lg p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(2,6,23,0.78)', backdropFilter: 'blur(20px) saturate(120%)' }}>
+          {/* backdrop click handled by parent div */}
+          <div className="relative w-11/12 max-w-2xl rounded shadow-lg p-4" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.06)' }}>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">Proposed voice changes</h3>
             <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">Review suggested answers and apply when ready.</p>
             <div className="max-h-64 overflow-auto mb-3">
