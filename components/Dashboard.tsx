@@ -2297,7 +2297,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           {dashboardType === 'training' ? (
             <>
               {/* Training Stats - Horizontal on mobile, then pie chart below */}
-              <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
                 <StatCard title="Total Submissions" value={stats?.totalSubmissions} />
                 <StatCard title="Stores Covered" value={stats?.uniqueStores} />
                 {/* For training dashboard, provide structured avg data so StatCard can render trend */}
@@ -2326,7 +2326,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               </div>
             </>
           ) : (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
               <StatCard title="Total Submissions" value={stats?.totalSubmissions} />
               <StatCard title="Average Score" value={String(getAverageScoreDisplay())} />
               <StatCard 
