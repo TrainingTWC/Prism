@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth, UserRole } from '../contexts/AuthContext';
+import { Eye, EyeOff, AlertTriangle } from 'lucide-react';
 
 const Login: React.FC = () => {
   const [password, setPassword] = useState('');
@@ -126,7 +127,7 @@ const Login: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-400 focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:border-sky-400 dark:focus:border-sky-400 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 outline-none"
                   required
                   disabled={isLoading}
                 />
@@ -136,7 +137,11 @@ const Login: React.FC = () => {
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
                   disabled={isLoading}
                 >
-                  {showPassword ? '🙈' : '👁️'}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -144,7 +149,7 @@ const Login: React.FC = () => {
             {showError && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
                 <div className="flex items-center">
-                  <span className="text-red-400 mr-2">⚠️</span>
+                  <AlertTriangle className="w-4 h-4 text-red-400 mr-2" />
                   <span className="text-red-700 dark:text-red-400 text-sm font-medium">
                     Incorrect password. Please try again.
                   </span>

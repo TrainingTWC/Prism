@@ -1607,25 +1607,25 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
           </div>
         </div>
       ) : (
-        <div className="w-full">
+        <div className="w-full min-h-screen">
           {/* Header Banner - Full Width */}
-          <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 p-4 border-b border-purple-200 dark:border-purple-800">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-1 flex items-center gap-2">
-              <GraduationCap className="w-6 h-6" />
-              Training Audit Checklist
+          <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 p-3 sm:p-4 border-b border-purple-200 dark:border-purple-800">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-slate-100 mb-1 flex items-center gap-2">
+              <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+              <span className="break-words">Training Audit Checklist</span>
             </h1>
-            <p className="text-sm text-gray-600 dark:text-slate-400">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400 leading-relaxed">
               Comprehensive training assessment covering all aspects of staff development and knowledge retention.
             </p>
           </div>
 
       {/* Meta Information Form - Full Width */}
-      <div id="audit-information" className="bg-gray-50 dark:bg-slate-900 p-4 border-b border-gray-200 dark:border-slate-700">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3">
+      <div id="audit-information" className="bg-gray-50 dark:bg-slate-900 p-3 sm:p-4 border-b border-gray-200 dark:border-slate-700">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3">
           Audit Information
         </h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               Area Manager
@@ -1657,15 +1657,15 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                         setAmSearchTerm('');
                         setShowAmDropdown(false);
                       }}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
                         index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
                       }`}
                     >
-                      {am.name} ({am.id})
+                      <div className="truncate">{am.name} ({am.id})</div>
                     </button>
                   ))
                 ) : (
-                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400">No area managers found</div>
+                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No area managers found</div>
                 )}
               </div>
             )}
@@ -1703,7 +1703,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             {showTrainerDropdown && !isTrainerIdFromURL && (
               <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
                 {uniqueTrainers.length === 0 ? (
-                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400">No trainers found</div>
+                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No trainers found</div>
                 ) : filteredTrainers.length > 0 ? (
                   filteredTrainers.map((trainer, index) => (
                     <button
@@ -1715,15 +1715,15 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                         setTrainerSearchTerm('');
                         setShowTrainerDropdown(false);
                       }}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
                         index === selectedTrainerIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
                       }`}
                     >
-                      {trainer.name} ({trainer.id})
+                      <div className="truncate">{trainer.name} ({trainer.id})</div>
                     </button>
                   ))
                 ) : (
-                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400">No trainers found</div>
+                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No trainers found</div>
                 )}
               </div>
             )}
@@ -1761,15 +1761,15 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                           setStoreSearchTerm('');
                           setShowStoreDropdown(false);
                         }}
-                        className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${
+                        className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
                           index === selectedStoreIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
                         }`}
                       >
-                        {store.name} ({store.id})
+                        <div className="truncate">{store.name} ({store.id})</div>
                       </button>
                     ))
                   ) : (
-                    <div className="px-3 py-2 text-gray-500 dark:text-slate-400">No stores found</div>
+                    <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No stores found</div>
                   )}
                 </div>
               )}
@@ -1792,7 +1792,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       </div>
 
       {/* Training Sections - Full Width */}
-      <div className="bg-white dark:bg-slate-800 p-4" data-tour="checklist-form">
+      <div className="bg-white dark:bg-slate-800 p-3 sm:p-4" data-tour="checklist-form">
         {/* Voice controls for quick filling - HIDDEN */}
         {false && (
           <div className="mb-4 p-3 border border-dashed rounded bg-gray-50 dark:bg-slate-900/50">
@@ -1812,7 +1812,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
           </div>
         )}
 
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3">
           Training Assessment
         </h2>
         
@@ -1844,8 +1844,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
               return (
                 <div key={section.id} className="border-l-4 border-orange-500 pl-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <div className="min-w-0 flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
                         {section.title}
                       </h3>
@@ -1859,9 +1859,10 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                     <button
                       type="button"
                       onClick={() => setTsaExpanded(!tsaExpanded)}
-                      className="flex items-center gap-2 px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-800 rounded-lg transition-colors"
+                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-800 rounded-lg transition-colors shrink-0 w-full sm:w-auto"
                     >
-                      {tsaExpanded ? 'Collapse' : 'Expand'} Assessment
+                      <span className="text-sm sm:text-base">{tsaExpanded ? 'Collapse' : 'Expand'}</span>
+                      <span className="hidden sm:inline">Assessment</span>
                       <svg 
                         className={`w-4 h-4 transition-transform ${tsaExpanded ? 'rotate-180' : ''}`} 
                         fill="none" 
@@ -1882,13 +1883,13 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                           </h4>
                           <div className="space-y-2">
                             {items.map((item, itemIndex) => (
-                              <div key={item.id} className="p-2 border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                              <div key={item.id} className="p-2 sm:p-3 border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors rounded">
                                 <div className="flex items-start gap-2">
-                                  <span className="inline-flex items-center justify-center w-4 h-4 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
+                                  <span className="inline-flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
                                     {itemIndex + 1}
                                   </span>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-tight mb-2">
+                                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-slate-100 leading-tight mb-2">
                                       {item.q}
                                     </p>
                                     <div className="">
@@ -1897,20 +1898,20 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                                           type="text"
                                           value={responses[`${section.id}_${item.id}`] || ''}
                                           onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
-                                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                          className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
                                           placeholder="Enter value"
                                         />
                                       ) : (
-                                        <div className="flex gap-3">
+                                        <div className="flex flex-wrap gap-2 sm:gap-3">
                                           {['yes', 'no', 'na'].map(option => (
-                                            <label key={option} className="flex items-center space-x-1 cursor-pointer">
+                                            <label key={option} className="flex items-center space-x-1 cursor-pointer min-w-0 shrink-0">
                                               <input
                                                 type="radio"
                                                 name={`${section.id}_${item.id}`}
                                                 value={option}
                                                 checked={responses[`${section.id}_${item.id}`] === option}
                                                 onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                                className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500"
+                                                className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500 shrink-0"
                                               />
                                               <span className="text-sm text-gray-700 dark:text-slate-300 capitalize">{option}</span>
                                             </label>
@@ -1971,8 +1972,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
               return (
                 <div key={section.id} className="border-l-4 border-yellow-500 pl-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <div className="min-w-0 flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
                         {section.title}
                       </h3>
@@ -1986,9 +1987,10 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                     <button
                       type="button"
                       onClick={() => setTsaCoffeeExpanded(!tsaCoffeeExpanded)}
-                      className="flex items-center gap-2 px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg transition-colors"
+                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg transition-colors shrink-0 w-full sm:w-auto"
                     >
-                      {tsaCoffeeExpanded ? 'Collapse' : 'Expand'} Assessment
+                      <span className="text-sm sm:text-base">{tsaCoffeeExpanded ? 'Collapse' : 'Expand'}</span>
+                      <span className="hidden sm:inline">Assessment</span>
                       <svg 
                         className={`w-4 h-4 transition-transform ${tsaCoffeeExpanded ? 'rotate-180' : ''}`} 
                         fill="none" 
@@ -2007,15 +2009,15 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                           <h4 className="text-sm font-semibold text-yellow-700 dark:text-yellow-300 mb-2">
                             {subsectionName}
                           </h4>
-                          <div className="space-y-3">
+                          <div className="space-y-2 sm:space-y-3">
                             {items.map((item, itemIndex) => (
-                              <div key={item.id} className="p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                <div className="flex items-start gap-3">
-                                  <span className="inline-flex items-center justify-center w-5 h-5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
+                              <div key={item.id} className="p-2 sm:p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div className="flex items-start gap-2 sm:gap-3">
+                                  <span className="inline-flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
                                     {itemIndex + 1}
                                   </span>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-3">
+                                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-2 sm:mb-3">
                                       {item.q}
                                     </p>
                                     <div className="">
@@ -2024,20 +2026,20 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                                           type="text"
                                           value={responses[`${section.id}_${item.id}`] || ''}
                                           onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
-                                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                          className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
                                           placeholder="Enter value"
                                         />
-                                      ) : (
-                                        <div className="flex gap-4">
+                                      ) : (                                                                                                                                                                                                                                                 
+                                        <div className="flex flex-wrap gap-2 sm:gap-4">
                                           {['yes', 'no', 'na'].map(option => (
-                                            <label key={option} className="flex items-center space-x-2 cursor-pointer">
+                                            <label key={option} className="flex items-center space-x-1 sm:space-x-2 cursor-pointer min-w-0 shrink-0">
                                               <input
                                                 type="radio"
                                                 name={`${section.id}_${item.id}`}
                                                 value={option}
                                                 checked={responses[`${section.id}_${item.id}`] === option}
                                                 onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                                className="w-4 h-4 text-yellow-600 border-gray-300 dark:border-slate-600 focus:ring-yellow-500"
+                                                className="w-4 h-4 text-yellow-600 border-gray-300 dark:border-slate-600 focus:ring-yellow-500 shrink-0"
                                               />
                                               <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
                                             </label>
@@ -2098,8 +2100,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
               return (
                 <div key={section.id} className="border-l-4 border-blue-500 pl-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <div className="min-w-0 flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
                         {section.title}
                       </h3>
@@ -2113,9 +2115,10 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                     <button
                       type="button"
                       onClick={() => setTsaCXExpanded(!tsaCXExpanded)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors"
+                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors shrink-0 w-full sm:w-auto"
                     >
-                      {tsaCXExpanded ? 'Collapse' : 'Expand'} Assessment
+                      <span className="text-sm sm:text-base">{tsaCXExpanded ? 'Collapse' : 'Expand'}</span>
+                      <span className="hidden sm:inline">Assessment</span>
                       <svg 
                         className={`w-4 h-4 transition-transform ${tsaCXExpanded ? 'rotate-180' : ''}`} 
                         fill="none" 
@@ -2134,15 +2137,15 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                           <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">
                             {subsectionName}
                           </h4>
-                          <div className="space-y-3">
+                          <div className="space-y-2 sm:space-y-3">
                             {items.map((item, itemIndex) => (
-                              <div key={item.id} className="p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                <div className="flex items-start gap-3">
-                                  <span className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
+                              <div key={item.id} className="p-2 sm:p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div className="flex items-start gap-2 sm:gap-3">
+                                  <span className="inline-flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
                                     {itemIndex + 1}
                                   </span>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-3">
+                                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-2 sm:mb-3">
                                       {item.q}
                                     </p>
                                     <div className="">
@@ -2151,20 +2154,20 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                                           type="text"
                                           value={responses[`${section.id}_${item.id}`] || ''}
                                           onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
-                                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                          className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
                                           placeholder="Enter value"
                                         />
                                       ) : (
-                                        <div className="flex gap-4">
+                                        <div className="flex flex-wrap gap-2 sm:gap-4">
                                           {['yes', 'no', 'na'].map(option => (
-                                            <label key={option} className="flex items-center space-x-2 cursor-pointer">
+                                            <label key={option} className="flex items-center space-x-1 sm:space-x-2 cursor-pointer min-w-0 shrink-0">
                                               <input
                                                 type="radio"
                                                 name={`${section.id}_${item.id}`}
                                                 value={option}
                                                 checked={responses[`${section.id}_${item.id}`] === option}
                                                 onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                                className="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-600 focus:ring-blue-500"
+                                                className="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-600 focus:ring-blue-500 shrink-0"
                                               />
                                               <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
                                             </label>
@@ -2206,27 +2209,27 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                   {section.title}
                 </h3>
                 
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {section.items.map((item, itemIndex) => (
-                    <div key={item.id} className="p-4 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                      <div className="flex items-start gap-3">
-                        <span className="inline-flex items-center justify-center w-6 h-6 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
+                    <div key={item.id} className="p-3 sm:p-4 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                      <div className="flex items-start gap-2 sm:gap-3">
+                        <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
                           {itemIndex + 1}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-3">
+                          <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-2 sm:mb-3">
                             {item.q}
                           </p>
-                          <div className="flex gap-4">
+                          <div className="flex flex-wrap gap-2 sm:gap-4">
                             {['yes', 'no', 'na'].map(option => (
-                              <label key={option} className="flex items-center space-x-2 cursor-pointer">
+                              <label key={option} className="flex items-center space-x-1 sm:space-x-2 cursor-pointer min-w-0 shrink-0">
                                 <input
                                   type="radio"
                                   name={`${section.id}_${item.id}`}
                                   value={option}
                                   checked={responses[`${section.id}_${item.id}`] === option}
                                   onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                  className="w-4 h-4 text-purple-600 border-gray-300 dark:border-slate-600 focus:ring-purple-500"
+                                  className="w-4 h-4 text-purple-600 border-gray-300 dark:border-slate-600 focus:ring-purple-500 shrink-0"
                                 />
                                 <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
                               </label>
@@ -2258,11 +2261,11 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       </div>
 
       {/* Submit Buttons */}
-      <div className="w-full px-4 py-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="w-full px-3 sm:px-4 py-4 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3 max-w-md mx-auto">
           <button
             onClick={resetChecklist}
-            className="w-full sm:w-1/2 px-5 py-3 bg-transparent border border-gray-300 dark:border-slate-600 text-gray-800 dark:text-slate-100 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
+            className="w-full sm:w-auto px-4 sm:px-5 py-3 bg-transparent border border-gray-300 dark:border-slate-600 text-gray-800 dark:text-slate-100 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 text-sm sm:text-base"
           >
             Reset Checklist
           </button>
@@ -2271,7 +2274,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             onClick={handleSubmit}
             disabled={isLoading}
             data-tour="submit-button"
-            className="w-full sm:w-1/2 px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 disabled:opacity-60 text-white rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-400"
+            className="w-full sm:w-auto px-4 sm:px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 disabled:opacity-60 text-white rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-400 text-sm sm:text-base"
           >
             {isLoading ? 'Submitting...' : 'Submit Training Audit'}
           </button>

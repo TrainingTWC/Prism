@@ -141,7 +141,7 @@ const AppContent: React.FC = () => {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as 'dashboard' | 'ai-insights' | 'checklists')}
                 data-tour={tab.id === 'checklists' ? 'checklist-tab' : tab.id === 'dashboard' ? 'dashboard-tab' : ''}
-                className={`flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 ${
+                className={`flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 outline-none ${
                   activeTab === tab.id
                     ? 'border-sky-400 text-sky-400'
                     : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 hover:border-gray-300 dark:hover:border-slate-300'

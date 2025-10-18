@@ -59,6 +59,22 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open');
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.classList.remove('modal-open');
+      document.documentElement.style.overflow = 'auto';
+    }
+
+    return () => {
+      document.body.classList.remove('modal-open');
+      document.documentElement.style.overflow = 'auto';
+    };
+  }, [isOpen]);
+
   // Handle browser back button on mobile - disabled for now to prevent conflicts
   // Can be re-enabled if needed with more sophisticated state management
   /*
@@ -115,7 +131,10 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
   }, [isOpen]);
 
   const stats = useMemo(() => {
-    console.log('TrainingDetailModal stats calculation:', { submissions: submissions?.length || 0 });
+    console.log('TrainingDetailModal stats calculation:', { 
+      submissions: submissions?.length || 0,
+      title 
+    });
     
     if (!submissions || submissions.length === 0) {
       return {
@@ -143,7 +162,11 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
     if (filterType && filterValue) {
       console.log('Filtering by:', { filterType, filterValue, totalSubmissions: submissions.length });
       
-      if (filterType === 'scoreRange') {
+      // Special case: for "All Training Submissions", don't filter - show all data
+      if (title === 'All Training Submissions' && filterValue === 'all') {
+        console.log('Showing all training submissions without filtering');
+        filteredSubmissions = submissions;
+      } else if (filterType === 'scoreRange') {
         // Parse score range like "90-100" or "60-69"
         const rangeStr = filterValue.toString();
         const [minStr, maxStr] = rangeStr.split('-');
@@ -155,10 +178,12 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
           return score >= minScore && score <= maxScore;
         });
       } else if (filterType === 'region') {
-        // Filter by region
-        filteredSubmissions = submissions.filter(sub => 
-          sub.region === filterValue
-        );
+        // Filter by region (only if not 'all')
+        if (filterValue !== 'all') {
+          filteredSubmissions = submissions.filter(sub => 
+            sub.region === filterValue
+          );
+        }
       } else if (filterType === 'am' || filterType === 'trainer' || filterType === 'hr') {
         // Filter by trainer name
         filteredSubmissions = submissions.filter(sub => 
@@ -296,7 +321,7 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
       questionBreakdown: [],
       filteredSubmissions // Add filtered submissions to return value
     };
-  }, [submissions, filterType, filterValue]);
+  }, [submissions, filterType, filterValue, title]);
 
   const handleRegionClick = (region: string) => {
     setSelectedRegion(region);
@@ -326,7 +351,7 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
   if (!isOpen) return null;
 
   // Early return if no submissions data to prevent errors
-    if (!submissions || submissions.length === 0) {
+  if (!submissions || submissions.length === 0) {
     return (
       <div 
         className="fixed inset-0 flex items-center justify-center z-50"
@@ -336,12 +361,12 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
         <div className="rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-xl font-bold text-white">
               {title}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="text-gray-300 hover:text-white transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -356,29 +381,51 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
     );
   }
 
+
+
   return (
     <div 
-      className="fixed inset-0 flex items-center justify-center z-50"
+      className="modal-overlay fixed inset-0 flex items-center justify-center z-[9999]"
       onClick={handleBackdropClick}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      style={{ background: 'rgba(2,6,23,0.72)', backdropFilter: 'blur(20px) saturate(120%)' }}
+      style={{ 
+        background: 'rgba(0,0,0,0.2)', 
+        backdropFilter: 'blur(25px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(25px) saturate(180%)',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
+        margin: 0,
+        padding: 0
+      }}
     >
       <div 
         ref={modalContentRef}
-        className="rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+        className="rounded-lg shadow-xl max-w-7xl w-[95vw] mx-4 max-h-[95vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
-        style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ 
+          background: 'rgba(255,255,255,0.1)', 
+          border: '1px solid rgba(255,255,255,0.3)',
+          backdropFilter: 'blur(20px) saturate(120%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(120%)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+          backgroundColor: 'rgba(0, 0, 0, 0.35)'
+        }}
       >
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto max-h-[90vh]">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-2xl font-bold text-white">
               {title}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="text-gray-300 hover:text-white transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -386,51 +433,290 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
             </button>
           </div>
 
-          {/* Overview Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Submissions</h3>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.totalSubmissions}</p>
+          {/* Show custom content for Total Submissions */}
+          {title === 'All Training Submissions' ? (
+            <div className="space-y-8">
+              {/* Latest Submission */}
+              <div className="bg-white/3 border border-white/20 p-6 rounded-lg">
+                <h3 className="text-lg font-semibold text-white mb-4">Latest Submission</h3>
+                {stats.filteredSubmissions.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {(() => {
+                      // Sort by submission time - try multiple possible field names and log the data
+                      console.log('Sample submission data for debugging:', stats.filteredSubmissions.slice(0, 3).map(sub => ({
+                        store: sub.storeName || sub.storeId,
+                        allTimeFields: Object.keys(sub).filter(key => 
+                          key.toLowerCase().includes('time') || 
+                          key.toLowerCase().includes('date') || 
+                          key.toLowerCase().includes('timestamp')
+                        ),
+                        submissionTime: sub.submissionTime,
+                        submissionDate: sub.submissionDate,
+                        timestamp: sub.timestamp
+                      })));
+                      
+                      const latest = stats.filteredSubmissions.sort((a, b) => {
+                        // Try different possible date field names
+                        const timeA = a.submissionTime || a.submissionDate || a.timestamp || a.Timestamp || a['Submission Time'] || '';
+                        const timeB = b.submissionTime || b.submissionDate || b.timestamp || b.Timestamp || b['Submission Time'] || '';
+                        
+                        const dateA = new Date(timeA).getTime();
+                        const dateB = new Date(timeB).getTime();
+                        
+                        // If both dates are invalid, maintain original order
+                        if (isNaN(dateA) && isNaN(dateB)) return 0;
+                        // If one date is invalid, put the valid one first
+                        if (isNaN(dateA)) return 1;
+                        if (isNaN(dateB)) return -1;
+                        
+                        return dateB - dateA; // Most recent first
+                      })[0];
+                      
+                      console.log('Latest submission selected:', {
+                        store: latest.storeName || latest.storeId,
+                        time: latest.submissionTime || latest.submissionDate || latest.timestamp || latest.Timestamp || latest['Submission Time'],
+                        trainer: latest.trainerName,
+                        allTimeFields: Object.keys(latest).filter(key => 
+                          key.toLowerCase().includes('time') || 
+                          key.toLowerCase().includes('date') || 
+                          key.toLowerCase().includes('timestamp')
+                        )
+                      });
+                      
+                      const submissionTimeField = latest.submissionTime || latest.submissionDate || latest.timestamp || latest.Timestamp || latest['Submission Time'] || '';
+                      
+                      return (
+                        <>
+                          <div className="text-center">
+                            <p className="text-sm text-white">Date</p>
+                            <p className="text-lg font-bold text-white">
+                              {submissionTimeField ? new Date(submissionTimeField).toLocaleDateString() : 'Invalid Date'}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm text-white">Store</p>
+                            <p className="text-lg font-bold text-white">
+                              {latest.locationName || latest.storeName || latest.storeId || latest.storeID || 'N/A'}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm text-white">Trainer</p>
+                            <p className="text-lg font-bold text-white">
+                              {latest.trainerName || 'N/A'}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm text-white">Score</p>
+                            <p className="text-lg font-bold text-white">
+                              {latest.percentageScore || '0'}%
+                            </p>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 dark:text-gray-400">No submissions available</p>
+                )}
+              </div>
+
+              {/* Stores with Highest to Lowest Submissions */}
+              <div className="bg-white/3 border border-white/20 p-6 rounded-lg">
+                <h3 className="text-lg font-semibold text-white mb-4">Stores by Submission Count</h3>
+                <div className="overflow-x-auto rounded-lg border border-white/10">
+                  <div>
+                    <table className="min-w-full divide-y divide-white/10">
+                      <thead className="bg-white/5">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Store</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Submissions</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Avg Score</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Latest</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                      {(() => {
+                        const storeStats = stats.filteredSubmissions.reduce((acc, sub) => {
+                          const storeKey = sub.storeName || sub.storeId || 'Unknown';
+                          if (!acc[storeKey]) {
+                            acc[storeKey] = {
+                              count: 0,
+                              totalScore: 0,
+                              latest: null as string | null
+                            };
+                          }
+                          acc[storeKey].count++;
+                          acc[storeKey].totalScore += parseFloat(sub.percentageScore || '0');
+                          const subTime = sub.submissionTime || sub.submissionDate || sub.timestamp || '';
+                          const subDate = new Date(subTime);
+                          if (!acc[storeKey].latest || subDate > new Date(acc[storeKey].latest)) {
+                            acc[storeKey].latest = subTime;
+                          }
+                          return acc;
+                        }, {} as Record<string, { count: number; totalScore: number; latest: string | null }>);
+
+                        return Object.entries(storeStats)
+                          .sort(([,a], [,b]) => b.count - a.count)
+                          .slice(0, 10)
+                          .map(([store, data]) => (
+                            <tr key={store} className="hover:bg-white/5">
+                              <td className="px-4 py-3 text-sm font-medium text-white">{store}</td>
+                              <td className="px-4 py-3 text-sm text-white">{data.count}</td>
+                              <td className="px-4 py-3 text-sm text-white">
+                                {Math.round(data.totalScore / data.count)}%
+                              </td>
+                              <td className="px-4 py-3 text-sm text-white">
+                                {data.latest ? new Date(data.latest).toLocaleDateString() : 'N/A'}
+                              </td>
+                            </tr>
+                          ));
+                      })()}
+                    </tbody>
+                  </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Months with Highest Submissions */}
+              <div className="bg-white/3 border border-white/20 p-6 rounded-lg">
+                <h3 className="text-lg font-semibold text-white mb-4">Monthly Submission Trends</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {(() => {
+                    const monthStats = stats.filteredSubmissions.reduce((acc, sub) => {
+                      const date = new Date(sub.submissionTime || sub.submissionDate || sub.timestamp || '');
+                      const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
+                      const monthName = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+                      
+                      if (!acc[monthKey]) {
+                        acc[monthKey] = { name: monthName, count: 0 };
+                      }
+                      acc[monthKey].count++;
+                      return acc;
+                    }, {} as Record<string, { name: string; count: number }>);
+
+                    return Object.entries(monthStats)
+                      .sort(([,a], [,b]) => b.count - a.count)
+                      .slice(0, 8)
+                      .map(([key, data]) => (
+                        <div key={key} className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{data.name}</p>
+                          <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{data.count}</p>
+                        </div>
+                      ));
+                  })()}
+                </div>
+              </div>
+
+              {/* Trainer-wise Submissions */}
+              <div className="bg-white/3 border border-white/20 p-6 rounded-lg">
+                <h3 className="text-lg font-semibold text-white mb-4">Trainer-wise Submissions</h3>
+                <div className="overflow-x-auto rounded-lg border border-white/10">
+                  <div>
+                    <table className="min-w-full divide-y divide-white/10">
+                      <thead className="bg-white/5">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Trainer</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Submissions</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Avg Score</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Best Score</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase">Latest</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                      {(() => {
+                        const trainerStats = stats.filteredSubmissions.reduce((acc, sub) => {
+                          const trainer = sub.trainerName || 'Unknown';
+                          if (!acc[trainer]) {
+                            acc[trainer] = {
+                              count: 0,
+                              totalScore: 0,
+                              bestScore: 0,
+                              latest: null as string | null
+                            };
+                          }
+                          acc[trainer].count++;
+                          const score = parseFloat(sub.percentageScore || '0');
+                          acc[trainer].totalScore += score;
+                          acc[trainer].bestScore = Math.max(acc[trainer].bestScore, score);
+                          const subTime = sub.submissionTime || sub.submissionDate || sub.timestamp || '';
+                          const subDate = new Date(subTime);
+                          if (!acc[trainer].latest || subDate > new Date(acc[trainer].latest)) {
+                            acc[trainer].latest = subTime;
+                          }
+                          return acc;
+                        }, {} as Record<string, { count: number; totalScore: number; bestScore: number; latest: string | null }>);
+
+                        return Object.entries(trainerStats)
+                          .sort(([,a], [,b]) => b.count - a.count)
+                          .map(([trainer, data]) => (
+                            <tr key={trainer} className="hover:bg-white/5">
+                              <td className="px-4 py-3 text-sm font-medium text-white">{trainer}</td>
+                              <td className="px-4 py-3 text-sm text-white">{data.count}</td>
+                              <td className="px-4 py-3 text-sm text-white">
+                                {Math.round(data.totalScore / data.count)}%
+                              </td>
+                              <td className="px-4 py-3 text-sm text-white">
+                                {Math.round(data.bestScore)}%
+                              </td>
+                              <td className="px-4 py-3 text-sm text-white">
+                                {data.latest ? new Date(data.latest).toLocaleDateString() : 'N/A'}
+                              </td>
+                            </tr>
+                          ));
+                      })()}
+                    </tbody>
+                  </table>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">Average Score</h3>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.avgScore}%</p>
+          ) : (
+            // Default overview stats for other modal types
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+              <div className="bg-white/3 backdrop-blur-sm border border-white/20 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-white">Total Submissions</h3>
+                <p className="text-2xl font-bold text-blue-400">{stats.totalSubmissions}</p>
+              </div>
+              <div className="bg-white/3 backdrop-blur-sm border border-white/20 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-white">Average Score</h3>
+                <p className="text-2xl font-bold text-green-400">{stats.avgScore}%</p>
+              </div>
+              <div className="bg-white/3 backdrop-blur-sm border border-white/20 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-white">Pass Rate</h3>
+                <p className="text-2xl font-bold text-purple-400">
+                  {Math.round(((stats.excellent + stats.good) / stats.totalSubmissions) * 100)}%
+                </p>
+              </div>
+              <div className="bg-white/3 backdrop-blur-sm border border-white/20 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-white">Excellence Rate</h3>
+                <p className="text-2xl font-bold text-orange-400">
+                  {Math.round((stats.excellent / stats.totalSubmissions) * 100)}%
+                </p>
+              </div>
             </div>
-            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">Pass Rate</h3>
-              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {Math.round(((stats.excellent + stats.good) / stats.totalSubmissions) * 100)}%
-              </p>
-            </div>
-            <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">Excellence Rate</h3>
-              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {Math.round((stats.excellent / stats.totalSubmissions) * 100)}%
-              </p>
-            </div>
-          </div>
+          )}
 
           {/* TSA Scores */}
           {(stats.avgTSAFood > 0 || stats.avgTSACoffee > 0 || stats.avgTSACX > 0) && (
             <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">TSA Performance</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">TSA Performance</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {stats.avgTSAFood > 0 && (
-                  <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300">TSA Food</h4>
-                    <p className="text-xl font-bold text-red-600 dark:text-red-400">{stats.avgTSAFood}%</p>
+                  <div className="bg-white/3 backdrop-blur-sm border border-white/20 p-4 rounded-lg">
+                    <h4 className="text-sm font-medium text-white">TSA Food</h4>
+                    <p className="text-xl font-bold text-red-400">{stats.avgTSAFood}%</p>
                   </div>
                 )}
                 {stats.avgTSACoffee > 0 && (
-                  <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300">TSA Coffee</h4>
-                    <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{stats.avgTSACoffee}%</p>
+                  <div className="bg-white/3 backdrop-blur-sm border border-white/20 p-4 rounded-lg">
+                    <h4 className="text-sm font-medium text-white">TSA Coffee</h4>
+                    <p className="text-xl font-bold text-amber-400">{stats.avgTSACoffee}%</p>
                   </div>
                 )}
                 {stats.avgTSACX > 0 && (
-                  <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300">TSA CX</h4>
-                    <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{stats.avgTSACX}%</p>
+                  <div className="bg-white/3 backdrop-blur-sm border border-white/20 p-4 rounded-lg">
+                    <h4 className="text-sm font-medium text-white">TSA CX</h4>
+                    <p className="text-xl font-bold text-indigo-400">{stats.avgTSACX}%</p>
                   </div>
                 )}
               </div>
@@ -440,34 +726,35 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
           {/* Section Question Breakdown */}
           {stats.sectionBreakdown.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              <h3 className="text-lg font-semibold text-white mb-4">
                 Question-wise Performance for {filterValue}
               </h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Question
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Avg Score
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Pass Rate
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Responses
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <div className="overflow-x-auto rounded-lg border border-white/10">
+                <div>
+                  <table className="min-w-full divide-y divide-white/10">
+                    <thead className="bg-white/5">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Question
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Avg Score
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Pass Rate
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Responses
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
                     {stats.sectionBreakdown.map((item, index) => (
-                      <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      <tr key={index} className="hover:bg-white/5">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                           {item.question}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                           <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                             item.avgScore >= 90 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
                             item.avgScore >= 75 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
@@ -476,51 +763,52 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
                             {item.avgScore}%
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                           {item.passRate}%
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                           {item.totalResponses}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}
 
           {/* Score Distribution */}
           <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Score Distribution</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">Score Distribution</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div 
-                className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                className="bg-white/3 backdrop-blur-sm border border-white/20 p-4 rounded-lg cursor-pointer hover:bg-white/5 transition-colors"
                 onClick={() => handleScoreRangeClick('90-100')}
               >
-                <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300">Excellent (90-100%)</h4>
-                <p className="text-xl font-bold text-green-600 dark:text-green-400">{stats.excellent}</p>
+                <h4 className="text-sm font-medium text-white">Excellent (90-100%)</h4>
+                <p className="text-xl font-bold text-green-400">{stats.excellent}</p>
               </div>
               <div 
-                className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                className="bg-white/3 backdrop-blur-sm border border-white/20 p-4 rounded-lg cursor-pointer hover:bg-white/5 transition-colors"
                 onClick={() => handleScoreRangeClick('75-89')}
               >
-                <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300">Good (75-89%)</h4>
-                <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{stats.good}</p>
+                <h4 className="text-sm font-medium text-white">Good (75-89%)</h4>
+                <p className="text-xl font-bold text-blue-400">{stats.good}</p>
               </div>
               <div 
-                className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors"
+                className="bg-white/3 backdrop-blur-sm border border-white/20 p-4 rounded-lg cursor-pointer hover:bg-white/5 transition-colors"
                 onClick={() => handleScoreRangeClick('60-74')}
               >
-                <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300">Average (60-74%)</h4>
-                <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400">{stats.average}</p>
+                <h4 className="text-sm font-medium text-white">Average (60-74%)</h4>
+                <p className="text-xl font-bold text-yellow-400">{stats.average}</p>
               </div>
               <div 
-                className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                className="bg-white/3 backdrop-blur-sm border border-white/20 p-4 rounded-lg cursor-pointer hover:bg-white/5 transition-colors"
                 onClick={() => handleScoreRangeClick('0-59')}
               >
-                <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300">Below Average (&lt;60%)</h4>
-                <p className="text-xl font-bold text-red-600 dark:text-red-400">{stats.belowAverage}</p>
+                <h4 className="text-sm font-medium text-white">Below Average (&lt;60%)</h4>
+                <p className="text-xl font-bold text-red-400">{stats.belowAverage}</p>
               </div>
             </div>
           </div>
@@ -528,36 +816,37 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
           {/* Regions Performance */}
           {stats.regions.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Regional Performance</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Region
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Submissions
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Average Score
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <h3 className="text-lg font-semibold text-white mb-4">Regional Performance</h3>
+              <div className="overflow-x-auto rounded-lg border border-white/10">
+                <div>
+                  <table className="min-w-full divide-y divide-white/10">
+                    <thead className="bg-white/5">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Region
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Submissions
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Avg Score
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
                     {stats.regions.map((region, index) => (
                       <tr 
                         key={index} 
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                        className="hover:bg-white/5 cursor-pointer"
                         onClick={() => handleRegionClick(region.region)}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                           {region.region}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                           {region.count}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                           <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                             region.avgScore >= 90 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
                             region.avgScore >= 75 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
@@ -570,6 +859,7 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}
@@ -577,36 +867,37 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
           {/* Trainers Performance */}
           {stats.trainers.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Trainer Performance</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Trainer
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Submissions
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Average Score
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <h3 className="text-lg font-semibold text-white mb-4">Trainer Performance</h3>
+              <div className="overflow-x-auto rounded-lg border border-white/10">
+                <div>
+                  <table className="min-w-full divide-y divide-white/10">
+                    <thead className="bg-white/5">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Trainer
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Submissions
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Avg Score
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
                     {stats.trainers.map((trainer, index) => (
                       <tr 
                         key={index} 
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                        className="hover:bg-white/5 cursor-pointer"
                         onClick={() => handleTrainerClick(trainer.trainer)}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                           {trainer.trainer}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                           {trainer.count}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                           <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                             trainer.avgScore >= 90 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
                             trainer.avgScore >= 75 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
@@ -619,59 +910,61 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}
 
           {/* Recent Submissions */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Submissions</h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Store
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Region
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Trainer
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Score
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <h3 className="text-lg font-semibold text-white mb-4">Recent Submissions</h3>
+            <div className="overflow-x-auto rounded-lg border border-white/10">
+              <div>
+                <table className="min-w-full divide-y divide-white/10">
+                  <thead className="bg-white/5">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                        DATE
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                        STORE
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                        Region
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                        Trainer
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                        Score
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
                   {(stats.filteredSubmissions || []).slice(0, 10).map((submission, index) => (
-                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <tr key={index} className="hover:bg-white/5">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                         {submission.submissionTime ? new Date(submission.submissionTime).toLocaleDateString() : 'N/A'}
                       </td>
                       <td 
-                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                        className="px-6 py-4 whitespace-nowrap text-sm text-white cursor-pointer hover:text-blue-300"
                         onClick={() => handleStoreClick(submission.storeName || '')}
                       >
                         {submission.storeName || 'N/A'}
                       </td>
                       <td 
-                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                        className="px-6 py-4 whitespace-nowrap text-sm text-white cursor-pointer hover:text-blue-300"
                         onClick={() => handleRegionClick(submission.region || '')}
                       >
                         {submission.region || 'N/A'}
                       </td>
                       <td 
-                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                        className="px-6 py-4 whitespace-nowrap text-sm text-white cursor-pointer hover:text-blue-300"
                         onClick={() => handleTrainerClick(submission.trainerName || '')}
                       >
                         {submission.trainerName || 'N/A'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                           parseFloat(submission.percentageScore || '0') >= 90 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
                           parseFloat(submission.percentageScore || '0') >= 75 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
@@ -684,6 +977,7 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         </div>

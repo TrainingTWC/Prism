@@ -75,55 +75,65 @@ export default function HeaderSummary() {
   const periods = Array.from(new Set(combined.map((r: any) => r.observed_period))).sort();
   const dateRange = periods.length > 0 ? `${periods[0]} to ${periods[periods.length - 1]}` : 'All Time';
 
+  const pillStyleBase: React.CSSProperties = {
+    background: '#0f1724',
+    borderRadius: 9999,
+    // slightly thicker for better proportions
+    padding: '8px 14px',
+    color: '#e6eef8',
+    boxShadow: '0 6px 20px rgba(2,6,23,0.25)',
+    border: '1px solid rgba(255,255,255,0.03)',
+    flex: 1
+  };
+
+  const smallLabel: React.CSSProperties = { fontSize: 12, opacity: 0.9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#cbd5e1' };
+  const bigNumber: React.CSSProperties = { fontSize: 18, fontWeight: 800, marginTop: 0, color: '#ffffff' };
+
   return (
-    <div className="header-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 8 }}>
-      <div style={{ 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-        borderRadius: 8, 
-        padding: '12px 16px',
-        color: '#fff',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{ fontSize: 10, opacity: 0.8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Historic Audits</div>
-        <div style={{ fontSize: 11, opacity: 0.75, marginTop: 1 }}>({dateRange})</div>
-        <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{summary.totalSubmissions}</div>
+    <div className="header-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 8, alignItems: 'center' }}>
+      <div style={{ ...pillStyleBase, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={smallLabel}>Historic Audits</div>
+          <div style={{ fontSize: 13, opacity: 0.85 }}>{dateRange}</div>
+        </div>
+        <div style={bigNumber}>{summary.totalSubmissions}</div>
       </div>
-      <div style={{ 
-        background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 
-        borderRadius: 8, 
-        padding: '12px 16px',
-        color: '#fff',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{ fontSize: 10, opacity: 0.8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Average Score</div>
-        <div style={{ fontSize: 11, opacity: 0.75, marginTop: 1 }}>({dateRange})</div>
-        <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{summary.avgScore ?? '—'}%</div>
+
+      <div style={{ ...pillStyleBase, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={smallLabel}>Average Score</div>
+          <div style={{ fontSize: 13, opacity: 0.85 }}>{dateRange}</div>
+        </div>
+        <div style={bigNumber}>{summary.avgScore ?? '—'}%</div>
       </div>
-      <div style={{ 
-        background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', 
-        borderRadius: 8, 
-        padding: '12px 16px',
-        color: '#fff',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{ fontSize: 10, opacity: 0.8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Store Health</div>
-        <div style={{ fontSize: 11, opacity: 0.75, marginBottom: 4 }}>(Overall Average)</div>
-        <div style={{ display: 'flex', gap: 10, fontSize: 12, fontWeight: 600 }}>
-          <span>✓ {summary.storeHealth.healthy}</span>
-          <span>⚠ {summary.storeHealth.warning}</span>
-          <span>✗ {summary.storeHealth.critical}</span>
+
+      <div style={{ ...pillStyleBase, display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 18 }}>
+        <div>
+          <div style={smallLabel}>Store Health</div>
+          <div style={{ fontSize: 13, opacity: 0.85 }}>(Overall Average)</div>
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: '#10b981', display: 'inline-block' }} />
+            <span style={{ fontWeight: 800, fontSize: 18 }}>{summary.storeHealth.healthy}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: '#f59e0b', display: 'inline-block' }} />
+            <span style={{ fontWeight: 800, fontSize: 18 }}>{summary.storeHealth.warning}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: '#ef4444', display: 'inline-block' }} />
+            <span style={{ fontWeight: 800, fontSize: 18 }}>{summary.storeHealth.critical}</span>
+          </div>
         </div>
       </div>
-      <div style={{ 
-        background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', 
-        borderRadius: 8, 
-        padding: '12px 16px',
-        color: '#fff',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{ fontSize: 10, opacity: 0.8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Stores Covered</div>
-        <div style={{ fontSize: 11, opacity: 0.75, marginTop: 1 }}>(Total Unique)</div>
-        <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{summary.storesCovered}</div>
+
+      <div style={{ ...pillStyleBase, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={smallLabel}>Stores Covered</div>
+          <div style={{ fontSize: 13, opacity: 0.85 }}>(Total Unique)</div>
+        </div>
+        <div style={bigNumber}>{summary.storesCovered}</div>
       </div>
     </div>
   );

@@ -203,6 +203,37 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     setTrainingDetailFilter(null);
   };
 
+  const handleTotalSubmissionsClick = async () => {
+    // Ensure training data is loaded before showing the modal
+    if (!trainingData || trainingData.length === 0) {
+      console.log('Training data not loaded, fetching now...');
+      try {
+        const data = await fetchTrainingData();
+        setTrainingData(data);
+        console.log('✅ Loaded Training data for Total Submissions modal:', data.length);
+      } catch (err) {
+        console.error('❌ Failed to load Training data:', err);
+        return; // Don't open modal if data loading fails
+      }
+    }
+    
+    setTrainingDetailFilter({
+      type: 'region', // Use region type to show all data
+      value: 'all',
+      title: 'All Training Submissions'
+    });
+    setShowTrainingDetail(true);
+  };
+
+  const handleStoresCoveredClick = () => {
+    setTrainingDetailFilter({
+      type: 'region', // Use region type to show all data  
+      value: 'all',
+      title: 'All Stores Covered'
+    });
+    setShowTrainingDetail(true);
+  };
+
   // Auto-populate filters from URL parameters - but only when explicitly intended for dashboard filtering
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -2388,44 +2419,54 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           {/* Stats Grid - Different layouts based on dashboard type */}
           {dashboardType === 'training' ? (
             <>
-              {/* Training Stats - Horizontal on mobile, then pie chart below */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5 items-stretch">
-                <StatCard title="Total Submissions" value={stats?.totalSubmissions} />
-                <StatCard title="Stores Covered" value={stats?.uniqueStores} />
-                {/* For training dashboard, provide structured avg data so StatCard can render trend */}
-                <StatCard title="Audit Percentage" value={{
-                  latest: stats?.latestScore ?? (typeof stats?.avgScore === 'number' ? Math.round(stats.avgScore) : undefined),
-                  previous: stats?.previousScore ?? null,
-                  aggregate: (!stats?.latestScore && stats?.avgScore) ? Math.round(stats.avgScore) : undefined
-                }} />
-                {/* Store Health rendered as a card in the grid */}
-                <div className="bg-white dark:bg-slate-800/50 backdrop-blur-sm p-3 sm:p-5 rounded-xl shadow-lg border border-gray-200 dark:border-slate-700">
-                  <TrainingHealthPieChart
-                    submissions={filteredTrainingData}
-                    onOpenDetails={(filterType, value, title) => {
-                      // Open the training detail modal with a filter matching the clicked slice
-                      if (title === 'Needs Attention') {
-                        setTrainingDetailFilter({ type: 'scoreRange', value: '0-55', title: 'Needs Attention' });
-                      } else if (title === 'Brewing') {
-                        setTrainingDetailFilter({ type: 'scoreRange', value: '56-80', title: 'Brewing' });
-                      } else if (title === 'Perfect Shot') {
-                        setTrainingDetailFilter({ type: 'scoreRange', value: '81-100', title: 'Perfect Shot' });
-                      }
-                      setShowTrainingDetail(true);
-                    }}
-                  />
+              {/* Training Stats - Responsive layout with premium design */}
+              <div className="space-y-6 mb-8 px-2">
+                {/* Top row: Total Submissions and Stores Covered side by side */}
+                <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+                  <StatCard title="Total Submissions" value={stats?.totalSubmissions} onClick={handleTotalSubmissionsClick} />
+                  <StatCard title="Stores Covered" value={stats?.uniqueStores} onClick={handleStoresCoveredClick} />
+                </div>
+                
+                {/* Second row: Audit Percentage full width */}
+                <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:gap-8">
+                  {/* For training dashboard, provide structured avg data so StatCard can render trend */}
+                  <StatCard title="Audit Percentage" value={{
+                    latest: stats?.latestScore ?? (typeof stats?.avgScore === 'number' ? Math.round(stats.avgScore) : undefined),
+                    previous: stats?.previousScore ?? null,
+                    aggregate: (!stats?.latestScore && stats?.avgScore) ? Math.round(stats.avgScore) : undefined
+                  }} />
+                </div>
+                
+                {/* Store Health pill - separate row with center alignment */}
+                <div className="flex justify-center">
+                  <div className="w-full max-w-md sm:max-w-lg">
+                    <TrainingHealthPieChart
+                        submissions={filteredTrainingData}
+                        onOpenDetails={(filterType, value, title) => {
+                          // Open the training detail modal with a filter matching the clicked slice
+                          if (title === 'Needs Attention') {
+                            setTrainingDetailFilter({ type: 'scoreRange', value: '0-55', title: 'Needs Attention' });
+                          } else if (title === 'Brewing') {
+                            setTrainingDetailFilter({ type: 'scoreRange', value: '56-80', title: 'Brewing' });
+                          } else if (title === 'Perfect Shot') {
+                            setTrainingDetailFilter({ type: 'scoreRange', value: '81-100', title: 'Perfect Shot' });
+                          }
+                          setShowTrainingDetail(true);
+                        }}
+                      />
+                  </div>
                 </div>
               </div>
             </>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-              <StatCard title="Total Submissions" value={stats?.totalSubmissions} />
+              <StatCard title="Total Submissions" value={stats?.totalSubmissions} onClick={handleTotalSubmissionsClick} />
               <StatCard title="Average Score" value={String(getAverageScoreDisplay())} />
               <StatCard 
                 title={dashboardType === 'operations' ? "Trainers Involved" : "Employees Surveyed"} 
                 value={stats?.uniqueEmployees} 
               />
-              <StatCard title="Stores Covered" value={stats?.uniqueStores} />
+              <StatCard title="Stores Covered" value={stats?.uniqueStores} onClick={handleStoresCoveredClick} />
             </div>
           )}
 
@@ -2593,7 +2634,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         <TrainingDetailModal
           isOpen={showTrainingDetail}
           onClose={closeTrainingDetail}
-          submissions={filteredTrainingData || []}
+          submissions={trainingDetailFilter.title === 'All Training Submissions' ? (trainingData || []) : (filteredTrainingData || [])}
           filterType={trainingDetailFilter.type}
           filterValue={trainingDetailFilter.value}
           title={trainingDetailFilter.title}

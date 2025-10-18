@@ -75,7 +75,8 @@ const TrainingHRPerformanceInfographic: React.FC<TrainingHRPerformanceInfographi
       submissions.forEach(submission => {
         section.questions.forEach(questionId => {
           const response = submission[questionId];
-          if (response !== undefined && response !== null && response !== '') {
+          // Count responses: include 0 as valid, but exclude undefined, null, empty string, and 'na'/'NA'
+          if (response !== undefined && response !== null && response !== '' && response !== 'na' && response !== 'NA') {
             responseCount++;
             
             // For binary yes/no questions
@@ -95,10 +96,10 @@ const TrainingHRPerformanceInfographic: React.FC<TrainingHRPerformanceInfographi
               totalScore += 1;
               maxPossibleScore += 5;
             } else if (!isNaN(parseFloat(response))) {
-              // For numeric responses (TSA questions)
+              // For numeric responses (TSA questions) - includes 0
               totalScore += Math.min(parseFloat(response), 10);
               maxPossibleScore += 10;
-            } else if (response.trim()) {
+            } else if (response.trim && response.trim()) {
               // For text responses, give full score if there's content
               totalScore += 1;
               maxPossibleScore += 1;

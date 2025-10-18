@@ -217,7 +217,7 @@ const TourGuide: React.FC<TourGuideProps> = ({ isActive, onComplete, onSkip }) =
             <div className="text-5xl mb-4">
               {currentStep === 0 ? '👋' : '🎉'}
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            <h2 className="text-2xl font-bold text-white mb-2">
               {step.title}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
@@ -311,7 +311,7 @@ const TourGuide: React.FC<TourGuideProps> = ({ isActive, onComplete, onSkip }) =
           <X className="w-4 h-4" />
         </button>
 
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 pr-6">
+        <h3 className="text-lg font-bold text-white mb-2 pr-6">
           {step.title}
         </h3>
         <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
