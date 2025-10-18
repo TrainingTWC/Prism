@@ -39,6 +39,7 @@ import TrainingRadarChart from './TrainingRadarChart';
 import TrainingHealthPieChart from './TrainingHealthPieChart';
 import OperationsRadarChart from './OperationsRadarChart';
 import TrainingDetailModal from './TrainingDetailModal';
+import NowBarMobile from './NowBarMobile';
 // Multi-Month Trends Components (Google Sheets Integration)
 import HeaderSummary from '../src/components/dashboard/HeaderSummary';
 import StoreTrends from '../src/components/dashboard/StoreTrends';
@@ -2419,8 +2420,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           {/* Stats Grid - Different layouts based on dashboard type */}
           {dashboardType === 'training' ? (
             <>
-              {/* Training Stats - Responsive layout with premium design */}
-              <div className="space-y-6 mb-8 px-2">
+              {/* Training Stats - Desktop/Tablet layout */}
+              <div className="hidden md:block space-y-6 mb-8 px-2">
                 {/* Top row: Total Submissions and Stores Covered side by side */}
                 <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
                   <StatCard title="Total Submissions" value={stats?.totalSubmissions} onClick={handleTotalSubmissionsClick} />
@@ -2495,6 +2496,172 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           {/* Training Dashboard Content */}
           {dashboardType === 'training' && (
             <>
+              {/* Mobile Now Bar - Samsung Galaxy style stacked pills */}
+              {stats && (
+                <NowBarMobile
+                  pills={[
+                    {
+                      id: 'total-submissions',
+                      label: 'Total Submissions',
+                      value: stats.totalSubmissions ?? 0,
+                      onClick: handleTotalSubmissionsClick
+                    },
+                    {
+                      id: 'stores-covered',
+                      label: 'Stores Covered',
+                      value: stats.uniqueStores ?? 0,
+                      onClick: handleStoresCoveredClick
+                    },
+                    {
+                      id: 'audit-percentage',
+                      label: 'Audit Percentage',
+                      value: (
+                        <div className="flex items-center gap-3">
+                          <span className={`text-4xl font-black ${
+                            (stats.latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) < 55 
+                              ? 'text-red-600' 
+                              : (stats.latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) >= 55 && (stats.latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) < 81
+                              ? 'text-amber-500'
+                              : 'text-emerald-500'
+                          }`}>
+                            {stats.latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)}%
+                          </span>
+                          {stats.previousScore !== null && stats.previousScore !== undefined && stats.latestScore !== null && stats.latestScore !== undefined && (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full ${
+                                (stats.latestScore - stats.previousScore) >= 0
+                                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600'
+                                  : 'bg-rose-100 dark:bg-rose-900/30 text-rose-600'
+                              }`}>
+                                <span className="text-xs font-bold">
+                                  {(stats.latestScore - stats.previousScore) >= 0 ? '↗' : '↘'}
+                                </span>
+                                <span className="text-xs font-bold">
+                                  {Math.abs(Math.round(stats.latestScore - stats.previousScore))}%
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">vs prev</span>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    },
+                    {
+                      id: 'store-health',
+                      label: 'Store Health',
+                      value: (() => {
+                        // Calculate health data inline
+                        let needsAttention = 0;
+                        let brewing = 0;
+                        let perfectShot = 0;
+
+                        filteredTrainingData.forEach(submission => {
+                          const percentage = parseFloat(submission.percentageScore || '0');
+                          if (percentage < 56) needsAttention++;
+                          else if (percentage >= 56 && percentage < 81) brewing++;
+                          else if (percentage >= 81) perfectShot++;
+                        });
+
+                        const total = needsAttention + brewing + perfectShot;
+                        
+                        const healthData = [
+                          { name: 'Perfect Shot', value: perfectShot, color: '#10b981' },
+                          { name: 'Brewing', value: brewing, color: '#f59e0b' },
+                          { name: 'Needs Attention', value: needsAttention, color: '#ef4444' }
+                        ];
+
+                        return (
+                          <div className="flex items-center justify-center gap-3 w-full ml-10" onClick={(e) => e.stopPropagation()}>
+                            {/* Compact Pie Chart using SVG */}
+                            <svg width="70" height="70" viewBox="0 0 70 70" className="flex-shrink-0">
+                              {/* White background circle */}
+                              <circle cx="35" cy="35" r="35" fill="white" />
+                              
+                              {total > 0 && (() => {
+                                let currentAngle = -90; // Start from top
+                                
+                                return healthData.map((segment, index) => {
+                                  if (segment.value === 0) return null;
+                                  
+                                  const percentage = segment.value / total;
+                                  const angle = percentage * 360;
+                                  const endAngle = currentAngle + angle;
+                                  
+                                  const startRad = (currentAngle * Math.PI) / 180;
+                                  const endRad = (endAngle * Math.PI) / 180;
+                                  
+                                  const x1 = 35 + 35 * Math.cos(startRad);
+                                  const y1 = 35 + 35 * Math.sin(startRad);
+                                  const x2 = 35 + 35 * Math.cos(endRad);
+                                  const y2 = 35 + 35 * Math.sin(endRad);
+                                  
+                                  const largeArc = angle > 180 ? 1 : 0;
+                                  
+                                  const path = (
+                                    <path
+                                      key={index}
+                                      d={`M 35 35 L ${x1} ${y1} A 35 35 0 ${largeArc} 1 ${x2} ${y2} Z`}
+                                      fill={segment.color}
+                                      stroke="white"
+                                      strokeWidth="3"
+                                      style={{ cursor: 'pointer' }}
+                                      onClick={() => {
+                                        if (segment.name === 'Needs Attention') {
+                                          setTrainingDetailFilter({ type: 'scoreRange', value: '0-55', title: 'Needs Attention' });
+                                        } else if (segment.name === 'Brewing') {
+                                          setTrainingDetailFilter({ type: 'scoreRange', value: '56-80', title: 'Brewing' });
+                                        } else if (segment.name === 'Perfect Shot') {
+                                          setTrainingDetailFilter({ type: 'scoreRange', value: '81-100', title: 'Perfect Shot' });
+                                        }
+                                        setShowTrainingDetail(true);
+                                      }}
+                                    />
+                                  );
+                                  
+                                  currentAngle = endAngle;
+                                  return path;
+                                });
+                              })()}
+                              
+                              {/* Center white circle for donut effect */}
+                              <circle cx="35" cy="35" r="18" fill="white" />
+                            </svg>
+                            
+                            {/* Legend - Right side, smaller and thinner */}
+                            <div className="flex flex-col gap-1.5">
+                              {healthData.map((entry) => (
+                                <div 
+                                  key={entry.name}
+                                  className="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity"
+                                  onClick={() => {
+                                    if (entry.name === 'Needs Attention') {
+                                      setTrainingDetailFilter({ type: 'scoreRange', value: '0-55', title: 'Needs Attention' });
+                                    } else if (entry.name === 'Brewing') {
+                                      setTrainingDetailFilter({ type: 'scoreRange', value: '56-80', title: 'Brewing' });
+                                    } else if (entry.name === 'Perfect Shot') {
+                                      setTrainingDetailFilter({ type: 'scoreRange', value: '81-100', title: 'Perfect Shot' });
+                                    }
+                                    setShowTrainingDetail(true);
+                                  }}
+                                >
+                                  <div 
+                                    className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
+                                    style={{ backgroundColor: entry.color }}
+                                  />
+                                  <span className="text-xl font-bold text-gray-900 dark:text-white leading-none">
+                                    {entry.value}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()
+                    }
+                  ]}
+                />
+              )}
+
               {/* Historic Trends Section - Collapsible */}
               <HistoricTrendsSection />
 
