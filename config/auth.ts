@@ -1,5 +1,7 @@
 // Configuration for Prism Dashboard Authentication
 // Role-based password system for different departments
+// supabase password: J!ddQZYdx**%72C
+//http://192.168.120.219:3001/Prism/?EMPID=h541
 
 export interface RoleConfig {
   password: string;
@@ -48,7 +50,12 @@ export const AUTH_CONFIG: AuthConfig = {
       dashboardAccess: ['finance-dashboard', 'financial-analytics', 'budget-reports']
     },
     admin: {
-      password: 'AdminMaster2024!',
+      password: 'AdminView2024!',
+      permissions: ['operations', 'hr', 'qa', 'training', 'finance', 'dashboard'],
+      dashboardAccess: ['all']
+    },
+    editor: {
+      password: 'Editornotcreator2025!',
       permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'dashboard'],
       dashboardAccess: ['all']
     }

@@ -1,17 +1,21 @@
 import React, { useMemo } from 'react';
 import { TrainingAuditSubmission } from '../services/dataService';
 import InfographicCard from './InfographicCard';
-import { TRAINING_QUESTIONS } from '../constants';
+import { TRAINING_QUESTIONS as STATIC_TRAINING_QUESTIONS } from '../constants';
+import { useConfig } from '../contexts/ConfigContext';
 
 interface TrainingQuestionScoresInfographicProps {
   submissions: TrainingAuditSubmission[];
 }
 
 const TrainingQuestionScoresInfographic: React.FC<TrainingQuestionScoresInfographicProps> = ({ submissions }) => {
+  const { get } = useConfig();
+  const runtimeTrainingQuestions = get('TRAINING_QUESTIONS') || STATIC_TRAINING_QUESTIONS;
+
   const questionScores = useMemo(() => {
     if (!submissions.length) return [];
 
-    const scores = TRAINING_QUESTIONS.map(question => {
+  const scores = (runtimeTrainingQuestions || STATIC_TRAINING_QUESTIONS).map((question: any) => {
       const responses = submissions
         .map(s => s[question.id])
         .filter(response => response !== undefined && response !== null && response !== '');
@@ -50,7 +54,7 @@ const TrainingQuestionScoresInfographic: React.FC<TrainingQuestionScoresInfograp
       });
 
       const averageScore = responses.length > 0 ? (totalScore / responses.length) : 0;
-      const maxScore = maxPossibleScore > 0 ? (maxPossibleScore / responses.length) : 10;
+                    const maxScore = maxPossibleScore > 0 ? (maxPossibleScore / responses.length) : 10;
 
       return {
         id: question.id,

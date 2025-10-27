@@ -4,6 +4,7 @@ import { AREA_MANAGERS } from '../../constants';
 import { hapticFeedback } from '../../utils/haptics';
 import LoadingOverlay from '../LoadingOverlay';
 import hrMappingData from '../../src/hr_mapping.json';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Google Sheets endpoint for logging data
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbytHCowSWXzHY-Ej7NdkCnaObAFpTiSeT2cV1_63_yUUeHJTwMW9-ta_70XcLu--wUxog/exec';
@@ -127,6 +128,8 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
     };
   });
 
+  const { employeeData, userRole: authUserRole } = useAuth();
+
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [allStores, setAllStores] = useState<Store[]>([]);
@@ -137,6 +140,17 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   const [selectedAmIndex, setSelectedAmIndex] = useState(-1);
   const [selectedStoreIndex, setSelectedStoreIndex] = useState(-1);
+
+  // Autofill QA fields when user role is qa
+  useEffect(() => {
+    if (authUserRole === 'qa' && employeeData && !meta.qaId) {
+      setMeta(prev => ({
+        ...prev,
+        qaId: employeeData.code,
+        qaName: employeeData.name
+      }));
+    }
+  }, [authUserRole, employeeData]);
 
   // Load stores from hr_mapping.json
   useEffect(() => {

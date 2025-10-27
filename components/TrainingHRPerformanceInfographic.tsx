@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { TrainingAuditSubmission } from '../services/dataService';
 import InfographicCard from './InfographicCard';
+import { useConfig } from '../contexts/ConfigContext';
 
 interface TrainingHRPerformanceInfographicProps {
   submissions: TrainingAuditSubmission[];
@@ -11,11 +12,13 @@ const TrainingHRPerformanceInfographic: React.FC<TrainingHRPerformanceInfographi
   submissions,
   onSectionClick 
 }) => {
+  const { get } = useConfig();
+  const runtimeSections = get('TRAINING_SECTIONS');
+
   const sectionPerformance = useMemo(() => {
     if (!submissions.length) return [];
-
     // Define training sections with their question IDs and weights
-    const sections = [
+    const defaultSections = [
       {
         id: 'TrainingMaterials',
         title: 'Training Materials',
@@ -66,8 +69,10 @@ const TrainingHRPerformanceInfographic: React.FC<TrainingHRPerformanceInfographi
       }
     ];
 
-    // Calculate performance for each section
-    const performance = sections.map(section => {
+  const sections = runtimeSections && runtimeSections.length ? runtimeSections : defaultSections;
+
+  // Calculate performance for each section
+  const performance = (sections as any).map((section: any) => {
       let totalScore = 0;
       let maxPossibleScore = 0;
       let responseCount = 0;

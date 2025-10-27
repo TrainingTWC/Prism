@@ -17,21 +17,58 @@ const NowBarMobile: React.FC<NowBarMobileProps> = ({ pills }) => {
   const [items, setItems] = useState(pills);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Haptics helper - different patterns for different interactions
+  // Patterns (milliseconds):
+  // light: 10 (subtle)
+  // medium: [20, 10] (tap-like)
+  // strong: [40, 20, 40] (noticeable)
+  const vibrate = (pattern: number | number[]) => {
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        // @ts-ignore - navigator.vibrate exists in browsers that support it
+        navigator.vibrate(pattern);
+      }
+    } catch (e) {
+      // ignore - vibration not supported or blocked
+    }
+  };
+
+  // Update pill data while preserving user's custom order
+  React.useEffect(() => {
+    setItems(prevItems => {
+      // Create a map of updated pills by id
+      const updatedPillsMap = new Map(pills.map(pill => [pill.id, pill]));
+      
+      // Update each item with new data while keeping the current order
+      return prevItems.map(item => updatedPillsMap.get(item.id) || item);
+    });
+  }, [pills]);
+
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
-    
-    // If user flicks up significantly (velocity or distance)
-    if (info.offset.y < -50 || info.velocity.y < -200) {
+
+    // Determine if this was a flick-to-cycle or just a snap back
+    const didCycle = info.offset.y < -80 || info.velocity.y < -500;
+
+    if (didCycle) {
+      // stronger vibration for an actual cycle
+      vibrate([40, 20, 40]);
+
       // Move the top card to the back
       setItems(prev => {
         const [first, ...rest] = prev;
         return [...rest, first];
       });
+    } else {
+      // soft tap/vibration indicating snap back
+      vibrate(10);
     }
   };
 
   const handleTap = (pill: Pill) => {
     if (pill.onClick && !isDragging) {
+      // medium vibration for actionable tap/modal open
+      vibrate([20, 10]);
       pill.onClick();
     }
   };
@@ -55,8 +92,9 @@ const NowBarMobile: React.FC<NowBarMobileProps> = ({ pills }) => {
             <motion.div
               key={pill.id}
               drag={isTop ? "y" : false}
-              dragConstraints={{ top: -200, bottom: 0 }}
-              dragElastic={0.1}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.8}
+              dragMomentum={false}
               onDragStart={() => isTop && setIsDragging(true)}
               onDragEnd={handleDragEnd}
               onTap={() => isTop && handleTap(pill)}

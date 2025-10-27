@@ -39,13 +39,13 @@ const Header: React.FC = () => {
 
   return (
     <header className="p-4 sm:p-6 lg:p-8">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center flex-wrap flex-1 min-w-0 pr-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center flex-1 min-w-0 pr-4">
           <div className="flex items-center gap-3">
             <img 
               src={`${(import.meta as any).env?.BASE_URL || '/'}prism-logo-kittl.svg`}
               alt="Prism Logo"
-              className="w-8 h-8 object-contain"
+              className="w-8 h-8 object-contain align-middle"
               onError={(e) => {
                 // Fallback to inline SVG if logo file is not found
                 const fallbackSVG = document.createElement('div');
@@ -88,7 +88,7 @@ const Header: React.FC = () => {
                 }
               }}
             />
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black uppercase tracking-wide text-gradient bg-gradient-to-r from-purple-600 via-blue-500 to-cyan-400 bg-clip-text text-transparent dark:from-purple-400 dark:via-blue-300 dark:to-cyan-300">
+            <h1 className="text-lg sm:text-xl lg:text-3xl font-black uppercase tracking-wide leading-none text-gradient bg-gradient-to-r from-purple-600 via-blue-500 to-cyan-400 bg-clip-text text-transparent dark:from-purple-400 dark:via-blue-300 dark:to-cyan-300">
               Prism
             </h1>
           </div>
@@ -106,7 +106,7 @@ const Header: React.FC = () => {
         <div className="flex-shrink-0 flex items-center gap-3">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200"
+            className="flex items-center gap-2 px-3 py-1 text-sm text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200 leading-none"
             title="Sign out"
           >
             <LogOut className="w-4 h-4" />
@@ -116,11 +116,7 @@ const Header: React.FC = () => {
         </div>
       </div>
       
-      <div className="mt-2">
-        <p className="text-gray-500 dark:text-slate-400 text-sm">
-          Employee data, insights, and task management.
-        </p>
-      </div>
+      {/* subtitle removed as per request */}
     </header>
   );
 };

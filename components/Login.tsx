@@ -8,7 +8,7 @@ const Login: React.FC = () => {
   const [showError, setShowError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState<{ role: UserRole; permissions: string[] } | null>(null);
-  const { login } = useAuth();
+  const { login, employeeData, isEmployeeValidated } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +32,8 @@ const Login: React.FC = () => {
         qa: { permissions: ['QA Dashboard', 'Quality Reports', 'Audit Checklists'] },
         training: { permissions: ['Training Dashboard', 'Learning Analytics', 'Training Reports'] },
         finance: { permissions: ['Finance Dashboard', 'Financial Analytics', 'Budget Reports'] },
-        admin: { permissions: ['Full Access', 'All Dashboards', 'All Reports', 'System Administration'] }
+        admin: { permissions: ['All Dashboards', 'All Reports', 'View All Data'] },
+        editor: { permissions: ['Full Access', 'All Dashboards', 'All Reports', 'System Administration', 'Configuration'] }
       };
       
       setLoginSuccess({
@@ -108,6 +109,21 @@ const Login: React.FC = () => {
           <p className="text-sm text-gray-500 dark:text-slate-500 mb-6">
             Powered by Third Wave Coffee
           </p>
+          
+          {/* Employee Welcome Message */}
+          {isEmployeeValidated && employeeData && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
+              <p className="text-sm text-green-800 dark:text-green-300">
+                ✓ Employee verified
+              </p>
+              <p className="text-base font-semibold text-green-900 dark:text-green-200">
+                Welcome, {employeeData.name}!
+              </p>
+              <p className="text-xs text-green-700 dark:text-green-400 mt-1">
+                ID: {employeeData.code}
+              </p>
+            </div>
+          )}
           <p className="text-gray-600 dark:text-slate-400">
             Please enter your password to continue
           </p>

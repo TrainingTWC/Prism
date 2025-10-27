@@ -244,19 +244,49 @@ export const getUserRole = (userId: string): UserRole | null => {
   return ROLE_MAPPINGS.find(role => role.userId === userId) || null;
 };
 
-export const canAccessStore = (userRole: UserRole, storeId: string): boolean => {
+export const canAccessStore = (userRole: UserRole | null | any, storeId: string): boolean => {
+  // If userRole is a string (new password-based roles), allow all access for editor/admin
+  if (typeof userRole === 'string') {
+    return true; // Password-based roles can see all stores
+  }
+  // If userRole is an object with a 'role' property (password-based auth object), allow all access
+  if (userRole && typeof userRole === 'object' && userRole.role && typeof userRole.role === 'string') {
+    return true; // Password-based roles (wrapped in object) can see all stores
+  }
+  // If userRole is null or undefined, deny access
+  if (!userRole || !userRole.allowedStores) return false;
   // If allowedStores is empty, user can access all stores (admin, hr_head, lms_head)
   if (userRole.allowedStores.length === 0) return true;
   return userRole.allowedStores.includes(storeId);
 };
 
-export const canAccessAM = (userRole: UserRole, amId: string): boolean => {
+export const canAccessAM = (userRole: UserRole | null | any, amId: string): boolean => {
+  // If userRole is a string (new password-based roles), allow all access
+  if (typeof userRole === 'string') {
+    return true; // Password-based roles can see all AMs
+  }
+  // If userRole is an object with a 'role' property (password-based auth object), allow all access
+  if (userRole && typeof userRole === 'object' && userRole.role && typeof userRole.role === 'string') {
+    return true; // Password-based roles (wrapped in object) can see all AMs
+  }
+  // If userRole is null or undefined, deny access
+  if (!userRole || !userRole.allowedAMs) return false;
   // If allowedAMs is empty, user can access all AMs (admin, hr_head, lms_head)
   if (userRole.allowedAMs.length === 0) return true;
   return userRole.allowedAMs.includes(amId);
 };
 
-export const canAccessHR = (userRole: UserRole, hrId: string): boolean => {
+export const canAccessHR = (userRole: UserRole | null | any, hrId: string): boolean => {
+  // If userRole is a string (new password-based roles), allow all access
+  if (typeof userRole === 'string') {
+    return true; // Password-based roles can see all HR personnel
+  }
+  // If userRole is an object with a 'role' property (password-based auth object), allow all access
+  if (userRole && typeof userRole === 'object' && userRole.role && typeof userRole.role === 'string') {
+    return true; // Password-based roles (wrapped in object) can see all HR personnel
+  }
+  // If userRole is null or undefined, deny access
+  if (!userRole || !userRole.allowedHRs) return false;
   // If allowedHRs is empty, user can access all HR personnel (admin, hr_head, lms_head)
   if (userRole.allowedHRs.length === 0) return true;
   return userRole.allowedHRs.includes(hrId);

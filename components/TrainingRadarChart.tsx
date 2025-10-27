@@ -12,6 +12,7 @@ import {
 import { TrainingAuditSubmission } from '../services/dataService';
 import ChartContainer from './ChartContainer';
 import { useTheme } from '../contexts/ThemeContext';
+import { useConfig } from '../contexts/ConfigContext';
 import { getChartPaletteWithAlpha } from '../src/utils/chartColors';
 
 ChartJS.register(
@@ -27,8 +28,8 @@ interface TrainingRadarChartProps {
   submissions: TrainingAuditSubmission[];
 }
 
-// Section mapping for Training Audit (matching the sections from TrainingChecklist.tsx)
-const TRAINING_SECTIONS = [
+// Default section mapping for Training Audit (can be overridden by runtime config)
+const DEFAULT_TRAINING_SECTIONS = [
   { id: 'TM', name: 'Training Materials', maxScore: 9 },
   { id: 'LMS', name: 'LMS Usage', maxScore: 10 },
   { id: 'Buddy', name: 'Buddy Trainer', maxScore: 10 },
@@ -42,6 +43,9 @@ const TRAINING_SECTIONS = [
 const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) => {
   const { theme } = useTheme();
   
+  const { get } = useConfig();
+  const runtimeSections = (get && get('TRAINING_SECTIONS')) || DEFAULT_TRAINING_SECTIONS;
+
   const chartData = useMemo(() => {
     console.log('Training Radar Chart - Processing submissions:', submissions.length);
     
@@ -63,7 +67,7 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
 
     // Calculate section averages for each trainer
     const trainerData = Object.entries(groupedByTrainer).map(([trainerId, trainerSubmissions]) => {
-      const sectionAverages = TRAINING_SECTIONS.map(section => {
+      const sectionAverages = (runtimeSections || DEFAULT_TRAINING_SECTIONS).map((section: any) => {
         const sectionScores: number[] = [];
         
         trainerSubmissions.forEach(submission => {
@@ -189,7 +193,7 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
       // ✅ Debug logging to see what data is being calculated
       console.log(`Training Radar - ${trainerName}:`, {
         submissions: trainerSubmissions.length,
-        sections: TRAINING_SECTIONS.map((sec, idx) => ({
+        sections: (runtimeSections || DEFAULT_TRAINING_SECTIONS).map((sec: any, idx: number) => ({
           name: sec.name,
           score: Math.round(sectionAverages[idx] * 10) / 10
         }))
@@ -212,7 +216,7 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
 
     console.log('Training Radar Chart - All trainers:', allTrainers.length);
 
-    const labels = TRAINING_SECTIONS.map(section => section.name);
+  const labels = (runtimeSections || DEFAULT_TRAINING_SECTIONS).map((section: any) => section.name);
     
     const palette = getChartPaletteWithAlpha(0.6);
     const solidPalette = getChartPaletteWithAlpha(1);

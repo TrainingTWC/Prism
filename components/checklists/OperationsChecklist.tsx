@@ -4,6 +4,7 @@ import { AREA_MANAGERS, HR_PERSONNEL, SENIOR_HR_ROLES } from '../../constants';
 import { Store } from '../../types';
 import { hapticFeedback } from '../../utils/haptics';
 import hrMappingData from '../../src/hr_mapping.json';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Google Sheets endpoint for logging AM Operations data - UPDATED URL
 const AM_OPS_LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw_Q9JD-4ys1qElIM4-DYFwwOUzVmPs-LYsYmP9lWqsp3ExJr5tnt-RYEJxYTi5SEjJ6w/exec';
@@ -201,6 +202,8 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     };
   });
 
+  const { employeeData, userRole: authUserRole } = useAuth();
+
   const [sectionRemarks, setSectionRemarks] = useState<Record<string, string>>(() => {
     try {
       return JSON.parse(localStorage.getItem('operations_section_remarks') || '{}');
@@ -216,6 +219,17 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
       return {};
     }
   });
+
+  // Autofill AM fields when user role is operations
+  useEffect(() => {
+    if (authUserRole === 'operations' && employeeData && !metadata.amId) {
+      setMetadata(prev => ({
+        ...prev,
+        amId: employeeData.code,
+        amName: employeeData.name
+      }));
+    }
+  }, [authUserRole, employeeData]);
 
   // Search state for dropdowns
   const [hrSearchTerm, setHrSearchTerm] = useState('');

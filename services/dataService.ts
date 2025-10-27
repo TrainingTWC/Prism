@@ -10,8 +10,8 @@ const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKM
 // AM Operations endpoint - UPDATED URL
 const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw_Q9JD-4ys1qElIM4-DYFwwOUzVmPs-LYsYmP9lWqsp3ExJr5tnt-RYEJxYTi5SEjJ6w/exec';
 
-// Training Audit endpoint
-const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxmF8RE5ySmSEvFpv_vJnYC2mWvBE-EkhsVRjg6TI3wENv3_JexJff4LcGwrlT0UPfWVw/exec';
+// Training Audit endpoint - UPDATED URL
+const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz8PIrugnu8fLWqNqZlpsj57avZ3At-jZSOh8EojK_C8dzRitEYVQpmOh4-sGS5sQyOhA/exec';
 
 // QA Assessment endpoint
 const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbytHCowSWXzHY-Ej7NdkCnaObAFpTiSeT2cV1_63_yUUeHJTwMW9-ta_70XcLu--wUxog/exec';
@@ -394,8 +394,8 @@ export const fetchSubmissions = async (): Promise<Submission[]> => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('CORS proxy response was not OK:', response.status, response.statusText, errorText);
-        console.log('No real data available, returning empty array');
-        return [];
+        console.log('No real data available, generating mock data for demo...');
+        return await generateMockData(20);
       }
 
       data = await response.json();

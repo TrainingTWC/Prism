@@ -5,6 +5,7 @@ import { Question, Choice, Store } from '../../types';
 import { hapticFeedback } from '../../utils/haptics';
 import LoadingOverlay from '../LoadingOverlay';
 import hrMappingData from '../../src/hr_mapping.json';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Google Sheets endpoint for logging data
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKMVh-lnNBnINskIqD10CnQHvGsW_R2SLASGSdBDN9lTGj1gznlNbHORQ/exec';
@@ -81,6 +82,8 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     };
   });
 
+  const { employeeData, userRole: authUserRole } = useAuth();
+
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [allStores, setAllStores] = useState<Store[]>([]);
@@ -92,6 +95,17 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   const [selectedAmIndex, setSelectedAmIndex] = useState(-1);
   const [selectedStoreIndex, setSelectedStoreIndex] = useState(-1);
+
+  // Autofill HR fields when user role is hr
+  useEffect(() => {
+    if (authUserRole === 'hr' && employeeData && !meta.hrId) {
+      setMeta(prev => ({
+        ...prev,
+        hrId: employeeData.code,
+        hrName: employeeData.name
+      }));
+    }
+  }, [authUserRole, employeeData]);
 
   // Load stores from hr_mapping.json
   useEffect(() => {

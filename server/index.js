@@ -35,6 +35,7 @@ try {
 
 // helper to read sheet snapshot (local file) — this is a lightweight stand-in for Google Sheets
 const SHEET_SNAPSHOT_PATH = path.join(__dirname, 'data', 'sheet_snapshot.json');
+const CONFIG_PATH = path.join(__dirname, 'data', 'config.json');
 function readSheetSnapshot() {
   try {
     const raw = fs.readFileSync(SHEET_SNAPSHOT_PATH, 'utf8');
@@ -51,6 +52,27 @@ function writeSheetSnapshot(rows) {
     return true;
   } catch (e) {
     console.error('Failed to write sheet snapshot', e.message || e);
+    return false;
+  }
+}
+
+function readConfig() {
+  try {
+    if (!fs.existsSync(CONFIG_PATH)) return {};
+    const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
+    return JSON.parse(raw || '{}');
+  } catch (e) {
+    console.error('Failed to read config.json', e.message || e);
+    return {};
+  }
+}
+
+function writeConfig(obj) {
+  try {
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(obj, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('Failed to write config.json', e.message || e);
     return false;
   }
 }
@@ -267,6 +289,24 @@ app.get('/api/sheet-snapshot', (req, res) => {
   } catch (e) {
     return res.status(500).json({ ok: false, error: 'read_failed' });
   }
+});
+
+// Runtime config endpoints
+app.get('/api/config', (req, res) => {
+  try {
+    const cfg = readConfig();
+    return res.json({ ok: true, config: cfg });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: 'read_failed' });
+  }
+});
+
+app.post('/api/config', (req, res) => {
+  const body = req.body || {};
+  // No strict schema as requested — write whatever JSON is sent
+  const ok = writeConfig(body);
+  if (!ok) return res.status(500).json({ ok: false, error: 'write_failed' });
+  return res.json({ ok: true });
 });
 
 app.listen(PORT, () => console.log(`Interpret API listening on http://localhost:${PORT}`));

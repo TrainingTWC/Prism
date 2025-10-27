@@ -6,21 +6,89 @@ import AIInsights from './components/AIInsights';
 import ChecklistsAndSurveys from './components/ChecklistsAndSurveys';
 import Header from './components/Header';
 import Login from './components/Login';
+import AccessDenied from './components/AccessDenied';
 import TourGuide from './components/TourGuide';
 import { getUserRole, UserRole } from './roleMapping';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ConfigProvider } from './contexts/ConfigContext';
+import AdminConfig from './components/AdminConfig';
 import { TourProvider, useTour } from './contexts/TourContext';
 
 const AppContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'ai-insights' | 'checklists'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'ai-insights' | 'checklists' | 'admin'>('dashboard');
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userId, setUserId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const [accessDenied, setAccessDenied] = useState<boolean>(false);
+  const [empIdChecked, setEmpIdChecked] = useState<boolean>(false);
+  const { isAuthenticated, isLoading: authLoading, loginWithEmpId, isEmployeeValidated } = useAuth();
   const { isTourActive, startTour, completeTour, skipTour, shouldShowTour } = useTour();
 
-  // Get user ID from URL parameters - must be before any conditional returns
+  // Check URL for EMPID and validate against employee_data.json - ONCE on mount
+  useEffect(() => {
+    const checkUrlAuth = async () => {
+      // Only check once
+      if (empIdChecked) return;
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const empId = urlParams.get('EMPID');
+      
+      console.log('[App] Checking URL auth (once), EMPID:', empId, 'isAuthenticated:', isAuthenticated);
+      
+      if (empId) {
+        // If already authenticated with valid session, don't re-check employee
+        if (isAuthenticated && isEmployeeValidated) {
+          console.log('[App] Already authenticated with valid session, skipping employee check');
+          setUserId(empId);
+          try {
+            const role = getUserRole(empId);
+            setUserRole(role || { role: 'admin' } as any);
+          } catch (error) {
+            setUserRole({ role: 'admin' } as any);
+          }
+          setAccessDenied(false);
+        } else {
+          // Try to authenticate with EMPID
+          const success = await loginWithEmpId(empId);
+          
+          console.log('[App] Login result:', success);
+          
+          if (!success) {
+            // Employee ID not found - show access denied
+            setAccessDenied(true);
+          } else {
+            // Valid employee - set user data
+            setUserId(empId);
+            try {
+              const role = getUserRole(empId);
+              setUserRole(role || { role: 'admin' } as any);
+            } catch (error) {
+              console.error('[App] Error getting user role:', error);
+              // Set a default admin role if role mapping fails
+              setUserRole({ role: 'admin' } as any);
+            }
+            setAccessDenied(false);
+          }
+        }
+      } else {
+        // No EMPID in URL - check if already authenticated
+        console.log('[App] No EMPID in URL, isAuthenticated:', isAuthenticated);
+        if (!isAuthenticated && !isEmployeeValidated) {
+          setAccessDenied(true);
+        }
+      }
+      
+      setEmpIdChecked(true);
+      setLoading(false);
+    };
+
+    if (!authLoading && !empIdChecked) {
+      checkUrlAuth();
+    }
+  }, [authLoading, empIdChecked]);
+
+  // Get user ID from URL parameters - kept for backward compatibility
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const userIdParam = urlParams.get('userId') || urlParams.get('id') || urlParams.get('user');
@@ -31,23 +99,15 @@ const AppContent: React.FC = () => {
       setActiveTab('checklists');
     }
     
-    if (userIdParam) {
+    if (userIdParam && !urlParams.get('EMPID')) {
       setUserId(userIdParam);
       const role = getUserRole(userIdParam);
       setUserRole(role);
       
       if (!role) {
         console.warn(`No role found for user ID: ${userIdParam}`);
-        // You might want to redirect to an error page or show a message
       }
-    } else {
-      console.warn('No user ID found in URL parameters');
-      // For development, you can set a default admin user
-      setUserId('admin001');
-      setUserRole(getUserRole('admin001'));
     }
-    
-    setLoading(false);
   }, []);
 
   // Auto-start tour after login if user hasn't seen it
@@ -62,7 +122,8 @@ const AppContent: React.FC = () => {
   }, [isAuthenticated, shouldShowTour, isTourActive, startTour]);
 
   // Show loading while checking authentication
-  if (authLoading) {
+  if (authLoading || loading) {
+    console.log('[App] Showing loading, authLoading:', authLoading, 'loading:', loading);
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 flex items-center justify-center">
         <div className="text-center">
@@ -73,23 +134,28 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Show login if not authenticated
-  if (!isAuthenticated) {
+  // Show ACCESS DENIED if EMPID not found or not provided
+  if (accessDenied) {
+    console.log('[App] Showing ACCESS DENIED');
+    return <AccessDenied />;
+  }
+
+  // Show login if employee validated but not authenticated with password
+  if (isEmployeeValidated && !isAuthenticated) {
+    console.log('[App] Employee validated, showing Login. Employee:', isEmployeeValidated, 'Auth:', isAuthenticated);
     return <Login />;
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-500 dark:text-slate-400">Loading user permissions...</p>
-        </div>
-      </div>
-    );
+  // Show login if not authenticated (fallback for old flow)
+  if (!isAuthenticated) {
+    console.log('[App] Not authenticated, showing Login (fallback)');
+    return <Login />;
   }
 
+  console.log('[App] Rendering main app, authenticated:', isAuthenticated);
+
   if (!userRole) {
+    console.log('[App] No userRole, showing access denied');
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 flex items-center justify-center">
         <div className="text-center">
@@ -101,11 +167,21 @@ const AppContent: React.FC = () => {
     );
   }
 
+  console.log('[App] Full state - isAuth:', isAuthenticated, 'isEmpValidated:', isEmployeeValidated, 'userRole:', userRole);
+
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     // { id: 'ai-insights', label: 'AI Insights', icon: Brain }, // Hidden per user request
     { id: 'checklists', label: 'Checklists & Surveys', icon: CheckSquare }
   ];
+
+  // Show admin tab ONLY for users who logged in with the editor password
+  const { userRole: authUserRole } = useAuth();
+  const isEditor = authUserRole === 'editor';
+  
+  if (isEditor) {
+    tabs.push({ id: 'admin', label: 'Admin', icon: HelpCircle });
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
@@ -160,6 +236,7 @@ const AppContent: React.FC = () => {
         {activeTab === 'dashboard' && <Dashboard userRole={userRole} />}
         {activeTab === 'ai-insights' && <AIInsights userRole={userRole} />}
         {activeTab === 'checklists' && <ChecklistsAndSurveys userRole={userRole} />}
+        {activeTab === 'admin' && <AdminConfig />}
       </main>
     </div>
   );
@@ -168,11 +245,13 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <ThemeProvider>
-        <TourProvider>
-          <AppContent />
-        </TourProvider>
-      </ThemeProvider>
+      <ConfigProvider>
+        <ThemeProvider>
+          <TourProvider>
+            <AppContent />
+          </TourProvider>
+        </ThemeProvider>
+      </ConfigProvider>
     </AuthProvider>
   );
 };
