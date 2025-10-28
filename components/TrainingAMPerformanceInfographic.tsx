@@ -14,22 +14,23 @@ const TrainingAMPerformanceInfographic: React.FC<TrainingAMPerformanceInfographi
   const trainerPerformance = useMemo(() => {
     if (!submissions.length) return [];
 
-    // Group submissions by trainer
+    // Group submissions by trainer NAME (not ID) to avoid duplicates
     const trainerGroups: Record<string, { trainerId: string; trainerName: string; submissions: TrainingAuditSubmission[] }> = {};
     
     submissions.forEach(submission => {
-      const trainerId = submission.trainerId;
       const trainerName = submission.trainerName;
+      const trainerId = submission.trainerId;
       
-      if (!trainerGroups[trainerId]) {
-        trainerGroups[trainerId] = {
+      // Use trainer name as the key to group all submissions by the same person
+      if (!trainerGroups[trainerName]) {
+        trainerGroups[trainerName] = {
           trainerId,
           trainerName,
           submissions: []
         };
       }
       
-      trainerGroups[trainerId].submissions.push(submission);
+      trainerGroups[trainerName].submissions.push(submission);
     });
 
     // Calculate performance metrics for each trainer
@@ -66,13 +67,14 @@ const TrainingAMPerformanceInfographic: React.FC<TrainingAMPerformanceInfographi
     return performance.sort((a, b) => b.averagePercentage - a.averagePercentage);
   }, [submissions]);
 
-  const topPerformers = trainerPerformance.slice(0, 5);
-  const maxPercentage = topPerformers.length > 0 ? Math.max(...topPerformers.map(t => t.averagePercentage)) : 100;
+  // Show all trainers instead of just top 5
+  const allTrainers = trainerPerformance;
+  const maxPercentage = allTrainers.length > 0 ? Math.max(...allTrainers.map(t => t.averagePercentage)) : 100;
 
   return (
-    <InfographicCard title="Top Trainer Performance">
+    <InfographicCard title="Trainer Performance">
       <div className="space-y-4">
-        {topPerformers.map((trainer, index) => (
+        {allTrainers.map((trainer, index) => (
           <div 
             key={trainer.trainerId} 
             className={`space-y-2 ${onTrainerClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 p-2 rounded-lg transition-colors' : ''}`}
@@ -123,7 +125,7 @@ const TrainingAMPerformanceInfographic: React.FC<TrainingAMPerformanceInfographi
           </div>
         ))}
         
-        {topPerformers.length === 0 && (
+        {allTrainers.length === 0 && (
           <div className="text-center py-8">
             <div className="text-gray-400 dark:text-slate-500">
               No trainer data available
