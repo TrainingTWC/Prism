@@ -1,0 +1,124 @@
+/* Fully contained pill toggle — no overflow during morph */
+:root {
+  --bg: #0b0e16;
+  --fg: #e8ecff;
+  --card: #161a26;
+  --rim: rgba(255,255,255,.1);
+  --accent: #7fb0ff;
+
+  --toggle-w: 116px;
+  --toggle-h: 56px;
+  --pad: 6px;
+  --knob: 44px;
+  --glyph: 28px;
+}
+@media (prefers-color-scheme: light) {
+  :root { --bg:#f6f7fb; --fg:#0f1222; --card:#ffffff; --rim: rgba(0,0,0,.08); --accent:#2a7cf7; }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif; }
+.page { min-height: 100dvh; display: grid; place-items: center; }
+.panel { padding: 28px; background: var(--card); border-radius: 20px; box-shadow: 0 10px 30px -15px var(--rim); }
+
+/* Toggle pill */
+.toggle {
+  position: relative;
+  width: var(--toggle-w);
+  height: var(--toggle-h);
+  border-radius: 999px;
+  padding: var(--pad);
+  border: 1px solid var(--rim);
+  background: color-mix(in srgb, var(--card) 92%, var(--fg) 8%);
+  cursor: pointer;
+  overflow: hidden;
+  -webkit-mask: radial-gradient(100% 100% at 50% 50%, #000 99%, transparent 100%);
+  mask: radial-gradient(100% 100% at 50% 50%, #000 99%, transparent 100%);
+  transition: background .35s ease, border-color .35s ease;
+}
+.toggle:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent); }
+
+.track {
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(0,0,0,.2));
+  opacity: .2;
+  z-index: 0;
+}
+
+/* A contained, horizontal sweep flash */
+.sweep {
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.28) 35%, rgba(255,255,255,.12) 60%, transparent 100%);
+  transform: translateX(-100%);
+  z-index: 1;
+  pointer-events: none;
+}
+.toggle.morphing .sweep { animation: sweep 600ms ease; }
+@keyframes sweep {
+  from { transform: translateX(-100%); opacity: .0; }
+  20%  { opacity: .7; }
+  to   { transform: translateX(100%); opacity: 0; }
+}
+
+/* Knob — fixed-size; inner ::before does the morph */
+.pearl {
+  --travel: 0px;
+  position: absolute;
+  left: var(--pad); top: 50%;
+  width: var(--knob); height: var(--knob);
+  transform: translate3d(0,-50%,0);
+  border-radius: 999px;
+  overflow: hidden; /* hard clip */
+  background: transparent;
+  z-index: 2;
+  transition: transform .5s cubic-bezier(.22,1,.36,1);
+}
+
+/* Inner morph layer */
+.pearl::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(120% 120% at 30% 20%, #ffffff, #e9eeff 40%, #ccdaff 60%, #a4b9ff 100%);
+  box-shadow:
+    inset 0 6px 14px rgba(255,255,255,.85),
+    inset 0 -8px 16px rgba(0,0,0,.12);
+  transform-origin: center;
+  transform: scaleX(1);
+  transition: transform .5s cubic-bezier(.22,1,.36,1);
+}
+/* During morph, only the inner layer scales — never exceeds knob bounds due to overflow hidden */
+.toggle.morphing .pearl::before { transform: scaleX(1.65); }
+
+/* Glyphs centered inside knob */
+.glyph {
+  position: absolute; inset: 0; margin: auto;
+  width: var(--glyph); height: var(--glyph);
+  transition: opacity .45s ease, transform .45s ease;
+}
+
+/* Light mode state - show sun, hide moon */
+.toggle .glyph--light { 
+  opacity: 1 !important; 
+  transform: scale(1) !important; 
+}
+.toggle .glyph--dark  { 
+  opacity: 0 !important; 
+  transform: scale(.85) rotate(-6deg) !important; 
+}
+
+/* Dark mode state - hide sun, show moon */
+.toggle.is-dark .pearl { 
+  transform: translate3d(var(--travel), -50%, 0) !important; 
+}
+.toggle.is-dark .glyph--light { 
+  opacity: 0 !important; 
+  transform: scale(.85) rotate(6deg) !important; 
+}
+.toggle.is-dark .glyph--dark  { 
+  opacity: 1 !important; 
+  transform: scale(1) !important; 
+}

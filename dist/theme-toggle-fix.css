@@ -1,0 +1,48 @@
+/* Theme Toggle Icon Fix - Override any conflicting styles */
+.toggle {
+  position: relative !important;
+}
+
+.toggle .glyph {
+  position: absolute !important;
+  inset: 0 !important;
+  margin: auto !important;
+  width: var(--glyph) !important;
+  height: var(--glyph) !important;
+  transition: opacity .45s ease, transform .45s ease !important;
+  display: block !important;
+}
+
+/* Default state: Light mode - show sun, hide moon */
+.toggle .glyph--light {
+  opacity: 1 !important;
+  transform: scale(1) !important;
+  z-index: 10 !important;
+}
+
+.toggle .glyph--dark {
+  opacity: 0 !important;
+  transform: scale(.85) rotate(-6deg) !important;
+  z-index: 1 !important;
+}
+
+/* Dark mode state: hide sun, show moon */
+.toggle.is-dark .glyph--light {
+  opacity: 0 !important;
+  transform: scale(.85) rotate(6deg) !important;
+  z-index: 1 !important;
+}
+
+.toggle.is-dark .glyph--dark {
+  opacity: 1 !important;
+  transform: scale(1) !important;
+  z-index: 10 !important;
+}
+
+/* Ensure images display properly */
+.toggle .glyph img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  pointer-events: none !important;
+}

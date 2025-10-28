@@ -1,0 +1,1882 @@
+[
+  {
+    "locationName": "Lajpat Nagar",
+    "storeId": "S153",
+    "areaManagerId": "H1766",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Indirapuram",
+    "storeId": "S195",
+    "areaManagerId": "H1766",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "India Expo Plaza",
+    "storeId": "S202",
+    "areaManagerId": "H1766",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Mall of India",
+    "storeId": "S056",
+    "areaManagerId": "H1766",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Sector 63",
+    "storeId": "S101",
+    "areaManagerId": "H1766",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Spectrum Mall",
+    "storeId": "S112",
+    "areaManagerId": "H1766",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Central Market- Sector 120",
+    "storeId": "S166",
+    "areaManagerId": "H1766",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Advant Noida",
+    "storeId": "S167",
+    "areaManagerId": "H1766",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Bhutani City Centre Noida",
+    "storeId": "S192",
+    "areaManagerId": "H1766",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Defence Colony",
+    "storeId": "S027",
+    "areaManagerId": "H1766",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Khan Market",
+    "storeId": "S037",
+    "areaManagerId": "H1766",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Connaught Place",
+    "storeId": "S049",
+    "areaManagerId": "H1766",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Kalkaji",
+    "storeId": "S055",
+    "areaManagerId": "H1766",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Sector 07",
+    "storeId": "S039",
+    "areaManagerId": "H2396",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Sector 35",
+    "storeId": "S042",
+    "areaManagerId": "H2396",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Panchkula",
+    "storeId": "S062",
+    "areaManagerId": "H2396",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Jubilee Walk Mohali",
+    "storeId": "S122",
+    "areaManagerId": "H2396",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Deer Park",
+    "storeId": "S024",
+    "areaManagerId": "H535",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "GK 1",
+    "storeId": "S035",
+    "areaManagerId": "H535",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Kailash Colony",
+    "storeId": "S072",
+    "areaManagerId": "H535",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Green Park",
+    "storeId": "S142",
+    "areaManagerId": "H535",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Omaxe World Street",
+    "storeId": "S171",
+    "areaManagerId": "H535",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Faridabad Sec 14",
+    "storeId": "S172",
+    "areaManagerId": "H535",
+    "hrbpId": "H3578",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "DLF Saltstayz",
+    "storeId": "S197",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "DLF Star Tower",
+    "storeId": "S198",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Platina",
+    "storeId": "S105",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "32 Mile Stone",
+    "storeId": "S029",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Vatika Business Park",
+    "storeId": "S038",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Golf Course",
+    "storeId": "S073",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Sushant Lok",
+    "storeId": "S099",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "AIPL Business Club",
+    "storeId": "S100",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Fortis",
+    "storeId": "S102",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Vensej Mall",
+    "storeId": "S148",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Airia Mall",
+    "storeId": "S150",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "DME 63 LHS",
+    "storeId": "S154",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "DME 69 RHS",
+    "storeId": "S155",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Nirvana Courtyard",
+    "storeId": "S164",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Capital Cyberscape",
+    "storeId": "S176",
+    "areaManagerId": "H2396",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "GK 2",
+    "storeId": "S026",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Saket",
+    "storeId": "S028",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Punjabi Bagh",
+    "storeId": "S036",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Ambience Mall, Vasant Kunj",
+    "storeId": "S040",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Netaji Subhash Place",
+    "storeId": "S041",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Hauz Khas",
+    "storeId": "S113",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Janakpuri",
+    "storeId": "S120",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Basant Lok",
+    "storeId": "S129",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "DLF Avenue Mall - Saket",
+    "storeId": "S121",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Pacific Mall - Tagore Garden",
+    "storeId": "S126",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Paschim Vihar",
+    "storeId": "S141",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Rohini Sec 14",
+    "storeId": "S173",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Vasant Kunj",
+    "storeId": "S174",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Rajouri Garden",
+    "storeId": "S182",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Shalimar Bagh Metro",
+    "storeId": "S188",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Malviya Nagar",
+    "storeId": "S200",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "DLF Midtown",
+    "storeId": "S187",
+    "areaManagerId": "H955",
+    "hrbpId": "H2165",
+    "regionalHrId": "H2165",
+    "region": "North",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Varthur",
+    "storeId": "S053",
+    "areaManagerId": "H546",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Brookfield",
+    "storeId": "S032",
+    "areaManagerId": "H546",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Forum Shantiniketan Whitefield",
+    "storeId": "S005",
+    "areaManagerId": "H546",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Nexus Mall, Whitefield",
+    "storeId": "S091",
+    "areaManagerId": "H546",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-PMC-Bangalore",
+    "storeId": "S019",
+    "areaManagerId": "H546",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Manipal Hospital",
+    "storeId": "S065",
+    "areaManagerId": "H546",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Brookfield - Nxt Whitefield",
+    "storeId": "S189",
+    "areaManagerId": "H546",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Karthik Nagar - Marathahalli",
+    "storeId": "S034",
+    "areaManagerId": "H546",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Prestige Techno star",
+    "storeId": "S184",
+    "areaManagerId": "H546",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Kilpauk",
+    "storeId": "S143",
+    "areaManagerId": "H3362",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Express Avenue Mall",
+    "storeId": "S144",
+    "areaManagerId": "H3362",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Adyar",
+    "storeId": "S145",
+    "areaManagerId": "H3362",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Kathipara Urban Square",
+    "storeId": "S157",
+    "areaManagerId": "H3362",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Phoenix Palladium Chennai",
+    "storeId": "S123",
+    "areaManagerId": "H3362",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Bedford Coonoor",
+    "storeId": "S021",
+    "areaManagerId": "H3362",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Besant Nagar",
+    "storeId": "S178",
+    "areaManagerId": "H3362",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Mettupalayam",
+    "storeId": "S199",
+    "areaManagerId": "H3362",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TFS",
+    "storeId": "0",
+    "areaManagerId": "H3362",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Ashoka Nagar",
+    "storeId": "S201",
+    "areaManagerId": "H3362",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-HRBR Layout",
+    "storeId": "S023",
+    "areaManagerId": "H833",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Manyata Embassy NXT",
+    "storeId": "S092",
+    "areaManagerId": "H833",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Sahakar Nagar",
+    "storeId": "S070",
+    "areaManagerId": "H833",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-New Bel Road",
+    "storeId": "S020",
+    "areaManagerId": "H833",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Vijayanagar",
+    "storeId": "S125",
+    "areaManagerId": "H833",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Rajajinagar",
+    "storeId": "S146",
+    "areaManagerId": "H833",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Sparsh Hospital 2 Raj Rajeshwari Nagar",
+    "storeId": "S191",
+    "areaManagerId": "H833",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Phoenix Mall of Asia",
+    "storeId": "S110",
+    "areaManagerId": "H833",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Basaveshwar Nagar",
+    "storeId": "S185",
+    "areaManagerId": "H833",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Brigade Utopia",
+    "storeId": "S131",
+    "areaManagerId": "H1355",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Koramangala 8th Block",
+    "storeId": "S068",
+    "areaManagerId": "H1355",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Akshay Nagar",
+    "storeId": "S156",
+    "areaManagerId": "H1355",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Koramangala",
+    "storeId": "S001",
+    "areaManagerId": "H1355",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Vijaya Bank Layout",
+    "storeId": "S069",
+    "areaManagerId": "H1355",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-BTM Layout",
+    "storeId": "S063",
+    "areaManagerId": "H1355",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-CMH Indira Nagar",
+    "storeId": "S002",
+    "areaManagerId": "H546",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-12th Main Indira Nagar",
+    "storeId": "S009",
+    "areaManagerId": "H546",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Malleshwaram",
+    "storeId": "S012",
+    "areaManagerId": "H2155",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Sadashiv Nagar",
+    "storeId": "S004",
+    "areaManagerId": "H2155",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Frazer town",
+    "storeId": "S030",
+    "areaManagerId": "H2155",
+    "hrbpId": "H2761",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Lavelle Road",
+    "storeId": "S031",
+    "areaManagerId": "H2155",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Cunningham Road",
+    "storeId": "S011",
+    "areaManagerId": "H2155",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Deloitte - Bangalore",
+    "storeId": "S115",
+    "areaManagerId": "H2155",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Church street",
+    "storeId": "S014",
+    "areaManagerId": "H2155",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-UB City",
+    "storeId": "S007",
+    "areaManagerId": "H2155",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "St Marks Road -Indiqube",
+    "storeId": "S193",
+    "areaManagerId": "H2155",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Bellandur",
+    "storeId": "S008",
+    "areaManagerId": "H2601",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Prestige Tech Park Electra",
+    "storeId": "S158",
+    "areaManagerId": "H2601",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Kanakpura Road",
+    "storeId": "S067",
+    "areaManagerId": "H2601",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Banashankari",
+    "storeId": "S033",
+    "areaManagerId": "H2601",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Forum South Bangalore",
+    "storeId": "S094",
+    "areaManagerId": "H2601",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Jaya Nagar",
+    "storeId": "S016",
+    "areaManagerId": "H2601",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Sakra Hospital",
+    "storeId": "S051",
+    "areaManagerId": "H2601",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-The Sqaure - Raj Etternia Kudlu",
+    "storeId": "S159",
+    "areaManagerId": "H2601",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Harlur Road",
+    "storeId": "S140",
+    "areaManagerId": "H2601",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Devaraj Urs Rd-Mysuru",
+    "storeId": "S119",
+    "areaManagerId": "H1355",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Kalidasa Road Mysore",
+    "storeId": "S152",
+    "areaManagerId": "H1355",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Sarjapur Road",
+    "storeId": "S017",
+    "areaManagerId": "H1355",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Balmatta",
+    "storeId": "S139",
+    "areaManagerId": "H3270",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Fiza by Nexus Mall",
+    "storeId": "S133",
+    "areaManagerId": "H3270",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-HSR 5th Main",
+    "storeId": "S149",
+    "areaManagerId": "H3270",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-HSR-2",
+    "storeId": "S018",
+    "areaManagerId": "H3270",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-New Airport Road",
+    "storeId": "S006",
+    "areaManagerId": "H3270",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-HSR-1",
+    "storeId": "S003",
+    "areaManagerId": "H3270",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Eco World Bay",
+    "storeId": "S022",
+    "areaManagerId": "H3270",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-JP Nagar",
+    "storeId": "S015",
+    "areaManagerId": "H3270",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-JP Nagar 7th Phase",
+    "storeId": "S095",
+    "areaManagerId": "H3270",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-BIAL T1 Kiosk",
+    "storeId": "S114",
+    "areaManagerId": "H3270",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "TWC-Bangalore Airport Outside",
+    "storeId": "S050",
+    "areaManagerId": "H3270",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Brookfield - EcoWorld 4AB",
+    "storeId": "S190",
+    "areaManagerId": "H3270",
+    "hrbpId": "H1972",
+    "regionalHrId": "H3551",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Mahavir Nagar",
+    "storeId": "S096",
+    "areaManagerId": "H1575",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Kandivali Thakur Village",
+    "storeId": "S088",
+    "areaManagerId": "H1575",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Emerald Borivali",
+    "storeId": "S076",
+    "areaManagerId": "H1575",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Oberoi Mall",
+    "storeId": "S090",
+    "areaManagerId": "H1575",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Juhu",
+    "storeId": "S061",
+    "areaManagerId": "H1575",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Damodar Santacruz",
+    "storeId": "S138",
+    "areaManagerId": "H1575",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Crossword, Santacruz",
+    "storeId": "S116",
+    "areaManagerId": "H1575",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Ekta Tripolis Goregoan",
+    "storeId": "S132",
+    "areaManagerId": "H1575",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Sky City",
+    "storeId": "S165",
+    "areaManagerId": "H1575",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Mahim",
+    "storeId": "S045",
+    "areaManagerId": "H2908",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Equinox, BKC",
+    "storeId": "S087",
+    "areaManagerId": "H2908",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Runwal Greens Mulund",
+    "storeId": "S075",
+    "areaManagerId": "H2908",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "R City",
+    "storeId": "S047",
+    "areaManagerId": "H2908",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Chembur",
+    "storeId": "S097",
+    "areaManagerId": "H2908",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Platina",
+    "storeId": "S105",
+    "areaManagerId": "H2908",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Delloitte, Mumbai",
+    "storeId": "S162",
+    "areaManagerId": "H2908",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Phoenix Market City- Mumbai",
+    "storeId": "S163",
+    "areaManagerId": "H2908",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "CBD Belapur",
+    "storeId": "S111",
+    "areaManagerId": "H2273",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "The Walk",
+    "storeId": "S103",
+    "areaManagerId": "H2273",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Viviana Mall",
+    "storeId": "S089",
+    "areaManagerId": "H2273",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Vashi Palm Beach",
+    "storeId": "S137",
+    "areaManagerId": "H2273",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Pune Mumbai Expressway",
+    "storeId": "S147",
+    "areaManagerId": "H2273",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Inorbit Vashi",
+    "storeId": "S118",
+    "areaManagerId": "H2273",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Seawoods Highstreet",
+    "storeId": "S127",
+    "areaManagerId": "H2273",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Dellloitte Thane",
+    "storeId": "S180",
+    "areaManagerId": "H2273",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Seawoods Nexus",
+    "storeId": "S161",
+    "areaManagerId": "H2273",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Panchpakhadi",
+    "storeId": "S168",
+    "areaManagerId": "H2273",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Pokhran Road",
+    "storeId": "S170",
+    "areaManagerId": "H2273",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Sea Castle, Marine Lines",
+    "storeId": "S077",
+    "areaManagerId": "H3386",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Versova",
+    "storeId": "S057",
+    "areaManagerId": "H3386",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Vile Parle",
+    "storeId": "S107",
+    "areaManagerId": "H3386",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Andheri, Chakala",
+    "storeId": "S106",
+    "areaManagerId": "H3386",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Kemps Corner",
+    "storeId": "S043",
+    "areaManagerId": "H3386",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Cuff Parade, Star Mansion",
+    "storeId": "S078",
+    "areaManagerId": "H3386",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Lokhandwala",
+    "storeId": "S044",
+    "areaManagerId": "H3386",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Andheri, Marol",
+    "storeId": "S117",
+    "areaManagerId": "H3386",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Worli",
+    "storeId": "S135",
+    "areaManagerId": "H3386",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Nariman Point",
+    "storeId": "S177",
+    "areaManagerId": "H3386",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Balewadi Highstreet",
+    "storeId": "S080",
+    "areaManagerId": "H2758",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "MOM, Wakad",
+    "storeId": "S104",
+    "areaManagerId": "H2758",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Phoenix Market City - Pune",
+    "storeId": "S074",
+    "areaManagerId": "H2758",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Koregoan Park",
+    "storeId": "S059",
+    "areaManagerId": "H2758",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Kothrud",
+    "storeId": "S060",
+    "areaManagerId": "H2758",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Kalyani Nagar - Pune",
+    "storeId": "S048",
+    "areaManagerId": "H2758",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Wanowrie",
+    "storeId": "S058",
+    "areaManagerId": "H2758",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "FC Road",
+    "storeId": "S109",
+    "areaManagerId": "H2758",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Westend Aundh",
+    "storeId": "S134",
+    "areaManagerId": "H2758",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Pimple Saudagar",
+    "storeId": "S130",
+    "areaManagerId": "H2758",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Pimple Nilakh",
+    "storeId": "S136",
+    "areaManagerId": "H2758",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Bibewadi",
+    "storeId": "S128",
+    "areaManagerId": "H2758",
+    "hrbpId": "H3603",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Inorbit Mall",
+    "storeId": "S086",
+    "areaManagerId": "H2262",
+    "hrbpId": "H3247",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Khajaguda",
+    "storeId": "S066",
+    "areaManagerId": "H2262",
+    "hrbpId": "H3247",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Sainikpuri",
+    "storeId": "S081",
+    "areaManagerId": "H2262",
+    "hrbpId": "H3247",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Salarpuria Sattva",
+    "storeId": "S082",
+    "areaManagerId": "H2262",
+    "hrbpId": "H3247",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Kondapur",
+    "storeId": "S083",
+    "areaManagerId": "H2262",
+    "hrbpId": "H3247",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Platina",
+    "storeId": "S085",
+    "areaManagerId": "H2262",
+    "hrbpId": "H3247",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Banjara Hills",
+    "storeId": "S084",
+    "areaManagerId": "H2262",
+    "hrbpId": "H3247",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Hyderabad Airport Inside",
+    "storeId": "S108",
+    "areaManagerId": "H2262",
+    "hrbpId": "H3247",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Himayat Nagar",
+    "storeId": "S169",
+    "areaManagerId": "H2262",
+    "hrbpId": "H3247",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Madeenaguda",
+    "storeId": "S175",
+    "areaManagerId": "H2262",
+    "hrbpId": "H3247",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Capital Land ITPH",
+    "storeId": "S206",
+    "areaManagerId": "H2262",
+    "hrbpId": "H3247",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "Manikonda",
+    "storeId": "S194",
+    "areaManagerId": "H2262",
+    "hrbpId": "H3247",
+    "regionalHrId": "HC002",
+    "region": "West",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "H3237 Test Store 1",
+    "storeId": "S901",
+    "areaManagerId": "H9001",
+    "hrbpId": "H3237",
+    "regionalHrId": "H3237",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  },
+  {
+    "locationName": "H3237 Test Store 2",
+    "storeId": "S902",
+    "areaManagerId": "H9002",
+    "hrbpId": "H3237",
+    "regionalHrId": "H3237",
+    "region": "South",
+    "hrHeadId": "H2081",
+    "lmsHeadId": "H541"
+  }
+]

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HR Dashboard - Role Test</title>
+</head>
+<body>
+    <h1>HR Dashboard Access Test</h1>
+    <p>Testing direct access for super admin users:</p>
+    
+    <h2>Super Admin Links:</h2>
+    <ul>
+        <li><a href="/?userId=H541" target="_blank">H541 - Super Admin</a></li>
+        <li><a href="/?userId=H2081" target="_blank">H2081 - Super Admin</a></li>
+        <li><a href="/?userId=H3237" target="_blank">H3237 - Super Admin</a></li>
+        <li><a href="/?id=H541" target="_blank">H541 - using id parameter</a></li>
+    </ul>
+    
+    <h2>Alternative Access URLs:</h2>
+    <p>Copy these URLs to test:</p>
+    <ul>
+        <li><code>https://trainingtwc.github.io/hr-connect-dashboard/?userId=H541</code></li>
+        <li><code>https://trainingtwc.github.io/hr-connect-dashboard/?userId=H2081</code></li>
+        <li><code>https://trainingtwc.github.io/hr-connect-dashboard/?userId=H3237</code></li>
+    </ul>
+    
+    <script>
+        // Test role loading
+        console.log('Testing role access...');
+        
+        // Check if we're on the main app
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId') || urlParams.get('id');
+        
+        if (userId) {
+            console.log('User ID from URL:', userId);
+            
+            // Try to access the role mapping function if available
+            if (window.getUserRole) {
+                const role = window.getUserRole(userId);
+                console.log('Role found:', role);
+            }
+        }
+    </script>
+</body>
+</html>
