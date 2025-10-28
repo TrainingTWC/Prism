@@ -14,18 +14,18 @@ interface StatCardProps {
 }
 
 const TrendArrow: React.FC<{ latest: number; previous?: number | null }> = ({ latest, previous }) => {
-  if (previous === null || previous === undefined) return <span className="text-slate-900 dark:text-slate-100 font-black text-2xl sm:text-3xl">{latest}%</span>;
+  if (previous === null || previous === undefined) return <span className="text-slate-900 dark:text-slate-100 font-black text-xl sm:text-2xl">{latest}%</span>;
   const delta = latest - previous;
   const up = delta >= 0;
   const color = up ? 'text-emerald-600' : 'text-rose-600';
   const bgColor = up ? 'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800' : 'bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800';
   const arrow = up ? '↗' : '↘';
   return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="text-slate-900 dark:text-slate-100 font-black text-2xl sm:text-3xl">{latest}%</span>
-      <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${bgColor} ${color} shadow-sm`}>
-        <span className="text-sm font-bold">{arrow}</span>
-        <span className="text-sm font-bold">{Math.abs(Math.round(delta))}%</span>
+    <div className="flex flex-col items-center gap-1">
+      <span className="text-slate-900 dark:text-slate-100 font-black text-xl sm:text-2xl">{latest}%</span>
+      <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full border ${bgColor} ${color} shadow-sm`}>
+        <span className="text-xs font-bold">{arrow}</span>
+        <span className="text-xs font-bold">{Math.abs(Math.round(delta))}%</span>
       </div>
     </div>
   );
@@ -62,7 +62,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick }) => {
     const colorClass = getPercentageColor(percentageValue);
     
     return (
-      <div className="group relative p-1 sm:p-2">
+      <div className="group relative p-1 sm:p-2 h-full flex items-center">
         {/* Premium gradient background with glass effect */}
         <div className="absolute inset-1 sm:inset-2 bg-gradient-to-br from-white/95 via-white/85 to-white/75 dark:from-slate-800/95 dark:via-slate-800/85 dark:to-slate-800/75 backdrop-blur-md rounded-full"></div>
         {/* Enhanced shadow layer */}
@@ -71,27 +71,26 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick }) => {
                boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)' 
              }}></div>
         
-        <div className="relative flex items-center justify-between px-6 sm:px-8 py-2 sm:py-3 rounded-full border border-slate-200/60 dark:border-slate-700/60 transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] group-hover:border-slate-300/80 dark:group-hover:border-slate-600/80 bg-white/50 dark:bg-slate-800/50" 
+        <div className="relative flex items-center justify-between px-4 sm:px-6 py-2 rounded-full border border-slate-200/60 dark:border-slate-700/60 transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] group-hover:border-slate-300/80 dark:group-hover:border-slate-600/80 bg-white/50 dark:bg-slate-800/50 w-full" 
              style={{ 
-               minHeight: '50px',
                backdropFilter: 'blur(20px) saturate(180%)'
              }}>
           
           {/* Title on the left - 2 lines */}
           <div className="flex flex-col items-start text-left flex-shrink-0">
-            <span className="text-base sm:text-lg font-black text-slate-700 dark:text-slate-300 leading-tight uppercase tracking-wider">Audit</span>
-            <span className="text-base sm:text-lg font-black text-slate-700 dark:text-slate-300 leading-tight uppercase tracking-wider">Percentage</span>
+            <span className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 leading-tight uppercase tracking-wider">Audit</span>
+            <span className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 leading-tight uppercase tracking-wider">Percentage</span>
           </div>
           
           {/* Percentage in the center-right */}
-          <div className="flex items-center justify-center flex-1 ml-4">
-            <span className={`text-2xl sm:text-4xl font-black ${colorClass}`}>
+          <div className="flex items-center justify-center flex-1 ml-2">
+            <span className={`text-xl sm:text-2xl font-black ${colorClass}`}>
               {percentageValue}%
             </span>
           </div>
           
           {/* Trend indicator on the right */}
-          <div className="flex flex-col items-end text-right flex-shrink-0 ml-4">
+          <div className="flex flex-col items-end text-right flex-shrink-0 ml-2">
             {isAvgObject && (() => {
               const avg = value as AverageValue;
               if (avg.previous !== null && avg.previous !== undefined && avg.latest !== null && avg.latest !== undefined) {
@@ -101,12 +100,12 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick }) => {
                 const bgColor = up ? 'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800' : 'bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800';
                 const arrow = up ? '↗' : '↘';
                 return (
-                  <div className="flex flex-col items-end gap-1">
-                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full border ${bgColor} ${trendColor} shadow-sm`}>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border ${bgColor} ${trendColor} shadow-sm`}>
                       <span className="text-xs font-bold">{arrow}</span>
                       <span className="text-xs font-bold">{Math.abs(Math.round(delta))}%</span>
                     </div>
-                    <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">vs prev</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">vs prev</span>
                   </div>
                 );
               }
@@ -119,7 +118,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick }) => {
   }
 
   return (
-    <div className={`group relative p-1 sm:p-2 ${isClickable ? 'cursor-pointer' : ''}`} onClick={isClickable ? onClick : undefined}>
+    <div className={`group relative p-1 sm:p-2 h-full flex items-center ${isClickable ? 'cursor-pointer' : ''}`} onClick={isClickable ? onClick : undefined}>
       {/* Premium gradient background with glass effect */}
       <div className="absolute inset-1 sm:inset-2 bg-gradient-to-br from-white/95 via-white/85 to-white/75 dark:from-slate-800/95 dark:via-slate-800/85 dark:to-slate-800/75 backdrop-blur-md rounded-full"></div>
       {/* Enhanced shadow layer */}
@@ -128,19 +127,18 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick }) => {
              boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)' 
            }}></div>
       
-      <div className={`relative flex items-center justify-center gap-3 px-6 sm:px-8 rounded-full border border-slate-200/60 dark:border-slate-700/60 transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] group-hover:border-slate-300/80 dark:group-hover:border-slate-600/80 bg-white/50 dark:bg-slate-800/50 ${
+      <div className={`relative flex items-center justify-center gap-3 px-4 sm:px-6 rounded-full border border-slate-200/60 dark:border-slate-700/60 transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] group-hover:border-slate-300/80 dark:group-hover:border-slate-600/80 bg-white/50 dark:bg-slate-800/50 w-full ${
         title === 'Total Submissions' || title === 'Stores Covered' 
-          ? 'py-3 sm:py-4' 
-          : 'py-4 sm:py-6'
+          ? 'py-2 sm:py-3 flex-row' 
+          : 'py-3 sm:py-4'
       } ${isClickable ? 'hover:bg-white/70 dark:hover:bg-slate-800/70' : ''}`} 
            style={{ 
-             minHeight: title === 'Total Submissions' || title === 'Stores Covered' ? '65px' : '80px',
              backdropFilter: 'blur(20px) saturate(180%)'
            }}>
-        <div className="flex flex-col items-center text-center min-w-0 space-y-2">
+        <div className={`flex ${title === 'Total Submissions' || title === 'Stores Covered' ? 'flex-row items-center justify-between w-full' : 'flex-col items-center text-center'} min-w-0 ${title === 'Total Submissions' || title === 'Stores Covered' ? 'space-x-4' : 'space-y-1'}`}>
           <span className={`leading-tight uppercase tracking-wider ${
             title === 'Total Submissions' || title === 'Stores Covered' 
-              ? 'text-sm sm:text-base font-black text-slate-700 dark:text-slate-300' 
+              ? 'text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 text-left' 
               : 'text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400'
           }`}>{title}</span>
           {isAvgObject ? (
@@ -149,7 +147,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick }) => {
               if (avg.latest !== undefined && avg.latest !== null) {
                 return (
                   <div className="flex flex-col items-center gap-1">
-                    <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-slate-100">
+                    <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100">
                       <TrendArrow latest={avg.latest as number} previous={avg.previous ?? null} />
                     </div>
                     {avg.previous !== null && avg.previous !== undefined && (
@@ -158,10 +156,10 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick }) => {
                   </div>
                 );
               }
-              return <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-slate-100">{avg.aggregate ?? '—'}%</div>;
+              return <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100">{avg.aggregate ?? '—'}%</div>;
             })()
           ) : (
-            <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-slate-100">{String(value ?? 'N/A')}</div>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100">{String(value ?? 'N/A')}</div>
           )}
         </div>
       </div>

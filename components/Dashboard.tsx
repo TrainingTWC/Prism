@@ -2418,27 +2418,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           {/* Stats Grid - Different layouts based on dashboard type */}
           {dashboardType === 'training' ? (
             <>
-              {/* Training Stats - Desktop/Tablet layout */}
-              <div className="hidden md:block space-y-6 mb-8 px-2">
-                {/* Top row: Total Submissions and Stores Covered side by side */}
-                <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+              {/* Training Stats - Desktop/Tablet layout - All pills in one horizontal line */}
+              <div className="hidden md:block mb-8 px-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
                   <StatCard title="Total Submissions" value={stats?.totalSubmissions} onClick={handleTotalSubmissionsClick} />
                   <StatCard title="Stores Covered" value={stats?.uniqueStores} onClick={handleStoresCoveredClick} />
-                </div>
-                
-                {/* Second row: Audit Percentage full width */}
-                <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:gap-8">
                   {/* For training dashboard, provide structured avg data so StatCard can render trend */}
                   <StatCard title="Audit Percentage" value={{
                     latest: stats?.latestScore ?? (typeof stats?.avgScore === 'number' ? Math.round(stats.avgScore) : undefined),
                     previous: stats?.previousScore ?? null,
                     aggregate: (!stats?.latestScore && stats?.avgScore) ? Math.round(stats.avgScore) : undefined
                   }} />
-                </div>
-                
-                {/* Store Health pill - separate row with center alignment */}
-                <div className="flex justify-center">
-                  <div className="w-full max-w-md sm:max-w-lg">
+                  <div className="flex items-center">
                     <TrainingHealthPieChart
                         submissions={filteredTrainingData}
                         onOpenDetails={(filterType, value, title) => {

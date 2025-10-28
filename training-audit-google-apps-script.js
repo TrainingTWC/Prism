@@ -97,8 +97,8 @@ function doPost(e) {
       // Partner Knowledge (PK_1 to PK_7)
       'PK_1', 'PK_2', 'PK_3', 'PK_4', 'PK_5', 'PK_6', 'PK_7',
       
-      // Training Store Audit Scores (TSA sections)
-      'TSA_Food_Score', 'TSA_Coffee_Score', 'TSA_CX_Score',
+      // Training Store Audit (TSA_1 to TSA_3)
+      'TSA_1', 'TSA_2', 'TSA_3',
       
       // Customer Experience (CX_1 to CX_9)
       'CX_1', 'CX_2', 'CX_3', 'CX_4', 'CX_5', 'CX_6', 'CX_7', 'CX_8', 'CX_9',
@@ -111,10 +111,7 @@ function doPost(e) {
       'PK_remarks', 'TSA_remarks', 'CX_remarks', 'AP_remarks',
       
       // Scoring
-      'Total Score', 'Max Score', 'Percentage',
-      
-      // TSA Individual Remarks (after Percentage)
-      'TSA_Food_Remarks', 'TSA_Coffee_Remarks', 'TSA_CX_Remarks'
+      'Total Score', 'Max Score', 'Percentage'
     ];
 
     // Ensure header row exists
@@ -164,8 +161,8 @@ function doPost(e) {
       params.PK_1 || '', params.PK_2 || '', params.PK_3 || '',
       params.PK_4 || '', params.PK_5 || '', params.PK_6 || '', params.PK_7 || '',
       
-      // Training Store Audit Scores (TSA sections)
-      params.TSA_Food_Score || '', params.TSA_Coffee_Score || '', params.TSA_CX_Score || '',
+      // Training Store Audit (TSA_1 to TSA_3)
+      params.TSA_1 || '', params.TSA_2 || '', params.TSA_3 || '',
       
       // Customer Experience (CX_1 to CX_9)
       params.CX_1 || '', params.CX_2 || '', params.CX_3 || '',
@@ -175,17 +172,14 @@ function doPost(e) {
       // Action Plan (AP_1 to AP_3)
       params.AP_1 || '', params.AP_2 || '', params.AP_3 || '',
       
-      // Section Remarks
+      // Section remarks
       params.TM_remarks || '', params.LMS_remarks || '',
       params.Buddy_remarks || '', params.NJ_remarks || '',
       params.PK_remarks || '', params.TSA_remarks || '',
       params.CX_remarks || '', params.AP_remarks || '',
       
       // Scoring
-      params.totalScore || '', params.maxScore || '', params.percentage || '',
-      
-      // TSA Individual Remarks (after Percentage)
-      params.TSA_Food_Remarks || '', params.TSA_Coffee_Remarks || '', params.TSA_CX_Remarks || ''
+      params.totalScore || '', params.maxScore || '', params.percentage || ''
     ];
 
     sheet.appendRow(row);
@@ -309,10 +303,10 @@ function getTrainingChecklistData() {
         obj['PK_' + i] = row[colIndex++] || '';
       }
       
-      // Training Store Audit Scores (TSA sections)
-      obj['tsaFoodScore'] = row[colIndex++] || '';
-      obj['tsaCoffeeScore'] = row[colIndex++] || '';
-      obj['tsaCXScore'] = row[colIndex++] || '';
+      // Training Store Audit (TSA_1 to TSA_3)
+      for (var i = 1; i <= 3; i++) {
+        obj['TSA_' + i] = row[colIndex++] || '';
+      }
       
       // Customer Experience (CX_1 to CX_9)
       for (var i = 1; i <= 9; i++) {
@@ -338,11 +332,6 @@ function getTrainingChecklistData() {
       obj.totalScore = row[colIndex++] || '';
       obj.maxScore = row[colIndex++] || '';
       obj.percentageScore = row[colIndex++] || '';
-      
-      // TSA Individual Remarks (after Percentage)
-      obj.TSA_Food_Remarks = row[colIndex++] || '';
-      obj.TSA_Coffee_Remarks = row[colIndex++] || '';
-      obj.TSA_CX_Remarks = row[colIndex++] || '';
       
       return obj;
     });

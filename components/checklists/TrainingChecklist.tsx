@@ -1455,7 +1455,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         }
       });
 
-      const response = await fetch('https://script.google.com/macros/s/AKfycbz8PIrugnu8fLWqNqZlpsj57avZ3At-jZSOh8EojK_C8dzRitEYVQpmOh4-sGS5sQyOhA/exec', {
+      const response = await fetch('https://script.google.com/macros/s/AKfycbz2Y-3u9BOoKNVkP8YhsHmtMhOxqzXRBMfpKfb7aRAlI96JC3ipQffRxATtlMAAgm-ujg/exec', {
         method: 'POST',
         body: formData
       });
