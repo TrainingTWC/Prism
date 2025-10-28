@@ -323,7 +323,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             value={filters.trainer}
             onChange={(value) => onFilterChange('trainer', value)}
             placeholder="All Trainers"
-            options={(trainers && trainers.length > 0 ? trainers.map(t => ({ value: t.id, label: t.name, id: t.id })) : hrPersonnel.map(hr => ({ value: hr.id, label: hr.name, id: hr.id })))}
+            options={(trainers && trainers.length > 0 ? trainers : hrPersonnel).map(t => ({ value: t.id, label: t.name, id: t.id }))}
             disabled={(trainers && trainers.length > 0 ? trainers.length === 0 : hrPersonnel.length === 0)}
           />
         </div>
@@ -375,8 +375,8 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             value={filters.trainer}
             onChange={(value) => onFilterChange('trainer', value)}
             placeholder="All Trainers"
-            options={hrPersonnel.map(hr => ({ value: hr.id, label: hr.name, id: hr.id }))}
-            disabled={hrPersonnel.length === 0}
+            options={(trainers && trainers.length > 0 ? trainers : hrPersonnel).map(t => ({ value: t.id, label: t.name, id: t.id }))}
+            disabled={(trainers && trainers.length > 0 ? trainers.length === 0 : hrPersonnel.length === 0)}
           />
           
           {/* Reset Button */}
