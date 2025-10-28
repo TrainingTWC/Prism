@@ -325,11 +325,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           if (compResp.ok) {
             const comp = await compResp.json();
             setCompStoreMapping(comp);
+            console.log('Dashboard - Comprehensive mapping loaded, entries:', comp.length);
             // Build a map of Trainer ID -> occurrences
             const trainerIds = new Set<string>();
             comp.forEach((row: any) => {
               if (row.Trainer) trainerIds.add(String(row.Trainer).toUpperCase());
             });
+            console.log('Dashboard - Trainer IDs found:', Array.from(trainerIds));
 
             // User-provided mapping overrides (ID -> Name) - ACTUAL TRAINERS
             const provided: Record<string, string> = {
@@ -352,6 +354,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               const name = nameFromProvided || found?.name || tid;
               trainersArr.push({ id: tid, name });
             });
+            console.log('Dashboard - Built trainersArr:', trainersArr);
 
             // Sort by name
             trainersArr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
