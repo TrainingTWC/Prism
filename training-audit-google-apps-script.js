@@ -5,8 +5,36 @@
 
 function doPost(e) {
   try {
-    var params = (e && e.parameter) ? e.parameter : {};
+    // Try multiple ways to get parameters
+    var params = {};
+    
+    // Method 1: Standard parameter object (works for URL-encoded form data)
+    if (e && e.parameter) {
+      params = e.parameter;
+      console.log('Using e.parameter');
+    }
+    
+    // Method 2: Parse postData if parameter is empty (fallback)
+    if (Object.keys(params).length === 0 && e && e.postData && e.postData.contents) {
+      console.log('Parsing from e.postData.contents');
+      var contents = e.postData.contents;
+      var pairs = contents.split('&');
+      for (var i = 0; i < pairs.length; i++) {
+        var pair = pairs[i].split('=');
+        if (pair.length === 2) {
+          params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+        }
+      }
+    }
+    
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // Log all incoming parameters for debugging
+    console.log('=== ALL INCOMING PARAMETERS ===');
+    console.log('Total parameter keys: ' + Object.keys(params).length);
+    for (var key in params) {
+      console.log(key + ': ' + params[key]);
+    }
     
     // Try to find existing training sheet or create new one
     var possibleSheetNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
@@ -39,6 +67,15 @@ function doPost(e) {
     // Log store mapping info
     console.log('=== STORE MAPPING INFO ===');
     console.log('Store Info Found: ' + JSON.stringify(storeInfo));
+    
+    // Log TSA scores received
+    console.log('=== TSA SCORES RECEIVED ===');
+    console.log('TSA_Food_Score: ' + (params.TSA_Food_Score || 'not provided'));
+    console.log('TSA_Coffee_Score: ' + (params.TSA_Coffee_Score || 'not provided'));
+    console.log('TSA_CX_Score: ' + (params.TSA_CX_Score || 'not provided'));
+    console.log('TSA_Food_Score_remarks: ' + (params.TSA_Food_Score_remarks || 'not provided'));
+    console.log('TSA_Coffee_Score_remarks: ' + (params.TSA_Coffee_Score_remarks || 'not provided'));
+    console.log('TSA_CX_Score_remarks: ' + (params.TSA_CX_Score_remarks || 'not provided'));
     
     // Auto-populate ONLY region from store mapping - MOD must remain user input
     if (storeInfo.region) {
@@ -97,8 +134,8 @@ function doPost(e) {
       // Partner Knowledge (PK_1 to PK_7)
       'PK_1', 'PK_2', 'PK_3', 'PK_4', 'PK_5', 'PK_6', 'PK_7',
       
-      // Training Store Audit (TSA_1 to TSA_3)
-      'TSA_1', 'TSA_2', 'TSA_3',
+      // Training Store Audit Scores (TSA_Food_Score, TSA_Coffee_Score, TSA_CX_Score)
+      'TSA_Food_Score', 'TSA_Coffee_Score', 'TSA_CX_Score',
       
       // Customer Experience (CX_1 to CX_9)
       'CX_1', 'CX_2', 'CX_3', 'CX_4', 'CX_5', 'CX_6', 'CX_7', 'CX_8', 'CX_9',
@@ -108,7 +145,7 @@ function doPost(e) {
       
       // Section Remarks
       'TM_remarks', 'LMS_remarks', 'Buddy_remarks', 'NJ_remarks', 
-      'PK_remarks', 'TSA_remarks', 'CX_remarks', 'AP_remarks',
+      'PK_remarks', 'TSA_Food_Score_remarks', 'TSA_Coffee_Score_remarks', 'TSA_CX_Score_remarks', 'CX_remarks', 'AP_remarks',
       
       // Scoring
       'Total Score', 'Max Score', 'Percentage'
@@ -161,8 +198,8 @@ function doPost(e) {
       params.PK_1 || '', params.PK_2 || '', params.PK_3 || '',
       params.PK_4 || '', params.PK_5 || '', params.PK_6 || '', params.PK_7 || '',
       
-      // Training Store Audit (TSA_1 to TSA_3)
-      params.TSA_1 || '', params.TSA_2 || '', params.TSA_3 || '',
+      // Training Store Audit Scores (TSA_Food_Score, TSA_Coffee_Score, TSA_CX_Score)
+      params.TSA_Food_Score || '', params.TSA_Coffee_Score || '', params.TSA_CX_Score || '',
       
       // Customer Experience (CX_1 to CX_9)
       params.CX_1 || '', params.CX_2 || '', params.CX_3 || '',
@@ -175,7 +212,7 @@ function doPost(e) {
       // Section remarks
       params.TM_remarks || '', params.LMS_remarks || '',
       params.Buddy_remarks || '', params.NJ_remarks || '',
-      params.PK_remarks || '', params.TSA_remarks || '',
+      params.PK_remarks || '', params.TSA_Food_Score_remarks || '', params.TSA_Coffee_Score_remarks || '', params.TSA_CX_Score_remarks || '',
       params.CX_remarks || '', params.AP_remarks || '',
       
       // Scoring
@@ -303,10 +340,10 @@ function getTrainingChecklistData() {
         obj['PK_' + i] = row[colIndex++] || '';
       }
       
-      // Training Store Audit (TSA_1 to TSA_3)
-      for (var i = 1; i <= 3; i++) {
-        obj['TSA_' + i] = row[colIndex++] || '';
-      }
+      // Training Store Audit Scores (TSA_Food_Score, TSA_Coffee_Score, TSA_CX_Score)
+      obj['tsaFoodScore'] = row[colIndex++] || '';
+      obj['tsaCoffeeScore'] = row[colIndex++] || '';
+      obj['tsaCXScore'] = row[colIndex++] || '';
       
       // Customer Experience (CX_1 to CX_9)
       for (var i = 1; i <= 9; i++) {
@@ -324,7 +361,9 @@ function getTrainingChecklistData() {
       obj.Buddy_remarks = row[colIndex++] || '';
       obj.NJ_remarks = row[colIndex++] || '';
       obj.PK_remarks = row[colIndex++] || '';
-      obj.TSA_remarks = row[colIndex++] || '';
+      obj.TSA_Food_Score_remarks = row[colIndex++] || '';
+      obj.TSA_Coffee_Score_remarks = row[colIndex++] || '';
+      obj.TSA_CX_Score_remarks = row[colIndex++] || '';
       obj.CX_remarks = row[colIndex++] || '';
       obj.AP_remarks = row[colIndex++] || '';
       

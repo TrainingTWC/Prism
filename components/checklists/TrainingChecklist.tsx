@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GraduationCap } from 'lucide-react';
 import { AREA_MANAGERS } from '../../constants';
 import { hapticFeedback } from '../../utils/haptics';
 import hrMappingData from '../../src/hr_mapping.json';
 import compStoreMapping from '../../src/comprehensive_store_mapping.json';
-import { useAuth } from '../../contexts/AuthContext';
 
 interface Store {
   name: string;
@@ -37,16 +36,10 @@ interface SectionItem {
   w: number;
   wneg?: number;
   section?: string; // For TSA subsections
-  type?: string; // For text input fields (allow runtime values)
+  type?: 'text'; // For text input fields
 }
 
-interface Section {
-  id: string;
-  title?: string;
-  items: SectionItem[];
-}
-
-const DEFAULT_SECTIONS = [
+const SECTIONS = [
   { 
     id: 'TrainingMaterials', 
     title: 'Training Materials', 
@@ -274,8 +267,6 @@ const DEFAULT_SECTIONS = [
   }
 ];
 
-import { useConfig } from '../../contexts/ConfigContext';
-
 interface TrainingChecklistProps {
   userRole?: any;
   onStatsUpdate?: (stats: { completed: number; total: number; score: number }) => void;
@@ -289,8 +280,6 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       return {}; 
     }
   });
-
-  const { employeeData: currentEmployee, userRole: authUserRole } = useAuth();
 
   const [meta, setMeta] = useState<TrainingMeta>(() => {
     let stored = {};
@@ -312,17 +301,6 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       mod: (stored as any).mod || ''
     };
   });
-
-  // Autofill trainer field when component mounts if role is training
-  useEffect(() => {
-    if (authUserRole === 'training' && currentEmployee && !meta.trainerId) {
-      setMeta(prev => ({
-        ...prev,
-        trainerId: currentEmployee.code,
-        trainerName: currentEmployee.name
-      }));
-    }
-  }, [authUserRole, currentEmployee]);
 
   const [isTrainerIdFromURL, setIsTrainerIdFromURL] = useState<boolean>(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -418,45 +396,6 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       onStatsUpdate({ completed, total, score: scorePercentage });
     }
   }, [responses, onStatsUpdate]);
-  
-  // Load sections from runtime config (CHECKLISTS.TRAINING) with fallback
-  const { get } = useConfig();
-  const SECTIONS: Section[] = useMemo(() => {
-    try {
-      const lists = get('CHECKLISTS');
-      if (lists && lists.TRAINING && Array.isArray(lists.TRAINING)) {
-        return lists.TRAINING as Section[];
-      }
-    } catch (e) {
-      // ignore and fallback
-    }
-    return DEFAULT_SECTIONS;
-  }, [get]);
-
-  // Load audit details from config
-  const auditFields = useMemo(() => {
-    try {
-      const auditDetails = get('AUDIT_DETAILS');
-      if (auditDetails && auditDetails.TRAINING && Array.isArray(auditDetails.TRAINING)) {
-        return auditDetails.TRAINING;
-      }
-    } catch (e) {
-      // ignore and fallback
-    }
-    return [];
-  }, [get]);
-
-  // Load employee data for EMPLOYEE_LIST dropdowns
-  const [employeeList, setEmployeeList] = useState<Array<{code: string, name: string}>>([]);
-  useEffect(() => {
-    fetch('/Prism/employee_data.json')
-      .then(res => res.json())
-      .then((data: Array<{code: string, name: string}>) => {
-        setEmployeeList(data);
-      })
-      .catch(err => console.error('Failed to load employee data:', err));
-  }, []);
-
   const [trainerSearchTerm, setTrainerSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
   const [showAmDropdown, setShowAmDropdown] = useState(false);
@@ -465,13 +404,6 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   const [selectedAmIndex, setSelectedAmIndex] = useState(-1);
   const [selectedTrainerIndex, setSelectedTrainerIndex] = useState(-1);
   const [selectedStoreIndex, setSelectedStoreIndex] = useState(-1);
-
-  // Dynamic dropdown states for audit fields
-  const [dropdownStates, setDropdownStates] = useState<Record<string, {
-    searchTerm: string;
-    showDropdown: boolean;
-    selectedIndex: number;
-  }>>({});
 
   // Get unique AMs from constants (same as HR Checklist), Trainers and Stores from HR mapping
   const uniqueAMs = AREA_MANAGERS.map(am => ({
@@ -1422,10 +1354,10 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         maxScore: maxScore.toString(),
         percentage: percentage.toString(),
         type: 'Training',
-        // TSA individual scores (0/5/10 based on percentage) - FIXED: Match Google Apps Script field names
-        TSA_Food_Score: calculateTSAFoodScore().toString(),
-        TSA_Coffee_Score: calculateTSACoffeeScore().toString(),
-        TSA_CX_Score: calculateTSACXScore().toString()
+        // TSA individual scores (0/5/10 based on percentage)
+        tsaFoodScore: calculateTSAFoodScore().toString(),
+        tsaCoffeeScore: calculateTSACoffeeScore().toString(),
+        tsaCXScore: calculateTSACXScore().toString()
       });
 
       // Add individual responses
@@ -1446,16 +1378,16 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                              section.id === 'Buddy' ? 'Buddy' :
                              section.id === 'NewJoiner' ? 'NJ' :
                              section.id === 'PartnerKnowledge' ? 'PK' :
-                             section.id === 'TSA_Food' ? 'TSA_Food_Score' :  // Fixed: Add _Score suffix
-                             section.id === 'TSA_Coffee' ? 'TSA_Coffee_Score' :  // Fixed: Add _Score suffix
-                             section.id === 'TSA_CX' ? 'TSA_CX_Score' :  // Fixed: Add _Score suffix
+                             section.id === 'TSA_Food' ? 'TSA_Food' :
+                             section.id === 'TSA_Coffee' ? 'TSA_Coffee' :
+                             section.id === 'TSA_CX' ? 'TSA_CX' :
                              section.id === 'CustomerExperience' ? 'CX' :
                              section.id === 'ActionPlan' ? 'AP' : section.id;
           formData.append(`${sectionAbbr}_remarks`, remarks[section.id]);
         }
       });
 
-      const response = await fetch('https://script.google.com/macros/s/AKfycbz2Y-3u9BOoKNVkP8YhsHmtMhOxqzXRBMfpKfb7aRAlI96JC3ipQffRxATtlMAAgm-ujg/exec', {
+      const response = await fetch('https://script.google.com/macros/s/AKfycbwxIYMtuvIGGgAIhZr-ddaLJlEDbZ6glgeYFdESNO5nNAyZ3fWLBRb5fpcx_cYaQ1QkcQ/exec', {
         method: 'POST',
         body: formData
       });
@@ -1515,296 +1447,6 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     localStorage.removeItem('training_meta');
     localStorage.removeItem('training_remarks');
     hapticFeedback.tap();
-  };
-
-  // Helper function to render dynamic audit fields from config
-  const renderAuditField = (field: any) => {
-    const fieldValue = (meta as any)[field.id] || '';
-    const dropdownState = dropdownStates[field.id] || { searchTerm: '', showDropdown: false, selectedIndex: -1 };
-    
-    if (field.type === 'dropdown') {
-      let options: Array<{value: string, label: string}> = [];
-      
-      // Get options based on source
-      if (field.source === 'EMPLOYEE_LIST') {
-        options = employeeList.map(emp => ({
-          value: emp.code,
-          label: `${emp.code} - ${emp.name}`
-        }));
-      } else if (field.source === 'STORES') {
-        options = filteredStores.map(store => ({
-          value: store.id,
-          label: `${store.name} (${store.id})`
-        }));
-      } else if (field.source === 'AREA_MANAGERS') {
-        options = uniqueAMs.map(am => ({
-          value: am.id as string,
-          label: `${am.name} (${am.id})`
-        }));
-      } else if (field.source === 'HR_PERSONNEL') {
-        // Load from config if available
-        const hrPersonnel = get('HR_PERSONNEL') || [];
-        options = hrPersonnel.map((hr: any) => ({
-          value: hr.id,
-          label: `${hr.name} (${hr.id})`
-        }));
-      } else if (field.source === 'REGIONS') {
-        options = [
-          { value: 'North', label: 'North' },
-          { value: 'South', label: 'South' },
-          { value: 'East', label: 'East' },
-          { value: 'West', label: 'West' }
-        ];
-      } else if (field.choices && Array.isArray(field.choices)) {
-        // Custom choices
-        options = field.choices.map((choice: string) => ({
-          value: choice,
-          label: choice
-        }));
-      }
-
-      // Filter options based on search term
-      const filteredOptions = dropdownState.searchTerm
-        ? options.filter(opt => 
-            opt.label.toLowerCase().includes(dropdownState.searchTerm.toLowerCase())
-          )
-        : options;
-
-      // Get current display value
-      const currentOption = options.find(opt => opt.value === fieldValue);
-      const displayValue = dropdownState.searchTerm || (currentOption ? currentOption.label : '');
-      
-      return (
-        <div key={field.id} className="md:col-span-1 relative">
-          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-            {field.label}{field.required && <span className="text-red-500"> *</span>}
-          </label>
-          <input
-            type="text"
-            value={displayValue}
-            onChange={(e) => {
-              setDropdownStates(prev => ({
-                ...prev,
-                [field.id]: { searchTerm: e.target.value, showDropdown: true, selectedIndex: -1 }
-              }));
-            }}
-            onFocus={() => {
-              setDropdownStates(prev => ({
-                ...prev,
-                [field.id]: { ...dropdownState, showDropdown: true }
-              }));
-            }}
-            onBlur={() => {
-              setTimeout(() => {
-                setDropdownStates(prev => ({
-                  ...prev,
-                  [field.id]: { ...dropdownState, showDropdown: false, searchTerm: '' }
-                }));
-              }, 200);
-            }}
-            placeholder={`Search ${field.label}...`}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-            required={field.required}
-          />
-          
-          {dropdownState.showDropdown && (
-            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-              {filteredOptions.length > 0 ? (
-                filteredOptions.map((opt, index) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      handleMetaChange(field.id, opt.value);
-                      setDropdownStates(prev => ({
-                        ...prev,
-                        [field.id]: { searchTerm: '', showDropdown: false, selectedIndex: -1 }
-                      }));
-                    }}
-                    className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
-                      index === dropdownState.selectedIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                    }`}
-                  >
-                    <div className="truncate">{opt.label}</div>
-                  </button>
-                ))
-              ) : (
-                <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No options found</div>
-              )}
-            </div>
-          )}
-        </div>
-      );
-    } else if (field.type === 'number') {
-      return (
-        <div key={field.id} className="md:col-span-1">
-          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-            {field.label}{field.required && <span className="text-red-500"> *</span>}
-          </label>
-          <input
-            type="number"
-            value={fieldValue}
-            onChange={(e) => handleMetaChange(field.id, e.target.value)}
-            placeholder={`Enter ${field.label}`}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-            required={field.required}
-          />
-        </div>
-      );
-    } else {
-      // Default to text input
-      return (
-        <div key={field.id} className="md:col-span-1">
-          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-            {field.label}{field.required && <span className="text-red-500"> *</span>}
-          </label>
-          <input
-            type="text"
-            value={fieldValue}
-            onChange={(e) => handleMetaChange(field.id, e.target.value)}
-            placeholder={`Enter ${field.label}`}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-            required={field.required}
-          />
-        </div>
-      );
-    }
-  };
-
-  // Helper function to render question input based on type
-  const renderQuestionInput = (item: SectionItem, sectionId: string) => {
-    const fieldKey = `${sectionId}_${item.id}`;
-    
-    if (item.type === 'text') {
-      return (
-        <input
-          type="text"
-          value={responses[fieldKey] || ''}
-          onChange={(e) => handleTextResponse(fieldKey, e.target.value)}
-          className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
-          placeholder="Enter value"
-        />
-      );
-    } else if (item.type === 'dropdown') {
-      let options: Array<{value: string, label: string}> = [];
-      if ((item as any).source === 'EMPLOYEE_LIST') {
-        options = employeeList.map(emp => ({
-          value: emp.code,
-          label: `${emp.code} - ${emp.name}`
-        }));
-      } else if ((item as any).source === 'STORES') {
-        options = filteredStores.map(store => ({
-          value: store.id,
-          label: `${store.name} (${store.id})`
-        }));
-      } else if ((item as any).source === 'AREA_MANAGERS') {
-        options = uniqueAMs.map(am => ({
-          value: am.id as string,
-          label: `${am.name} (${am.id})`
-        }));
-      } else if ((item as any).source === 'HR_PERSONNEL') {
-        const hrPersonnel = get('HR_PERSONNEL') || [];
-        options = hrPersonnel.map((hr: any) => ({
-          value: hr.id,
-          label: `${hr.name} (${hr.id})`
-        }));
-      } else if ((item as any).source === 'REGIONS') {
-        options = [
-          { value: 'North', label: 'North' },
-          { value: 'South', label: 'South' },
-          { value: 'East', label: 'East' },
-          { value: 'West', label: 'West' }
-        ];
-      } else if ((item as any).choices && Array.isArray((item as any).choices)) {
-        options = ((item as any).choices as string[]).map((choice: string) => ({
-          value: choice,
-          label: choice
-        }));
-      }
-      
-      const dropdownState = dropdownStates[fieldKey] || { searchTerm: '', showDropdown: false, selectedIndex: -1 };
-      const filteredOptions = dropdownState.searchTerm
-        ? options.filter(opt => opt.label.toLowerCase().includes(dropdownState.searchTerm.toLowerCase()))
-        : options;
-      const currentOption = options.find(opt => opt.value === responses[fieldKey]);
-      const displayValue = dropdownState.searchTerm || (currentOption ? currentOption.label : '');
-      
-      return (
-        <div className="relative">
-          <input
-            type="text"
-            value={displayValue}
-            onChange={(e) => {
-              setDropdownStates(prev => ({
-                ...prev,
-                [fieldKey]: { searchTerm: e.target.value, showDropdown: true, selectedIndex: -1 }
-              }));
-            }}
-            onFocus={() => {
-              setDropdownStates(prev => ({
-                ...prev,
-                [fieldKey]: { ...dropdownState, showDropdown: true }
-              }));
-            }}
-            onBlur={() => {
-              setTimeout(() => {
-                setDropdownStates(prev => ({
-                  ...prev,
-                  [fieldKey]: { ...dropdownState, showDropdown: false, searchTerm: '' }
-                }));
-              }, 200);
-            }}
-            placeholder="Search..."
-            className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
-          />
-          {dropdownState.showDropdown && (
-            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-              {filteredOptions.length > 0 ? (
-                filteredOptions.map((opt, index) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      handleTextResponse(fieldKey, opt.value);
-                      setDropdownStates(prev => ({
-                        ...prev,
-                        [fieldKey]: { searchTerm: '', showDropdown: false, selectedIndex: -1 }
-                      }));
-                    }}
-                    className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-xs sm:text-sm break-words ${
-                      index === dropdownState.selectedIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                    }`}
-                  >
-                    <div className="truncate">{opt.label}</div>
-                  </button>
-                ))
-              ) : (
-                <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-xs sm:text-sm">No options found</div>
-              )}
-            </div>
-          )}
-        </div>
-      );
-    } else {
-      // Default to radio buttons (Yes/No/NA)
-      return (
-        <div className="flex flex-wrap gap-2 sm:gap-3">
-          {['yes', 'no', 'na'].map(option => (
-            <label key={option} className="flex items-center space-x-1 cursor-pointer min-w-0 shrink-0">
-              <input
-                type="radio"
-                name={fieldKey}
-                value={option}
-                checked={responses[fieldKey] === option}
-                onChange={(e) => handleResponse(fieldKey, e.target.value)}
-                className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500 shrink-0"
-              />
-              <span className="text-sm text-gray-700 dark:text-slate-300 capitalize">{option}</span>
-            </label>
-          ))}
-        </div>
-      );
-    }
   };
 
   return (
@@ -1984,175 +1626,168 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-          {auditFields.length > 0 ? (
-            auditFields.map((field: any) => renderAuditField(field))
-          ) : (
-            // Fallback to hardcoded fields if config not available
-            <>
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                  Area Manager
-                </label>
-                <input
-                  type="text"
-                  value={amSearchTerm || (meta.amId ? `${meta.amName} (${meta.amId})` : '')}
-                  onChange={(e) => {
-                    setAmSearchTerm(e.target.value);
-                    setShowAmDropdown(true);
-                    setSelectedAmIndex(-1);
-                  }}
-                  onFocus={() => setShowAmDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowAmDropdown(false), 200)}
-                  placeholder="Search Area Manager..."
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-                />
-                
-                {showAmDropdown && (
-                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {filteredAMs.length > 0 ? (
-                      filteredAMs.map((am, index) => (
-                        <button
-                          key={am.id}
-                          onClick={() => {
-                            handleMetaChange('amId', am.id as string);
-                            handleMetaChange('amName', am.name as string);
-                            autoFillFields('am', am.name as string);
-                            setAmSearchTerm('');
-                            setShowAmDropdown(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
-                            index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                          }`}
-                        >
-                          <div className="truncate">{am.name} ({am.id})</div>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No area managers found</div>
-                    )}
-                  </div>
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+              Area Manager
+            </label>
+            <input
+              type="text"
+              value={amSearchTerm || (meta.amId ? `${meta.amName} (${meta.amId})` : '')}
+              onChange={(e) => {
+                setAmSearchTerm(e.target.value);
+                setShowAmDropdown(true);
+                setSelectedAmIndex(-1);
+              }}
+              onFocus={() => setShowAmDropdown(true)}
+              onBlur={() => setTimeout(() => setShowAmDropdown(false), 200)}
+              placeholder="Search Area Manager..."
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+            />
+            
+            {showAmDropdown && (
+              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                {filteredAMs.length > 0 ? (
+                  filteredAMs.map((am, index) => (
+                    <button
+                      key={am.id}
+                      onClick={() => {
+                        handleMetaChange('amId', am.id as string);
+                        handleMetaChange('amName', am.name as string);
+                        autoFillFields('am', am.name as string);
+                        setAmSearchTerm('');
+                        setShowAmDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
+                        index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                      }`}
+                    >
+                      <div className="truncate">{am.name} ({am.id})</div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No area managers found</div>
                 )}
               </div>
+            )}
+          </div>
 
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                  Trainer (Auditor)
-                </label>
-                <input
-                  type="text"
-                  value={trainerSearchTerm || (meta.trainerId ? `${meta.trainerName} (${meta.trainerId})` : '')}
-                  onChange={(e) => {
-                    setTrainerSearchTerm(e.target.value);
-                    setShowTrainerDropdown(true);
-                    setSelectedTrainerIndex(-1);
-                  }}
-                  onFocus={() => setShowTrainerDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowTrainerDropdown(false), 200)}
-                  placeholder="Search Trainer..."
-                  readOnly={isTrainerIdFromURL && !!meta.trainerId}
-                  className={`w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md ${
-                    isTrainerIdFromURL && meta.trainerId
-                      ? 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 cursor-not-allowed'
-                      : 'bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100'
-                  }`}
-                />
-                
-                {isTrainerIdFromURL && meta.trainerId && (
-                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-                    Trainer ID picked from URL parameters
-                  </p>
-                )}
-                
-                {showTrainerDropdown && !isTrainerIdFromURL && (
-                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {uniqueTrainers.length === 0 ? (
-                      <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No trainers found</div>
-                    ) : filteredTrainers.length > 0 ? (
-                      filteredTrainers.map((trainer, index) => (
-                        <button
-                          key={trainer.id}
-                          onClick={() => {
-                            handleMetaChange('trainerId', trainer.id as string);
-                            handleMetaChange('trainerName', trainer.name as string);
-                            autoFillFields('trainer', trainer.name as string);
-                            setTrainerSearchTerm('');
-                            setShowTrainerDropdown(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
-                            index === selectedTrainerIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                          }`}
-                        >
-                          <div className="truncate">{trainer.name} ({trainer.id})</div>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No trainers found</div>
-                    )}
-                  </div>
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+              Trainer (Auditor)
+            </label>
+            <input
+              type="text"
+              value={trainerSearchTerm || (meta.trainerId ? `${meta.trainerName} (${meta.trainerId})` : '')}
+              onChange={(e) => {
+                setTrainerSearchTerm(e.target.value);
+                setShowTrainerDropdown(true);
+                setSelectedTrainerIndex(-1);
+              }}
+              onFocus={() => setShowTrainerDropdown(true)}
+              onBlur={() => setTimeout(() => setShowTrainerDropdown(false), 200)}
+              placeholder="Search Trainer..."
+              readOnly={isTrainerIdFromURL && !!meta.trainerId}
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md ${
+                isTrainerIdFromURL && meta.trainerId
+                  ? 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 cursor-not-allowed'
+                  : 'bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100'
+              }`}
+            />
+            
+            {isTrainerIdFromURL && meta.trainerId && (
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                Trainer ID picked from URL parameters
+              </p>
+            )}
+            
+            {showTrainerDropdown && !isTrainerIdFromURL && (
+              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                {uniqueTrainers.length === 0 ? (
+                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No trainers found</div>
+                ) : filteredTrainers.length > 0 ? (
+                  filteredTrainers.map((trainer, index) => (
+                    <button
+                      key={trainer.id}
+                      onClick={() => {
+                        handleMetaChange('trainerId', trainer.id as string);
+                        handleMetaChange('trainerName', trainer.name as string);
+                        autoFillFields('trainer', trainer.name as string);
+                        setTrainerSearchTerm('');
+                        setShowTrainerDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
+                        index === selectedTrainerIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                      }`}
+                    >
+                      <div className="truncate">{trainer.name} ({trainer.id})</div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No trainers found</div>
                 )}
               </div>
+            )}
+          </div>
 
-              <div className="md:col-span-2" data-tour="store-select">
-                <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                    Store Location
-                  </label>
-                  <input
-                    type="text"
-                    value={storeSearchTerm || (meta.storeId ? `${meta.storeName} (${meta.storeId})` : '')}
-                    onChange={(e) => {
-                      setStoreSearchTerm(e.target.value);
-                      setShowStoreDropdown(true);
-                      setSelectedStoreIndex(-1);
-                    }}
-                    onFocus={() => setShowStoreDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowStoreDropdown(false), 200)}
-                    placeholder="Search Store..."
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-                  />
-                  
-                  {showStoreDropdown && (
-                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                      {filteredStores.length > 0 ? (
-                        filteredStores.map((store, index) => (
-                          <button
-                            key={store.id}
-                            onClick={() => {
-                              handleMetaChange('storeId', store.id as string);
-                              handleMetaChange('storeName', store.name as string);
-                              autoFillFields('store', store.name as string);
-                              setStoreSearchTerm('');
-                              setShowStoreDropdown(false);
-                            }}
-                            className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
-                              index === selectedStoreIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                            }`}
-                          >
-                            <div className="truncate">{store.name} ({store.id})</div>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No stores found</div>
-                      )}
-                    </div>
+          <div className="md:col-span-2" data-tour="store-select">
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Store Location
+              </label>
+              <input
+                type="text"
+                value={storeSearchTerm || (meta.storeId ? `${meta.storeName} (${meta.storeId})` : '')}
+                onChange={(e) => {
+                  setStoreSearchTerm(e.target.value);
+                  setShowStoreDropdown(true);
+                  setSelectedStoreIndex(-1);
+                }}
+                onFocus={() => setShowStoreDropdown(true)}
+                onBlur={() => setTimeout(() => setShowStoreDropdown(false), 200)}
+                placeholder="Search Store..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+              />
+              
+              {showStoreDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                  {filteredStores.length > 0 ? (
+                    filteredStores.map((store, index) => (
+                      <button
+                        key={store.id}
+                        onClick={() => {
+                          handleMetaChange('storeId', store.id as string);
+                          handleMetaChange('storeName', store.name as string);
+                          autoFillFields('store', store.name as string);
+                          setStoreSearchTerm('');
+                          setShowStoreDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
+                          index === selectedStoreIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                        }`}
+                      >
+                        <div className="truncate">{store.name} ({store.id})</div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No stores found</div>
                   )}
                 </div>
-              </div>
+              )}
+            </div>
+          </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                  MOD (Manager on Duty)
-                </label>
-                <input
-                  type="text"
-                  value={meta.mod}
-                  onChange={(e) => handleMetaChange('mod', e.target.value)}
-                  placeholder="Enter MOD name"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-                />
-              </div>
-            </>
-          )}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+              MOD (Manager on Duty)
+            </label>
+            <input
+              type="text"
+              value={meta.mod}
+              onChange={(e) => handleMetaChange('mod', e.target.value)}
+              placeholder="Enter MOD name"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+            />
+          </div>
         </div>
       </div>
 
@@ -2258,7 +1893,31 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                                       {item.q}
                                     </p>
                                     <div className="">
-                                      {renderQuestionInput(item, section.id)}
+                                      {item.type === 'text' ? (
+                                        <input
+                                          type="text"
+                                          value={responses[`${section.id}_${item.id}`] || ''}
+                                          onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
+                                          className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                          placeholder="Enter value"
+                                        />
+                                      ) : (
+                                        <div className="flex flex-wrap gap-2 sm:gap-3">
+                                          {['yes', 'no', 'na'].map(option => (
+                                            <label key={option} className="flex items-center space-x-1 cursor-pointer min-w-0 shrink-0">
+                                              <input
+                                                type="radio"
+                                                name={`${section.id}_${item.id}`}
+                                                value={option}
+                                                checked={responses[`${section.id}_${item.id}`] === option}
+                                                onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                                                className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500 shrink-0"
+                                              />
+                                              <span className="text-sm text-gray-700 dark:text-slate-300 capitalize">{option}</span>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -2362,7 +2021,31 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                                       {item.q}
                                     </p>
                                     <div className="">
-                                      {renderQuestionInput(item, section.id)}
+                                      {item.type === 'text' ? (
+                                        <input
+                                          type="text"
+                                          value={responses[`${section.id}_${item.id}`] || ''}
+                                          onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
+                                          className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                          placeholder="Enter value"
+                                        />
+                                      ) : (                                                                                                                                                                                                                                                 
+                                        <div className="flex flex-wrap gap-2 sm:gap-4">
+                                          {['yes', 'no', 'na'].map(option => (
+                                            <label key={option} className="flex items-center space-x-1 sm:space-x-2 cursor-pointer min-w-0 shrink-0">
+                                              <input
+                                                type="radio"
+                                                name={`${section.id}_${item.id}`}
+                                                value={option}
+                                                checked={responses[`${section.id}_${item.id}`] === option}
+                                                onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                                                className="w-4 h-4 text-yellow-600 border-gray-300 dark:border-slate-600 focus:ring-yellow-500 shrink-0"
+                                              />
+                                              <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -2466,7 +2149,31 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                                       {item.q}
                                     </p>
                                     <div className="">
-                                      {renderQuestionInput(item, section.id)}
+                                      {item.type === 'text' ? (
+                                        <input
+                                          type="text"
+                                          value={responses[`${section.id}_${item.id}`] || ''}
+                                          onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
+                                          className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                          placeholder="Enter value"
+                                        />
+                                      ) : (
+                                        <div className="flex flex-wrap gap-2 sm:gap-4">
+                                          {['yes', 'no', 'na'].map(option => (
+                                            <label key={option} className="flex items-center space-x-1 sm:space-x-2 cursor-pointer min-w-0 shrink-0">
+                                              <input
+                                                type="radio"
+                                                name={`${section.id}_${item.id}`}
+                                                value={option}
+                                                checked={responses[`${section.id}_${item.id}`] === option}
+                                                onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                                                className="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-600 focus:ring-blue-500 shrink-0"
+                                              />
+                                              <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
