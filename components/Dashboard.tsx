@@ -355,15 +355,20 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
             // Sort by name
             trainersArr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+            console.log('Dashboard - Using custom trainer mapping:', trainersArr);
             setAllTrainers(trainersArr);
           } else {
             // Fallback: use HR personnel names where trainer ids appear
+            console.log('Dashboard - Using fallback HR personnel for trainers');
             const fallbackTrainers = Array.from(new Set(Array.from(hrMap.values()).map((h:any)=>h.id))).map((id:any)=>({ id, name: (HR_PERSONNEL.find(x=>x.id===id)?.name || id) }));
+            console.log('Dashboard - Fallback trainers:', fallbackTrainers);
             setAllTrainers(fallbackTrainers);
           }
         } catch (err) {
           // On any error, fallback to using HR personnel constants
+          console.log('Dashboard - Error loading comprehensive mapping, using HR fallback:', err);
           const fallbackTrainers = Array.from(new Set(Array.from(hrMap.values()).map((h:any)=>h.id))).map((id:any)=>({ id, name: (HR_PERSONNEL.find(x=>x.id===id)?.name || id) }));
+          console.log('Dashboard - Error fallback trainers:', fallbackTrainers);
           setAllTrainers(fallbackTrainers);
         }
         
