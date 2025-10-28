@@ -416,14 +416,12 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     H1761: 'Mahadev',
     H701: 'Mallika',
     H1697: 'Sheldon',
-    H3595: 'Bhawna',
+    H1169: 'Hema',
     H2595: 'Kailash',
+    H3595: 'Bhawna',
     H3252: 'Priyanka',
     H1278: 'Viraj',
-    H3247: 'Sunil',
-    H0541: 'Amritanshu',
-    H541: 'Amritanshu',
-    H3237: 'Karam'
+    H3247: 'Sunil'
   };
 
   const uniqueTrainers = (() => {
