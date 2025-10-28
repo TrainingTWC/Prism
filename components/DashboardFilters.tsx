@@ -236,6 +236,16 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   // Mobile drawer state
   const [showMobileFilters, setShowMobileFilters] = React.useState(false);
 
+  // Debug logging to understand what trainers data we're getting
+  console.log('DashboardFilters - trainers prop:', trainers);
+  console.log('DashboardFilters - trainers length:', trainers?.length || 0);
+  console.log('DashboardFilters - hrPersonnel length:', hrPersonnel?.length || 0);
+  console.log('DashboardFilters - using trainers?', trainers && trainers.length > 0);
+
+  // Determine which trainer list to use
+  const effectiveTrainers = (trainers && trainers.length > 0) ? trainers : hrPersonnel;
+  console.log('DashboardFilters - effective trainers:', effectiveTrainers.slice(0, 3)); // Log first 3
+
   const handleRefresh = (e?: React.KeyboardEvent | React.MouseEvent) => {
     // allow keyboard activation via Enter/Space
     /* eslint-disable-next-line no-console */
@@ -323,8 +333,8 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             value={filters.trainer}
             onChange={(value) => onFilterChange('trainer', value)}
             placeholder="All Trainers"
-            options={(trainers && trainers.length > 0 ? trainers : hrPersonnel).map(t => ({ value: t.id, label: t.name, id: t.id }))}
-            disabled={(trainers && trainers.length > 0 ? trainers.length === 0 : hrPersonnel.length === 0)}
+            options={effectiveTrainers.map(t => ({ value: t.id, label: t.name, id: t.id }))}
+            disabled={effectiveTrainers.length === 0}
           />
         </div>
       </div>
@@ -375,8 +385,8 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             value={filters.trainer}
             onChange={(value) => onFilterChange('trainer', value)}
             placeholder="All Trainers"
-            options={(trainers && trainers.length > 0 ? trainers : hrPersonnel).map(t => ({ value: t.id, label: t.name, id: t.id }))}
-            disabled={(trainers && trainers.length > 0 ? trainers.length === 0 : hrPersonnel.length === 0)}
+            options={effectiveTrainers.map(t => ({ value: t.id, label: t.name, id: t.id }))}
+            disabled={effectiveTrainers.length === 0}
           />
           
           {/* Reset Button */}
