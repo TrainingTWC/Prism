@@ -321,7 +321,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
         // Also try to load comprehensive trainer mapping and prefer its trainer names
         try {
-          const compResp = await fetch(`${base}src/comprehensive_store_mapping.json`);
+          const compResp = await fetch(`${base}comprehensive_store_mapping.json`);
+          console.log('Dashboard - Fetching comprehensive mapping from:', `${base}comprehensive_store_mapping.json`);
           if (compResp.ok) {
             const comp = await compResp.json();
             setCompStoreMapping(comp);
