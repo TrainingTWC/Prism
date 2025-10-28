@@ -331,19 +331,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               if (row.Trainer) trainerIds.add(String(row.Trainer).toUpperCase());
             });
 
-            // User-provided mapping overrides (ID -> Name)
+            // User-provided mapping overrides (ID -> Name) - ACTUAL TRAINERS
             const provided: Record<string, string> = {
               'H1761': 'Mahadev',
-              'H701': 'Mallika',
+              'H701': 'Mallika', 
               'H1697': 'Sheldon',
-              'H3595': 'Bhawna',
+              'H1169': 'Hema',
               'H2595': 'Kailash',
+              'H3595': 'Bhawna', 
               'H3252': 'Priyanka',
               'H1278': 'Viraj',
-              'H3247': 'Sunil',
-              'H0541': 'Amritanshu',
-              'H541': 'Amritanshu',
-              'H3237': 'Karam'
+              'H3247': 'Sunil'
             };
 
             const trainersArr: any[] = [];
