@@ -1322,15 +1322,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       SECTIONS.forEach(section => {
         section.items.forEach(item => {
           const questionId = `${section.id}_${item.id}`;
-          // For TSA sections, send with full section prefix to identify them uniquely
-          // For other sections, send just the item.id (e.g., TM_1) to match Google Apps Script expectations
-          if (section.id.startsWith('TSA_')) {
-            // Send TSA responses with full section_item format (e.g., TSA_Food_PH_1)
-            formData.append(`${section.id}_${item.id}`, responses[questionId] || '');
-          } else {
-            // Send regular responses with just item.id (e.g., TM_1)
-            formData.append(item.id, responses[questionId] || '');
-          }
+          // Send just the item.id (e.g., TM_1) to match Google Apps Script expectations
+          formData.append(item.id, responses[questionId] || '');
         });
       });
 
@@ -1352,7 +1345,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         }
       });
 
-      const response = await fetch('https://script.google.com/macros/s/AKfycbyPFx5t3dNNShO9G9LJC_qlfEkSQhhkwRmaIoH_FhUPioFtT9XVHsSwxzgTWZ0kZXvIyw/exec', {
+      const response = await fetch('https://script.google.com/macros/s/AKfycbzSibBicC4B5_naPxgrbNP4xSK49de2R02rI9wnAKG3QOJvuwYrUOYLiBg_9XNqAhS5ig/exec', {
         method: 'POST',
         body: formData
       });
