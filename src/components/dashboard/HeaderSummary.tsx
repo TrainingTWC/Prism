@@ -10,28 +10,29 @@ function computeSummary(rows: Row[]) {
   // Total submissions = count of score rows (or percentage rows - should be same)
   const totalSubmissions = scoreRows.length;
   
-  const avgScore = scoreRows.length ? +(scoreRows.reduce((s, r) => s + (r.metric_value || 0), 0) / scoreRows.length).toFixed(1) : null;
+  // Use percentage rows for average score display (these are already in % format)
+  const avgScore = percentageRows.length ? +(percentageRows.reduce((s, r) => s + (r.metric_value || 0), 0) / percentageRows.length).toFixed(1) : null;
   const stores = new Map();
   for (const r of rows) {
     stores.set(r.store_id, r.store_name || r.store_id);
   }
   const storesCovered = stores.size;
-  // store health: simple bucket avg score per store
-  const storeScores = new Map();
-  for (const r of scoreRows) {
-    const s = storeScores.get(r.store_id) ?? { sum: 0, count: 0 };
-    s.sum += r.metric_value; s.count += 1; storeScores.set(r.store_id, s);
+  // store health: use PERCENTAGE rows (not score rows) to compare against thresholds
+  const storePercentages = new Map();
+  for (const r of percentageRows) {
+    const s = storePercentages.get(r.store_id) ?? { sum: 0, count: 0 };
+    s.sum += r.metric_value; s.count += 1; storePercentages.set(r.store_id, s);
   }
   let healthy = 0, warning = 0, critical = 0;
-  for (const [sid, v] of storeScores.entries()) {
+  for (const [sid, v] of storePercentages.entries()) {
     const avg = v.sum / v.count;
     if (avg >= 80) healthy++; else if (avg >= 60) warning++; else critical++;
   }
 
-  // compute top movers by month-over-month using simple heuristic on score
+  // compute top movers by month-over-month using percentage values
   // group by store+period
   const byStore = new Map();
-  for (const r of scoreRows) {
+  for (const r of percentageRows) {
     const arr = byStore.get(r.store_id) ?? [];
     arr.push(r);
     byStore.set(r.store_id, arr);
