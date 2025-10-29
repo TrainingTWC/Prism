@@ -131,40 +131,52 @@ function getMonthlyTrendsData(filters = {}) {
   }
   
   // Read data in smaller chunks to avoid "argument too large" error
-  const CHUNK_SIZE = 100;
-  const headers = sheet.getRange(1, 1, 1, 15).getValues()[0]; // Only read first 15 columns
+  const CHUNK_SIZE = 50; // Reduced from 100 to 50
+  const NUM_COLUMNS = 11; // Only read the columns we actually need
+  
+  // Read headers - only first 11 columns (we don't need all 15)
+  const headerRange = sheet.getRange(1, 1, 1, NUM_COLUMNS);
+  const headers = headerRange.getValues()[0];
+  
   const rows = [];
   
   // Process data in chunks
   for (let startRow = 2; startRow <= lastRow; startRow += CHUNK_SIZE) {
     const numRows = Math.min(CHUNK_SIZE, lastRow - startRow + 1);
-    const chunkValues = sheet.getRange(startRow, 1, numRows, 15).getValues();
     
-    for (let i = 0; i < chunkValues.length; i++) {
-      const row = chunkValues[i];
+    try {
+      const chunkValues = sheet.getRange(startRow, 1, numRows, NUM_COLUMNS).getValues();
       
-      // Skip empty rows
-      if (!row[0]) continue;
-      
-      const rowObj = {};
-      for (let j = 0; j < headers.length; j++) {
-        const header = headers[j];
-        const value = row[j];
+      for (let i = 0; i < chunkValues.length; i++) {
+        const row = chunkValues[i];
         
-        // Convert numeric strings to numbers for metric_value
-        if (header === 'metric_value' && typeof value === 'string') {
-          rowObj[header] = parseFloat(value) || value;
-        } else {
-          rowObj[header] = value;
+        // Skip empty rows
+        if (!row[0]) continue;
+        
+        const rowObj = {};
+        for (let j = 0; j < headers.length && j < row.length; j++) {
+          const header = headers[j];
+          const value = row[j];
+          
+          // Convert numeric strings to numbers for metric_value
+          if (header === 'metric_value' && typeof value === 'string') {
+            rowObj[header] = parseFloat(value) || value;
+          } else {
+            rowObj[header] = value;
+          }
         }
+        
+        // Apply filters if specified
+        if (filters.store_id && rowObj.store_id !== filters.store_id) continue;
+        if (filters.period && rowObj.observed_period !== filters.period) continue;
+        if (filters.metric && rowObj.metric_name !== filters.metric) continue;
+        
+        rows.push(rowObj);
       }
-      
-      // Apply filters if specified
-      if (filters.store_id && rowObj.store_id !== filters.store_id) continue;
-      if (filters.period && rowObj.observed_period !== filters.period) continue;
-      if (filters.metric && rowObj.metric_name !== filters.metric) continue;
-      
-      rows.push(rowObj);
+    } catch (e) {
+      Logger.log('Error reading chunk starting at row ' + startRow + ': ' + e.toString());
+      // Continue with next chunk instead of failing completely
+      continue;
     }
   }
   
