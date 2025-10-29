@@ -463,14 +463,21 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
 
   // Also gather remarks fields from submission (they may be named like PK_remarks or TSA_Food_Score_remarks)
   Object.keys(sub).forEach(k => {
-    if (k.endsWith('_remarks')) {
-      const key = k.replace('_remarks', '');
+    if (k.endsWith('_remarks') || k.endsWith('Remarks')) {
+      const key = k.replace('_remarks', '').replace('Remarks', '');
       // try direct match first
       if (sections[key]) sections[key].remarks = sub[k];
       else if (sections[key.replace(' ', '_')]) sections[key.replace(' ', '_')].remarks = sub[k];
       else if (sections[key.replace('_Score', '')]) sections[key.replace('_Score', '')].remarks = sub[k];
+      // For TSA sections, also check with _Score suffix (e.g., TSA_Food_Score from tsaFoodScoreRemarks)
+      else if (sections[key + '_Score']) sections[key + '_Score'].remarks = sub[k];
     }
   });
+  
+  // Also check for camelCase TSA remarks fields: tsaFoodScoreRemarks, tsaCoffeeScoreRemarks, tsaCXScoreRemarks
+  if (sub.tsaFoodScoreRemarks || sub.tsaFoodRemarks) sections['TSA_Food_Score'].remarks = sub.tsaFoodScoreRemarks || sub.tsaFoodRemarks;
+  if (sub.tsaCoffeeScoreRemarks || sub.tsaCoffeeRemarks) sections['TSA_Coffee_Score'].remarks = sub.tsaCoffeeScoreRemarks || sub.tsaCoffeeRemarks;
+  if (sub.tsaCXScoreRemarks || sub.tsaCXRemarks) sections['TSA_CX_Score'].remarks = sub.tsaCXScoreRemarks || sub.tsaCXRemarks;
 
   // Render each section
   Object.keys(sections).forEach(secKey => {
