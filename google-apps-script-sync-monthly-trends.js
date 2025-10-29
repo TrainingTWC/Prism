@@ -33,8 +33,8 @@ const CONFIG = {
   AUDIT_COLUMNS: {
     STORE_ID: 8,        // Column H - Store ID
     STORE_NAME: 7,      // Column G - Store Name
-    SCORE: 68,          // Column BP - Total Score (moved from BR)
-    PERCENTAGE: 70,     // Column BR - Percentage (moved from BT)
+    SCORE: 69,          // Column BQ - Total Score
+    PERCENTAGE: 71,     // Column BS - Percentage
     SUBMISSION_DATE: 2, // Column B - Submission Time
   },
   
