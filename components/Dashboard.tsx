@@ -339,7 +339,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               'H1761': 'Mahadev',
               'H701': 'Mallika', 
               'H1697': 'Sheldon',
-              'H1169': 'Hema',
               'H2595': 'Kailash',
               'H3595': 'Bhawna', 
               'H3252': 'Priyanka',
