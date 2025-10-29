@@ -135,6 +135,21 @@ function computeOverall(submission: any): { total: number; max: number; pct: num
   for (const q of TRAINING_QUESTIONS) {
     // Resolve possible sheet key variations for TSA fields
     const ans = resolveSubmissionValue(submission, q.id);
+    
+    // For TSA score fields, use the pre-calculated scores directly (0/5/10)
+    // These are calculated automatically based on individual TSA questions
+    if (q.id === 'TSA_Food_Score' || q.id === 'TSA_Coffee_Score' || q.id === 'TSA_CX_Score') {
+      const tsaScore = parseFloat(String(ans || '0'));
+      if (!isNaN(tsaScore) && tsaScore > 0) {
+        total += tsaScore;
+        max += 10; // Each TSA section has max of 10
+      } else if (!isNA(ans)) {
+        // Only add to max if not marked as NA
+        max += 10;
+      }
+      continue;
+    }
+    
     if (isNA(ans)) {
       // Not applicable - skip adding this question to the denominator
       continue;
@@ -173,9 +188,10 @@ function resolveSubmissionValue(submission: any, qId: string) {
   if (submission[qId] !== undefined) return submission[qId];
 
   // Handle TSA score legacy keys: sheet may store TSA_1/TSA_2/TSA_3 or prefixed TSA_TSA_1
-  if (qId === 'TSA_Food_Score') return submission['TSA_Food_Score'] ?? submission['TSA_TSA_1'] ?? submission['TSA_1'] ?? submission['TSA_1_score'] ?? submission['TSA_1 - Partner 1'] ?? submission['TSA_1 - Partner 1 – Hot & Cold stations work?'] ?? undefined;
-  if (qId === 'TSA_Coffee_Score') return submission['TSA_Coffee_Score'] ?? submission['TSA_TSA_2'] ?? submission['TSA_2'] ?? submission['TSA_2_score'] ?? undefined;
-  if (qId === 'TSA_CX_Score') return submission['TSA_CX_Score'] ?? submission['TSA_TSA_3'] ?? submission['TSA_3'] ?? submission['TSA_3_score'] ?? undefined;
+  // Also check for camelCase variants sent from the frontend (tsaFoodScore, tsaCoffeeScore, tsaCXScore)
+  if (qId === 'TSA_Food_Score') return submission['TSA_Food_Score'] ?? submission['tsaFoodScore'] ?? submission['TSA_TSA_1'] ?? submission['TSA_1'] ?? submission['TSA_1_score'] ?? submission['TSA_1 - Partner 1'] ?? submission['TSA_1 - Partner 1 – Hot & Cold stations work?'] ?? undefined;
+  if (qId === 'TSA_Coffee_Score') return submission['TSA_Coffee_Score'] ?? submission['tsaCoffeeScore'] ?? submission['TSA_TSA_2'] ?? submission['TSA_2'] ?? submission['TSA_2_score'] ?? undefined;
+  if (qId === 'TSA_CX_Score') return submission['TSA_CX_Score'] ?? submission['tsaCXScore'] ?? submission['TSA_TSA_3'] ?? submission['TSA_3'] ?? submission['TSA_3_score'] ?? undefined;
 
   // Generic TSA_* fallback: try stripped variants
   if (qId.startsWith('TSA_')) {
@@ -374,6 +390,31 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
 
   for (const q of TRAINING_QUESTIONS) {
     const ans = resolveSubmissionValue(sub, q.id);
+    
+    // For TSA score fields, these are pre-calculated (0/5/10) based on individual assessments
+    // Display them as a single row showing the calculated score
+    if (q.id === 'TSA_Food_Score' || q.id === 'TSA_Coffee_Score' || q.id === 'TSA_CX_Score') {
+      let sectionKey = q.id;
+      const questionTitle = q.title || q.id;
+      const tsaScore = parseFloat(String(ans || '0'));
+      const validScore = !isNaN(tsaScore) ? tsaScore : 0;
+      const maxForTSA = 10;
+      
+      const rowAnswer = isNA(ans) ? 'NA' : String(validScore);
+      sections[sectionKey].rows.push({ 
+        id: q.id, 
+        question: questionTitle, 
+        answer: rowAnswer, 
+        score: validScore, 
+        maxScore: maxForTSA 
+      });
+      sections[sectionKey].score += validScore;
+      if (!isNA(ans)) {
+        sections[sectionKey].maxScore += maxForTSA;
+      }
+      continue;
+    }
+    
     // compute max score from choices or input/default
     let maxForQuestion = 0;
     if (q.choices && q.choices.length) {
