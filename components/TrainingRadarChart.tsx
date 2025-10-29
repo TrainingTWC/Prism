@@ -137,16 +137,32 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
               }
             });
           } else if (section.id === 'TSA') {
-            // TSA questions: TSA_1 to TSA_3 (numeric 0-10 scores)
-            for (let i = 1; i <= 3; i++) {
-              const response = submission[`TSA_${i}`];
+            // TSA questions: Check multiple possible field names
+            // New format: tsaFoodScore, tsaCoffeeScore, tsaCXScore (camelCase from Google Apps Script)
+            // Legacy format: TSA_1, TSA_2, TSA_3 or TSA_Food_Score, TSA_Coffee_Score, TSA_CX_Score
+            const tsaFields = [
+              { keys: ['tsaFoodScore', 'TSA_Food_Score', 'TSA_1'], label: 'Food' },
+              { keys: ['tsaCoffeeScore', 'TSA_Coffee_Score', 'TSA_2'], label: 'Coffee' },
+              { keys: ['tsaCXScore', 'TSA_CX_Score', 'TSA_3'], label: 'CX' }
+            ];
+            
+            tsaFields.forEach(field => {
+              let response = undefined;
+              // Try each possible field name until we find one with a value
+              for (const key of field.keys) {
+                if (submission[key] !== undefined && submission[key] !== null && submission[key] !== '') {
+                  response = submission[key];
+                  break;
+                }
+              }
+              
               // ✅ Skip blank, undefined, null responses
               if (response !== undefined && response !== null && response !== '') {
-                const score = parseInt(response) || 0;
+                const score = parseFloat(response) || 0;
                 sectionScore += score;
                 maxSectionScore += 10;
               }
-            }
+            });
           } else if (section.id === 'CX') {
             // Customer Experience questions: CX_1 to CX_9
             const weights = [1, 1, 1, 1, 2, 1, 1, 1, 1];
