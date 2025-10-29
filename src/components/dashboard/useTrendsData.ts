@@ -2,17 +2,18 @@ import { useEffect, useState, useMemo } from 'react';
 
 type Row = any;
 
-const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbznrRxHkrUcsP7fX0_RU0lLLwkcgaOfMrxGVzy9WNJ3Qzftjks0sgKSZuW_MdS-_akOuw/exec';
+const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbytDw7gOZXNJdJ-oS_G347Xj9NiUxBRmPfmwRZgQ3SbKqZ2OQ2D0j5nNm91vxMOrlwRQg/exec';
 
 async function fetchGoogleSheets() {
   try {
+    console.log('📡 Fetching Monthly_Trends from Google Sheets...', GOOGLE_SHEETS_URL);
     const r = await fetch(GOOGLE_SHEETS_URL);
+    console.log('📡 Response status:', r.status, r.statusText);
     const j = await r.json();
+    console.log('📡 JSON response received:', { hasRows: !!j.rows, rowCount: (j.rows || []).length, responseKeys: Object.keys(j) });
     const rows = j.rows || [];
     
-    console.log('Raw rows from Google Sheets:', rows.length);
-    console.log('Sample raw row:', rows[0]);
-    console.log('First 3 rows:', rows.slice(0, 3));
+    console.log('📡 Raw rows from Google Sheets:', rows.length);
     
     // Filter out June 2025 data and normalize observed_period format
     const processed = rows
@@ -52,12 +53,12 @@ async function fetchGoogleSheets() {
         return !isJune2025;
       });
     
-    console.log('Filtered rows (after removing June):', processed.length);
-    console.log('Sample periods:', processed.slice(0, 5).map(r => r.observed_period));
+    console.log('📡 Filtered rows (after removing June):', processed.length);
+    console.log('📡 Sample periods:', processed.slice(0, 5).map(r => r.observed_period));
     
     return processed;
   } catch (e) {
-    console.error('Failed to fetch from Google Sheets:', e);
+    console.error('❌ Failed to fetch from Google Sheets:', e);
     return [];
   }
 }
@@ -72,21 +73,27 @@ export function useTrendsData() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('🔄 useTrendsData: Starting data fetch...');
     fetchGoogleSheets()
       .then((rows) => {
+        console.log('✅ useTrendsData: Fetched', rows.length, 'rows');
         setSheetRows(rows);
         setError(null);
       })
       .catch((e) => {
-        console.error('Error fetching Google Sheets:', e);
+        console.error('❌ useTrendsData: Error fetching Google Sheets:', e);
         setError(e.message);
         setSheetRows([]);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        console.log('✅ useTrendsData: Fetch complete, loading = false');
+        setLoading(false);
+      });
   }, []);
 
   // ONLY use Google Sheets data - no local fallback
   const combinedRows = useMemo(() => {
+    console.log('📊 useTrendsData: Returning', sheetRows.length, 'rows to dashboard');
     return sheetRows;
   }, [sheetRows]);
 

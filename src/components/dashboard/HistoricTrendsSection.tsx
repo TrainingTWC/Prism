@@ -15,6 +15,13 @@ export function HistoricTrendsSection({ filters }: HistoricTrendsSectionProps) {
   // This starts loading immediately when component mounts (on login)
   // Data is cached and reused when collapsing/expanding
   const { rows, loading, error } = useTrendsData();
+  
+  console.log('🎯 HistoricTrendsSection - rows from useTrendsData:', rows?.length || 0, 'isExpanded:', isExpanded);
+
+  // Log when passing data to children (only when expanded)
+  if (isExpanded) {
+    console.log('🎯 HistoricTrendsSection - Passing to StoreTrends:', { rowsLength: rows?.length || 0, loading });
+  }
 
   return (
     <div className="mb-6">

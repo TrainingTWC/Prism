@@ -46,11 +46,32 @@ export default function StoreTrends({
   const rows = propRows !== undefined ? propRows : fetchedRows;
   const loading = propLoading !== undefined ? propLoading : fetchedLoading;
   
-  const filteredRows = useMemo(() => applyFilters(rows, filters), [rows, filters]);
+  console.log('📈 StoreTrends - Props received:', { 
+    propRows: propRows?.length ?? 'undefined', 
+    fetchedRows: fetchedRows?.length ?? 0,
+    finalRows: rows?.length ?? 0,
+    propLoading,
+    fetchedLoading,
+    finalLoading: loading 
+  });
+  
+  const filteredRows = useMemo(() => {
+    const filtered = applyFilters(rows, filters);
+    console.log('📈 StoreTrends - filteredRows:', filtered.length, 'rows');
+    return filtered;
+  }, [rows, filters]);
 
-  const scoreTrend = useMemo(() => aggregatePeriodAverages(filteredRows, 'score'), [filteredRows]);
+  const scoreTrend = useMemo(() => {
+    const trend = aggregatePeriodAverages(filteredRows, 'score');
+    console.log('📈 StoreTrends - scoreTrend:', trend.length, 'periods');
+    return trend;
+  }, [filteredRows]);
   // Use per-period averages computed from per-store latest-up-to-period-end values
-  const pctTrend = useMemo(() => computePerPeriodLatestAverages(filteredRows, 'percentage'), [filteredRows]);
+  const pctTrend = useMemo(() => {
+    const trend = computePerPeriodLatestAverages(filteredRows, 'percentage');
+    console.log('📈 StoreTrends - pctTrend:', trend.length, 'periods');
+    return trend;
+  }, [filteredRows]);
 
   // Compute per-store latest averages up to now and up to previous month end
   const perStoreAvgs = useMemo(() => computePerStoreLatestAverages(filteredRows, {}), [filteredRows]);
@@ -111,6 +132,7 @@ export default function StoreTrends({
   // Build a combined dataset for chart: list of { period, percentage, categories }
   const combined = useMemo(() => {
     const periods = Array.from(new Set([...scoreTrend.map((s) => s.period), ...pctTrend.map((p) => p.period)])).sort();
+    console.log('📈 StoreTrends - unique periods:', periods);
     // Create array and remove any duplicate formatted periods
     const dataPoints = periods.map((p) => {
       const categories = categoryBreakdown.get(p) || { needsAttention: 0, brewing: 0, perfectShot: 0 };
@@ -125,11 +147,14 @@ export default function StoreTrends({
     });
     // Deduplicate by formatted period, keeping first occurrence
     const seen = new Set<string>();
-    return dataPoints.filter((item) => {
+    const deduped = dataPoints.filter((item) => {
       if (seen.has(item.period)) return false;
       seen.add(item.period);
       return true;
     });
+    console.log('📈 StoreTrends - combined chart data:', deduped.length, 'points');
+    console.log('📈 StoreTrends - combined data detail:', JSON.stringify(deduped, null, 2));
+    return deduped;
   }, [scoreTrend, pctTrend, categoryBreakdown]);
 
   const storesScore = useMemo(() => computeStoreSeries(filteredRows, 'score'), [filteredRows]);

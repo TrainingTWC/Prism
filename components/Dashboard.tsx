@@ -910,6 +910,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         const totalSubmissions = rawFiltered.length;
         const uniqueStores = new Set(rawFiltered.map((r: any) => r.storeId || r.storeID || r.store_id)).size;
   const uniqueTrainers = new Set(rawFiltered.map((r: any) => normalizeId(r.trainerId) || normalizeId(r.trainer_id) || normalizeId(r.trainer) || normalizeId(r.hrId))).size;
+        console.log('📊 Training stats (with filters):', { totalSubmissions, uniqueStores, uniqueTrainers, filterApplied: filters });
 
         // Determine per-store latest and previous scores using cutoffs so each store contributes once
         const parseTime = (t: any) => {
@@ -998,11 +999,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       }
 
       // No filters: fall back to Monthly_Trends aggregated view (preserves historical monthly totals)
-      if (!trendsData || trendsLoading) return null;
+      if (!trendsData || trendsLoading) {
+        console.log('📊 Training stats - trendsData status:', { hasTrendsData: !!trendsData, trendsLoading, trendsDataLength: trendsData?.length || 0 });
+        return null;
+      }
 
       // Filter to only percentage rows to avoid double counting
       // Each submission has 2 rows: one for 'score' and one for 'percentage'
       const percentageRows = trendsData.filter((r: any) => (r.metric_name || '').toLowerCase() === 'percentage');
+      console.log('📊 Training stats (no filters):', { totalTrendsRows: trendsData.length, percentageRows: percentageRows.length });
 
       const totalSubmissions = percentageRows.length;
 
@@ -1013,6 +1018,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
       // Get unique stores from the trends data
       const uniqueStores = new Set(percentageRows.map((r: any) => r.store_id)).size;
+      console.log('📊 Training stats calculation:', { totalSubmissions, avgScore: Math.round(avgScore), uniqueStores });
 
       // For unique employees/trainers, we need to use the actual training data
       // since Monthly_Trends doesn't have trainer information
@@ -1077,7 +1083,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       const avgLatestPerStore = latestValues.length > 0 ? Math.round(latestValues.reduce((s, x) => s + x, 0) / latestValues.length) : null;
       const avgPrevPerStore = prevValues.length > 0 ? Math.round(prevValues.reduce((s, x) => s + x, 0) / prevValues.length) : null;
 
-      return {
+      const statsResult = {
         totalSubmissions,
         // overall average: mean of each store's latest response up to now
         avgScore: avgLatestPerStore !== null ? avgLatestPerStore : Math.round(avgScore),
@@ -1087,6 +1093,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         uniqueEmployees: uniqueTrainers,
         uniqueStores
       };
+      
+      console.log('📊 Training stats result (no filters):', statsResult);
+      return statsResult;
     }
     
     // For Operations dashboard, use AM Operations data
@@ -2228,7 +2237,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     }
   };
 
-  if (loading) {
+  // For training dashboard, also wait for trendsData to load (needed for stats calculation)
+  const isTrainingLoading = dashboardType === 'training' && !Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health) && trendsLoading;
+  
+  if (loading || isTrainingLoading) {
     return (
       <div className="space-y-6">
         {/* Dashboard Type Selector Skeleton */}

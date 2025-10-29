@@ -1,6 +1,7 @@
 /**
- * TRAINING CHECKLIST - GOOGLE APPS SCRIPT (UPDATED VERSION)
- * Updated with new training checklist fields as specified
+ * TRAINING CHECKLIST - GOOGLE APPS SCRIPT (COMPLETE VERSION with ALL QUESTIONS)
+ * This version logs ALL questions including TSA sections with their detailed items
+ * Updated: October 29, 2025
  */
 
 function doPost(e) {
