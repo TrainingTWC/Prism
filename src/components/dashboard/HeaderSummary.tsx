@@ -4,14 +4,30 @@ import { useTrendsData } from './useTrendsData';
 type Row = any;
 
 function computeSummary(rows: Row[]) {
+  console.log('=== HeaderSummary computeSummary ===');
+  console.log('Total rows received:', rows.length);
+  console.log('Sample rows:', rows.slice(0, 3));
+  
   // Each submission has 2 rows (score + percentage), so actual submissions = rows / 2
   const scoreRows = rows.filter((r) => r.metric_name === 'score');
   const percentageRows = rows.filter((r) => r.metric_name === 'percentage');
+  
+  console.log('Score rows:', scoreRows.length);
+  console.log('Percentage rows:', percentageRows.length);
+  console.log('Sample percentage row:', percentageRows[0]);
+  
   // Total submissions = count of score rows (or percentage rows - should be same)
   const totalSubmissions = scoreRows.length;
   
   // Use percentage rows for average score display (these are already in % format)
-  const avgScore = percentageRows.length ? +(percentageRows.reduce((s, r) => s + (r.metric_value || 0), 0) / percentageRows.length).toFixed(1) : null;
+  const avgScore = percentageRows.length ? +(percentageRows.reduce((s, r) => {
+    // Ensure metric_value is a number
+    const value = typeof r.metric_value === 'number' ? r.metric_value : parseFloat(r.metric_value) || 0;
+    return s + value;
+  }, 0) / percentageRows.length).toFixed(1) : null;
+  
+  console.log('Average score calculated:', avgScore);
+  
   const stores = new Map();
   for (const r of rows) {
     stores.set(r.store_id, r.store_name || r.store_id);
@@ -21,13 +37,20 @@ function computeSummary(rows: Row[]) {
   const storePercentages = new Map();
   for (const r of percentageRows) {
     const s = storePercentages.get(r.store_id) ?? { sum: 0, count: 0 };
-    s.sum += r.metric_value; s.count += 1; storePercentages.set(r.store_id, s);
+    // Ensure metric_value is a number
+    const value = typeof r.metric_value === 'number' ? r.metric_value : parseFloat(r.metric_value) || 0;
+    s.sum += value; s.count += 1; storePercentages.set(r.store_id, s);
   }
+  
+  console.log('Store percentages map:', Array.from(storePercentages.entries()).slice(0, 3));
+  
   let healthy = 0, warning = 0, critical = 0;
   for (const [sid, v] of storePercentages.entries()) {
     const avg = v.sum / v.count;
     if (avg >= 80) healthy++; else if (avg >= 60) warning++; else critical++;
   }
+  
+  console.log('Store health:', { healthy, warning, critical });
 
   // compute top movers by month-over-month using percentage values
   // group by store+period

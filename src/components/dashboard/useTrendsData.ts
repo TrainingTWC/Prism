@@ -11,6 +11,8 @@ async function fetchGoogleSheets() {
     const rows = j.rows || [];
     
     console.log('Raw rows from Google Sheets:', rows.length);
+    console.log('Sample raw row:', rows[0]);
+    console.log('First 3 rows:', rows.slice(0, 3));
     
     // Filter out June 2025 data and normalize observed_period format
     const processed = rows
