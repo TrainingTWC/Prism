@@ -1322,8 +1322,15 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       SECTIONS.forEach(section => {
         section.items.forEach(item => {
           const questionId = `${section.id}_${item.id}`;
-          // Send just the item.id (e.g., TM_1) to match Google Apps Script expectations
-          formData.append(item.id, responses[questionId] || '');
+          // For TSA sections, send with full section prefix to identify them uniquely
+          // For other sections, send just the item.id (e.g., TM_1) to match Google Apps Script expectations
+          if (section.id.startsWith('TSA_')) {
+            // Send TSA responses with full section_item format (e.g., TSA_Food_PH_1)
+            formData.append(`${section.id}_${item.id}`, responses[questionId] || '');
+          } else {
+            // Send regular responses with just item.id (e.g., TM_1)
+            formData.append(item.id, responses[questionId] || '');
+          }
         });
       });
 
