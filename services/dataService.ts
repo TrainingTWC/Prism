@@ -810,14 +810,14 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
         }
       }
       
-      // Extract and map TSA scores from TSA_TSA_1, TSA_TSA_2, TSA_TSA_3
-      // Based on the training audit questions:
-      // TSA_TSA_1: Hot & Cold stations work (coffee-related)
-      // TSA_TSA_2: Food station cleanliness (food-related)  
-      // TSA_TSA_3: Customer Service quality (CX-related)
-      const tsaCoffeeScore = row['TSA_TSA_1'] || row.TSA_TSA_1 || '';
-      const tsaFoodScore = row['TSA_TSA_2'] || row.TSA_TSA_2 || '';
-      const tsaCXScore = row['TSA_TSA_3'] || row.TSA_TSA_3 || '';
+      // Extract and map TSA scores - check multiple possible field names
+      // The Google Apps Script returns: tsaFoodScore, tsaCoffeeScore, tsaCXScore (camelCase)
+      // Also check legacy field names: TSA_TSA_1, TSA_TSA_2, TSA_TSA_3
+      const tsaFoodScore = row.tsaFoodScore || row['tsaFoodScore'] || row.TSA_Food_Score || row['TSA_Food_Score'] || row.TSA_TSA_2 || row['TSA_TSA_2'] || '';
+      const tsaCoffeeScore = row.tsaCoffeeScore || row['tsaCoffeeScore'] || row.TSA_Coffee_Score || row['TSA_Coffee_Score'] || row.TSA_TSA_1 || row['TSA_TSA_1'] || '';
+      const tsaCXScore = row.tsaCXScore || row['tsaCXScore'] || row.TSA_CX_Score || row['TSA_CX_Score'] || row.TSA_TSA_3 || row['TSA_TSA_3'] || '';
+      
+      console.log(`TSA Scores for ${storeId}: Food=${tsaFoodScore}, Coffee=${tsaCoffeeScore}, CX=${tsaCXScore}`);
       
       return {
         ...row,
