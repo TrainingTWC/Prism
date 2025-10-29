@@ -10,8 +10,8 @@ const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKM
 // AM Operations endpoint - UPDATED URL
 const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw_Q9JD-4ys1qElIM4-DYFwwOUzVmPs-LYsYmP9lWqsp3ExJr5tnt-RYEJxYTi5SEjJ6w/exec';
 
-// Training Audit endpoint - UPDATED URL (Fixed TSA logging)
-const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz2Y-3u9BOoKNVkP8YhsHmtMhOxqzXRBMfpKfb7aRAlI96JC3ipQffRxATtlMAAgm-ujg/exec';
+// Training Audit endpoint - UPDATED URL
+const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzSibBicC4B5_naPxgrbNP4xSK49de2R02rI9wnAKG3QOJvuwYrUOYLiBg_9XNqAhS5ig/exec';
 
 // QA Assessment endpoint
 const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbytHCowSWXzHY-Ej7NdkCnaObAFpTiSeT2cV1_63_yUUeHJTwMW9-ta_70XcLu--wUxog/exec';
