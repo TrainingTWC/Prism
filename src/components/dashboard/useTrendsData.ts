@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 
 type Row = any;
 
-const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbytDw7gOZXNJdJ-oS_G347Xj9NiUxBRmPfmwRZgQ3SbKqZ2OQ2D0j5nNm91vxMOrlwRQg/exec';
+const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzYe9_9CUMPvrR1t7sycnhF8U90rv7iReCJ-UhfHFoNXAn6hWFHQE4Qan-Qn1zxJ99emA/exec';
 
 async function fetchGoogleSheets() {
   try {
