@@ -29,12 +29,12 @@ const CONFIG = {
   TRENDS_SHEET_NAME: 'Monthly_Trends',
   
   // Column mappings for AUDIT sheet (1-based index)
-  // Based on your actual column headers:
+  // Updated after TSA remarks reorganization (Oct 2025)
   AUDIT_COLUMNS: {
     STORE_ID: 8,        // Column H - Store ID
     STORE_NAME: 7,      // Column G - Store Name
-    SCORE: 70,          // Column BR - Total Score
-    PERCENTAGE: 72,     // Column BT - Percentage
+    SCORE: 68,          // Column BP - Total Score (moved from BR)
+    PERCENTAGE: 70,     // Column BR - Percentage (moved from BT)
     SUBMISSION_DATE: 2, // Column B - Submission Time
   },
   
