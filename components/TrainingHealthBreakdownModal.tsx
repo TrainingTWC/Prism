@@ -58,6 +58,8 @@ const TrainingHealthBreakdownModal: React.FC<TrainingHealthBreakdownModalProps> 
     return 'perfectShot';
   };
 
+
+
   // Process both submissions (current) and trendsData (historical) by month
   const monthlyData = useMemo(() => {
     const overall: CategoryStats = { overall: [] };
@@ -79,6 +81,13 @@ const TrainingHealthBreakdownModal: React.FC<TrainingHealthBreakdownModalProps> 
     // Process current submissions (Training Audit data)
     submissions.forEach(sub => {
       const date = new Date(sub.timestamp);
+      
+      // Skip invalid dates
+      if (isNaN(date.getTime())) {
+        console.warn('⚠️ Invalid timestamp:', sub.timestamp, 'for store:', sub.storeId || sub.store);
+        return;
+      }
+      
       const monthLabel = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
       const storeId = sub.storeId || sub.store || 'unknown';
       const storeDetails = getStoreDetails(storeId);

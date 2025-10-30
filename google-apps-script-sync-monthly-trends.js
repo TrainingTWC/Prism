@@ -22,6 +22,11 @@
 // ============================================================================
 
 const CONFIG = {
+  // YOUR SPREADSHEET ID - Get this from your sheet's URL
+  // URL format: https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_ID/edit
+  // IMPORTANT: Replace 'YOUR_SPREADSHEET_ID_HERE' with your actual spreadsheet ID
+  SPREADSHEET_ID: 'YOUR_SPREADSHEET_ID_HERE',
+  
   // Name of your live training audit sheet (where form submissions go)
   AUDIT_SHEET_NAME: 'Training Audit',
   
@@ -29,12 +34,12 @@ const CONFIG = {
   TRENDS_SHEET_NAME: 'Monthly_Trends',
   
   // Column mappings for AUDIT sheet (1-based index)
-  // Updated after TSA remarks reorganization (Oct 2025)
+  // Based on your actual column headers:
   AUDIT_COLUMNS: {
     STORE_ID: 8,        // Column H - Store ID
     STORE_NAME: 7,      // Column G - Store Name
-    SCORE: 69,          // Column BQ - Total Score
-    PERCENTAGE: 71,     // Column BS - Percentage
+    SCORE: 70,          // Column BR - Total Score
+    PERCENTAGE: 72,     // Column BT - Percentage
     SUBMISSION_DATE: 2, // Column B - Submission Time
   },
   
@@ -57,7 +62,26 @@ function syncMonthlyTrends() {
   try {
     Logger.log('Starting monthly trends sync...');
     
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    // Try to get spreadsheet - either active (if container-bound) or by ID (if standalone)
+    let ss;
+    
+    try {
+      ss = SpreadsheetApp.getActiveSpreadsheet();
+    } catch (e) {
+      // Not container-bound, try using SPREADSHEET_ID
+      if (CONFIG.SPREADSHEET_ID && CONFIG.SPREADSHEET_ID !== 'YOUR_SPREADSHEET_ID_HERE') {
+        Logger.log('Using SPREADSHEET_ID from CONFIG...');
+        ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+      }
+    }
+    
+    // Check if we have a valid spreadsheet reference
+    if (!ss) {
+      throw new Error('No spreadsheet found. Either:\n1. Open this script from Extensions > Apps Script in your Google Sheet, OR\n2. Set CONFIG.SPREADSHEET_ID to your sheet\'s ID from the URL');
+    }
+    
+    Logger.log('Spreadsheet found: ' + ss.getName());
+    
     const auditSheet = ss.getSheetByName(CONFIG.AUDIT_SHEET_NAME);
     const trendsSheet = ss.getSheetByName(CONFIG.TRENDS_SHEET_NAME);
     

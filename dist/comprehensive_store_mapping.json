@@ -630,6 +630,20 @@
     "HR Head": "H2081"
   },
   {
+    "Store ID": "S050",
+    "Store Name": "Bangalore Airport Outside",
+    "Region": "South",
+    "Menu": "",
+    "Store Type": "",
+    "Concept": "",
+    "HRBP": "H1972",
+    "Trainer": "H1761",
+    "AM": "H3270",
+    "E-Learning Specialist": "H541",
+    "Training Head": "H3237",
+    "HR Head": "H2081"
+  },
+  {
     "Store ID": "S051",
     "Store Name": "Sakra Hospital",
     "Region": "South",
@@ -779,6 +793,20 @@
     "HRBP": "H2761",
     "Trainer": "H701",
     "AM": "H1355",
+    "E-Learning Specialist": "H541",
+    "Training Head": "H3237",
+    "HR Head": "H2081"
+  },
+  {
+    "Store ID": "S065",
+    "Store Name": "Manipal Hospital",
+    "Region": "South",
+    "Menu": "",
+    "Store Type": "",
+    "Concept": "",
+    "HRBP": "H2761",
+    "Trainer": "H1697",
+    "AM": "H546",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -1232,6 +1260,20 @@
     "HR Head": "H2081"
   },
   {
+    "Store ID": "S102",
+    "Store Name": "Fortis Hospital - Gurugram",
+    "Region": "North",
+    "Menu": "",
+    "Store Type": "",
+    "Concept": "",
+    "HRBP": "H2165",
+    "Trainer": "H3595",
+    "AM": "H2396",
+    "E-Learning Specialist": "H541",
+    "Training Head": "H3237",
+    "HR Head": "H2081"
+  },
+  {
     "Store ID": "S103",
     "Store Name": "Hiranandani Estate-The Walk",
     "Region": "West",
@@ -1302,6 +1344,20 @@
     "HR Head": "H2081"
   },
   {
+    "Store ID": "S108",
+    "Store Name": "Hyderabad Airport Inside",
+    "Region": "West",
+    "Menu": "",
+    "Store Type": "",
+    "Concept": "",
+    "HRBP": "H3247",
+    "Trainer": "H3247",
+    "AM": "H2262",
+    "E-Learning Specialist": "H541",
+    "Training Head": "H3237",
+    "HR Head": "H2081"
+  },
+  {
     "Store ID": "S109",
     "Store Name": "FC road",
     "Region": "West",
@@ -1367,6 +1423,34 @@
     "HRBP": "H2165",
     "Trainer": "H2595",
     "AM": "H955",
+    "E-Learning Specialist": "H541",
+    "Training Head": "H3237",
+    "HR Head": "H2081"
+  },
+  {
+    "Store ID": "S114",
+    "Store Name": "BIAL T1 Kiosk",
+    "Region": "South",
+    "Menu": "",
+    "Store Type": "",
+    "Concept": "",
+    "HRBP": "H1972",
+    "Trainer": "H1761",
+    "AM": "H3270",
+    "E-Learning Specialist": "H541",
+    "Training Head": "H3237",
+    "HR Head": "H2081"
+  },
+  {
+    "Store ID": "S115",
+    "Store Name": "Deloitte - Bangalore",
+    "Region": "South",
+    "Menu": "",
+    "Store Type": "",
+    "Concept": "",
+    "HRBP": "H1972",
+    "Trainer": "H1761",
+    "AM": "H2155",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
