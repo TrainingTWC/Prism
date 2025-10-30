@@ -344,74 +344,129 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   return (
     <div className="mb-6">
       {/* Desktop/tablet inline filters */}
-      <div className="hidden md:block bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 items-end">
+      <div className="hidden md:block">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 items-end">
           {/* Region - Keep as simple select since usually limited options */}
-          <FilterSelect
-            label="Region"
-            value={filters.region}
-            onChange={(e) => onFilterChange('region', e.target.value)}
-            placeholder="All Regions"
-            options={regions.map(r => ({ value: r, label: r }))}
-          />
+          <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+            <FilterSelect
+              label="Region"
+              value={filters.region}
+              onChange={(e) => onFilterChange('region', e.target.value)}
+              placeholder="All Regions"
+              options={regions.map(r => ({ value: r, label: r }))}
+            />
+          </div>
           
           {/* Store Health */}
-          <FilterSelect
-            label="Store Health"
-            value={filters.health || ''}
-            onChange={(e) => onFilterChange('health', e.target.value)}
-            placeholder="All Health"
-            options={[
-              { value: '', label: 'All Health' },
-              { value: 'Needs Attention', label: 'Needs Attention' },
-              { value: 'Brewing', label: 'Brewing' },
-              { value: 'Perfect Shot', label: 'Perfect Shot' }
-            ]}
-          />
+          <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+            <FilterSelect
+              label="Store Health"
+              value={filters.health || ''}
+              onChange={(e) => onFilterChange('health', e.target.value)}
+              placeholder="All Health"
+              options={[
+                { value: '', label: 'All Health' },
+                { value: 'Needs Attention', label: 'Needs Attention' },
+                { value: 'Brewing', label: 'Brewing' },
+                { value: 'Perfect Shot', label: 'Perfect Shot' }
+              ]}
+            />
+          </div>
           
           {/* Area Manager - Searchable (filtered by Trainer) */}
-          <SearchableFilter
-            label="Area Manager"
-            value={filters.am}
-            onChange={(value) => onFilterChange('am', value)}
-            placeholder={filters.trainer ? "All AMs under selected Trainer" : "All AMs"}
-            options={areaManagers.map(am => ({ value: am.id, label: am.name, id: am.id }))}
-            disabled={areaManagers.length === 0}
-          />
+          <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+            <SearchableFilter
+              label="Area Manager"
+              value={filters.am}
+              onChange={(value) => onFilterChange('am', value)}
+              placeholder={filters.trainer ? "All AMs under selected Trainer" : "All AMs"}
+              options={areaManagers.map(am => ({ value: am.id, label: am.name, id: am.id }))}
+              disabled={areaManagers.length === 0}
+            />
+          </div>
           
           {/* Store - Searchable (filtered by AM or Trainer) */}
-          <SearchableFilter
-            label="Store"
-            value={filters.store}
-            onChange={(value) => onFilterChange('store', value)}
-            placeholder={
-              filters.am ? "All stores under selected AM" :
-              filters.trainer ? "All stores under selected Trainer" :
-              "All Stores"
-            }
-            options={stores.map(s => ({ value: s.id, label: s.name, id: s.id }))}
-            disabled={stores.length === 0}
-          />
+          <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+            <SearchableFilter
+              label="Store"
+              value={filters.store}
+              onChange={(value) => onFilterChange('store', value)}
+              placeholder={
+                filters.am ? "All stores under selected AM" :
+                filters.trainer ? "All stores under selected Trainer" :
+                "All Stores"
+              }
+              options={stores.map(s => ({ value: s.id, label: s.name, id: s.id }))}
+              disabled={stores.length === 0}
+            />
+          </div>
           
           {/* Trainer - Searchable */}
-          <SearchableFilter
-            label="Trainer"
-            value={filters.trainer}
-            onChange={(value) => onFilterChange('trainer', value)}
-            placeholder="All Trainers"
-            options={effectiveTrainers.map(t => ({ value: t.id, label: t.name, id: t.id }))}
-            disabled={effectiveTrainers.length === 0}
-          />
-          
-          {/* Reset Button */}
-          <div className="pt-4 sm:pt-6">
-            <button
-              onClick={onReset}
-              className="w-full bg-gray-500 dark:bg-slate-600 hover:bg-gray-600 dark:hover:bg-slate-500 text-white dark:text-slate-100 font-semibold py-2.5 px-4 rounded-md transition-colors duration-200 text-sm sm:text-base"
-            >
-              Reset Filters
-            </button>
+          <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+            <SearchableFilter
+              label="Trainer"
+              value={filters.trainer}
+              onChange={(value) => onFilterChange('trainer', value)}
+              placeholder="All Trainers"
+              options={effectiveTrainers.map(t => ({ value: t.id, label: t.name, id: t.id }))}
+              disabled={effectiveTrainers.length === 0}
+            />
           </div>
+        </div>
+        
+        {/* Action buttons row */}
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 mt-4">
+          {/* Reset Button */}
+          <button
+            onClick={onReset}
+            className="bg-white dark:bg-slate-800/50 hover:bg-gray-50 dark:hover:bg-slate-700/50 text-gray-700 dark:text-slate-200 font-semibold py-3 px-4 rounded-xl transition-colors duration-200 text-sm sm:text-base border border-gray-200 dark:border-slate-700 flex items-center justify-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+            </svg>
+            Reset Filters
+          </button>
+          
+          {/* Refresh Button */}
+          <button
+            onClick={(e) => handleRefresh(e as any)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleRefresh(e);
+              }
+            }}
+            className="bg-white dark:bg-slate-800/50 hover:bg-gray-50 dark:hover:bg-slate-700/50 text-gray-700 dark:text-slate-200 font-semibold py-3 px-4 rounded-xl transition-colors duration-200 text-sm sm:text-base border border-gray-200 dark:border-slate-700 flex items-center justify-center gap-2"
+            aria-label="Refresh data"
+          >
+            <RefreshCw className="w-5 h-5" aria-hidden="true" />
+            Refresh
+          </button>
+          
+          {/* Download Report Button */}
+          <button
+            onClick={() => { if (typeof onDownload === 'function') onDownload(); }}
+            disabled={isGenerating}
+            className={`${isGenerating ? 'opacity-80 pointer-events-none' : ''} btn-primary-gradient text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-all duration-200 text-sm sm:text-base hover:shadow-lg flex items-center justify-center gap-2`}
+            aria-label="Download report"
+          >
+            {isGenerating ? (
+              <>
+                <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" aria-hidden>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                Generating...
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                Download Report
+              </>
+            )}
+          </button>
         </div>
       </div>
 

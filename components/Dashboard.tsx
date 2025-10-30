@@ -40,6 +40,7 @@ import TrainingHealthPieChart from './TrainingHealthPieChart';
 import OperationsRadarChart from './OperationsRadarChart';
 import TrainingDetailModal from './TrainingDetailModal';
 import TrainingHealthBreakdownModal from './TrainingHealthBreakdownModal';
+import AuditScoreDetailsModal from './AuditScoreDetailsModal';
 import NowBarMobile from './NowBarMobile';
 // Multi-Month Trends Components (Google Sheets Integration)
 import HeaderSummary from '../src/components/dashboard/HeaderSummary';
@@ -149,6 +150,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   // Training health breakdown modal state
   const [showHealthBreakdown, setShowHealthBreakdown] = useState(false);
+
+  // Audit score details modal state
+  const [showAuditScoreDetails, setShowAuditScoreDetails] = useState(false);
 
   // Training detail modal handlers
   const handleRegionClick = (region: string) => {
@@ -563,6 +567,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const availableAreaManagers = useMemo(() => {
     let areaManagers = allAreaManagers.filter(am => canAccessAM(userRole, am.id));
     
+    // Filter out test AM IDs
+    areaManagers = areaManagers.filter(am => 
+      am.id !== 'H9001' && am.id !== 'H9002'
+    );
+    
     // If HR is selected, filter AMs based on HR mapping
     if (trainerFilterId) {
       console.log('Filtering Area Managers for Trainer via comprehensive mapping:', trainerFilterId);
@@ -807,6 +816,57 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     console.log('Dashboard filtering Training Audit - deduped by store:', deduped.length);
     return deduped;
   }, [trainingData, filters, userRole]);
+
+  // Raw filtered training data (NOT deduplicated) - for audit score details modal
+  const rawFilteredTrainingData = useMemo(() => {
+    if (!trainingData) return [];
+    
+    let filtered = trainingData.filter((submission: TrainingAuditSubmission) => {
+      // Role-based access control
+      if (userRole.role === 'store') {
+        if (!canAccessStore(userRole, submission.storeId)) {
+          return false;
+        }
+      } else if (userRole.role === 'area_manager') {
+        if (!canAccessAM(userRole, submission.amId)) {
+          return false;
+        }
+      } else if (userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') {
+        if (!canAccessHR(userRole, submission.amId)) {
+          return false;
+        }
+      }
+      
+      // Apply filters
+      if (filters.region && submission.region !== filters.region) {
+        return false;
+      }
+      
+      if (filters.store && submission.storeId !== filters.store) {
+        return false;
+      }
+      
+      if (filters.am && submission.amId !== filters.am) {
+        return false;
+      }
+      
+      if (trainerFilterId) {
+        const sTrainer = normalizeId((submission as any).trainerId) || normalizeId((submission as any).trainer) || normalizeId(submission.hrId);
+        if (!sTrainer || sTrainer !== trainerFilterId) return false;
+      }
+
+      if (filters.health) {
+        const pct = parseFloat(submission.percentageScore || '0');
+        if (filters.health === 'Needs Attention' && pct >= 56) return false;
+        if (filters.health === 'Brewing' && (pct < 56 || pct >= 81)) return false;
+        if (filters.health === 'Perfect Shot' && pct < 81) return false;
+      }
+      
+      return true;
+    });
+    
+    return filtered;
+  }, [trainingData, filters, userRole, trainerFilterId]);
 
   // Filter QA Assessment data
   const filteredQAData = useMemo(() => {
@@ -2395,39 +2455,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       )}
       */}
 
-      {/* Download Report Button */}
-      {((dashboardType === 'hr' && filteredSubmissions.length > 0) || 
-        (dashboardType === 'operations' && filteredAMOperations.length > 0) ||
-        (dashboardType === 'training' && filteredTrainingData.length > 0) ||
-        (dashboardType === 'qa' && filteredQAData.length > 0) ||
-        (dashboardType === 'consolidated' && (filteredSubmissions.length > 0 || filteredAMOperations.length > 0 || filteredTrainingData.length > 0 || filteredQAData.length > 0))) && (
-        <div className="hidden md:flex justify-end">
-          <button
-            onClick={generatePDFReport}
-            data-tour="download-button"
-            disabled={isGenerating}
-            className={`btn-primary-gradient ${isGenerating ? 'opacity-70 pointer-events-none' : ''} px-6 py-2 rounded-xl font-medium transition-transform duration-150 transform hover:scale-105 flex items-center gap-2`}
-          >
-            {isGenerating ? (
-              <>
-                <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                </svg>
-                Generating...
-              </>
-            ) : (
-              <>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Download Report
-              </>
-            )}
-          </button>
-        </div>
-      )}
-      
       {/* Check if we have data for the selected dashboard type */}
       {((dashboardType === 'hr' && filteredSubmissions.length > 0) || 
         (dashboardType === 'operations' && filteredAMOperations.length > 0) ||
@@ -2450,7 +2477,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                     latest: stats?.latestScore ?? (typeof stats?.avgScore === 'number' ? Math.round(stats.avgScore) : undefined),
                     previous: stats?.previousScore ?? null,
                     aggregate: (!stats?.latestScore && stats?.avgScore) ? Math.round(stats.avgScore) : undefined
-                  }} />
+                  }} onClick={() => setShowAuditScoreDetails(true)} />
                   <div className="flex items-center">
                     <TrainingHealthPieChart
                         submissions={filteredTrainingData}
@@ -2824,6 +2851,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         onClose={() => setShowHealthBreakdown(false)}
         submissions={filteredTrainingData}
         trendsData={trendsData}
+      />
+
+      {/* Audit Score Details Modal */}
+      <AuditScoreDetailsModal
+        isOpen={showAuditScoreDetails}
+        onClose={() => setShowAuditScoreDetails(false)}
+        trendsData={trendsData || []}
+        filters={filters}
+        compStoreMapping={compStoreMapping || []}
       />
     </div>
   );

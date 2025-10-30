@@ -39,7 +39,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick }) => {
   const isAuditPercentage = title === 'Audit Percentage';
   
   // Check if this card should be clickable
-  const isClickable = onClick && (title === 'Total Submissions' || title === 'Stores Covered');
+  const isClickable = onClick && (title === 'Total Submissions' || title === 'Stores Covered' || title === 'Audit Percentage');
   
   // Get the percentage value for color coding
   const getPercentageValue = () => {
@@ -62,7 +62,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick }) => {
     const colorClass = getPercentageColor(percentageValue);
     
     return (
-      <div className="group relative p-1 sm:p-2 h-full flex items-center">
+      <div className={`group relative p-1 sm:p-2 h-full flex items-center ${isClickable ? 'cursor-pointer' : ''}`} onClick={isClickable ? onClick : undefined}>
         {/* Premium gradient background with glass effect */}
         <div className="absolute inset-1 sm:inset-2 bg-gradient-to-br from-white/95 via-white/85 to-white/75 dark:from-slate-800/95 dark:via-slate-800/85 dark:to-slate-800/75 backdrop-blur-md rounded-full"></div>
         {/* Enhanced shadow layer */}
@@ -71,7 +71,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick }) => {
                boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)' 
              }}></div>
         
-        <div className="relative flex items-center justify-between px-4 sm:px-6 py-2 rounded-full border border-slate-200/60 dark:border-slate-700/60 transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] group-hover:border-slate-300/80 dark:group-hover:border-slate-600/80 bg-white/50 dark:bg-slate-800/50 w-full" 
+        <div className={`relative flex items-center justify-between px-4 sm:px-6 py-2 rounded-full border border-slate-200/60 dark:border-slate-700/60 transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] group-hover:border-slate-300/80 dark:group-hover:border-slate-600/80 bg-white/50 dark:bg-slate-800/50 w-full ${isClickable ? 'hover:bg-white/70 dark:hover:bg-slate-800/70' : ''}`} 
              style={{ 
                backdropFilter: 'blur(20px) saturate(180%)'
              }}>
