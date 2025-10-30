@@ -170,26 +170,26 @@ const AuditScoreDetailsModal: React.FC<AuditScoreDetailsModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="relative w-full max-w-6xl max-h-[90vh] bg-white dark:bg-slate-800 rounded-xl shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700">
+          <div className="flex-1 min-w-0 pr-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-slate-100">
               Store Audit Score Details
             </h2>
-            <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400 mt-1">
               Historical audit scores for all stores
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            className="flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
           >
-            <X className="w-6 h-6 text-gray-600 dark:text-slate-400" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 dark:text-slate-400" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="space-y-4 sm:space-y-6">
             {storeScores.map(store => {
               const latestScore = store.scores[0]?.score || 0;
               const health = getHealthCategory(latestScore);
@@ -198,51 +198,52 @@ const AuditScoreDetailsModal: React.FC<AuditScoreDetailsModalProps> = ({
               return (
                 <div
                   key={store.storeId}
-                  className="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-4 border border-gray-200 dark:border-slate-600"
+                  className="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-slate-600"
                 >
                   {/* Store Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100">
+                  <div className="mb-4">
+                    {/* Store Name and ID */}
+                    <div className="mb-3">
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-slate-100 break-words">
                         {store.storeName}
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-slate-400">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400">
                         Store ID: {store.storeId}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-6">
-                        <div>
-                          <p className="text-xs text-gray-600 dark:text-slate-400 mb-1">Latest Score</p>
-                          <p className={`text-2xl font-bold ${health.color.split(' ')[0]}`}>
-                            {latestScore.toFixed(1)}%
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-600 dark:text-slate-400 mb-1">Average</p>
-                          <p className="text-lg font-semibold text-gray-900 dark:text-slate-100">
-                            {averageScore.toFixed(1)}%
-                          </p>
-                        </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${health.color}`}>
-                          {health.label}
-                        </span>
+                    
+                    {/* Score Stats - Responsive Layout */}
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+                      <div>
+                        <p className="text-xs text-gray-600 dark:text-slate-400 mb-1">Latest Score</p>
+                        <p className={`text-xl sm:text-2xl font-bold ${health.color.split(' ')[0]}`}>
+                          {latestScore.toFixed(1)}%
+                        </p>
                       </div>
+                      <div>
+                        <p className="text-xs text-gray-600 dark:text-slate-400 mb-1">Average</p>
+                        <p className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100">
+                          {averageScore.toFixed(1)}%
+                        </p>
+                      </div>
+                      <span className={`px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold ${health.color}`}>
+                        {health.label}
+                      </span>
                     </div>
                   </div>
 
                   {/* Scores Table */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                  <div className="overflow-x-auto -mx-3 sm:mx-0">
+                    <table className="w-full text-xs sm:text-sm min-w-full">
                       <thead>
                         <tr className="border-b border-gray-200 dark:border-slate-600">
-                          <th className="text-left py-2 px-3 text-gray-700 dark:text-slate-300 font-semibold">
+                          <th className="text-left py-2 px-2 sm:px-3 text-gray-700 dark:text-slate-300 font-semibold">
                             Month
                           </th>
-                          <th className="text-left py-2 px-3 text-gray-700 dark:text-slate-300 font-semibold">
+                          <th className="text-left py-2 px-2 sm:px-3 text-gray-700 dark:text-slate-300 font-semibold">
                             Score
                           </th>
-                          <th className="text-left py-2 px-3 text-gray-700 dark:text-slate-300 font-semibold">
+                          <th className="text-left py-2 px-2 sm:px-3 text-gray-700 dark:text-slate-300 font-semibold">
                             Health
                           </th>
                         </tr>
@@ -256,16 +257,16 @@ const AuditScoreDetailsModal: React.FC<AuditScoreDetailsModalProps> = ({
                               key={index}
                               className="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600/30"
                             >
-                              <td className="py-2 px-3 text-gray-900 dark:text-slate-100">
+                              <td className="py-2 px-2 sm:px-3 text-gray-900 dark:text-slate-100">
                                 {scoreData.month}
                               </td>
-                              <td className="py-2 px-3">
+                              <td className="py-2 px-2 sm:px-3">
                                 <span className={`font-bold ${scoreHealth.color.split(' ')[0]}`}>
                                   {scoreData.score.toFixed(1)}%
                                 </span>
                               </td>
-                              <td className="py-2 px-3">
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${scoreHealth.color}`}>
+                              <td className="py-2 px-2 sm:px-3">
+                                <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${scoreHealth.color}`}>
                                   {scoreHealth.label}
                                 </span>
                               </td>
@@ -277,10 +278,10 @@ const AuditScoreDetailsModal: React.FC<AuditScoreDetailsModalProps> = ({
                   </div>
 
                   {/* Summary Stats */}
-                  <div className="mt-3 flex items-center gap-6 text-xs text-gray-600 dark:text-slate-400">
-                    <span>Total Audits: <strong className="text-gray-900 dark:text-slate-100">{store.scores.length}</strong></span>
-                    <span>Highest: <strong className="text-emerald-600">{Math.max(...store.scores.map(s => s.score)).toFixed(1)}%</strong></span>
-                    <span>Lowest: <strong className="text-red-600">{Math.min(...store.scores.map(s => s.score)).toFixed(1)}%</strong></span>
+                  <div className="mt-3 flex flex-wrap items-center gap-3 sm:gap-6 text-xs text-gray-600 dark:text-slate-400">
+                    <span className="whitespace-nowrap">Total Audits: <strong className="text-gray-900 dark:text-slate-100">{store.scores.length}</strong></span>
+                    <span className="whitespace-nowrap">Highest: <strong className="text-emerald-600">{Math.max(...store.scores.map(s => s.score)).toFixed(1)}%</strong></span>
+                    <span className="whitespace-nowrap">Lowest: <strong className="text-red-600">{Math.min(...store.scores.map(s => s.score)).toFixed(1)}%</strong></span>
                   </div>
                 </div>
               );
@@ -289,13 +290,13 @@ const AuditScoreDetailsModal: React.FC<AuditScoreDetailsModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50">
-          <p className="text-sm text-gray-600 dark:text-slate-400">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 sm:p-6 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400 text-center sm:text-left">
             Showing {storeScores.length} store{storeScores.length !== 1 ? 's' : ''} with {filteredTrendsData.length} total audit{filteredTrendsData.length !== 1 ? 's' : ''}
           </p>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-900 dark:text-slate-100 rounded-lg transition-colors font-medium"
+            className="w-full sm:w-auto px-4 py-2 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-900 dark:text-slate-100 rounded-lg transition-colors font-medium"
           >
             Close
           </button>
