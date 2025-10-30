@@ -39,6 +39,7 @@ import TrainingRadarChart from './TrainingRadarChart';
 import TrainingHealthPieChart from './TrainingHealthPieChart';
 import OperationsRadarChart from './OperationsRadarChart';
 import TrainingDetailModal from './TrainingDetailModal';
+import TrainingHealthBreakdownModal from './TrainingHealthBreakdownModal';
 import NowBarMobile from './NowBarMobile';
 // Multi-Month Trends Components (Google Sheets Integration)
 import HeaderSummary from '../src/components/dashboard/HeaderSummary';
@@ -145,6 +146,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     value: string;
     title: string;
   } | null>(null);
+
+  // Training health breakdown modal state
+  const [showHealthBreakdown, setShowHealthBreakdown] = useState(false);
 
   // Training detail modal handlers
   const handleRegionClick = (region: string) => {
@@ -2461,6 +2465,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           }
                           setShowTrainingDetail(true);
                         }}
+                        onOpenHealthBreakdown={() => setShowHealthBreakdown(true)}
                       />
                   </div>
                 </div>
@@ -2812,6 +2817,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           title={trainingDetailFilter.title}
         />
       )}
+
+      {/* Training Health Breakdown Modal */}
+      <TrainingHealthBreakdownModal
+        isOpen={showHealthBreakdown}
+        onClose={() => setShowHealthBreakdown(false)}
+        submissions={filteredTrainingData}
+        trendsData={trendsData}
+      />
     </div>
   );
 };

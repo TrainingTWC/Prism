@@ -5,12 +5,17 @@ import { TrainingAuditSubmission } from '../services/dataService';
 interface TrainingHealthPieChartProps {
   submissions: TrainingAuditSubmission[];
   onOpenDetails?: (filterType: 'region' | 'am' | 'trainer' | 'store' | 'hr' | 'scoreRange', value: string, title: string) => void;
+  onOpenHealthBreakdown?: () => void;
 }
 
-const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submissions, onOpenDetails }) => {
+const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submissions, onOpenDetails, onOpenHealthBreakdown }) => {
 
   const propsOnOpen = (filterType: 'region' | 'am' | 'trainer' | 'store' | 'hr' | 'scoreRange', value: string, title: string) => {
     if (typeof onOpenDetails === 'function') onOpenDetails(filterType, value, title);
+  };
+
+  const handleHealthBreakdownClick = () => {
+    if (typeof onOpenHealthBreakdown === 'function') onOpenHealthBreakdown();
   };
 
   const healthData = useMemo(() => {
@@ -55,11 +60,15 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
         className="relative flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-full border border-slate-200/60 dark:border-slate-700/60 bg-white/60 dark:bg-slate-800/60 shadow-lg transition-all duration-200 hover:shadow-2xl h-full"
         style={{ backdropFilter: 'blur(14px) saturate(160%)', minHeight: 60 }}
       >
-        {/* Left: Label */}
-        <div className="flex-shrink-0 w-20 sm:w-24 text-left">
+        {/* Left: Label - Clickable */}
+        <button
+          onClick={handleHealthBreakdownClick}
+          className="flex-shrink-0 w-20 sm:w-24 text-left transition-transform duration-150 hover:scale-105 cursor-pointer"
+          title="Click to view month-by-month breakdown"
+        >
           <div className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider leading-tight">Store</div>
           <div className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider leading-tight">Health</div>
-        </div>
+        </button>
 
         {/* Center: Pie chart (flexible) */}
         <div className="flex-1 flex items-center justify-center">

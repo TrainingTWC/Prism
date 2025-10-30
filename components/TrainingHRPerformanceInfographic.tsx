@@ -52,7 +52,7 @@ const TrainingHRPerformanceInfographic: React.FC<TrainingHRPerformanceInfographi
       {
         id: 'TSA',
         title: 'Training Skill Assessment',
-        questions: ['tsaFoodScore', 'tsaCoffeeScore', 'tsaCXScore', 'TSA_Food_Score', 'TSA_Coffee_Score', 'TSA_CX_Score', 'TSA_1', 'TSA_2', 'TSA_3'],
+        questions: ['TSA_Food', 'TSA_Coffee', 'TSA_CX'], // 3 TSA types (field variants checked in code)
         color: 'bg-rose-600'
       },
       {
@@ -78,44 +78,40 @@ const TrainingHRPerformanceInfographic: React.FC<TrainingHRPerformanceInfographi
       let responseCount = 0;
 
       submissions.forEach(submission => {
-        section.questions.forEach(questionId => {
-          // For TSA section, try multiple possible field names and only count once per TSA type
-          if (section.id === 'TSA') {
-            // Check for Food score (only count once)
-            if (questionId === 'tsaFoodScore' || questionId === 'TSA_Food_Score' || questionId === 'TSA_1') {
-              const foodScore = submission.tsaFoodScore || submission.TSA_Food_Score || submission.TSA_1;
-              if (foodScore !== undefined && foodScore !== null && foodScore !== '' && foodScore !== 'na') {
-                const score = parseFloat(foodScore) || 0;
-                totalScore += score;
-                maxPossibleScore += 10;
-                responseCount++;
-              }
-              return; // Skip other TSA food fields
-            }
-            // Check for Coffee score (only count once)
-            if (questionId === 'tsaCoffeeScore' || questionId === 'TSA_Coffee_Score' || questionId === 'TSA_2') {
-              const coffeeScore = submission.tsaCoffeeScore || submission.TSA_Coffee_Score || submission.TSA_2;
-              if (coffeeScore !== undefined && coffeeScore !== null && coffeeScore !== '' && coffeeScore !== 'na') {
-                const score = parseFloat(coffeeScore) || 0;
-                totalScore += score;
-                maxPossibleScore += 10;
-                responseCount++;
-              }
-              return; // Skip other TSA coffee fields
-            }
-            // Check for CX score (only count once)
-            if (questionId === 'tsaCXScore' || questionId === 'TSA_CX_Score' || questionId === 'TSA_3') {
-              const cxScore = submission.tsaCXScore || submission.TSA_CX_Score || submission.TSA_3;
-              if (cxScore !== undefined && cxScore !== null && cxScore !== '' && cxScore !== 'na') {
-                const score = parseFloat(cxScore) || 0;
-                totalScore += score;
-                maxPossibleScore += 10;
-                responseCount++;
-              }
-              return; // Skip other TSA CX fields
-            }
-            return; // Skip if already processed
+        // For TSA section, handle specially - only count each TSA type once per submission
+        if (section.id === 'TSA') {
+          // Count Food score (check all variants but only count once)
+          const foodScore = submission.tsaFoodScore || submission.TSA_Food_Score || submission.TSA_1;
+          if (foodScore !== undefined && foodScore !== null && foodScore !== '' && foodScore !== 'na') {
+            const score = parseFloat(foodScore) || 0;
+            totalScore += score;
+            maxPossibleScore += 10;
+            responseCount++;
           }
+          
+          // Count Coffee score (check all variants but only count once)
+          const coffeeScore = submission.tsaCoffeeScore || submission.TSA_Coffee_Score || submission.TSA_2;
+          if (coffeeScore !== undefined && coffeeScore !== null && coffeeScore !== '' && coffeeScore !== 'na') {
+            const score = parseFloat(coffeeScore) || 0;
+            totalScore += score;
+            maxPossibleScore += 10;
+            responseCount++;
+          }
+          
+          // Count CX score (check all variants but only count once)
+          const cxScore = submission.tsaCXScore || submission.TSA_CX_Score || submission.TSA_3;
+          if (cxScore !== undefined && cxScore !== null && cxScore !== '' && cxScore !== 'na') {
+            const score = parseFloat(cxScore) || 0;
+            totalScore += score;
+            maxPossibleScore += 10;
+            responseCount++;
+          }
+          
+          return; // Skip the normal loop for TSA section
+        }
+        
+        // For all other sections, process each question normally
+        section.questions.forEach(questionId => {
           
           // For non-TSA sections, use normal logic
           const response = submission[questionId];

@@ -723,8 +723,154 @@ const TrainingDetailModal: React.FC<TrainingDetailModalProps> = ({
             </div>
           )}
 
-          {/* Section Question Breakdown */}
-          {stats.sectionBreakdown.length > 0 && (
+          {/* Store Performance for Selected Section */}
+          {filterType === 'section' && filterValue && (
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-white mb-4">
+                Store Performance - {title}
+              </h3>
+              <div className="overflow-x-auto rounded-lg border border-white/10">
+                <div>
+                  <table className="min-w-full divide-y divide-white/10">
+                    <thead className="bg-white/5">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Store
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Section Score
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Percentage
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                    {stats.filteredSubmissions.map((submission, index) => {
+                      // Calculate section-specific score based on section ID
+                      let sectionScore = 0;
+                      let maxScore = 0;
+                      let percentage = 0;
+                      
+                      // Define section question mappings
+                      const sectionMappings: Record<string, { questions: string[], maxPerQuestion: number }> = {
+                        'TSA': { 
+                          questions: ['tsaFoodScore', 'tsaCoffeeScore', 'tsaCXScore'], 
+                          maxPerQuestion: 10 
+                        },
+                        'TrainingMaterials': { 
+                          questions: ['TM_1', 'TM_2', 'TM_3', 'TM_4', 'TM_5', 'TM_6', 'TM_7', 'TM_8', 'TM_9'], 
+                          maxPerQuestion: 1 
+                        },
+                        'LMS': { 
+                          questions: ['LMS_1', 'LMS_2', 'LMS_3'], 
+                          maxPerQuestion: 1 
+                        },
+                        'Buddy': { 
+                          questions: ['Buddy_1', 'Buddy_2', 'Buddy_3', 'Buddy_4', 'Buddy_5', 'Buddy_6'], 
+                          maxPerQuestion: 1 
+                        },
+                        'NewJoiner': { 
+                          questions: ['NJ_1', 'NJ_2', 'NJ_3', 'NJ_4', 'NJ_5', 'NJ_6', 'NJ_7'], 
+                          maxPerQuestion: 1 
+                        },
+                        'PartnerKnowledge': { 
+                          questions: ['PK_1', 'PK_2', 'PK_3', 'PK_4', 'PK_5', 'PK_6'], 
+                          maxPerQuestion: 1 
+                        },
+                        'CustomerExperience': { 
+                          questions: ['CX_1', 'CX_2', 'CX_3', 'CX_4', 'CX_5', 'CX_6', 'CX_7', 'CX_8', 'CX_9'], 
+                          maxPerQuestion: 1 
+                        },
+                        'ActionPlan': { 
+                          questions: ['AP_1', 'AP_2', 'AP_3'], 
+                          maxPerQuestion: 1 
+                        }
+                      };
+                      
+                      const mapping = sectionMappings[filterValue as string];
+                      
+                      if (mapping) {
+                        mapping.questions.forEach(qId => {
+                          let response;
+                          
+                          // Special handling for TSA fields
+                          if (qId === 'tsaFoodScore') {
+                            response = submission.tsaFoodScore || submission.TSA_Food_Score || submission.TSA_1;
+                          } else if (qId === 'tsaCoffeeScore') {
+                            response = submission.tsaCoffeeScore || submission.TSA_Coffee_Score || submission.TSA_2;
+                          } else if (qId === 'tsaCXScore') {
+                            response = submission.tsaCXScore || submission.TSA_CX_Score || submission.TSA_3;
+                          } else {
+                            response = submission[qId];
+                          }
+                          
+                          if (response !== undefined && response !== null && response !== '' && response !== 'na') {
+                            if (response === 'yes' || response === 'Yes') {
+                              sectionScore += 1;
+                              maxScore += mapping.maxPerQuestion;
+                            } else if (response === 'no' || response === 'No') {
+                              sectionScore += 0;
+                              maxScore += mapping.maxPerQuestion;
+                            } else if (!isNaN(parseFloat(response))) {
+                              sectionScore += Math.min(parseFloat(response), mapping.maxPerQuestion);
+                              maxScore += mapping.maxPerQuestion;
+                            }
+                          }
+                        });
+                        
+                        percentage = maxScore > 0 ? (sectionScore / maxScore) * 100 : 0;
+                      }
+                      
+                      // Determine color based on score
+                      let scoreColor = '';
+                      let percentageColor = '';
+                      
+                      if (maxScore === 0) {
+                        // Grey for no data (0.0/0.0)
+                        scoreColor = 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
+                        percentageColor = 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
+                      } else if (sectionScore === 0) {
+                        // Red for zero scores (0/3, 0/2, 0/1)
+                        scoreColor = 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+                        percentageColor = 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+                      } else if (sectionScore === maxScore) {
+                        // Green for perfect score (3/3, 2/2, 1/1, etc.)
+                        scoreColor = 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
+                        percentageColor = 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
+                      } else {
+                        // Amber for partial scores (1/3, 2/3, 1/2, etc.)
+                        scoreColor = 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400';
+                        percentageColor = 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400';
+                      }
+                      
+                      return (
+                        <tr key={index} className="hover:bg-white/5">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                            {submission.storeName || submission.storeId || 'Unknown Store'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${scoreColor}`}>
+                              {sectionScore.toFixed(1)} / {maxScore.toFixed(1)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${percentageColor}`}>
+                              {percentage.toFixed(1)}%
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section Question Breakdown - REMOVED */}
+          {false && stats.sectionBreakdown.length > 0 && filterType === 'section' && (
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-white mb-4">
                 Question-wise Performance for {filterValue}

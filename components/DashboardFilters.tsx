@@ -345,7 +345,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
     <div className="mb-6">
       {/* Desktop/tablet inline filters */}
       <div className="hidden md:block bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 items-end">
           {/* Region - Keep as simple select since usually limited options */}
           <FilterSelect
             label="Region"
@@ -353,6 +353,20 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             onChange={(e) => onFilterChange('region', e.target.value)}
             placeholder="All Regions"
             options={regions.map(r => ({ value: r, label: r }))}
+          />
+          
+          {/* Store Health */}
+          <FilterSelect
+            label="Store Health"
+            value={filters.health || ''}
+            onChange={(e) => onFilterChange('health', e.target.value)}
+            placeholder="All Health"
+            options={[
+              { value: '', label: 'All Health' },
+              { value: 'Needs Attention', label: 'Needs Attention' },
+              { value: 'Brewing', label: 'Brewing' },
+              { value: 'Perfect Shot', label: 'Perfect Shot' }
+            ]}
           />
           
           {/* Area Manager - Searchable (filtered by Trainer) */}
