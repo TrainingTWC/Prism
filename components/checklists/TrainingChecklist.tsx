@@ -3,6 +3,7 @@ import { GraduationCap } from 'lucide-react';
 import { AREA_MANAGERS } from '../../constants';
 import { hapticFeedback } from '../../utils/haptics';
 import compStoreMapping from '../../src/comprehensive_store_mapping.json';
+import { useConfig } from '../../contexts/ConfigContext';
 
 interface Store {
   name: string;
@@ -272,6 +273,11 @@ interface TrainingChecklistProps {
 }
 
 const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) => {
+  const { config, loading: configLoading } = useConfig();
+  
+  // Use config data if available, otherwise fall back to hardcoded SECTIONS
+  const sections = config?.CHECKLISTS?.TRAINING || SECTIONS;
+  
   const [responses, setResponses] = useState<Record<string, string>>(() => {
     try { 
       return JSON.parse(localStorage.getItem('training_resp') || '{}'); 
@@ -317,7 +323,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       let totalScore = 0;
       let maxScore = 0;
 
-      SECTIONS.forEach(section => {
+      sections.forEach(section => {
         if (section.id === 'TSA_Food') {
           // Count TSA Food as one item, use automatic scoring
           total++;
@@ -935,14 +941,14 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     { id: 'TM_9', keywords: ['career progression', 'reward poster', 'career progression chart'] }
   ];
 
-  // Auto-apply fallback parser: scan all SECTIONS and return map of questionId -> value
+  // Auto-apply fallback parser: scan all sections and return map of questionId -> value
   const processVoiceCommandAuto = (rawCmd: string) => {
     const cmd = rawCmd.toLowerCase();
 
     // global intents
     if (/\b(all|everything) (is )?(available|present)\b/.test(cmd) || /all training materials/.test(cmd)) {
       const updates: Record<string, string> = {};
-      SECTIONS.forEach(section => {
+      sections.forEach(section => {
         section.items.forEach(item => {
           if (item.type === 'text') return;
           updates[`${section.id}_${item.id}`] = 'yes';
@@ -953,7 +959,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
     if (/\b(all|everything) (is )?(not available|unavailable|missing|none)\b/.test(cmd) || /none of the (training )?materials/.test(cmd)) {
       const updates: Record<string, string> = {};
-      SECTIONS.forEach(section => {
+      sections.forEach(section => {
         section.items.forEach(item => {
           if (item.type === 'text') return;
           updates[`${section.id}_${item.id}`] = 'no';
@@ -965,7 +971,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     // Build a list of searchable keyword phrases from all items
     type ItemKeyword = { sectionId: string; itemId: string; phrase: string };
     const keywords: ItemKeyword[] = [];
-    SECTIONS.forEach(section => {
+    sections.forEach(section => {
       section.items.forEach(item => {
         const base = (item.q || '').toLowerCase();
         if (!base) return;
@@ -1013,7 +1019,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     // If user said 'no other' and mentioned some items, mark rest as no
     if (Object.keys(updates).length > 0 && /\b(no other|none of the other|no other training)\b/.test(cmd)) {
       const mentioned = new Set(Object.keys(updates).map(k => k.split('_')[1]));
-      SECTIONS.forEach(section => {
+      sections.forEach(section => {
         section.items.forEach(item => {
           const key = `${section.id}_${item.id}`;
           if (item.type === 'text') return;
@@ -1040,7 +1046,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
   // Calculate TSA Food score and auto-assign points
   const calculateTSAFoodScore = () => {
-    const tsaSection = SECTIONS.find(s => s.id === 'TSA_Food');
+    const tsaSection = sections.find(s => s.id === 'TSA_Food');
     if (!tsaSection) return 0;
 
     let correct = 0;
@@ -1071,7 +1077,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
   // Calculate TSA Coffee score and auto-assign points
   const calculateTSACoffeeScore = () => {
-    const tsaSection = SECTIONS.find(s => s.id === 'TSA_Coffee');
+    const tsaSection = sections.find(s => s.id === 'TSA_Coffee');
     if (!tsaSection) return 0;
 
     let correct = 0;
@@ -1102,7 +1108,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
   // Calculate TSA CX score and auto-assign points
   const calculateTSACXScore = () => {
-    const tsaSection = SECTIONS.find(s => s.id === 'TSA_CX');
+    const tsaSection = sections.find(s => s.id === 'TSA_CX');
     if (!tsaSection) return 0;
 
     let correct = 0;
@@ -1199,7 +1205,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     // Check if all required fields are filled
     const incompleteQuestions: string[] = [];
     
-    SECTIONS.forEach(section => {
+    sections.forEach(section => {
       section.items.forEach(item => {
         const questionId = `${section.id}_${item.id}`;
         if (!responses[questionId]) {
@@ -1210,7 +1216,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
     if (incompleteQuestions.length > 0) {
       // Scroll to first unanswered question
-      const firstIncompleteSection = SECTIONS.find(section => 
+      const firstIncompleteSection = sections.find(section => 
         section.items.some(item => {
           const questionId = `${section.id}_${item.id}`;
           return !responses[questionId];
@@ -1254,7 +1260,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       let maxScore = 0;
       const sectionScores: Record<string, number> = {};
 
-      SECTIONS.forEach(section => {
+      sections.forEach(section => {
         let sectionScore = 0;
         let sectionMax = 0;
 
@@ -1319,7 +1325,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       });
 
       // Add individual responses
-      SECTIONS.forEach(section => {
+      sections.forEach(section => {
         section.items.forEach(item => {
           const questionId = `${section.id}_${item.id}`;
           // Send just the item.id (e.g., TM_1) to match Google Apps Script expectations
@@ -1328,7 +1334,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       });
 
       // Add remarks
-      SECTIONS.forEach(section => {
+      sections.forEach(section => {
         if (remarks[section.id]) {
           // Convert section names to abbreviations for remarks
           const sectionAbbr = section.id === 'TrainingMaterials' ? 'TM' :
@@ -1749,7 +1755,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         </div>
       </div>
 
-      {/* Training Sections - Full Width */}
+      {/* Training sections - Full Width */}
       <div className="bg-white dark:bg-slate-800 p-3 sm:p-4" data-tour="checklist-form">
         {/* Voice controls for quick filling - HIDDEN */}
         {false && (
@@ -1775,7 +1781,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         </h2>
         
         <div className="space-y-4">
-          {SECTIONS.map((section, sectionIndex) => {
+          {sections.map((section, sectionIndex) => {
             // Special handling for TSA Food section
             if (section.id === 'TSA_Food') {
               // Group items by subsection for TSA Food

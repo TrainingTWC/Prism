@@ -5,6 +5,7 @@ import { Store } from '../../types';
 import { hapticFeedback } from '../../utils/haptics';
 import hrMappingData from '../../src/hr_mapping.json';
 import { useAuth } from '../../contexts/AuthContext';
+import { useConfig } from '../../contexts/ConfigContext';
 
 // Google Sheets endpoint for logging AM Operations data - UPDATED URL
 const AM_OPS_LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw_Q9JD-4ys1qElIM4-DYFwwOUzVmPs-LYsYmP9lWqsp3ExJr5tnt-RYEJxYTi5SEjJ6w/exec';
@@ -145,6 +146,11 @@ const SECTIONS: ChecklistSection[] = [
 ];
 
 const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onStatsUpdate }) => {
+  const { config, loading: configLoading } = useConfig();
+  
+  // Use config data if available, otherwise fall back to hardcoded SECTIONS
+  const sections = config?.CHECKLISTS?.OPERATIONS || SECTIONS;
+  
   const [responses, setResponses] = useState<Record<string, string>>(() => {
     try {
       return JSON.parse(localStorage.getItem('operations_checklist_responses') || '{}');
@@ -252,7 +258,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     } catch (e) {}
 
     const { score, maxScore, percentage } = calculateScore();
-    const totalQuestions = SECTIONS.reduce((acc, section) => acc + section.items.length, 0);
+    const totalQuestions = sections.reduce((acc, section) => acc + section.items.length, 0);
     const completedQuestions = Object.keys(responses).filter(key => responses[key] && responses[key] !== '').length;
 
     onStatsUpdate({
@@ -432,7 +438,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
 
   const handleSubmit = async () => {
     // Validate all questions are answered
-    const totalQuestions = SECTIONS.reduce((acc, section) => acc + section.items.length, 0);
+    const totalQuestions = sections.reduce((acc, section) => acc + section.items.length, 0);
     const answeredQuestions = Object.keys(responses).filter(key => responses[key] && responses[key] !== '').length;
     
     if (answeredQuestions < totalQuestions) {
@@ -516,7 +522,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
 
       // Add all question responses with section prefixes
       let questionCounter = 1;
-      SECTIONS.forEach((section, sectionIndex) => {
+      sections.forEach((section, sectionIndex) => {
         section.items.forEach((item, itemIndex) => {
           const questionKey = `${section.id}_${item.id}`;
           let paramKey = '';
@@ -604,7 +610,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     let score = 0;
     let maxScore = 0;
 
-    SECTIONS.forEach(section => {
+    sections.forEach(section => {
       section.items.forEach(item => {
         const questionKey = `${section.id}_${item.id}`;
         const response = responses[questionKey];
@@ -1036,8 +1042,8 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         </div>
       </div>
 
-      {/* Sections */}
-      {SECTIONS.map((section) => {
+      {/* sections */}
+      {sections.map((section) => {
         const sectionScore = getSectionScore(section);
         return (
           <div key={section.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">

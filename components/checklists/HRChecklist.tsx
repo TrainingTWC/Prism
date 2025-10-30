@@ -6,6 +6,7 @@ import { hapticFeedback } from '../../utils/haptics';
 import LoadingOverlay from '../LoadingOverlay';
 import hrMappingData from '../../src/hr_mapping.json';
 import { useAuth } from '../../contexts/AuthContext';
+import { useConfig } from '../../contexts/ConfigContext';
 
 // Google Sheets endpoint for logging data
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKMVh-lnNBnINskIqD10CnQHvGsW_R2SLASGSdBDN9lTGj1gznlNbHORQ/exec';

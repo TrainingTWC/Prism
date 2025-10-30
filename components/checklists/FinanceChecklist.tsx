@@ -5,6 +5,7 @@ import { hapticFeedback } from '../../utils/haptics';
 import LoadingOverlay from '../LoadingOverlay';
 import hrMappingData from '../../src/hr_mapping.json';
 import { useAuth } from '../../contexts/AuthContext';
+import { useConfig } from '../../contexts/ConfigContext';
 
 // Google Sheets endpoint for logging data
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKMVh-lnNBnINskIqD10CnQHvGsW_R2SLASGSdBDN9lTGj1gznlNbHORQ/exec';
@@ -91,6 +92,11 @@ const FINANCE_SECTIONS = [
 ];
 
 const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUpdate }) => {
+  const { config, loading: configLoading } = useConfig();
+  
+  // Use config data if available, otherwise fall back to hardcoded FINANCE_SECTIONS
+  const sections = config?.CHECKLISTS?.FINANCE || FINANCE_SECTIONS;
+  
   const [responses, setResponses] = useState<SurveyResponse>(() => {
     try { 
       return JSON.parse(localStorage.getItem('finance_resp') || '{}'); 
@@ -187,7 +193,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
   // Update stats whenever responses change
   useEffect(() => {
-    const totalQuestions = FINANCE_SECTIONS.reduce((sum, section) => sum + section.items.length, 0);
+    const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
     const answeredQuestions = Object.keys(responses).filter(key => 
       responses[key] && responses[key] !== '' && !key.includes('_remarks')
     ).length;
@@ -196,7 +202,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
     let totalScore = 0;
     let maxScore = 0;
     
-    FINANCE_SECTIONS.forEach(section => {
+    sections.forEach(section => {
       section.items.forEach(item => {
         maxScore += item.w;
         const response = responses[`${section.id}_${item.id}`];
@@ -245,7 +251,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   };
 
   const handleSubmit = async () => {
-    const totalQuestions = FINANCE_SECTIONS.reduce((sum, section) => sum + section.items.length, 0);
+    const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
     const answeredQuestions = Object.keys(responses).filter(key => 
       responses[key] && responses[key] !== '' && !key.includes('_remarks')
     ).length;
@@ -270,7 +276,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       let totalScore = 0;
       let maxScore = 0;
       
-      FINANCE_SECTIONS.forEach(section => {
+      sections.forEach(section => {
         section.items.forEach(item => {
           maxScore += item.w;
           const response = responses[`${section.id}_${item.id}`];
@@ -539,7 +545,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         </h2>
         
         <div className="space-y-8">
-          {FINANCE_SECTIONS.map((section, sectionIndex) => (
+          {sections.map((section, sectionIndex) => (
             <div key={section.id} className="border-l-4 border-emerald-500 pl-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4 text-emerald-700 dark:text-emerald-300">
                 {section.title}

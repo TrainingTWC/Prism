@@ -1542,7 +1542,9 @@
             "q": "FRM available at store?",
             "w": 1,
             "allowCamera": false,
-            "required": false
+            "required": false,
+            "type": "dropdown",
+            "source": "EMPLOYEE_LIST"
           },
           {
             "id": "TM_2",

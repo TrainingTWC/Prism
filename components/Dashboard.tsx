@@ -2542,6 +2542,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                     {
                       id: 'store-health',
                       label: 'Store Health',
+                      onClick: () => setShowHealthBreakdown(true),
                       value: (() => {
                         // Calculate health data inline
                         let needsAttention = 0;
@@ -2664,6 +2665,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                     {
                       id: 'audit-percentage',
                       label: 'Audit Percentage',
+                      onClick: () => setShowAuditScoreDetails(true),
                       value: (
                         <div className="flex items-center gap-3">
                           <span className={`text-4xl font-black ${

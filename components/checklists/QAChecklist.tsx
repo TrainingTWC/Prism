@@ -5,6 +5,7 @@ import { hapticFeedback } from '../../utils/haptics';
 import LoadingOverlay from '../LoadingOverlay';
 import hrMappingData from '../../src/hr_mapping.json';
 import { useAuth } from '../../contexts/AuthContext';
+import { useConfig } from '../../contexts/ConfigContext';
 
 // Google Sheets endpoint for logging data
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbytHCowSWXzHY-Ej7NdkCnaObAFpTiSeT2cV1_63_yUUeHJTwMW9-ta_70XcLu--wUxog/exec';
@@ -100,6 +101,11 @@ const QA_SECTIONS = [
 ];
 
 const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) => {
+  const { config, loading: configLoading } = useConfig();
+  
+  // Use config data if available, otherwise fall back to hardcoded QA_SECTIONS
+  const sections = config?.CHECKLISTS?.QA || QA_SECTIONS;
+  
   const [responses, setResponses] = useState<SurveyResponse>(() => {
     try { 
       return JSON.parse(localStorage.getItem('qa_resp') || '{}'); 
@@ -196,7 +202,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
 
   // Update stats whenever responses change
   useEffect(() => {
-    const totalQuestions = QA_SECTIONS.reduce((sum, section) => sum + section.items.length, 0);
+    const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
     const answeredQuestions = Object.keys(responses).filter(key => 
       responses[key] && responses[key] !== '' && !key.includes('_remarks')
     ).length;
@@ -205,7 +211,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
     let totalScore = 0;
     let maxScore = 0;
     
-    QA_SECTIONS.forEach(section => {
+    sections.forEach(section => {
       section.items.forEach(item => {
         maxScore += item.w;
         const response = responses[`${section.id}_${item.id}`];
@@ -254,7 +260,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
   };
 
   const handleSubmit = async () => {
-    const totalQuestions = QA_SECTIONS.reduce((sum, section) => sum + section.items.length, 0);
+    const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
     const answeredQuestions = Object.keys(responses).filter(key => 
       responses[key] && responses[key] !== '' && !key.includes('_remarks')
     ).length;
@@ -279,7 +285,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
       let totalScore = 0;
       let maxScore = 0;
       
-      QA_SECTIONS.forEach(section => {
+      sections.forEach(section => {
         section.items.forEach(item => {
           maxScore += item.w;
           const response = responses[`${section.id}_${item.id}`];
@@ -391,7 +397,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
       // Generate realistic test responses
       const testResponses: SurveyResponse = {};
       
-      QA_SECTIONS.forEach(section => {
+      sections.forEach(section => {
         section.items.forEach((item, index) => {
           // Create realistic distribution: mostly yes, some no, few na
           const rand = Math.random();
@@ -590,7 +596,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
         </h2>
         
         <div className="space-y-8">
-          {QA_SECTIONS.map((section, sectionIndex) => (
+          {sections.map((section, sectionIndex) => (
             <div key={section.id} className="border-l-4 border-orange-500 pl-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4 text-orange-700 dark:text-orange-300">
                 {section.title}
