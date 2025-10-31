@@ -450,11 +450,8 @@ const FormsChecklist: React.FC<FormsChecklistProps> = ({ onStatsUpdate }) => {
         <div className="space-y-4">
           {FORM.sections.map((section) => (
             <div key={section.id} className="border-l-4 border-cyan-400 pl-4 bg-white dark:bg-slate-800 p-3 rounded">
-                <div className="flex items-center justify-between gap-4 mb-3">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">{section.title}</h3>
-                  </div>
-                  <div className="text-sm text-gray-600">Section score: {sectionScore(section)}%</div>
+                <div className="mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">{section.title}</h3>
                 </div>
 
               <div className="space-y-3">
@@ -500,21 +497,6 @@ const FormsChecklist: React.FC<FormsChecklistProps> = ({ onStatsUpdate }) => {
           <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex items-center gap-3">
             <button onClick={validateAndSubmit} className="px-4 py-2 bg-cyan-600 text-white rounded">Submit Form</button>
             {submitted && <div className="text-sm text-green-600">Submitted ✓</div>}
-            <div className="text-sm text-gray-500">Score: {(() => {
-              // compute total score display
-              let weightedSum = 0; let weightTotal = 0;
-              FORM.sections.forEach(section => section.questions.forEach(q => { 
-                if (q.type==='likert') { 
-                  const v = parseInt(responses[q.id]||'0',10); 
-                  if (!isNaN(v)) { 
-                    const scorePercent = (v / 5) * 100;
-                    weightedSum += scorePercent * (q.weight_percent / 100);
-                  } 
-                  weightTotal += q.weight_percent; 
-                }
-              }));
-              return weightTotal>0 ? `${weightedSum.toFixed(1)}%` : '0%';
-            })()}</div>
           </div>
         </div>
       </div>
