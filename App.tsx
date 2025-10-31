@@ -183,6 +183,22 @@ const AppContent: React.FC = () => {
     tabs.push({ id: 'admin', label: 'Admin', icon: HelpCircle });
   }
 
+  // Get auth role once
+  const { userRole: authUserRole } = useAuth();
+
+  // If user has forms role, only show the forms section
+  if (authUserRole === 'forms') {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
+        <Header />
+        <main className="p-2 sm:p-4 lg:p-8">
+          <ChecklistsAndSurveys userRole={userRole} />
+        </main>
+      </div>
+    );
+  }
+
+  // For all other roles, show the normal interface
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
       <Header />

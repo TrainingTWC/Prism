@@ -44,6 +44,11 @@ export const AUTH_CONFIG: AuthConfig = {
       permissions: ['training', 'dashboard', 'learning-management'],
       dashboardAccess: ['training-dashboard', 'training-reports', 'learning-analytics', 'training-audit']
     },
+    forms: {
+      password: 'MT2025!',
+      permissions: ['forms'],
+      dashboardAccess: ['forms-surveys'] // Only access to forms, no dashboard
+    },
     finance: {
       password: 'FinanceSecure2024!',
       permissions: ['finance', 'dashboard', 'financial-reports'],

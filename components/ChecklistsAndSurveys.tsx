@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Settings, GraduationCap, CheckCircle, DollarSign, ArrowLeft, Home } from 'lucide-react';
+import { Users, Settings, GraduationCap, CheckCircle, DollarSign, FileText, ArrowLeft, Home } from 'lucide-react';
 import { UserRole } from '../roleMapping';
 import { useAuth } from '../contexts/AuthContext';
 import HRChecklist from './checklists/HRChecklist';
@@ -7,12 +7,13 @@ import OperationsChecklist from './checklists/OperationsChecklist';
 import TrainingChecklist from './checklists/TrainingChecklist';
 import QAChecklist from './checklists/QAChecklist';
 import FinanceChecklist from './checklists/FinanceChecklist';
+import FormsChecklist from './checklists/FormsChecklist';
 
 interface ChecklistsAndSurveysProps {
   userRole: UserRole;
 }
 
-type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance';
+type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'forms';
 
 const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole }) => {
   const { userRole: authUserRole, hasPermission } = useAuth();
@@ -22,7 +23,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     operations: { completed: 0, total: 0, score: 0 },
     training: { completed: 0, total: 0, score: 0 },
     qa: { completed: 0, total: 0, score: 0 },
-    finance: { completed: 0, total: 0, score: 0 }
+    finance: { completed: 0, total: 0, score: 0 },
+    forms: { completed: 0, total: 0, score: 0 }
   });
 
   // Get auditor info from URL parameters
@@ -37,7 +39,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
       { id: 'operations' as ChecklistType, label: 'Operations', icon: Settings, color: 'bg-green-500' },
       { id: 'training' as ChecklistType, label: 'Training', icon: GraduationCap, color: 'bg-purple-500' },
       { id: 'qa' as ChecklistType, label: 'QA', icon: CheckCircle, color: 'bg-orange-500' },
-      { id: 'finance' as ChecklistType, label: 'Finance', icon: DollarSign, color: 'bg-red-500' }
+      { id: 'finance' as ChecklistType, label: 'Finance', icon: DollarSign, color: 'bg-red-500' },
+      { id: 'forms' as ChecklistType, label: 'Forms & surveys', icon: FileText, color: 'bg-cyan-500' }
     ];
 
     // For admin role, show all checklists
@@ -58,7 +61,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     { id: 'operations' as ChecklistType, label: 'Operations', icon: Settings, color: 'bg-green-500' },
     { id: 'training' as ChecklistType, label: 'Training', icon: GraduationCap, color: 'bg-purple-500' },
     { id: 'qa' as ChecklistType, label: 'QA', icon: CheckCircle, color: 'bg-orange-500' },
-    { id: 'finance' as ChecklistType, label: 'Finance', icon: DollarSign, color: 'bg-red-500' }
+    { id: 'finance' as ChecklistType, label: 'Finance', icon: DollarSign, color: 'bg-red-500' },
+    { id: 'forms' as ChecklistType, label: 'Forms & surveys', icon: FileText, color: 'bg-cyan-500' }
   ];
 
   const updateChecklistStats = (type: ChecklistType, stats: { completed: number; total: number; score: number }) => {
@@ -93,6 +97,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
         return <OperationsChecklist {...commonProps} />;
       case 'training':
         return <TrainingChecklist {...commonProps} />;
+      case 'forms':
+        return <FormsChecklist {...commonProps} />;
       case 'qa':
         return <QAChecklist {...commonProps} />;
       case 'finance':
