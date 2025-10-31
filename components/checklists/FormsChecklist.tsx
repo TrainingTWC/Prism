@@ -110,6 +110,7 @@ const FormsChecklist: React.FC<FormsChecklistProps> = ({ onStatsUpdate }) => {
   });
 
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Compute stats and score whenever responses change
   useEffect(() => {
@@ -144,6 +145,10 @@ const FormsChecklist: React.FC<FormsChecklistProps> = ({ onStatsUpdate }) => {
   }, [responses]);
 
   const handleLikert = (qid: string, value: number) => {
+    // Add haptic feedback on selection
+    if (window.navigator.vibrate) {
+      window.navigator.vibrate(50); // Short vibration for feedback
+    }
     setResponses(prev => ({ ...prev, [qid]: String(value) }));
   };
 
@@ -159,6 +164,8 @@ const FormsChecklist: React.FC<FormsChecklistProps> = ({ onStatsUpdate }) => {
       alert('Please answer all questions before submitting. Missing: ' + missing.join(', '));
       return;
     }
+    
+    setIsSubmitting(true);
 
     // Compute weighted score client-side to include in payload
     let weightedSum = 0;
@@ -212,7 +219,7 @@ const FormsChecklist: React.FC<FormsChecklistProps> = ({ onStatsUpdate }) => {
       localStorage.setItem(`${STORAGE_KEY}_submitted`, new Date().toISOString());
       setSubmitted(true);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(responses));
-      alert('Form submitted successfully.');
+      setIsSubmitting(false);
       return;
     } catch (err) {
       console.error('Submit failed:', err);
@@ -227,6 +234,7 @@ const FormsChecklist: React.FC<FormsChecklistProps> = ({ onStatsUpdate }) => {
       // fallback: save locally
       localStorage.setItem(`${STORAGE_KEY}_submitted`, new Date().toISOString());
       setSubmitted(true);
+      setIsSubmitting(false);
       alert(`${errorMessage} — saved locally.`);
       return;
     }
@@ -360,6 +368,16 @@ const FormsChecklist: React.FC<FormsChecklistProps> = ({ onStatsUpdate }) => {
 
   return (
     <>
+      {/* Loading Overlay */}
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-xl text-center">
+            <div className="animate-spin w-12 h-12 border-4 border-cyan-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-900 dark:text-slate-100">Submitting form...</p>
+          </div>
+        </div>
+      )}
+
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-900/20 p-3 sm:p-4 border-b border-cyan-200 dark:border-cyan-800">
         <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-slate-100 mb-1 flex items-center gap-2">
@@ -447,13 +465,26 @@ const FormsChecklist: React.FC<FormsChecklistProps> = ({ onStatsUpdate }) => {
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900 dark:text-slate-100 mb-2">{q.text}</p>
                         {q.type === 'likert' ? (
-                          <div className="flex flex-wrap gap-3">
-                            {[1,2,3,4,5].map(v => (
-                              <label key={v} className="flex items-center space-x-2 cursor-pointer">
-                                <input type="radio" name={q.id} value={v} checked={String(responses[q.id]||'')===String(v)} onChange={() => handleLikert(q.id, v)} className="w-4 h-4 text-cyan-600" />
-                                <span className="text-sm text-gray-700 dark:text-slate-300">{v}</span>
-                              </label>
-                            ))}
+                          <div className="space-y-2">
+                            <input
+                              type="range"
+                              min="1"
+                              max="5"
+                              step="1"
+                              value={responses[q.id] || '3'}
+                              onChange={(e) => handleLikert(q.id, parseInt(e.target.value))}
+                              className="w-full accent-cyan-600"
+                            />
+                            <div className="flex justify-between px-1 text-sm text-gray-600 dark:text-slate-400">
+                              <span>1</span>
+                              <span>2</span>
+                              <span>3</span>
+                              <span>4</span>
+                              <span>5</span>
+                            </div>
+                            <div className="text-center text-sm font-medium text-cyan-600 dark:text-cyan-400">
+                              Selected: {responses[q.id] || '3'}
+                            </div>
                           </div>
                         ) : (
                           <textarea rows={3} value={responses[q.id]||''} onChange={(e)=>handleText(q.id, e.target.value)} className="w-full px-3 py-2 border rounded bg-white dark:bg-slate-700 text-sm" />
