@@ -175,7 +175,7 @@ const AppContent: React.FC = () => {
     { id: 'checklists', label: 'Checklists & Surveys', icon: CheckSquare }
   ];
 
-  // Show admin tab ONLY for users who logged in with the editor password
+  // Get auth role once
   const { userRole: authUserRole } = useAuth();
   const isEditor = authUserRole === 'editor';
   
@@ -183,16 +183,21 @@ const AppContent: React.FC = () => {
     tabs.push({ id: 'admin', label: 'Admin', icon: HelpCircle });
   }
 
-  // Get auth role once
-  const { userRole: authUserRole } = useAuth();
-
   // If user has forms role, only show the forms section
   if (authUserRole === 'forms') {
+    const formsRole = {
+      userId: 'forms',
+      name: 'Forms Access',
+      role: 'forms' as const,
+      allowedStores: [],
+      allowedAMs: [],
+      allowedHRs: []
+    };
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
         <Header />
         <main className="p-2 sm:p-4 lg:p-8">
-          <ChecklistsAndSurveys userRole={userRole} />
+          <ChecklistsAndSurveys userRole={formsRole} />
         </main>
       </div>
     );
