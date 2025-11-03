@@ -123,8 +123,26 @@ export const buildOperationsPDF = async (submissions: AMOperationsSubmission[], 
       const drawY = areaY + innerPadding + Math.round((usableH - drawH) / 2);
       doc.addImage(EMBEDDED_LOGO, 'PNG', drawX, drawY, drawW, drawH);
     } else {
-      try { const img = await loadImage(`${window.location.origin}/assets/logo.png`); const el = await new Promise<HTMLImageElement>((res, rej)=>{const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=img;}); const naturalW = el.naturalWidth||el.width||areaW; const naturalH = el.naturalHeight||el.height||areaH; const usableW = Math.max(4, areaW - innerPadding * 2); const usableH = Math.max(4, areaH - innerPadding * 2); const ratio = Math.min(1, usableW / naturalW, usableH / naturalH); const drawW = Math.round(naturalW * ratio); const drawH = Math.round(naturalH * ratio); const drawX = areaX + innerPadding + Math.round((usableW - drawW) / 2); const drawY = areaY + innerPadding + Math.round((usableH - drawH) / 2); doc.addImage(img, 'PNG', drawX, drawY, drawW, drawH);} catch(e){ await addCompanyLogo(doc);}    
-  } catch (e) {}
+      try { 
+        const img = await loadImage(`${window.location.origin}/assets/logo.png`); 
+        const el = await new Promise<HTMLImageElement>((res, rej)=>{const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=img;}); 
+        const naturalW = el.naturalWidth||el.width||areaW; 
+        const naturalH = el.naturalHeight||el.height||areaH; 
+        const usableW = Math.max(4, areaW - innerPadding * 2); 
+        const usableH = Math.max(4, areaH - innerPadding * 2); 
+        const ratio = Math.min(1, usableW / naturalW, usableH / naturalH); 
+        const drawW = Math.round(naturalW * ratio); 
+        const drawH = Math.round(naturalH * ratio); 
+        const drawX = areaX + innerPadding + Math.round((usableW - drawW) / 2); 
+        const drawY = areaY + innerPadding + Math.round((usableH - drawH) / 2); 
+        doc.addImage(img, 'PNG', drawX, drawY, drawW, drawH);
+      } catch(e) { 
+        // Fallback: ignore logo if it fails to load
+      }
+    }
+  } catch (e) {
+    // Ignore logo errors
+  }
 
   y += 4;
   doc.setFontSize(14);
