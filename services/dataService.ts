@@ -487,6 +487,7 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
     let hrbp = '';
     let trainer = '';
     let am = '';
+    let regionalTrainingManager = '';
     
     let storeId = row.storeId || row.storeID || row['Store ID'];
     
@@ -543,6 +544,7 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
           hrbp = storeMapping['HRBP'] || storeMapping.hrbp || '';
           trainer = storeMapping['Trainer'] || storeMapping.trainer || '';
           am = storeMapping['AM'] || storeMapping.am || '';
+          regionalTrainingManager = storeMapping['Regional Training Manager'] || storeMapping.regionalTrainingManager || '';
           
           console.log(`✅ COMPREHENSIVE MAPPING: Store ${storeId}:`);
           console.log(`   Region: ${region}`);
@@ -552,6 +554,7 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
           console.log(`   HRBP: ${hrbp}`);
           console.log(`   Trainer: ${trainer}`);
           console.log(`   AM: ${am}`);
+          console.log(`   Regional Training Manager: ${regionalTrainingManager}`);
         } else {
           console.warn(`❌ Could not find comprehensive mapping for store ${storeId}`);
           console.log(`   Available store IDs (first 10):`, mappingData.slice(0, 10).map(m => m['Store ID']));
@@ -572,7 +575,8 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
       concept: concept,
       hrbp: hrbp,
       trainer: trainer,
-      am: am
+      am: am,
+      regionalTrainingManager: regionalTrainingManager
     };
   });
   
