@@ -1,7 +1,6 @@
 /**
- * TRAINING CHECKLIST - GOOGLE APPS SCRIPT (COMPLETE VERSION with ALL QUESTIONS)
- * This version logs ALL questions including TSA sections with their detailed items
- * Updated: October 29, 2025
+ * TRAINING CHECKLIST - GOOGLE APPS SCRIPT (UPDATED VERSION)
+ * Updated with new training checklist fields as specified
  */
 
 function doPost(e) {
@@ -107,15 +106,13 @@ function doPost(e) {
       // Action Plan (AP_1 to AP_3)
       'AP_1', 'AP_2', 'AP_3',
       
-      // Non-TSA Section Remarks
+      // Section Remarks
       'TM_remarks', 'LMS_remarks', 'Buddy_remarks', 'NJ_remarks', 
-      'PK_remarks', 'CX_remarks', 'AP_remarks',
+      'PK_remarks', 'TSA_Food_Score_remarks', 'TSA_Coffee_Score_remarks', 'TSA_CX_Score_remarks', 
+      'CX_remarks', 'AP_remarks',
       
       // Scoring
-      'Total Score', 'Max Score', 'Percentage',
-      
-      // TSA Remarks (moved to end as last 3 columns)
-      'TSA_Food_remarks', 'TSA_Coffee_remarks', 'TSA_CX_remarks'
+      'Total Score', 'Max Score', 'Percentage'
     ];
 
     // Ensure header row exists
@@ -166,9 +163,7 @@ function doPost(e) {
       params.PK_4 || '', params.PK_5 || '', params.PK_6 || '', params.PK_7 || '',
       
       // Training Store Audit Scores (TSA Food, Coffee, CX)
-      params.tsaFoodScore || params.TSA_Food_Score || '', 
-      params.tsaCoffeeScore || params.TSA_Coffee_Score || '', 
-      params.tsaCXScore || params.TSA_CX_Score || '',
+      params.TSA_Food_Score || '', params.TSA_Coffee_Score || '', params.TSA_CX_Score || '',
       
       // Customer Experience (CX_1 to CX_9)
       params.CX_1 || '', params.CX_2 || '', params.CX_3 || '',
@@ -178,24 +173,18 @@ function doPost(e) {
       // Action Plan (AP_1 to AP_3)
       params.AP_1 || '', params.AP_2 || '', params.AP_3 || '',
       
-      // Non-TSA Section remarks
+      // Section Remarks
       params.TM_remarks || '', params.LMS_remarks || '',
       params.Buddy_remarks || '', params.NJ_remarks || '',
-      params.PK_remarks || '', params.CX_remarks || '', params.AP_remarks || '',
+      params.PK_remarks || '', params.TSA_Food_Score_remarks || '', 
+      params.TSA_Coffee_Score_remarks || '', params.TSA_CX_Score_remarks || '',
+      params.CX_remarks || '', params.AP_remarks || '',
       
       // Scoring
-      params.totalScore || '', params.maxScore || '', params.percentage || '',
-      
-      // TSA Remarks (last 3 columns)
-      params.TSA_Food_remarks || '', 
-      params.TSA_Coffee_remarks || '', 
-      params.TSA_CX_remarks || ''
+      params.totalScore || '', params.maxScore || '', params.percentage || ''
     ];
 
     sheet.appendRow(row);
-    
-    // Log TSA responses to separate sheet
-    logTSAResponses(params, serverTimestamp, submissionTime);
 
     return ContentService
       .createTextOutput(JSON.stringify({ status: 'OK' }))
@@ -205,217 +194,6 @@ function doPost(e) {
     return ContentService
       .createTextOutput(JSON.stringify({ status: 'ERROR', message: String(err) }))
       .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-/**
- * Log TSA (Training Skill Assessment) responses to a separate sheet
- */
-function logTSAResponses(params, serverTimestamp, submissionTime) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var tsaSheet = ss.getSheetByName('TSA Responses');
-    
-    if (!tsaSheet) {
-      tsaSheet = ss.insertSheet('TSA Responses');
-      console.log('Created new sheet: TSA Responses');
-    }
-    
-    // Define headers for TSA Responses sheet
-    var tsaHeader = [
-      'Server Timestamp', 'Submission Time', 'Trainer Name', 'Trainer ID',
-      'Store Name', 'Store ID', 'Region', 'MOD',
-      'TSA Section', 'Employee Name', 'Employee ID', 'Question ID', 'Question', 'Response'
-    ];
-    
-    // Ensure header row exists
-    if (tsaSheet.getLastRow() === 0) {
-      tsaSheet.getRange(1, 1, 1, tsaHeader.length).setValues([tsaHeader]);
-      tsaSheet.getRange(1, 1, 1, tsaHeader.length).setFontWeight('bold');
-      tsaSheet.setFrozenRows(1);
-    }
-    
-    // TSA Food responses
-    var tsaFoodQuestions = [
-      {id: 'FOOD_EMP_NAME', q: 'EMP. name'},
-      {id: 'FOOD_EMP_ID', q: 'EMP. ID'},
-      // Personal Hygiene
-      {id: 'PH_1', q: 'Well-groomed as per TWC standards (uniform, nails, hair)'},
-      {id: 'PH_2', q: 'Washed and sanitized hands every 30 mins'},
-      {id: 'PH_3', q: 'Wears gloves or avoids direct food contact'},
-      // Station Readiness
-      {id: 'SR_1', q: 'All ingredients available for the day'},
-      {id: 'SR_2', q: 'All smallware available & in correct use'},
-      {id: 'SR_3', q: 'Station cleaned and sanitized'},
-      {id: 'SR_4', q: 'Station and smallware organized and clean'},
-      {id: 'SR_5', q: 'Clean dusters available at the station'},
-      {id: 'SR_6', q: 'FDU AT LEAST 70% stocked, clean, follows planogram'},
-      {id: 'SR_7', q: 'MRD stickers used correctly (FDU + Make Line)'},
-      {id: 'SR_8', q: 'Products stored at correct temperature'},
-      // Food Preparation & Handling
-      {id: 'FP_1', q: 'Recipe followed per SOP (Food Item 1)'},
-      {id: 'FP_2', q: 'Build followed per SOP (Food Item 1)'},
-      {id: 'FP_3', q: 'Recipe followed per SOP (Food Item 2)'},
-      {id: 'FP_4', q: 'Build followed per SOP (Food Item 2)'},
-      {id: 'FP_5', q: 'Used correct tools for preparation'},
-      {id: 'FP_6', q: 'Used appropriate key to heat/warm food (Merry chef/Oven)'},
-      {id: 'FP_7', q: 'Gloves changed correctly (veg/non-veg switch or as per TWC guidelines)'},
-      {id: 'FP_8', q: 'Consistently follows Clean-As-You-Go'},
-      {id: 'FP_9', q: 'Correct duster used for station cleaning'},
-      {id: 'FP_10', q: 'Follows First-In-First-Out for food items'},
-      {id: 'FP_11', q: 'Products checked visually before serving'},
-      {id: 'FP_12', q: 'Chips, condiments, cutlery, etc., provided per SOP'},
-      // Standards Ownership
-      {id: 'SO_1', q: 'Serves only food that meets TWC standards (fresh, safe, proper temp); knows what to do if not'}
-    ];
-    
-    var foodEmpName = params.TSA_Food_FOOD_EMP_NAME || params.FOOD_EMP_NAME || '';
-    var foodEmpId = params.TSA_Food_FOOD_EMP_ID || params.FOOD_EMP_ID || '';
-    
-    tsaFoodQuestions.forEach(function(item) {
-      var paramKey = 'TSA_Food_' + item.id;
-      var response = params[paramKey] || '';
-      if (response) {  // Only log if there's a response
-        tsaSheet.appendRow([
-          serverTimestamp, submissionTime,
-          params.trainerName || '', params.trainerId || '',
-          params.storeName || '', params.storeId || '',
-          params.region || '', params.mod || '',
-          'TSA Food', foodEmpName, foodEmpId,
-          item.id, item.q, response
-        ]);
-      }
-    });
-    
-    // TSA Coffee responses
-    var tsaCoffeeQuestions = [
-      {id: 'COFFEE_EMP_NAME', q: 'EMP. name'},
-      {id: 'COFFEE_EMP_ID', q: 'EMP. ID'},
-      // Personal Hygiene
-      {id: 'PH_1', q: 'Well-groomed as per TWC standards (uniform, nails, hair)'},
-      {id: 'PH_2', q: 'Washed and sanitized hands'},
-      {id: 'PH_3', q: 'Wears gloves at CBS'},
-      // Station Readiness
-      {id: 'SR_1', q: 'Trainee Ensures that the station is well stocked'},
-      {id: 'SR_2', q: 'Trainee ensures all type of milk available'},
-      {id: 'SR_3', q: 'Trainee Ensures that the leveller and temper is clean and set'},
-      {id: 'SR_4', q: 'Trainee ensure all smallwares available at the stations'},
-      {id: 'SR_5', q: 'Trainee ensured that the Espresso dial in is done'},
-      {id: 'SR_6', q: 'Trainee extract the perfect espresso each time'},
-      {id: 'SR_7', q: 'Trainee follows the Espresso extraction steps as defined'},
-      {id: 'SR_8', q: 'Whipped cream is prepared as per standards'},
-      {id: 'SR_9', q: 'Station and smallware organized and clean'},
-      {id: 'SR_10', q: 'Clean dusters available at the station'},
-      {id: 'SR_11', q: 'Station cleaned and sanitized'},
-      {id: 'SR_12', q: 'MRD stickers used correctly'},
-      {id: 'SR_13', q: 'Products stored at correct temperature'},
-      // Coffee Preparation
-      {id: 'CP_1', q: 'Recipe followed per SOP for Cappuccino'},
-      {id: 'CP_2', q: 'Build followed per SOP for Cappuccino'},
-      {id: 'CP_3', q: 'Recipe followed per SOP for Latte'},
-      {id: 'CP_4', q: 'Build followed per SOP for Latte'},
-      {id: 'CP_5', q: 'Recipe followed per SOP for bev 3'},
-      {id: 'CP_6', q: 'Build followed per SOP for bev 3'},
-      {id: 'CP_7', q: 'Recipe followed per SOP for bev 4'},
-      {id: 'CP_8', q: 'Build followed per SOP for bev 4'},
-      {id: 'CP_9', q: 'Cappuccino is served with 70:30 milk foam ratio'},
-      {id: 'CP_10', q: 'Latte is served with silky smooth foam (90:10 ratio)'},
-      {id: 'CP_11', q: 'Milk steaming standards are followed'},
-      {id: 'CP_12', q: 'Latte art is as per described standards'},
-      {id: 'CP_13', q: 'Used correct tools for preparation'},
-      {id: 'CP_14', q: 'Blenders, Shakers and frothing jugs are washed and clean after every use'},
-      {id: 'CP_15', q: 'Appropriate button is used to blend the beverages'},
-      {id: 'CP_16', q: 'Toppings and Garnishes are used as per described standards'},
-      {id: 'CP_17', q: 'Special instructions are read and followed'},
-      {id: 'CP_18', q: 'Cold brew is available and brewed as per TWC standards'},
-      {id: 'CP_19', q: 'Trainee is aware about the Cold brew'},
-      {id: 'CP_20', q: 'Trainee brews the manual brews as per TWC standards'},
-      {id: 'CP_21', q: 'Gloves changed correctly'},
-      {id: 'CP_22', q: 'Consistently follows Clean-As-You-Go'},
-      {id: 'CP_23', q: 'Correct duster used for station cleaning'},
-      {id: 'CP_24', q: 'Follows First-In-First-Out for food items'},
-      {id: 'CP_25', q: 'Products checked visually before serving'},
-      {id: 'CP_26', q: 'Condiments, cutlery, etc., provided per SOP'}
-    ];
-    
-    var coffeeEmpName = params.TSA_Coffee_COFFEE_EMP_NAME || params.COFFEE_EMP_NAME || '';
-    var coffeeEmpId = params.TSA_Coffee_COFFEE_EMP_ID || params.COFFEE_EMP_ID || '';
-    
-    tsaCoffeeQuestions.forEach(function(item) {
-      var paramKey = 'TSA_Coffee_' + item.id;
-      var response = params[paramKey] || '';
-      if (response) {  // Only log if there's a response
-        tsaSheet.appendRow([
-          serverTimestamp, submissionTime,
-          params.trainerName || '', params.trainerId || '',
-          params.storeName || '', params.storeId || '',
-          params.region || '', params.mod || '',
-          'TSA Coffee', coffeeEmpName, coffeeEmpId,
-          item.id, item.q, response
-        ]);
-      }
-    });
-    
-    // TSA CX responses
-    var tsaCXQuestions = [
-      {id: 'CX_EMP_NAME', q: 'EMP. name'},
-      {id: 'CX_EMP_ID', q: 'EMP. ID'},
-      // Personal Hygiene
-      {id: 'CX_PH_1', q: 'Grooming & Hygiene: Well-groomed as per TWC standards'},
-      {id: 'CX_PH_2', q: 'Hand Hygiene: Washed and sanitized hands'},
-      {id: 'CX_PH_3', q: 'Food Handling: Wears gloves or avoids direct food contact'},
-      // Station Readiness
-      {id: 'CX_SR_1', q: 'Washrooms clean and stocked'},
-      {id: 'CX_SR_2', q: 'Service area clean (floor, chairs, tables)'},
-      {id: 'CX_SR_3', q: 'Smallwares clean (salvers, plates, cutlery)'},
-      {id: 'CX_SR_4', q: 'Furniture properly set'},
-      {id: 'CX_SR_5', q: 'POS, Bars, merchandise, menus, etc. properly stocked'},
-      {id: 'CX_SR_6', q: 'Float/change available for cash transactions'},
-      {id: 'CX_SR_7', q: 'Checks communication for product availability'},
-      {id: 'CX_SR_8', q: 'Verifies temperature, music, table cleanliness, service items'},
-      // Customer Handling
-      {id: 'CX_CH_1', q: 'Cheerful Greeting: Cheerfully welcomes customers'},
-      {id: 'CX_CH_2', q: 'Builds rapport (eye contact, active listening)'},
-      {id: 'CX_CH_3', q: 'Assists customers to find seating'},
-      {id: 'CX_CH_4', q: 'Order Taking Assistance: Upsells using product knowledge'},
-      {id: 'CX_CH_5', q: 'Accurately enters and verifies orders in POS'},
-      {id: 'CX_CH_6', q: 'Applies applicable discounts correctly'},
-      {id: 'CX_CH_7', q: 'Processes payments accurately and handles change'},
-      {id: 'CX_CH_8', q: 'Closes transaction smoothly and provides table tag'},
-      {id: 'CX_CH_9', q: 'Thanks customer, explains order delivery'},
-      {id: 'CX_CH_10', q: 'Friendly & Accurate service: Serves with attention to detail'},
-      {id: 'CX_CH_11', q: 'Offers follow-up service and leaves customer satisfied'},
-      {id: 'CX_CH_12', q: 'Clears table with courtesy, thanks guests on exit'},
-      // Handling Feedback
-      {id: 'CX_FC_1', q: 'What would you do if a customer leaves more than half'},
-      {id: 'CX_FC_2', q: 'How do you handle a customer asking for extra protein'},
-      {id: 'CX_FC_3', q: 'What do you do if a customer is angry or irritated'},
-      {id: 'CX_FC_4', q: 'What would you do if a customer complains about cold food/coffee'},
-      {id: 'CX_FC_5', q: 'How do you manage service if the wrong item is served'},
-      {id: 'CX_FC_6', q: 'What do you do if a customer sits for a long time post meal'}
-    ];
-    
-    var cxEmpName = params.TSA_CX_CX_EMP_NAME || params.CX_EMP_NAME || '';
-    var cxEmpId = params.TSA_CX_CX_EMP_ID || params.CX_EMP_ID || '';
-    
-    tsaCXQuestions.forEach(function(item) {
-      var paramKey = 'TSA_CX_' + item.id;
-      var response = params[paramKey] || '';
-      if (response) {  // Only log if there's a response
-        tsaSheet.appendRow([
-          serverTimestamp, submissionTime,
-          params.trainerName || '', params.trainerId || '',
-          params.storeName || '', params.storeId || '',
-          params.region || '', params.mod || '',
-          'TSA CX', cxEmpName, cxEmpId,
-          item.id, item.q, response
-        ]);
-      }
-    });
-    
-    console.log('TSA responses logged successfully');
-  } catch (error) {
-    console.error('Error logging TSA responses: ' + error.toString());
   }
 }
 
@@ -542,12 +320,15 @@ function getTrainingChecklistData() {
         obj['AP_' + i] = row[colIndex++] || '';
       }
       
-      // Section remarks (reordered - non-TSA first)
+      // Section remarks
       obj.TM_remarks = row[colIndex++] || '';
       obj.LMS_remarks = row[colIndex++] || '';
       obj.Buddy_remarks = row[colIndex++] || '';
       obj.NJ_remarks = row[colIndex++] || '';
       obj.PK_remarks = row[colIndex++] || '';
+      obj.TSA_Food_Score_remarks = row[colIndex++] || '';
+      obj.TSA_Coffee_Score_remarks = row[colIndex++] || '';
+      obj.TSA_CX_Score_remarks = row[colIndex++] || '';
       obj.CX_remarks = row[colIndex++] || '';
       obj.AP_remarks = row[colIndex++] || '';
       
@@ -555,11 +336,6 @@ function getTrainingChecklistData() {
       obj.totalScore = row[colIndex++] || '';
       obj.maxScore = row[colIndex++] || '';
       obj.percentageScore = row[colIndex++] || '';
-      
-      // TSA remarks (last 3 columns)
-      obj.TSA_Food_remarks = row[colIndex++] || '';
-      obj.TSA_Coffee_remarks = row[colIndex++] || '';
-      obj.TSA_CX_remarks = row[colIndex++] || '';
       
       return obj;
     });

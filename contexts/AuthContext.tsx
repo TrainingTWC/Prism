@@ -115,32 +115,57 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUserRole(null);
       setRoleConfig(null);
       
-      const response = await fetch('/Prism/employee_data.json');
-      const employees: Employee[] = await response.json();
-      console.log('[Auth] Loaded', employees.length, 'employees');
+      // UNIVERSAL ACCESS: Accept ANY employee ID without validation
+      // This allows all employee IDs (including i192 and any format) to access the system
+      console.log('[Auth] ✅ Universal access enabled - accepting all employee IDs');
       
-      // Case-insensitive search for employee
-      const foundEmployee = employees.find(
-        emp => emp.code.toLowerCase() === empId.toLowerCase()
-      );
-
-      if (foundEmployee) {
-        console.log('[Auth] ✅ Found employee:', foundEmployee);
-        // Store employee data in localStorage (persists across browser sessions)
-        setEmployeeData(foundEmployee);
-        setIsEmployeeValidated(true);
-        localStorage.setItem('auth_employee', JSON.stringify(foundEmployee));
-        localStorage.setItem('employee_validated', 'true');
+      const employeeInfo: Employee = {
+        code: empId,
+        name: `Employee ${empId}` // Generic name if not found in database
+      };
+      
+      // Optionally try to fetch real employee data for display purposes
+      try {
+        const response = await fetch('/Prism/employee_data.json');
+        const employees: Employee[] = await response.json();
+        console.log('[Auth] Loaded', employees.length, 'employees from database');
         
-        console.log('[Auth] Employee validated, waiting for password login');
-        return true;
+        // Case-insensitive search for employee
+        const foundEmployee = employees.find(
+          emp => emp.code.toLowerCase() === empId.toLowerCase()
+        );
+
+        if (foundEmployee) {
+          console.log('[Auth] ✅ Found employee in database:', foundEmployee);
+          employeeInfo.code = foundEmployee.code;
+          employeeInfo.name = foundEmployee.name;
+        } else {
+          console.log('[Auth] ℹ️ Employee not in database, using generic info');
+        }
+      } catch (error) {
+        console.log('[Auth] ℹ️ Could not load employee database, using generic info');
       }
       
-      console.log('[Auth] ❌ Employee not found:', empId);
-      return false;
+      // Store employee data in localStorage (persists across browser sessions)
+      setEmployeeData(employeeInfo);
+      setIsEmployeeValidated(true);
+      localStorage.setItem('auth_employee', JSON.stringify(employeeInfo));
+      localStorage.setItem('employee_validated', 'true');
+      
+      console.log('[Auth] Employee validated with ID:', employeeInfo.code);
+      return true;
     } catch (error) {
       console.error('[Auth] Error during login:', error);
-      return false;
+      // Even on error, allow access (universal access mode)
+      const fallbackEmployee: Employee = {
+        code: empId,
+        name: `Employee ${empId}`
+      };
+      setEmployeeData(fallbackEmployee);
+      setIsEmployeeValidated(true);
+      localStorage.setItem('auth_employee', JSON.stringify(fallbackEmployee));
+      localStorage.setItem('employee_validated', 'true');
+      return true;
     }
   };
 

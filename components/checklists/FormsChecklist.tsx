@@ -384,7 +384,6 @@ const FormsChecklist: React.FC<FormsChecklistProps> = ({ onStatsUpdate }) => {
           <FileText className="w-5 h-5" />
           <span className="break-words">{FORM.title}</span>
         </h1>
-        <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400 leading-relaxed">{FORM.description}</p>
       </div>
 
       {/* Meta / Form details */}

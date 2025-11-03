@@ -29,11 +29,12 @@ export function UniqueStoresPills({ filters, rows: propRows, loading: propLoadin
   const storesPerPeriod = useMemo(() => {
     const periodStores = new Map<string, Set<string>>();
     filteredRows.forEach((r) => {
-      // Training Audit records don't have metric_name - each row is one audit
-      if (!periodStores.has(r.observed_period)) {
-        periodStores.set(r.observed_period, new Set());
+      if (r.metric_name === 'percentage') { // Only count once per store
+        if (!periodStores.has(r.observed_period)) {
+          periodStores.set(r.observed_period, new Set());
+        }
+        periodStores.get(r.observed_period)!.add(r.store_id);
       }
-      periodStores.get(r.observed_period)!.add(r.store_id);
     });
     return periodStores;
   }, [filteredRows]);

@@ -43,21 +43,20 @@ export const AREA_MANAGERS: AreaManager[] = [
       { name: 'Ajay Omnath Tiwari', id: 'H1815' },
       { name: 'Amar', id: 'H535' },
       { name: 'Anil  Rawat', id: 'H2262' },
-      { name: 'Atul', id: 'H2396' },
-      { name: 'Bhawna', id: 'H3595' },
+      { name: 'Umakanth', id: 'H3270' },
       { name: 'Himanshu', id: 'H955' },
       { name: 'Jagruti', id: 'H2155' },
       { name: 'Karthick  G', id: 'H3362' },
       { name: 'Kiran', id: 'H2601' },
-      { name: 'Nandish  M', id: 'H833' },
-      { name: 'Rutuja', id: 'H2758' },
-      { name: 'Sanjay', id: 'H2273' },
       { name: 'Shailesh', id: 'H2908' },
       { name: 'Suresh  A', id: 'H1355' },
-      { name: 'Umakanth', id: 'H3270' },
       { name: 'Vishal Vishwanath Khatakalle', id: 'H3184' },
       { name: 'Vishu', id: 'H1766' },
-      { name: 'Vruchika', id: 'H1575' }
+      { name: 'Vruchika', id: 'H1575' },
+      { name: 'Nandish  M', id: 'H833' },
+      { name: 'Atul', id: 'H2396' },
+      { name: 'Sanjay', id: 'H2273' },
+      { name: 'Rutuja', id: 'H2758' }
 ];
 
 export const REGIONS = ['North', 'South', 'West'];

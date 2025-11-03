@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { buildTrainingPDF } from '../src/utils/trainingReport';
+import { buildOperationsPDF } from '../src/utils/operationsReport';
 import { Users, Clipboard, GraduationCap, BarChart3 } from 'lucide-react';
 import { Submission, Store } from '../types';
 import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission } from '../services/dataService';
@@ -451,11 +452,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       if ((targetDashboard === 'training' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.training || isRefresh)) {
         loadPromises.push(
           fetchTrainingData().then(data => {
-            console.log('✅ Loaded Training Audit data:', data.length, 'submissions');
+            console.log('✅ Dashboard: Loaded Training Audit data:', {
+              totalSubmissions: data.length,
+              sample: data?.[0],
+              fields: data?.[0] ? Object.keys(data[0]) : [],
+              submissionTimes: data.slice(0, 3).map(d => d.submissionTime),
+              scores: data.slice(0, 3).map(d => d.percentageScore)
+            });
             setTrainingData(data);
             setDataLoadedFlags(prev => ({ ...prev, training: true }));
           }).catch(err => {
-            console.error('❌ Failed to load Training data:', err);
+            console.error('❌ Dashboard: Failed to load Training data:', err);
           })
         );
       } else if (targetDashboard === 'training' && dataLoadedFlags.training) {
@@ -1416,6 +1423,73 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         pdf.save(fileName);
         setIsGenerating(false);
         showNotificationMessage('Training PDF generated successfully!', 'success');
+        return;
+      }
+
+      // AM Operations dashboard: use the operations-specific PDF builder (same look & feel as training)
+      if (dashboardType === 'operations') {
+        const meta: any = {};
+        if (filters.store) {
+          const s = allStores.find(s => s.id === filters.store);
+          meta.storeName = s?.name || filters.store;
+          meta.storeId = filters.store;
+        } else if (reportData.length > 0 && reportData.length === 1) {
+          const firstRecord = reportData[0] as any;
+          meta.storeName = firstRecord.storeName || firstRecord.store_name || '';
+          meta.storeId = firstRecord.storeId || firstRecord.storeID || '';
+          if (firstRecord.mod) meta.mod = firstRecord.mod;
+        } else if (filters.region) {
+          meta.storeName = `${filters.region} Region`;
+          meta.storeId = '';
+        } else if (reportData.length > 0) {
+          meta.storeName = 'All Stores (Filtered)';
+          meta.storeId = '';
+        }
+
+        if (filters.trainer) {
+          const t = HR_PERSONNEL.find(h => h.id === filters.trainer) || AREA_MANAGERS.find(a => a.id === filters.trainer);
+          meta.trainerName = t?.name || filters.trainer;
+          meta.trainerId = filters.trainer;
+        } else if (reportData.length > 0 && reportData.length === 1) {
+          const firstRecord = reportData[0] as any;
+          meta.trainerName = firstRecord.trainerName || firstRecord.trainer_name || '';
+          meta.trainerId = firstRecord.trainerId || firstRecord.trainer_id || '';
+          if (firstRecord.mod) meta.mod = firstRecord.mod;
+        } else if (reportData.length > 0) {
+          meta.trainerName = 'Multiple Trainers';
+          meta.trainerId = '';
+        }
+
+        if (filters.am) {
+          const am = AREA_MANAGERS.find(a => a.id === filters.am);
+          meta.amName = am?.name || filters.am;
+          meta.auditorName = am?.name || filters.am;
+        } else if (reportData.length > 0 && reportData.length === 1) {
+          const firstRecord = reportData[0] as any;
+          meta.amName = firstRecord.amName || firstRecord.am_name || '';
+          meta.auditorName = firstRecord.amName || firstRecord.am_name || 'N/A';
+          if (firstRecord.mod) meta.mod = firstRecord.mod;
+        }
+
+        if (reportData.length === 1) {
+          const firstRecord = reportData[0] as any;
+          meta.totalScore = firstRecord.totalScore || 0;
+          meta.maxScore = firstRecord.maxScore || 100;
+          meta.percentage = Math.round(firstRecord.percentageScore || firstRecord.percentage_score || 0);
+        } else if (reportData.length > 1) {
+          const totalPct = reportData.reduce((sum, r: any) => sum + parseFloat(r.percentageScore || r.percentage_score || 0), 0);
+          meta.percentage = Math.round(totalPct / reportData.length);
+          meta.totalScore = `Avg`;
+          meta.maxScore = 100;
+        }
+
+        if (lastRefresh) meta.date = lastRefresh.toLocaleString();
+
+        const fileName = `AMOperations_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+        const pdf = await buildOperationsPDF(reportData as any, meta, { title: 'AM Operations Report' });
+        pdf.save(fileName);
+        setIsGenerating(false);
+        showNotificationMessage('AM Operations PDF generated successfully!', 'success');
         return;
       }
 
