@@ -492,22 +492,27 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
     let storeId = row.storeId || row.storeID || row['Store ID'];
     
     console.log(`📍 MAPPING STORE: ${storeId} (${row.storeName || row['Store Name'] || 'No name'}) - Original region: ${row.region || 'None'}`);
+    console.log(`   Row keys available:`, Object.keys(row).slice(0, 10));
+    console.log(`   Raw storeId value: "${storeId}", type: ${typeof storeId}`);
     
     // ALWAYS map ALL fields from the comprehensive mapping file based on Store ID
     if (storeId) {
       try {
         // Log what we're searching for
         console.log(`🔍 Searching for Store ID: "${storeId}" (type: ${typeof storeId})`);
+        console.log(`   First 3 mapping entries:`, mappingData.slice(0, 3).map(m => m['Store ID']));
         
         // Try to find by exact store ID match first
         let storeMapping = mappingData.find(mapping => {
           const mappingStoreId = mapping['Store ID'] || mapping.storeId;
           const match = mappingStoreId === storeId.toString();
-          if (mappingStoreId === storeId.toString()) {
+          if (match) {
             console.log(`✅ EXACT MATCH FOUND: "${mappingStoreId}" === "${storeId}"`);
           }
           return match;
         });
+        
+        console.log(`   After exact match attempt: storeMapping = ${storeMapping ? 'FOUND' : 'NULL'}`);
         
         // If not found and storeId is numeric, try with S prefix
         if (!storeMapping && !isNaN(storeId) && !storeId.toString().startsWith('S')) {
