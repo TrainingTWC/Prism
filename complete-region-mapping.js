@@ -59,9 +59,9 @@ function detectRegionFromStoreId(storeId) {
   return storeRegionMapping[storeId] || 'Unknown';
 }
 
-// Summary:
-// - Total stores: 187
+// Summary (Updated from comprehensive_store_mapping.json):
+// - Total stores: 186 stores
 // - North region: 54 stores
-// - South region: 71 stores  
-// - West region: 62 stores
-// - Special case: '0' (TFS) mapped to South region
+// - South region: 68 stores  
+// - West region: 64 stores
+// - Verified: All mappings consistent with comprehensive_store_mapping.json
