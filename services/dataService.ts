@@ -536,7 +536,8 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
         }
         
         if (storeMapping) {
-          // Map all fields from comprehensive mapping
+          // Map all fields from comprehensive mapping - THIS OVERRIDES GOOGLE SHEET DATA
+          const originalRegion = row.region;
           region = storeMapping['Region'] || storeMapping.region || 'Unknown';
           menu = storeMapping['Menu'] || storeMapping.menu || '';
           storeType = storeMapping['Store Type'] || storeMapping.storeType || '';
@@ -547,7 +548,8 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
           regionalTrainingManager = storeMapping['Regional Training Manager'] || storeMapping.regionalTrainingManager || '';
           
           console.log(`✅ COMPREHENSIVE MAPPING: Store ${storeId}:`);
-          console.log(`   Region: ${region}`);
+          console.log(`   ⚠️ Original Region from Sheet: ${originalRegion}`);
+          console.log(`   ✅ Mapped Region from comprehensive_store_mapping.json: ${region}`);
           console.log(`   Menu: ${menu}`);
           console.log(`   Store Type: ${storeType}`);
           console.log(`   Concept: ${concept}`);

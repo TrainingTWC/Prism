@@ -2823,19 +2823,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                 <OperationsHRPerformanceInfographic submissions={filteredAMOperations} />
               </div>
               
-              {/* Temporary Debug Information */}
-              <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-lg mb-4">
-                <h3 className="font-bold text-yellow-800 dark:text-yellow-200 mb-2">🔍 Debug Info (AM Operations Data)</h3>
-                <div className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
-                  <p><strong>Total AM Operations:</strong> {amOperationsData?.length || 0}</p>
-                  <p><strong>Filtered Count:</strong> {filteredAMOperations?.length || 0}</p>
-                  <p><strong>Sample BSC Values:</strong> {filteredAMOperations?.slice(0, 5).map(s => s.bscAchievement).join(', ') || 'None'}</p>
-                  <p><strong>Sample Regions:</strong> {[...new Set(filteredAMOperations?.slice(0, 10).map(s => s.region))].join(', ') || 'None'}</p>
-                  <p><strong>Sample Store IDs:</strong> {filteredAMOperations?.slice(0, 5).map(s => s.storeId).join(', ') || 'None'}</p>
-                  <p><strong>Data Source Check:</strong> {amOperationsData?.length > 0 && amOperationsData[0].submissionTime?.includes('2024-10') ? 'Static Data' : 'Live Data'}</p>
-                </div>
-              </div>
-              
               {/* New Operational Metrics Section with Error Boundary */}
               {(() => {
                 try {
