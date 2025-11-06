@@ -260,9 +260,9 @@ const TrainingHealthBreakdownModal: React.FC<TrainingHealthBreakdownModalProps> 
     const categories = Object.keys(data).sort();
     
     return (
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-          <thead className="bg-slate-50 dark:bg-slate-800">
+      <div className="overflow-x-auto rounded-xl border border-slate-200/50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+        <table className="min-w-full divide-y divide-slate-200/50 dark:divide-slate-700/50">
+          <thead className="bg-slate-50/80 dark:bg-slate-800/80 backdrop-blur-sm">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 {activeTab === 'overall' ? 'Month' : activeTab === 'region' ? 'Region' : activeTab === 'am' ? 'Area Manager' : 'Trainer'}
@@ -273,10 +273,10 @@ const TrainingHealthBreakdownModal: React.FC<TrainingHealthBreakdownModalProps> 
               <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</th>
             </tr>
           </thead>
-          <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700">
+          <tbody className="bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm divide-y divide-slate-200/50 dark:divide-slate-700/50">
             {categories.map(category => 
               data[category].map((monthStats, idx) => (
-                <tr key={`${category}-${idx}`} className="hover:bg-slate-50 dark:hover:bg-slate-800">
+                <tr key={`${category}-${idx}`} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">
                     {activeTab === 'overall' ? monthStats.month : category}
                   </td>
@@ -323,31 +323,31 @@ const TrainingHealthBreakdownModal: React.FC<TrainingHealthBreakdownModalProps> 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-slate-700/50 max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between p-6 border-b border-slate-200/50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
             Store Health Breakdown (Month by Month)
           </h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 rounded-lg hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
           >
             <X size={24} />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-slate-200 dark:border-slate-700 px-6">
+        <div className="flex border-b border-slate-200/50 dark:border-slate-700/50 px-6 bg-white/30 dark:bg-slate-800/30">
           {(['overall', 'region', 'am', 'trainer'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+              className={`px-4 py-3 text-sm font-medium transition-all border-b-2 ${
                 activeTab === tab
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100/30 dark:hover:bg-slate-700/30'
               }`}
             >
               {tab === 'overall' ? 'Overall' : tab === 'region' ? 'By Region' : tab === 'am' ? 'By AM' : 'By Trainer'}
@@ -356,7 +356,7 @@ const TrainingHealthBreakdownModal: React.FC<TrainingHealthBreakdownModalProps> 
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto p-6 bg-gradient-to-b from-transparent to-white/20 dark:to-slate-900/20">
           {renderTable(getCurrentData())}
         </div>
       </div>
