@@ -7,6 +7,7 @@ interface Pill {
   value: string | number | React.ReactNode;
   color?: string;
   onClick?: () => void;
+  onLabelClick?: () => void; // For Store Health label-specific click
 }
 
 interface NowBarMobileProps {
@@ -125,7 +126,22 @@ const NowBarMobile: React.FC<NowBarMobileProps> = ({ pills }) => {
             >
               <div className="px-6 py-4 flex items-center justify-between w-full">
                 {/* Left side - Label */}
-                <div className="flex flex-col items-start text-left flex-shrink-0">
+                <div 
+                  className={`flex flex-col items-start text-left flex-shrink-0 ${
+                    pill.id === 'store-health' ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''
+                  }`}
+                  onClick={(e) => {
+                    // For Store Health, make the label clickable to open health breakdown
+                    if (pill.id === 'store-health' && !isDragging) {
+                      e.stopPropagation();
+                      vibrate([20, 10]);
+                      // Open health breakdown modal (we'll pass this via a custom handler)
+                      if (pill.onLabelClick) {
+                        pill.onLabelClick();
+                      }
+                    }
+                  }}
+                >
                   <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide whitespace-nowrap">
                     {pill.id === 'store-health' ? (
                       // Single line for Store Health

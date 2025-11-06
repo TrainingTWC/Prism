@@ -2644,7 +2644,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                     {
                       id: 'store-health',
                       label: 'Store Health',
-                      onClick: () => setShowHealthBreakdown(true),
+                      onClick: undefined, // Remove card-level click to avoid conflicts with pie chart
+                      onLabelClick: () => setShowHealthBreakdown(true), // Label click opens health breakdown
                       value: (() => {
                         // Calculate health data inline
                         let needsAttention = 0;
@@ -2667,7 +2668,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         ];
 
                         return (
-                          <div className="flex items-center justify-center gap-3 w-full ml-10" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-3 w-full ml-10">
                             {/* Compact Pie Chart using SVG */}
                             <svg width="70" height="70" viewBox="0 0 70 70" className="flex-shrink-0">
                               {/* Background circle - adapts to dark mode */}
