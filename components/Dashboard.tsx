@@ -2647,6 +2647,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                       onClick: undefined, // Remove card-level click to avoid conflicts with pie chart
                       onLabelClick: () => setShowHealthBreakdown(true), // Label click opens health breakdown
                       value: (() => {
+                        // ============================================================
+                        // CLICKABLE AREAS STRUCTURE:
+                        // ============================================================
+                        // LEFT SIDE (Label):    "STORE HEALTH" text → Opens Health Breakdown Modal
+                        // RIGHT SIDE (Content): Pie chart + numbers → Filter by category (Needs Attention/Brewing/Perfect Shot)
+                        //
+                        // Event propagation is stopped on the right side container to prevent
+                        // pie chart clicks from triggering the card tap handler
+                        // ============================================================
+                        
                         // Calculate health data inline
                         let needsAttention = 0;
                         let brewing = 0;
@@ -2668,9 +2678,26 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         ];
 
                         return (
-                          <div className="flex items-center justify-center gap-3 w-full ml-10">
+                          <div 
+                            className="flex items-center justify-center gap-3 w-full ml-10"
+                            onClick={(e) => {
+                              // Prevent pie chart area clicks from bubbling up to card tap
+                              e.stopPropagation();
+                            }}
+                            onPointerDown={(e) => {
+                              // Also stop pointer events to prevent drag/tap detection
+                              e.stopPropagation();
+                            }}
+                          >
                             {/* Compact Pie Chart using SVG */}
-                            <svg width="70" height="70" viewBox="0 0 70 70" className="flex-shrink-0">
+                            <svg 
+                              width="70" 
+                              height="70" 
+                              viewBox="0 0 70 70" 
+                              className="flex-shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                              onPointerDown={(e) => e.stopPropagation()}
+                            >
                               {/* Background circle - adapts to dark mode */}
                               <circle cx="35" cy="35" r="35" className="fill-white dark:fill-gray-800" />
                               
@@ -2700,7 +2727,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                       d={`M 35 35 L ${x1} ${y1} A 35 35 0 ${largeArc} 1 ${x2} ${y2} Z`}
                                       fill={segment.color}
                                       style={{ cursor: 'pointer' }}
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         if (segment.name === 'Needs Attention') {
                                           setTrainingDetailFilter({ type: 'scoreRange', value: '0-55', title: 'Needs Attention' });
                                         } else if (segment.name === 'Brewing') {
@@ -2710,6 +2738,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                         }
                                         setShowTrainingDetail(true);
                                       }}
+                                      onPointerDown={(e) => e.stopPropagation()}
                                     />
                                   );
                                   
@@ -2728,7 +2757,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                 <div 
                                   key={entry.name}
                                   className="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity"
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     if (entry.name === 'Needs Attention') {
                                       setTrainingDetailFilter({ type: 'scoreRange', value: '0-55', title: 'Needs Attention' });
                                     } else if (entry.name === 'Brewing') {
@@ -2738,6 +2768,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                     }
                                     setShowTrainingDetail(true);
                                   }}
+                                  onPointerDown={(e) => e.stopPropagation()}
                                 >
                                   <div 
                                     className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
