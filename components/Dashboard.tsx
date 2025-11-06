@@ -324,11 +324,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         const areaManagers = Array.from(amMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
   const hrPersonnel = Array.from(hrMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
         
-        setAllStores(stores);
-        setAllAreaManagers(areaManagers);
-        setAllHRPersonnel(hrPersonnel);
-
-        // Also try to load comprehensive trainer mapping and prefer its trainer names
+        // Also try to load comprehensive store mapping and merge stores
         try {
           const compResp = await fetch(`${base}comprehensive_store_mapping.json`);
           console.log('Dashboard - Fetching comprehensive mapping from:', `${base}comprehensive_store_mapping.json`);
@@ -336,6 +332,28 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             const comp = await compResp.json();
             setCompStoreMapping(comp);
             console.log('Dashboard - Comprehensive mapping loaded, entries:', comp.length);
+            
+            // Merge stores from comprehensive mapping into storeMap
+            comp.forEach((row: any) => {
+              const storeId = row['Store ID'] || row.storeId || row.StoreID || row.store_id;
+              const storeName = row['Store Name'] || row.storeName || row.name;
+              const region = row.Region || row.region;
+              
+              if (storeId && storeName && !storeMap.has(storeId)) {
+                storeMap.set(storeId, {
+                  name: storeName,
+                  id: storeId,
+                  region: region
+                });
+              }
+            });
+            
+            // Rebuild stores array with comprehensive mapping included
+            const mergedStores = Array.from(storeMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
+            console.log(`Dashboard - Merged stores from comprehensive mapping: ${mergedStores.length} total stores`);
+            setAllStores(mergedStores);
+            setAllAreaManagers(areaManagers);
+            setAllHRPersonnel(hrPersonnel);
             // Build a map of Trainer ID -> occurrences
             const trainerIds = new Set<string>();
             comp.forEach((row: any) => {
@@ -546,16 +564,26 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     stores = stores.filter(store => canAccessStore(userRole, store.id));
     
   // If Area Manager is selected, filter stores based on AM mapping
-    if (filters.am && hrMappingData.length > 0) {
+    if (filters.am) {
       console.log('Filtering Stores for Area Manager:', filters.am);
       
-      // Get stores that belong to this Area Manager
-      const amStoreIds = hrMappingData
-        .filter((mapping: any) => mapping.areaManagerId === filters.am)
-        .map((mapping: any) => mapping.storeId);
-      
-      stores = stores.filter(store => amStoreIds.includes(store.id));
-      console.log(`Found ${stores.length} stores for AM ${filters.am}:`, stores);
+      // For Training dashboard, use comprehensive mapping; for others, use HR mapping
+      if (dashboardType === 'training' && compStoreMapping && compStoreMapping.length > 0) {
+        const amStoreIds = compStoreMapping
+          .filter((mapping: any) => mapping.AM === filters.am || mapping.am === filters.am)
+          .map((mapping: any) => mapping['Store ID'] || mapping.storeId || mapping.StoreID || mapping.store_id);
+        
+        stores = stores.filter(store => amStoreIds.includes(store.id));
+        console.log(`Found ${stores.length} stores for AM ${filters.am} (comprehensive mapping):`, stores);
+      } else if (hrMappingData.length > 0) {
+        // Get stores that belong to this Area Manager from HR mapping
+        const amStoreIds = hrMappingData
+          .filter((mapping: any) => mapping.areaManagerId === filters.am)
+          .map((mapping: any) => mapping.storeId);
+        
+        stores = stores.filter(store => amStoreIds.includes(store.id));
+        console.log(`Found ${stores.length} stores for AM ${filters.am} (HR mapping):`, stores);
+      }
     }
     // If Trainer is selected but no AM, show stores under that Trainer using comprehensive mapping
     else if (trainerFilterId && compStoreMapping && compStoreMapping.length > 0) {
@@ -569,7 +597,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     }
     
     return stores;
-  }, [filters.region, filters.am, filters.trainer, userRole, allStores, hrMappingData]);
+  }, [filters.region, filters.am, filters.trainer, userRole, allStores, hrMappingData, compStoreMapping, dashboardType]);
 
   const availableAreaManagers = useMemo(() => {
     let areaManagers = allAreaManagers.filter(am => canAccessAM(userRole, am.id));
