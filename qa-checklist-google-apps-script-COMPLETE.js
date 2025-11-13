@@ -1,6 +1,6 @@
 /**
  * Quality Assurance (QA) Checklist Google Apps Script - COMPLETE VERSION
- * Handles form submissions AND data retrieval for the QA Assessment dashboard
+ * Handles form submissions, updates, AND data retrieval for the QA Assessment dashboard
  * Sheet name: QA
  * 
  * IMPORTANT: This script needs to be deployed as a web app with:
@@ -15,10 +15,11 @@
  * - HR: 2 questions (HR_1 to HR_2)
  * 
  * Functions:
- * 1. doPost() - Receives QA checklist submissions from the form
+ * 1. doPost() - Receives QA checklist submissions (create/update)
  * 2. doGet() - Returns QA data for the dashboard
  * 3. setupQAHeaders() - Sets up the spreadsheet headers
  * 4. testQAScript() - Test function for debugging
+ * 5. updateSubmission() - Updates existing submission by timestamp
  */
 
 /**
@@ -172,8 +173,15 @@ function doPost(e) {
     // Parse the form data
     const params = e.parameter;
     Logger.log('Received parameters count: ' + Object.keys(params).length);
-    Logger.log('Received parameters: ' + JSON.stringify(params));
     console.log('Received parameters:', JSON.stringify(params));
+    
+    // Check if this is an update request
+    const isUpdate = params.action === 'update' && params.rowId;
+    
+    if (isUpdate) {
+      Logger.log('UPDATE REQUEST detected for rowId: ' + params.rowId);
+      return updateSubmission(sheet, params);
+    }
     
     // Get current timestamp
     const now = new Date();
@@ -621,6 +629,168 @@ function getQAStats() {
   Logger.log('=== QA Statistics Retrieved ===');
   
   return stats;
+}
+
+/**
+ * Function to clear all QA data (for testing purposes)
+ */
+function clearQAData() {
+  Logger.log('=== Clearing QA Data ===');
+  
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('QA');
+  
+  if (sheet) {
+    const rowCount = sheet.getLastRow();
+    sheet.clear();
+    setupQAHeaders(sheet);
+    Logger.log('QA data cleared - ' + (rowCount - 1) + ' rows removed');
+    Logger.log('Headers reset');
+  } else {
+    Logger.log('No QA sheet found');
+  }
+  
+  Logger.log('=== QA Data Cleared ===');
+}
+
+/**
+ * Update existing QA submission
+ * Finds the row by matching submission time and updates all fields
+ */
+function updateSubmission(sheet, params) {
+  try {
+    Logger.log('=== UPDATE SUBMISSION Started ===');
+    Logger.log('Looking for submission with timestamp: ' + params.rowId);
+    
+    // Get all data from sheet
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    
+    // Find the row with matching submission time (column B - index 1)
+    let targetRowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      const submissionTime = data[i][1]; // Column B - Submission Time
+      if (submissionTime === params.rowId) {
+        targetRowIndex = i + 1; // +1 because sheet rows are 1-indexed
+        Logger.log('Found matching submission at row: ' + targetRowIndex);
+        break;
+      }
+    }
+    
+    if (targetRowIndex === -1) {
+      Logger.log('ERROR: Could not find submission with timestamp: ' + params.rowId);
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'Submission not found'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Get current timestamp for update
+    const now = new Date();
+    const updateTimestamp = Utilities.formatDate(now, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+    
+    Logger.log('Preparing updated row data...');
+    // Prepare the updated row data (same structure as create)
+    const rowData = [
+      updateTimestamp + ' (Updated)',              // A: Timestamp - mark as updated
+      params.submissionTime || params.rowId,       // B: Original Submission Time (preserve for ID)
+      params.qaName || '',                         // C: QA Auditor Name
+      params.qaId || '',                           // D: QA Auditor ID
+      params.amName || '',                         // E: Area Manager Name
+      params.amId || '',                           // F: Area Manager ID
+      params.storeName || '',                      // G: Store Name
+      params.storeID || '',                        // H: Store ID
+      params.region || '',                         // I: Region
+      
+      // Scoring Information
+      parseFloat(params.totalScore) || 0,          // J: Total Score
+      parseFloat(params.maxScore) || 0,            // K: Max Score
+      parseFloat(params.scorePercentage) || 0,     // L: Score Percentage
+      
+      // Zero Tolerance Section (6 questions)
+      params.ZeroTolerance_ZT_1 || '',            // M: ZT_1
+      params.ZeroTolerance_ZT_2 || '',            // N: ZT_2
+      params.ZeroTolerance_ZT_3 || '',            // O: ZT_3
+      params.ZeroTolerance_ZT_4 || '',            // P: ZT_4
+      params.ZeroTolerance_ZT_5 || '',            // Q: ZT_5
+      params.ZeroTolerance_ZT_6 || '',            // R: ZT_6
+      params.ZeroTolerance_remarks || '',         // S: Zero Tolerance Remarks
+      
+      // Store Section (94 questions)
+      params.Store_S_1 || '',    params.Store_S_2 || '',    params.Store_S_3 || '',    params.Store_S_4 || '',
+      params.Store_S_5 || '',    params.Store_S_6 || '',    params.Store_S_7 || '',    params.Store_S_8 || '',
+      params.Store_S_9 || '',    params.Store_S_10 || '',   params.Store_S_11 || '',   params.Store_S_12 || '',
+      params.Store_S_13 || '',   params.Store_S_14 || '',   params.Store_S_15 || '',   params.Store_S_16 || '',
+      params.Store_S_17 || '',   params.Store_S_18 || '',   params.Store_S_19 || '',   params.Store_S_20 || '',
+      params.Store_S_21 || '',   params.Store_S_22 || '',   params.Store_S_23 || '',   params.Store_S_24 || '',
+      params.Store_S_25 || '',   params.Store_S_26 || '',   params.Store_S_27 || '',   params.Store_S_28 || '',
+      params.Store_S_29 || '',   params.Store_S_30 || '',   params.Store_S_31 || '',   params.Store_S_32 || '',
+      params.Store_S_33 || '',   params.Store_S_34 || '',   params.Store_S_35 || '',   params.Store_S_36 || '',
+      params.Store_S_37 || '',   params.Store_S_38 || '',   params.Store_S_39 || '',   params.Store_S_40 || '',
+      params.Store_S_41 || '',   params.Store_S_42 || '',   params.Store_S_43 || '',   params.Store_S_44 || '',
+      params.Store_S_45 || '',   params.Store_S_46 || '',   params.Store_S_47 || '',   params.Store_S_48 || '',
+      params.Store_S_49 || '',   params.Store_S_50 || '',   params.Store_S_51 || '',   params.Store_S_52 || '',
+      params.Store_S_53 || '',   params.Store_S_54 || '',   params.Store_S_55 || '',   params.Store_S_56 || '',
+      params.Store_S_57 || '',   params.Store_S_58 || '',   params.Store_S_59 || '',   params.Store_S_60 || '',
+      params.Store_S_61 || '',   params.Store_S_62 || '',   params.Store_S_63 || '',   params.Store_S_64 || '',
+      params.Store_S_65 || '',   params.Store_S_66 || '',   params.Store_S_67 || '',   params.Store_S_68 || '',
+      params.Store_S_69 || '',   params.Store_S_70 || '',   params.Store_S_71 || '',   params.Store_S_72 || '',
+      params.Store_S_73 || '',   params.Store_S_74 || '',   params.Store_S_75 || '',   params.Store_S_76 || '',
+      params.Store_S_77 || '',   params.Store_S_78 || '',   params.Store_S_79 || '',   params.Store_S_80 || '',
+      params.Store_S_81 || '',   params.Store_S_82 || '',   params.Store_S_83 || '',   params.Store_S_84 || '',
+      params.Store_S_85 || '',   params.Store_S_86 || '',   params.Store_S_87 || '',   params.Store_S_88 || '',
+      params.Store_S_89 || '',   params.Store_S_90 || '',   params.Store_S_91 || '',   params.Store_S_92 || '',
+      params.Store_S_93 || '',   params.Store_S_94 || '',
+      params.Store_remarks || '',                 // Store Remarks
+      
+      // A Section (3 questions)
+      params.A_A_1 || '',                         // A_1
+      params.A_A_2 || '',                         // A_2
+      params.A_A_3 || '',                         // A_3
+      params.A_remarks || '',                     // A Remarks
+      
+      // Maintenance Section (11 questions)
+      params.Maintenance_M_1 || '',               // M_1
+      params.Maintenance_M_2 || '',               // M_2
+      params.Maintenance_M_3 || '',               // M_3
+      params.Maintenance_M_4 || '',               // M_4
+      params.Maintenance_M_5 || '',               // M_5
+      params.Maintenance_M_6 || '',               // M_6
+      params.Maintenance_M_7 || '',               // M_7
+      params.Maintenance_M_8 || '',               // M_8
+      params.Maintenance_M_9 || '',               // M_9
+      params.Maintenance_M_10 || '',              // M_10
+      params.Maintenance_M_11 || '',              // M_11
+      params.Maintenance_remarks || '',           // Maintenance Remarks
+      
+      // HR Section (2 questions)
+      params.HR_HR_1 || '',                       // HR_1
+      params.HR_HR_2 || '',                       // HR_2
+      params.HR_remarks || ''                     // HR Remarks
+    ];
+    
+    Logger.log('Row data prepared with ' + rowData.length + ' fields');
+    
+    // Update the row
+    const range = sheet.getRange(targetRowIndex, 1, 1, rowData.length);
+    range.setValues([rowData]);
+    
+    Logger.log('✅ Row ' + targetRowIndex + ' updated successfully');
+    Logger.log('=== UPDATE SUBMISSION Completed ===');
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
+      message: 'QA submission updated successfully',
+      rowNumber: targetRowIndex
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    Logger.log('ERROR updating submission: ' + error.toString());
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 /**

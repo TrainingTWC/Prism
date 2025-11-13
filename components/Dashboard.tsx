@@ -58,6 +58,7 @@ import QASectionScoresInfographic from './QASectionScoresInfographic';
 import QARadarChart from './QARadarChart';
 import QAAMPerformanceInfographic from './QAAMPerformanceInfographic';
 import QAAverageScoreChart from './QAAverageScoreChart';
+import QAEditModal from './QAEditModal';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../roleMapping';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -155,6 +156,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   // Audit score details modal state
   const [showAuditScoreDetails, setShowAuditScoreDetails] = useState(false);
+
+  // QA Edit modal state
+  const [showQAEdit, setShowQAEdit] = useState(false);
+  const [qaEditSubmission, setQAEditSubmission] = useState<QASubmission | null>(null);
 
   // Training detail modal handlers
   const handleRegionClick = (region: string) => {
@@ -2974,6 +2979,83 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               <div className="grid grid-cols-1 gap-6">
                 <QARadarChart submissions={filteredQAData || []} />
               </div>
+
+              {/* QA Submissions List with Edit */}
+              {filteredQAData && filteredQAData.length > 0 && filteredQAData.length <= 20 && (
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Recent Submissions ({filteredQAData.length})
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                      <thead>
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                            Date
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                            Store
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                            Auditor
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                            Score
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                        {filteredQAData.map((submission, index) => (
+                          <tr key={index} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                              {submission.submissionTime ? 
+                                new Date(submission.submissionTime).toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric', 
+                                  year: 'numeric' 
+                                }) 
+                                : 'N/A'}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                              <div>{submission.storeName || 'N/A'}</div>
+                              <div className="text-xs text-gray-500 dark:text-slate-400">{submission.storeId}</div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                              <div>{submission.qaName || 'N/A'}</div>
+                              <div className="text-xs text-gray-500 dark:text-slate-400">{submission.qaId}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                parseFloat(submission.scorePercentage || '0') >= 80
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                  : parseFloat(submission.scorePercentage || '0') >= 60
+                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                  : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                              }`}>
+                                {submission.scorePercentage || '0'}%
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm">
+                              <button
+                                onClick={() => {
+                                  setQAEditSubmission(submission);
+                                  setShowQAEdit(true);
+                                }}
+                                className="inline-flex items-center px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium rounded-lg transition-colors"
+                              >
+                                ✏️ Edit
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </>
@@ -3028,6 +3110,21 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         filters={filters}
         compStoreMapping={compStoreMapping || []}
       />
+
+      {/* QA Edit Modal */}
+      {qaEditSubmission && (
+        <QAEditModal
+          isOpen={showQAEdit}
+          onClose={() => {
+            setShowQAEdit(false);
+            setQAEditSubmission(null);
+            // Refresh QA data after edit
+            loadData();
+          }}
+          submission={qaEditSubmission}
+          userRole={userRole}
+        />
+      )}
     </div>
   );
 };

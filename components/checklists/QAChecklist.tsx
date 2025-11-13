@@ -32,15 +32,21 @@ interface Store {
 interface QAChecklistProps {
   userRole: UserRole;
   onStatsUpdate: (stats: { completed: number; total: number; score: number }) => void;
+  editMode?: boolean;
+  existingSubmission?: any;
 }
 
-const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) => {
+const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, editMode = false, existingSubmission }) => {
   const { config, loading: configLoading } = useConfig();
   
   // Use comprehensive QA sections from qaQuestions.ts
   const sections = config?.CHECKLISTS?.QA || QA_SECTIONS;
   
   const [responses, setResponses] = useState<SurveyResponse>(() => {
+    // If in edit mode, populate from existing submission
+    if (editMode && existingSubmission) {
+      return existingSubmission.responses || {};
+    }
     try { 
       return JSON.parse(localStorage.getItem('qa_resp') || '{}'); 
     } catch (e) { 
@@ -65,6 +71,18 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
   });
 
   const [meta, setMeta] = useState<SurveyMeta>(() => {
+    // If in edit mode, populate from existing submission
+    if (editMode && existingSubmission) {
+      return {
+        qaName: existingSubmission.qaName || '',
+        qaId: existingSubmission.qaId || '',
+        amName: existingSubmission.amName || '',
+        amId: existingSubmission.amId || '',
+        storeName: existingSubmission.storeName || '',
+        storeId: existingSubmission.storeId || ''
+      };
+    }
+    
     let stored = {};
     try { 
       stored = JSON.parse(localStorage.getItem('qa_meta') || '{}'); 
@@ -336,7 +354,9 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
 
       // Prepare data for Google Sheets
       const params: Record<string, string> = {
-        submissionTime: new Date().toLocaleString('en-GB', {hour12: false}),
+        submissionTime: editMode && existingSubmission?.submissionTime 
+          ? existingSubmission.submissionTime 
+          : new Date().toLocaleString('en-GB', {hour12: false}),
         qaName: meta.qaName || '',
         qaId: meta.qaId || '',
         amName: meta.amName || '',
@@ -349,6 +369,10 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
         scorePercentage: String(scorePercentage),
         auditorSignature: signatures.auditor || '',
         smSignature: signatures.sm || '',
+        // Add action parameter for update mode
+        action: editMode ? 'update' : 'create',
+        // Add row identifier for updates (using submissionTime as unique ID)
+        rowId: editMode && existingSubmission?.submissionTime ? existingSubmission.submissionTime : '',
         // responses may contain non-string values; ensure we stringify them
         ...Object.fromEntries(Object.entries(responses).map(([k, v]) => [k, String(v)]))
       };
@@ -1040,7 +1064,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
           disabled={isLoading}
           className="px-4 sm:px-6 py-3 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 disabled:bg-orange-400 text-white rounded-lg font-medium transition-colors order-1 sm:order-2 min-h-[52px] text-base sm:text-base"
         >
-          {isLoading ? 'Submitting...' : '📤 Submit Assessment'}
+          {isLoading ? (editMode ? 'Updating...' : 'Submitting...') : (editMode ? '� Update Assessment' : '�📤 Submit Assessment')}
         </button>
       </div>
     </div>
