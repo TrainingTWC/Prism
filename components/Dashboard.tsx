@@ -2650,13 +2650,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               </div>
             </>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <div className={`grid grid-cols-1 gap-5 ${dashboardType === 'qa' ? 'md:grid-cols-3' : 'md:grid-cols-4'}`}>
               <StatCard title="Total Submissions" value={stats?.totalSubmissions} onClick={handleTotalSubmissionsClick} />
               <StatCard title="Average Score" value={String(getAverageScoreDisplay())} />
-              <StatCard 
-                title={dashboardType === 'operations' ? "Trainers Involved" : "Employees Surveyed"} 
-                value={stats?.uniqueEmployees} 
-              />
+              {dashboardType !== 'qa' && (
+                <StatCard 
+                  title={dashboardType === 'operations' ? "Trainers Involved" : "Employees Surveyed"} 
+                  value={stats?.uniqueEmployees} 
+                />
+              )}
               <StatCard title="Stores Covered" value={stats?.uniqueStores} onClick={handleStoresCoveredClick} />
             </div>
           )}
