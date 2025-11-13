@@ -93,9 +93,9 @@ const Header: React.FC = () => {
             </h1>
           </div>
           
-          {/* User Role Badge */}
+          {/* User Role Badge - Hidden on mobile to prevent overlap */}
           {userRole && (
-            <div className="ml-4 flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-slate-700 rounded-full">
+            <div className="ml-4 hidden md:flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-slate-700 rounded-full">
               <Shield className={`w-4 h-4 ${getRoleColor(userRole)}`} />
               <span className={`text-sm font-medium ${getRoleColor(userRole)}`}>
                 {getRoleDisplayName(userRole)}
