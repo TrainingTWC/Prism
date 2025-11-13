@@ -143,10 +143,8 @@ const QASectionScoresInfographic: React.FC<QASectionScoresInfographicProps> = ({
                         <div className="w-full bg-gray-300 dark:bg-slate-600 rounded-full h-2">
                             <div 
                                 className={`${
-                                    item.averageScore >= 90 ? 'bg-emerald-500' :
-                                    item.averageScore >= 80 ? 'bg-blue-500' :
-                                    item.averageScore >= 70 ? 'bg-yellow-500' :
-                                    item.averageScore >= 60 ? 'bg-orange-500' : 'bg-red-500'
+                                    item.averageScore >= 80 ? 'bg-green-500' :
+                                    item.averageScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                                 } h-2 rounded-full transition-all duration-500`}
                                 style={{ width: `${Math.min(100, item.averageScore)}%` }}
                             ></div>

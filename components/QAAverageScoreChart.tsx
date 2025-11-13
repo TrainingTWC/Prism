@@ -77,10 +77,8 @@ const QAAverageScoreChart: React.FC<QAAverageScoreChartProps> = ({ submissions }
             <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-3">
               <div 
                 className={`h-3 rounded-full transition-all duration-500 ${
-                  am.averageScore >= 90 ? 'bg-emerald-500' :
-                  am.averageScore >= 80 ? 'bg-blue-500' :
-                  am.averageScore >= 70 ? 'bg-yellow-500' :
-                  am.averageScore >= 60 ? 'bg-orange-500' : 'bg-red-500'
+                  am.averageScore >= 80 ? 'bg-green-500' :
+                  am.averageScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                 }`}
                 style={{ 
                   width: `${maxScore > 0 ? (am.averageScore / maxScore) * 100 : 0}%`,

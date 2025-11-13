@@ -7,14 +7,11 @@ interface QAScoreDistributionChartProps {
 }
 
 const QAScoreDistributionChart: React.FC<QAScoreDistributionChartProps> = ({ submissions }) => {
-  // Define score ranges
+  // Define score ranges - Red, Yellow, Green scheme
   const scoreRanges = [
-    { range: '90-100%', min: 90, max: 100, color: 'bg-emerald-500', label: 'Excellent' },
-    { range: '80-89%', min: 80, max: 89, color: 'bg-blue-500', label: 'Good' },
-    { range: '70-79%', min: 70, max: 79, color: 'bg-yellow-500', label: 'Satisfactory' },
-    { range: '60-69%', min: 60, max: 69, color: 'bg-orange-500', label: 'Needs Improvement' },
-    { range: '50-59%', min: 50, max: 59, color: 'bg-red-500', label: 'Poor' },
-    { range: 'Below 50%', min: 0, max: 49, color: 'bg-red-700', label: 'Critical' }
+    { range: '80-100%', min: 80, max: 100, color: 'bg-green-500', label: 'Good' },
+    { range: '60-79%', min: 60, max: 79, color: 'bg-yellow-500', label: 'Satisfactory' },
+    { range: 'Below 60%', min: 0, max: 59, color: 'bg-red-500', label: 'Needs Improvement' }
   ];
 
   // Calculate distribution
@@ -41,8 +38,8 @@ const QAScoreDistributionChart: React.FC<QAScoreDistributionChartProps> = ({ sub
     ? Math.round(submissions.reduce((sum, s) => sum + (parseFloat(s.scorePercentage) || 0), 0) / submissions.length)
     : 0;
 
-  const excellentCount = distribution[0].count; // 90-100%
-  const needsImprovementCount = distribution.slice(3).reduce((sum, d) => sum + d.count, 0); // Below 70%
+  const goodCount = distribution[0].count; // 80-100%
+  const needsImprovementCount = distribution[2].count; // Below 60%
 
   if (submissions.length === 0) {
     return (
@@ -68,13 +65,13 @@ const QAScoreDistributionChart: React.FC<QAScoreDistributionChartProps> = ({ sub
           <div className="text-2xl font-bold text-gray-900 dark:text-slate-100">{avgScore}%</div>
           <div className="text-xs text-gray-500 dark:text-slate-400">Average Score</div>
         </div>
-        <div className="text-center p-3 bg-emerald-500/20 rounded-lg">
-          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{excellentCount}</div>
-          <div className="text-xs text-gray-500 dark:text-slate-400">Excellent (90%+)</div>
+        <div className="text-center p-3 bg-green-500/20 rounded-lg">
+          <div className="text-2xl font-bold text-green-600 dark:text-green-400">{goodCount}</div>
+          <div className="text-xs text-gray-500 dark:text-slate-400">Good (80%+)</div>
         </div>
         <div className="text-center p-3 bg-red-500/20 rounded-lg">
           <div className="text-2xl font-bold text-red-600 dark:text-red-400">{needsImprovementCount}</div>
-          <div className="text-xs text-gray-500 dark:text-slate-400">Needs Attention (&lt;70%)</div>
+          <div className="text-xs text-gray-500 dark:text-slate-400">Needs Attention (&lt;60%)</div>
         </div>
       </div>
 
@@ -117,15 +114,15 @@ const QAScoreDistributionChart: React.FC<QAScoreDistributionChartProps> = ({ sub
             <span className="text-gray-900 dark:text-slate-200 ml-2 font-medium">{totalSubmissions}</span>
           </div>
           <div>
-            <span className="text-gray-600 dark:text-slate-400">Passing Rate (≥70%):</span>
+            <span className="text-gray-600 dark:text-slate-400">Passing Rate (≥60%):</span>
             <span className="text-gray-900 dark:text-slate-200 ml-2 font-medium">
               {Math.round(((totalSubmissions - needsImprovementCount) / totalSubmissions) * 100)}%
             </span>
           </div>
           <div>
-            <span className="text-gray-600 dark:text-slate-400">Excellence Rate (≥90%):</span>
+            <span className="text-gray-600 dark:text-slate-400">Good Performance (≥80%):</span>
             <span className="text-gray-900 dark:text-slate-200 ml-2 font-medium">
-              {Math.round((excellentCount / totalSubmissions) * 100)}%
+              {Math.round((goodCount / totalSubmissions) * 100)}%
             </span>
           </div>
           <div>
@@ -146,16 +143,16 @@ const QAScoreDistributionChart: React.FC<QAScoreDistributionChartProps> = ({ sub
 
       {/* Performance Insights */}
       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-        {excellentCount / totalSubmissions >= 0.5 && (
-          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+        {goodCount / totalSubmissions >= 0.5 && (
+          <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
             <div className="flex items-center space-x-2 mb-1">
-              <svg className="w-4 h-4 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-green-500 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-300">High Performance</span>
+              <span className="text-xs font-medium text-green-600 dark:text-green-300">High Performance</span>
             </div>
             <p className="text-xs text-gray-600 dark:text-slate-300">
-              Over 50% of audits achieve excellence rating
+              Over 50% of audits achieve good rating (80%+)
             </p>
           </div>
         )}
