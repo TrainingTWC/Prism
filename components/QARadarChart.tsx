@@ -27,10 +27,11 @@ interface QARadarChartProps {
 }
 
 const QA_SECTIONS = [
-  { id: 'ZT', name: 'Zero Tolerance', questions: 6, prefix: 'ZeroTolerance_ZT' },
-  { id: 'M', name: 'Maintenance', questions: 11, prefix: 'Maintenance_M' },
-  { id: 'SO', name: 'Store Operations', questions: 16, prefix: 'StoreOperations_SO' },
-  { id: 'HC', name: 'Hygiene & Compliance', questions: 6, prefix: 'HygieneCompliance_HC' }
+  { id: 'ZT', name: 'Zero Tolerance', questions: 6, prefix: 'ZT' },
+  { id: 'Store', name: 'Store', questions: 94, prefix: 'S' },
+  { id: 'A', name: 'QA', questions: 3, prefix: 'A' },
+  { id: 'M', name: 'Maintenance', questions: 11, prefix: 'M' },
+  { id: 'HR', name: 'HR', questions: 2, prefix: 'HR' }
 ];
 
 const QARadarChart: React.FC<QARadarChartProps> = ({ submissions }) => {
@@ -39,30 +40,61 @@ const QARadarChart: React.FC<QARadarChartProps> = ({ submissions }) => {
   if (submissions.length === 0) {
     return (
       <ChartContainer title="QA Performance by Area Manager">
-        <div className="flex items-center justify-center h-64 text-slate-400">
+        <div className="flex items-center justify-center h-64 text-slate-400 dark:text-slate-500">
           <p>No data available for radar chart</p>
         </div>
       </ChartContainer>
     );
   }
 
-  // Simple section-based data for now
+  // Calculate section scores based on actual response data
   const sectionScores = QA_SECTIONS.map(section => {
-    const sectionScores: number[] = [];
+    console.log(`\n=== Processing Radar Chart: ${section.name} ===`);
     
-    submissions.forEach(submission => {
-      for (let i = 1; i <= section.questions; i++) {
-        const questionKey = `${section.prefix}_${i}`;
-        const value = submission[questionKey];
-        if (value !== undefined && value !== null && value !== '') {
-          sectionScores.push(Number(value));
+    // Find all fields that match this section prefix
+    const sectionFields = submissions.length > 0 
+      ? Object.keys(submissions[0]).filter(key => {
+          // Match format like "S_1: Description" or "ZT_1: Description"
+          const match = key.match(new RegExp(`^${section.prefix}_(\\d+):`));
+          if (match) {
+            console.log(`  ✓ Matched field: ${key}`);
+            return true;
+          }
+          return false;
+        })
+      : [];
+    
+    console.log(`  Total fields for ${section.name}: ${sectionFields.length}`);
+    
+    let totalScore = 0;
+    let maxScore = 0;
+    
+    submissions.forEach((submission, idx) => {
+      console.log(`  Submission ${idx + 1}:`);
+      
+      sectionFields.forEach(field => {
+        const value = submission[field];
+        const response = typeof value === 'string' ? value.toLowerCase().trim() : '';
+        
+        console.log(`    ${field}: ${response}`);
+        
+        if (response !== 'na' && response !== '') {
+          maxScore += 1;
+          
+          if (response === 'compliant') {
+            totalScore += 1;
+          } else if (response === 'partially-compliant') {
+            totalScore += 0.5;
+          }
+          // not-compliant contributes 0
         }
-      }
+      });
     });
-
-    return sectionScores.length > 0 
-      ? (sectionScores.reduce((sum, score) => sum + score, 0) / sectionScores.length) * 100
-      : 75;
+    
+    const percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
+    console.log(`  ${section.name} Final: ${totalScore}/${maxScore} = ${percentage.toFixed(1)}%`);
+    
+    return percentage;
   });
 
   const data = {

@@ -7,14 +7,14 @@ import { STATIC_AM_OPERATIONS_DATA } from './staticOperationsData';
 // Google Apps Script endpoint for fetching data
 const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKMVh-lnNBnINskIqD10CnQHvGsW_R2SLASGSdBDN9lTGj1gznlNbHORQ/exec';
 
-// AM Operations endpoint - UPDATED URL
-const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw_Q9JD-4ys1qElIM4-DYFwwOUzVmPs-LYsYmP9lWqsp3ExJr5tnt-RYEJxYTi5SEjJ6w/exec';
+// AM Operations endpoint - UPDATED URL with comprehensive mapping support
+const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxGons1Zbb6_9CpkzuYnEDXuIXWs7-tI-Oe1HY4dijXCtkN8XzQg1bCVo19euGbh5Hk/exec';
 
 // Training Audit endpoint - UPDATED URL
 const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzSibBicC4B5_naPxgrbNP4xSK49de2R02rI9wnAKG3QOJvuwYrUOYLiBg_9XNqAhS5ig/exec';
 
-// QA Assessment endpoint
-const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbytHCowSWXzHY-Ej7NdkCnaObAFpTiSeT2cV1_63_yUUeHJTwMW9-ta_70XcLu--wUxog/exec';
+// QA Assessment endpoint - UPDATED URL (Data fetched from Google Sheets)
+const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbythMmyeF6TWRx1Q2Icy9XfB9z1UVYFwau02u7BEr3GgabMIomF1lkAyCx1xq0BAA1LIQ/exec';
 
 // Cache for store mapping data
 let storeMappingCache: any[] | null = null;
@@ -543,6 +543,9 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
         if (storeMapping) {
           // Map all fields from comprehensive mapping - THIS OVERRIDES GOOGLE SHEET DATA
           const originalRegion = row.region;
+          const originalStoreName = row.storeName || row['Store Name'];
+          const mappedStoreName = storeMapping['Store Name'] || storeMapping.storeName;
+          
           region = storeMapping['Region'] || storeMapping.region || 'Unknown';
           menu = storeMapping['Menu'] || storeMapping.menu || '';
           storeType = storeMapping['Store Type'] || storeMapping.storeType || '';
@@ -552,7 +555,16 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
           am = storeMapping['AM'] || storeMapping.am || '';
           regionalTrainingManager = storeMapping['Regional Training Manager'] || storeMapping.regionalTrainingManager || '';
           
+          // Check if Store ID and Store Name match
+          const storeNameMismatch = originalStoreName && 
+            !mappedStoreName.toLowerCase().includes(originalStoreName.toLowerCase()) &&
+            !originalStoreName.toLowerCase().includes(mappedStoreName.toLowerCase());
+          
           console.log(`✅ COMPREHENSIVE MAPPING: Store ${storeId}:`);
+          if (storeNameMismatch) {
+            console.warn(`   🚨 DATA MISMATCH: Google Sheet has "${originalStoreName}" for ${storeId}, but mapping shows "${mappedStoreName}"`);
+            console.warn(`   ⚠️  Please correct the Google Sheet! Store ID ${storeId} should be "${mappedStoreName}"`);
+          }
           console.log(`   ⚠️ Original Region from Sheet: ${originalRegion}`);
           console.log(`   ✅ Mapped Region from comprehensive_store_mapping.json: ${region}`);
           console.log(`   Menu: ${menu}`);

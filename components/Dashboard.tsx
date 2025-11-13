@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { buildTrainingPDF } from '../src/utils/trainingReport';
 import { buildOperationsPDF } from '../src/utils/operationsReport';
+import { buildQAPDF } from '../src/utils/qaReport';
 import { Users, Clipboard, GraduationCap, BarChart3 } from 'lucide-react';
 import { Submission, Store } from '../types';
 import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission } from '../services/dataService';
@@ -1518,6 +1519,49 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         pdf.save(fileName);
         setIsGenerating(false);
         showNotificationMessage('AM Operations PDF generated successfully!', 'success');
+        return;
+      }
+
+      // QA Assessment dashboard: use the QA-specific PDF builder (same look & feel as training)
+      if (dashboardType === 'qa') {
+        const meta: any = {};
+        
+        // Store filter
+        if (filters.store) {
+          const s = allStores.find(s => s.id === filters.store);
+          meta.storeName = s?.name || filters.store;
+          meta.storeId = filters.store;
+        } else if (reportData.length > 0 && reportData.length === 1) {
+          const firstRecord = reportData[0] as any;
+          meta.storeName = firstRecord.storeName || firstRecord.store_name || firstRecord.Store || '';
+          meta.storeId = firstRecord.storeId || firstRecord.store_id || firstRecord.StoreID || '';
+        }
+        
+        // Region filter
+        if (filters.region) {
+          meta.region = filters.region;
+        } else if (reportData.length > 0 && reportData.length === 1) {
+          const firstRecord = reportData[0] as any;
+          meta.region = firstRecord.region || firstRecord.Region || '';
+        }
+        
+        // Auditor filter
+        if (filters.am) {
+          const amInfo = AREA_MANAGERS.find(am => am.id === filters.am);
+          meta.auditorName = amInfo?.name || filters.am;
+        } else if (reportData.length > 0 && reportData.length === 1) {
+          const firstRecord = reportData[0] as any;
+          meta.auditorName = firstRecord.auditorName || firstRecord.auditor || firstRecord.Auditor || '';
+        }
+        
+        // Date metadata
+        if (lastRefresh) meta.date = lastRefresh.toLocaleString();
+
+        const fileName = `QA_Assessment_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+        const pdf = await buildQAPDF(reportData as any, meta, { title: 'QA Assessment Report' });
+        pdf.save(fileName);
+        setIsGenerating(false);
+        showNotificationMessage('QA Assessment PDF generated successfully!', 'success');
         return;
       }
 

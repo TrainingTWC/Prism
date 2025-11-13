@@ -7,6 +7,13 @@
  * - Execute as: Me
  * - Who has access: Anyone
  * 
+ * STRUCTURE: 116 Total Questions + Metadata
+ * - Zero Tolerance: 6 questions (ZT_1 to ZT_6)
+ * - Store: 94 questions (S_1 to S_94)
+ * - A Section: 3 questions (A_1 to A_3)
+ * - Maintenance: 11 questions (M_1 to M_11)
+ * - HR: 2 questions (HR_1 to HR_2)
+ * 
  * Functions:
  * 1. doPost() - Receives QA checklist submissions from the form
  * 2. doGet() - Returns QA data for the dashboard
@@ -19,18 +26,24 @@
  */
 function doGet(e) {
   try {
+    Logger.log('=== QA Data GET Request Started ===');
+    Logger.log('Request timestamp: ' + new Date().toISOString());
     console.log('QA Data request received');
     
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+    Logger.log('Spreadsheet accessed: ' + ss.getName());
     let sheet = ss.getSheetByName('QA');
     
     // If no sheet exists or it's empty, return empty array
     if (!sheet || sheet.getLastRow() <= 1) {
+      Logger.log('No QA data found - sheet empty or does not exist');
       console.log('No QA data found');
       return ContentService
         .createTextOutput(JSON.stringify([]))
         .setMimeType(ContentService.MimeType.JSON);
     }
+    
+    Logger.log('QA sheet found with ' + sheet.getLastRow() + ' rows');
     
     // Get all data from the sheet
     const range = sheet.getDataRange();
@@ -40,10 +53,13 @@ function doGet(e) {
     const headers = values[0];
     const dataRows = values.slice(1);
     
+    Logger.log('Headers found: ' + headers.length + ' columns');
+    Logger.log('Data rows found: ' + dataRows.length + ' submissions');
     console.log(`Found ${dataRows.length} QA submissions`);
     
+    Logger.log('Starting data processing...');
     // Convert to JSON format expected by dashboard
-    const qaSubmissions = dataRows.map(row => {
+    const qaSubmissions = dataRows.map((row, index) => {
       const submission = {};
       
       // Map each column to the corresponding field
@@ -102,7 +118,11 @@ function doGet(e) {
       return submission;
     });
     
+    Logger.log('Data processing complete - ' + qaSubmissions.length + ' submissions processed');
+    Logger.log('Sample submission structure: ' + JSON.stringify(Object.keys(qaSubmissions[0] || {})));
     console.log('QA data successfully processed for dashboard');
+    
+    Logger.log('=== QA Data GET Request Completed Successfully ===');
     
     // Return the data as JSON
     return ContentService
@@ -110,6 +130,10 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
+    Logger.log('=== ERROR in QA Data GET Request ===');
+    Logger.log('Error type: ' + error.name);
+    Logger.log('Error message: ' + error.message);
+    Logger.log('Error stack: ' + error.stack);
     console.error('Error retrieving QA data:', error);
     
     // Return error response
@@ -127,31 +151,42 @@ function doGet(e) {
  */
 function doPost(e) {
   try {
+    Logger.log('=== QA Survey POST Submission Started ===');
+    Logger.log('Request timestamp: ' + new Date().toISOString());
     console.log('QA Survey submission received');
     
     // Get the active spreadsheet
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+    Logger.log('Spreadsheet accessed: ' + ss.getName());
     let sheet = ss.getSheetByName('QA');
     
     // Create sheet if it doesn't exist
     if (!sheet) {
       sheet = ss.insertSheet('QA');
+      Logger.log('Created new QA sheet');
       console.log('Created new QA sheet');
+    } else {
+      Logger.log('QA sheet already exists with ' + sheet.getLastRow() + ' rows');
     }
     
     // Parse the form data
     const params = e.parameter;
+    Logger.log('Received parameters count: ' + Object.keys(params).length);
+    Logger.log('Received parameters: ' + JSON.stringify(params));
     console.log('Received parameters:', JSON.stringify(params));
     
     // Get current timestamp
     const now = new Date();
     const timestamp = Utilities.formatDate(now, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+    Logger.log('Generated timestamp: ' + timestamp);
     
     // Initialize headers if this is the first submission
     if (sheet.getLastRow() === 0) {
+      Logger.log('First submission - setting up headers');
       setupQAHeaders(sheet);
     }
     
+    Logger.log('Preparing row data with all 116 checklist items...');
     // Prepare the row data
     const rowData = [
       timestamp,                                    // A: Timestamp
@@ -170,63 +205,89 @@ function doPost(e) {
       parseFloat(params.scorePercentage) || 0,     // L: Score Percentage
       
       // Zero Tolerance Section (6 questions)
-      params.ZeroTolerance_ZT_1 || '',            // M: ZT_1 - No expired food products
-      params.ZeroTolerance_ZT_2 || '',            // N: ZT_2 - Secondary shelf life compliance
-      params.ZeroTolerance_ZT_3 || '',            // O: ZT_3 - Storage conditions
-      params.ZeroTolerance_ZT_4 || '',            // P: ZT_4 - Water TDS compliance
-      params.ZeroTolerance_ZT_5 || '',            // Q: ZT_5 - Temperature sensitive transfer
-      params.ZeroTolerance_ZT_6 || '',            // R: ZT_6 - No pest activity
+      params.ZeroTolerance_ZT_1 || '',            // M: ZT_1
+      params.ZeroTolerance_ZT_2 || '',            // N: ZT_2
+      params.ZeroTolerance_ZT_3 || '',            // O: ZT_3
+      params.ZeroTolerance_ZT_4 || '',            // P: ZT_4
+      params.ZeroTolerance_ZT_5 || '',            // Q: ZT_5
+      params.ZeroTolerance_ZT_6 || '',            // R: ZT_6
       params.ZeroTolerance_remarks || '',         // S: Zero Tolerance Remarks
       
-      // Maintenance Section (11 questions)
-      params.Maintenance_M_1 || '',               // T: M_1 - Window protection
-      params.Maintenance_M_2 || '',               // U: M_2 - Structural integrity
-      params.Maintenance_M_3 || '',               // V: M_3 - Electrical safety
-      params.Maintenance_M_4 || '',               // W: M_4 - Lighting protection
-      params.Maintenance_M_5 || '',               // X: M_5 - Fire extinguishers
-      params.Maintenance_M_6 || '',               // Y: M_6 - Pest entry prevention
-      params.Maintenance_M_7 || '',               // Z: M_7 - Pest control devices
-      params.Maintenance_M_8 || '',               // AA: M_8 - Equipment maintenance records
-      params.Maintenance_M_9 || '',               // AB: M_9 - Plumbing fixtures
-      params.Maintenance_M_10 || '',              // AC: M_10 - Refrigeration equipment
-      params.Maintenance_M_11 || '',              // AD: M_11 - Water service records
-      params.Maintenance_remarks || '',           // AE: Maintenance Remarks
+      // Store Section (94 questions - S_1 to S_94)
+      params.Store_S_1 || '',    params.Store_S_2 || '',    params.Store_S_3 || '',    params.Store_S_4 || '',
+      params.Store_S_5 || '',    params.Store_S_6 || '',    params.Store_S_7 || '',    params.Store_S_8 || '',
+      params.Store_S_9 || '',    params.Store_S_10 || '',   params.Store_S_11 || '',   params.Store_S_12 || '',
+      params.Store_S_13 || '',   params.Store_S_14 || '',   params.Store_S_15 || '',   params.Store_S_16 || '',
+      params.Store_S_17 || '',   params.Store_S_18 || '',   params.Store_S_19 || '',   params.Store_S_20 || '',
+      params.Store_S_21 || '',   params.Store_S_22 || '',   params.Store_S_23 || '',   params.Store_S_24 || '',
+      params.Store_S_25 || '',   params.Store_S_26 || '',   params.Store_S_27 || '',   params.Store_S_28 || '',
+      params.Store_S_29 || '',   params.Store_S_30 || '',   params.Store_S_31 || '',   params.Store_S_32 || '',
+      params.Store_S_33 || '',   params.Store_S_34 || '',   params.Store_S_35 || '',   params.Store_S_36 || '',
+      params.Store_S_37 || '',   params.Store_S_38 || '',   params.Store_S_39 || '',   params.Store_S_40 || '',
+      params.Store_S_41 || '',   params.Store_S_42 || '',   params.Store_S_43 || '',   params.Store_S_44 || '',
+      params.Store_S_45 || '',   params.Store_S_46 || '',   params.Store_S_47 || '',   params.Store_S_48 || '',
+      params.Store_S_49 || '',   params.Store_S_50 || '',   params.Store_S_51 || '',   params.Store_S_52 || '',
+      params.Store_S_53 || '',   params.Store_S_54 || '',   params.Store_S_55 || '',   params.Store_S_56 || '',
+      params.Store_S_57 || '',   params.Store_S_58 || '',   params.Store_S_59 || '',   params.Store_S_60 || '',
+      params.Store_S_61 || '',   params.Store_S_62 || '',   params.Store_S_63 || '',   params.Store_S_64 || '',
+      params.Store_S_65 || '',   params.Store_S_66 || '',   params.Store_S_67 || '',   params.Store_S_68 || '',
+      params.Store_S_69 || '',   params.Store_S_70 || '',   params.Store_S_71 || '',   params.Store_S_72 || '',
+      params.Store_S_73 || '',   params.Store_S_74 || '',   params.Store_S_75 || '',   params.Store_S_76 || '',
+      params.Store_S_77 || '',   params.Store_S_78 || '',   params.Store_S_79 || '',   params.Store_S_80 || '',
+      params.Store_S_81 || '',   params.Store_S_82 || '',   params.Store_S_83 || '',   params.Store_S_84 || '',
+      params.Store_S_85 || '',   params.Store_S_86 || '',   params.Store_S_87 || '',   params.Store_S_88 || '',
+      params.Store_S_89 || '',   params.Store_S_90 || '',   params.Store_S_91 || '',   params.Store_S_92 || '',
+      params.Store_S_93 || '',   params.Store_S_94 || '',
+      params.Store_remarks || '',                 // Store Remarks
       
-      // Store Operations Section (16 questions)
-      params.StoreOperations_SO_1 || '',          // AF: SO_1 - Previous audit CAPA
-      params.StoreOperations_SO_2 || '',          // AG: SO_2 - No junk material
-      params.StoreOperations_SO_3 || '',          // AH: SO_3 - Dishwasher/sink cleanliness
-      params.StoreOperations_SO_4 || '',          // AI: SO_4 - Glass doors condition
-      params.StoreOperations_SO_5 || '',          // AJ: SO_5 - Equipment area cleanliness
-      params.StoreOperations_SO_6 || '',          // AK: SO_6 - Customer furniture condition
-      params.StoreOperations_SO_7 || '',          // AL: SO_7 - Floor storage prevention
-      params.StoreOperations_SO_8 || '',          // AM: SO_8 - Food contact materials
-      params.StoreOperations_SO_9 || '',          // AN: SO_9 - Color coded segregation
-      params.StoreOperations_SO_10 || '',         // AO: SO_10 - Glasses arrangement
-      params.StoreOperations_SO_11 || '',         // AP: SO_11 - Equipment cleaning SOP
-      params.StoreOperations_SO_12 || '',         // AQ: SO_12 - Temperature maintenance
-      params.StoreOperations_SO_13 || '',         // AR: SO_13 - Merry chef condition
-      params.StoreOperations_SO_14 || '',         // AS: SO_14 - Kitchen equipment operational
-      params.StoreOperations_SO_15 || '',         // AT: SO_15 - Coffee equipment maintenance
-      params.StoreOperations_SO_16 || '',         // AU: SO_16 - Small wares condition
-      params.StoreOperations_remarks || '',       // AV: Store Operations Remarks
+      // A Section (3 questions - A_1 to A_3)
+      params.A_A_1 || '',                         // A_1
+      params.A_A_2 || '',                         // A_2
+      params.A_A_3 || '',                         // A_3
+      params.A_remarks || '',                     // A Remarks
       
-      // Hygiene & Compliance Section (6 questions)
-      params.HygieneCompliance_HC_1 || '',        // AW: HC_1 - Medical records
-      params.HygieneCompliance_HC_2 || '',        // AX: HC_2 - Annual medical examination
-      params.HygieneCompliance_HC_3 || '',        // AY: HC_3 - Partner grooming
-      params.HygieneCompliance_HC_4 || '',        // AZ: HC_4 - Personal hygiene
-      params.HygieneCompliance_HC_5 || '',        // BA: HC_5 - Hand washing procedures
-      params.HygieneCompliance_HC_6 || '',        // BB: HC_6 - Glove usage
-      params.HygieneCompliance_remarks || ''      // BC: Hygiene & Compliance Remarks
+      // Maintenance Section (11 questions - M_1 to M_11)
+      params.Maintenance_M_1 || '',               // M_1
+      params.Maintenance_M_2 || '',               // M_2
+      params.Maintenance_M_3 || '',               // M_3
+      params.Maintenance_M_4 || '',               // M_4
+      params.Maintenance_M_5 || '',               // M_5
+      params.Maintenance_M_6 || '',               // M_6
+      params.Maintenance_M_7 || '',               // M_7
+      params.Maintenance_M_8 || '',               // M_8
+      params.Maintenance_M_9 || '',               // M_9
+      params.Maintenance_M_10 || '',              // M_10
+      params.Maintenance_M_11 || '',              // M_11
+      params.Maintenance_remarks || '',           // Maintenance Remarks
+      
+      // HR Section (2 questions - HR_1 to HR_2)
+      params.HR_HR_1 || '',                       // HR_1
+      params.HR_HR_2 || '',                       // HR_2
+      params.HR_remarks || '',                    // HR Remarks
+      
+      // Signatures
+      params.auditorSignature || '',              // Auditor Signature (Base64)
+      params.smSignature || ''                    // Store Manager Signature (Base64)
     ];
+    
+    Logger.log('Row data prepared with ' + rowData.length + ' fields');
+    Logger.log('Store: ' + params.storeName + ' (' + params.storeID + ')');
+    Logger.log('Region: ' + params.region);
+    Logger.log('QA Auditor: ' + params.qaName + ' (' + params.qaId + ')');
+    Logger.log('Score: ' + params.totalScore + '/' + params.maxScore + ' (' + params.scorePercentage + '%)');
     
     // Add the data to the sheet
     sheet.appendRow(rowData);
+    Logger.log('Data appended to row ' + sheet.getLastRow());
     
     // Auto-resize columns for better readability
     sheet.autoResizeColumns(1, sheet.getLastColumn());
+    Logger.log('Columns auto-resized');
     
+    Logger.log('=== QA survey data successfully saved to sheet ===');
+    console.log('QA survey data successfully saved to sheet');
+    
+    Logger.log('=== QA survey data successfully saved to sheet ===');
     console.log('QA survey data successfully saved to sheet');
     
     // Return success response
@@ -239,6 +300,10 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
+    Logger.log('=== ERROR in QA Survey POST Submission ===');
+    Logger.log('Error type: ' + error.name);
+    Logger.log('Error message: ' + error.message);
+    Logger.log('Error stack: ' + error.stack);
     console.error('Error processing QA survey submission:', error);
     
     // Return error response
@@ -255,6 +320,8 @@ function doPost(e) {
  * Sets up the header row for the QA sheet
  */
 function setupQAHeaders(sheet) {
+  Logger.log('Setting up QA sheet headers...');
+  
   const headers = [
     // Basic Information
     'Timestamp',                                 // A
@@ -272,7 +339,7 @@ function setupQAHeaders(sheet) {
     'Max Score',                               // K
     'Score Percentage',                        // L
     
-    // Zero Tolerance Section
+    // Zero Tolerance Section (6 questions)
     'ZT_1: No expired food products',          // M
     'ZT_2: Secondary shelf life compliance',   // N
     'ZT_3: Storage conditions',                // O
@@ -281,48 +348,134 @@ function setupQAHeaders(sheet) {
     'ZT_6: No pest activity',                  // R
     'Zero Tolerance Remarks',                  // S
     
-    // Maintenance Section
-    'M_1: Window protection',                  // T
-    'M_2: Structural integrity',               // U
-    'M_3: Electrical safety',                  // V
-    'M_4: Lighting protection',                // W
-    'M_5: Fire extinguishers',                 // X
-    'M_6: Pest entry prevention',              // Y
-    'M_7: Pest control devices',               // Z
-    'M_8: Equipment maintenance records',      // AA
-    'M_9: Plumbing fixtures',                  // AB
-    'M_10: Refrigeration equipment',           // AC
-    'M_11: Water service records',             // AD
-    'Maintenance Remarks',                     // AE
+    // Store Section (94 questions)
+    'S_1: No junk material',
+    'S_2: Previous audit CAPA',
+    'S_3: Dishwasher/sink cleanliness',
+    'S_4: Glass doors condition',
+    'S_5: Area below equipment clean',
+    'S_6: Customer furniture condition',
+    'S_7: Customer area organized',
+    'S_8: Food not on floor',
+    'S_9: Food-contact materials clean',
+    'S_10: Color-coded segregation',
+    'S_11: Glasses clean and arranged',
+    'S_12: Equipment cleaned per SOP',
+    'S_13: Chiller/freezer temperatures',
+    'S_14: Merrychef condition',
+    'S_15: Kitchen equipment operational',
+    'S_16: Coffee machine operational',
+    'S_17: Shakers/funnels clean',
+    'S_18: Portafilter clean',
+    'S_19: Small wares clean',
+    'S_20: UTF Holder stored properly',
+    'S_21: Paper cups/supplies available',
+    'S_22: Freezer/FDU/chillers clean',
+    'S_23: Ice cube box clean',
+    'S_24: Mixer/blender clean',
+    'S_25: Housekeeping materials separated',
+    'S_26: Floor mat cleaned',
+    'S_27: Bar mat cleaned',
+    'S_28: Carry bag clean',
+    'S_29: RO machine clean',
+    'S_30: Food/non-food separated',
+    'S_31: FDU temperature verified',
+    'S_32: In-process food properly tagged',
+    'S_33: Veg/non-veg segregation',
+    'S_34: Expired items labeled',
+    'S_35: No carton boxes in production',
+    'S_36: No objectionable items',
+    'S_37: Waste removed daily',
+    'S_38: Partner well-groomed',
+    'S_39: Personal hygiene maintained',
+    'S_40: Handwashing procedures',
+    'S_41: Visitors follow safety measures',
+    'S_42: Personal belongings arranged',
+    'S_43: Gloves used properly',
+    'S_44: First aid kit available',
+    'S_45: No unauthorized visitors',
+    'S_46: Recipe charts available',
+    'S_47: FMCG range compliant',
+    'S_48: Raw/cooked segregation',
+    'S_49: Approved vendors',
+    'S_50: Beverages verified with BRM',
+    'S_51: Product weight/appearance verified',
+    'S_52: No improper repackaging',
+    'S_53: Measuring tools available',
+    'S_54: Food-grade packaging',
+    'S_55: Espresso sensory evaluation',
+    'S_56: No pest infestation',
+    'S_57: MSDS available for pest control',
+    'S_58: Pest control layout available',
+    'S_59: Chemicals stored properly',
+    'S_60: Dilution charts available',
+    'S_61: MSDS for cleaning chemicals',
+    'S_62: Spray guns labeled',
+    'S_63: Dustbins closed/clean',
+    'S_64: Waste not in BOH',
+    'S_65: Washroom clean',
+    'S_66: Magic box clean',
+    'S_67: Cleaning per schedule',
+    'S_68: No water stagnation',
+    'S_69: Fire extinguisher awareness',
+    'S_70: Team adheres to SOPs',
+    'S_71: Receiving temperatures recorded',
+    'S_72: Transport vehicles clean',
+    'S_73: Temperature monitoring updated',
+    'S_74: Devices calibrated',
+    'S_75: Food handlers trained',
+    'S_76: Hygiene verification updated',
+    'S_77: Documentation retained',
+    'S_78: Pest control records',
+    'S_79: FIFO/FEFO followed',
+    'S_80: Color-coded cloths',
+    'S_81: Thawing per SOP',
+    'S_82: Glue pads inspected',
+    'S_83: Smallware cleaned',
+    'S_84: Food dial-in checklist',
+    'S_85: FSSAI displayed',
+    'S_86: FOSTAC certification',
+    'S_87: Drainages cleaned',
+    'S_88: Moulds segregated/clean',
+    'S_89: Wet floor signs',
+    'S_90: Step stools maintained',
+    'S_91: FDU arranged properly',
+    'S_92: Reusable condiments stored',
+    'S_93: All signages in place',
+    'S_94: Menu boards functional',
+    'Store Remarks',
     
-    // Store Operations Section
-    'SO_1: Previous audit CAPA',               // AF
-    'SO_2: No junk material',                  // AG
-    'SO_3: Dishwasher/sink cleanliness',       // AH
-    'SO_4: Glass doors condition',             // AI
-    'SO_5: Equipment area cleanliness',        // AJ
-    'SO_6: Customer furniture condition',      // AK
-    'SO_7: Floor storage prevention',          // AL
-    'SO_8: Food contact materials',            // AM
-    'SO_9: Color coded segregation',           // AN
-    'SO_10: Glasses arrangement',              // AO
-    'SO_11: Equipment cleaning SOP',           // AP
-    'SO_12: Temperature maintenance',          // AQ
-    'SO_13: Merry chef condition',             // AR
-    'SO_14: Kitchen equipment operational',    // AS
-    'SO_15: Coffee equipment maintenance',     // AT
-    'SO_16: Small wares condition',            // AU
-    'Store Operations Remarks',                // AV
+    // A Section (3 questions)
+    'A_1: Potable water meets standards',
+    'A_2: Food material tested',
+    'A_3: Induction training completed',
+    'A Remarks',
     
-    // Hygiene & Compliance Section
-    'HC_1: Medical records',                   // AW
-    'HC_2: Annual medical examination',        // AX
-    'HC_3: Partner grooming',                  // AY
-    'HC_4: Personal hygiene',                  // AZ
-    'HC_5: Hand washing procedures',           // BA
-    'HC_6: Glove usage',                       // BB
-    'Hygiene & Compliance Remarks'            // BC
+    // Maintenance Section (11 questions)
+    'M_1: Windows with insect mesh',
+    'M_2: No structural damage',
+    'M_3: No unsecured wires',
+    'M_4: Lighting covered',
+    'M_5: Fire extinguishers working',
+    'M_6: No pest entry points',
+    'M_7: Pest-o-flash placed properly',
+    'M_8: Equipment maintenance file',
+    'M_9: RO service records',
+    'M_10: Plumbing maintained',
+    'M_11: Refrigeration working',
+    'Maintenance Remarks',
+    
+    // HR Section (2 questions)
+    'HR_1: Medical records available',
+    'HR_2: Annual medical exams',
+    'HR Remarks',
+    
+    // Signatures
+    'Auditor Signature',
+    'Store Manager Signature'
   ];
+  
+  Logger.log('Total headers: ' + headers.length);
   
   // Set headers
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -336,6 +489,7 @@ function setupQAHeaders(sheet) {
   // Freeze header row
   sheet.setFrozenRows(1);
   
+  Logger.log('QA sheet headers set up successfully');
   console.log('QA sheet headers set up successfully');
 }
 
@@ -343,9 +497,10 @@ function setupQAHeaders(sheet) {
  * Test function to verify the script setup - creates sample data
  */
 function testQAScript() {
+  Logger.log('=== Testing QA Script Setup ===');
   console.log('Testing QA script setup...');
   
-  // Test data for POST (submission)
+  // Test data for POST (submission) - Updated to match new structure
   const testData = {
     parameter: {
       submissionTime: '05/10/2025 14:30:00',
@@ -356,72 +511,90 @@ function testQAScript() {
       storeName: 'Starbucks - Mall Plaza',
       storeID: 'SB-MP-001',
       region: 'Central Region',
-      totalScore: 85,
-      maxScore: 100,
-      scorePercentage: 85,
-      ZeroTolerance_ZT_1: 'yes',
-      ZeroTolerance_ZT_2: 'yes',
-      ZeroTolerance_ZT_3: 'no',
-      ZeroTolerance_ZT_4: 'yes',
-      ZeroTolerance_ZT_5: 'yes',
-      ZeroTolerance_ZT_6: 'yes',
-      ZeroTolerance_remarks: 'Storage conditions need improvement',
-      Maintenance_M_1: 'yes',
-      Maintenance_M_2: 'yes',
-      Maintenance_M_3: 'yes',
-      Maintenance_M_4: 'no',
-      Maintenance_M_5: 'yes',
-      Maintenance_M_6: 'yes',
-      Maintenance_M_7: 'yes',
-      Maintenance_M_8: 'yes',
-      Maintenance_M_9: 'yes',
-      Maintenance_M_10: 'yes',
-      Maintenance_M_11: 'yes',
-      Maintenance_remarks: 'Lighting needs attention',
-      StoreOperations_SO_1: 'yes',
-      StoreOperations_SO_2: 'yes',
-      StoreOperations_SO_3: 'yes',
-      StoreOperations_SO_4: 'yes',
-      StoreOperations_SO_5: 'yes',
-      StoreOperations_SO_6: 'yes',
-      StoreOperations_SO_7: 'yes',
-      StoreOperations_SO_8: 'yes',
-      StoreOperations_SO_9: 'yes',
-      StoreOperations_SO_10: 'yes',
-      StoreOperations_SO_11: 'yes',
-      StoreOperations_SO_12: 'yes',
-      StoreOperations_SO_13: 'yes',
-      StoreOperations_SO_14: 'yes',
-      StoreOperations_SO_15: 'yes',
-      StoreOperations_SO_16: 'yes',
-      StoreOperations_remarks: 'All operations running smoothly',
-      HygieneCompliance_HC_1: 'yes',
-      HygieneCompliance_HC_2: 'yes',
-      HygieneCompliance_HC_3: 'yes',
-      HygieneCompliance_HC_4: 'yes',
-      HygieneCompliance_HC_5: 'yes',
-      HygieneCompliance_HC_6: 'yes',
-      HygieneCompliance_remarks: 'Excellent hygiene standards maintained'
+      totalScore: 185,
+      maxScore: 206,
+      scorePercentage: 89.8,
+      
+      // Zero Tolerance (6 questions)
+      ZeroTolerance_ZT_1: 'compliant',
+      ZeroTolerance_ZT_2: 'compliant',
+      ZeroTolerance_ZT_3: 'compliant',
+      ZeroTolerance_ZT_4: 'compliant',
+      ZeroTolerance_ZT_5: 'compliant',
+      ZeroTolerance_ZT_6: 'compliant',
+      ZeroTolerance_remarks: 'All critical food safety standards met.',
+      
+      // Store Section (94 questions - sample a few)
+      Store_S_1: 'compliant',
+      Store_S_2: 'compliant',
+      Store_S_3: 'partially-compliant',
+      Store_S_4: 'compliant',
+      Store_S_5: 'compliant',
+      Store_S_10: 'compliant',
+      Store_S_20: 'compliant',
+      Store_S_30: 'partially-compliant',
+      Store_S_40: 'compliant',
+      Store_S_50: 'compliant',
+      Store_S_60: 'compliant',
+      Store_S_70: 'compliant',
+      Store_S_80: 'compliant',
+      Store_S_90: 'compliant',
+      Store_S_94: 'compliant',
+      Store_remarks: 'Store operations running smoothly with minor improvements needed.',
+      
+      // A Section (3 questions)
+      A_A_1: 'compliant',
+      A_A_2: 'compliant',
+      A_A_3: 'partially-compliant',
+      A_remarks: 'Training records maintained properly.',
+      
+      // Maintenance (11 questions)
+      Maintenance_M_1: 'compliant',
+      Maintenance_M_2: 'compliant',
+      Maintenance_M_3: 'compliant',
+      Maintenance_M_4: 'partially-compliant',
+      Maintenance_M_5: 'compliant',
+      Maintenance_M_6: 'compliant',
+      Maintenance_M_7: 'compliant',
+      Maintenance_M_8: 'compliant',
+      Maintenance_M_9: 'compliant',
+      Maintenance_M_10: 'compliant',
+      Maintenance_M_11: 'compliant',
+      Maintenance_remarks: 'Equipment in good condition.',
+      
+      // HR Section (2 questions)
+      HR_HR_1: 'compliant',
+      HR_HR_2: 'compliant',
+      HR_remarks: 'All medical records up to date.'
     }
   };
   
+  Logger.log('Testing POST function with sample data...');
   // Test POST function
   const postResult = doPost(testData);
+  Logger.log('POST Test result: ' + postResult.getContent());
   console.log('POST Test result:', postResult.getContent());
   
+  Logger.log('Testing GET function to retrieve data...');
   // Test GET function
   const getResult = doGet({});
+  Logger.log('GET Test result: ' + getResult.getContent());
   console.log('GET Test result:', getResult.getContent());
+  
+  Logger.log('=== QA Script Test Complete ===');
 }
 
 /**
  * Function to get QA submission statistics (for debugging)
  */
 function getQAStats() {
+  Logger.log('=== Retrieving QA Statistics ===');
+  
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('QA');
   
   if (!sheet || sheet.getLastRow() <= 1) {
+    Logger.log('No QA submissions found');
     return { totalSubmissions: 0, avgScore: 0, regions: [] };
   }
   
@@ -434,24 +607,41 @@ function getQAStats() {
   
   const regions = [...new Set(submissions.map(row => row[8]).filter(region => region))];
   
-  return {
+  const stats = {
     totalSubmissions,
     avgScore: Math.round(avgScore * 100) / 100,
     regions,
     lastSubmission: submissions[submissions.length - 1][0] // Latest timestamp
   };
+  
+  Logger.log('Total Submissions: ' + stats.totalSubmissions);
+  Logger.log('Average Score: ' + stats.avgScore + '%');
+  Logger.log('Regions: ' + stats.regions.join(', '));
+  Logger.log('Last Submission: ' + stats.lastSubmission);
+  Logger.log('=== QA Statistics Retrieved ===');
+  
+  return stats;
 }
 
 /**
  * Function to clear all QA data (for testing purposes)
  */
 function clearQAData() {
+  Logger.log('=== Clearing QA Data ===');
+  
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('QA');
   
   if (sheet) {
+    const rowCount = sheet.getLastRow();
     sheet.clear();
     setupQAHeaders(sheet);
+    Logger.log('QA data cleared - ' + (rowCount - 1) + ' rows removed');
+    Logger.log('Headers reset');
     console.log('QA data cleared and headers reset');
+  } else {
+    Logger.log('No QA sheet found to clear');
   }
+  
+  Logger.log('=== QA Data Clear Complete ===');
 }

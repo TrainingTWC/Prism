@@ -80,23 +80,23 @@ const QAScoreDistributionChart: React.FC<QAScoreDistributionChartProps> = ({ sub
 
       {/* Distribution Chart */}
       <div className="space-y-4">
-        <h4 className="text-sm font-medium text-slate-300">Score Range Distribution</h4>
+        <h4 className="text-sm font-medium text-gray-700 dark:text-slate-300">Score Range Distribution</h4>
         {distribution.map((item, index) => (
           <div key={item.range} className="space-y-2">
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-3">
                 <div className={`w-4 h-4 rounded ${item.color}`}></div>
                 <div>
-                  <span className="text-sm font-medium text-slate-200">{item.range}</span>
-                  <span className="text-xs text-slate-400 ml-2">({item.label})</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-slate-200">{item.range}</span>
+                  <span className="text-xs text-gray-600 dark:text-slate-400 ml-2">({item.label})</span>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm font-medium text-slate-200">{item.count}</div>
-                <div className="text-xs text-slate-400">{item.percentage}%</div>
+                <div className="text-sm font-medium text-gray-900 dark:text-slate-200">{item.count}</div>
+                <div className="text-xs text-gray-600 dark:text-slate-400">{item.percentage}%</div>
               </div>
             </div>
-            <div className="w-full bg-slate-700 rounded-full h-3 overflow-hidden">
+            <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
               <div 
                 className={`h-full transition-all duration-500 ease-out ${item.color}`}
                 style={{ 
@@ -110,27 +110,27 @@ const QAScoreDistributionChart: React.FC<QAScoreDistributionChartProps> = ({ sub
       </div>
 
       {/* Distribution Summary */}
-      <div className="mt-6 p-4 bg-slate-700/20 rounded-lg">
+      <div className="mt-6 p-4 bg-gray-50 dark:bg-slate-700/20 rounded-lg">
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="text-slate-400">Total Audits:</span>
-            <span className="text-slate-200 ml-2 font-medium">{totalSubmissions}</span>
+            <span className="text-gray-600 dark:text-slate-400">Total Audits:</span>
+            <span className="text-gray-900 dark:text-slate-200 ml-2 font-medium">{totalSubmissions}</span>
           </div>
           <div>
-            <span className="text-slate-400">Passing Rate (≥70%):</span>
-            <span className="text-slate-200 ml-2 font-medium">
+            <span className="text-gray-600 dark:text-slate-400">Passing Rate (≥70%):</span>
+            <span className="text-gray-900 dark:text-slate-200 ml-2 font-medium">
               {Math.round(((totalSubmissions - needsImprovementCount) / totalSubmissions) * 100)}%
             </span>
           </div>
           <div>
-            <span className="text-slate-400">Excellence Rate (≥90%):</span>
-            <span className="text-slate-200 ml-2 font-medium">
+            <span className="text-gray-600 dark:text-slate-400">Excellence Rate (≥90%):</span>
+            <span className="text-gray-900 dark:text-slate-200 ml-2 font-medium">
               {Math.round((excellentCount / totalSubmissions) * 100)}%
             </span>
           </div>
           <div>
-            <span className="text-slate-400">Standard Deviation:</span>
-            <span className="text-slate-200 ml-2 font-medium">
+            <span className="text-gray-600 dark:text-slate-400">Standard Deviation:</span>
+            <span className="text-gray-900 dark:text-slate-200 ml-2 font-medium">
               {submissions.length > 1 ? Math.round(
                 Math.sqrt(
                   submissions.reduce((sum, s) => {
@@ -149,12 +149,12 @@ const QAScoreDistributionChart: React.FC<QAScoreDistributionChartProps> = ({ sub
         {excellentCount / totalSubmissions >= 0.5 && (
           <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
             <div className="flex items-center space-x-2 mb-1">
-              <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="text-xs font-medium text-emerald-300">High Performance</span>
+              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-300">High Performance</span>
             </div>
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-gray-600 dark:text-slate-300">
               Over 50% of audits achieve excellence rating
             </p>
           </div>
@@ -163,12 +163,12 @@ const QAScoreDistributionChart: React.FC<QAScoreDistributionChartProps> = ({ sub
         {needsImprovementCount / totalSubmissions >= 0.3 && (
           <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
             <div className="flex items-center space-x-2 mb-1">
-              <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-red-500 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 18.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
-              <span className="text-xs font-medium text-red-300">Attention Required</span>
+              <span className="text-xs font-medium text-red-600 dark:text-red-300">Attention Required</span>
             </div>
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-gray-600 dark:text-slate-300">
               {Math.round((needsImprovementCount / totalSubmissions) * 100)}% of audits need improvement
             </p>
           </div>

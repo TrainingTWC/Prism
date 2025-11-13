@@ -6,12 +6,13 @@ interface QASectionScoresInfographicProps {
   submissions: QASubmission[];
 }
 
-// Section mapping for QA
+// Section mapping for QA - Updated to match new 116-question structure
 const QA_SECTIONS = [
-  { id: 'ZT', name: 'Zero Tolerance', questions: 6, prefix: 'ZeroTolerance_ZT' },
-  { id: 'M', name: 'Maintenance', questions: 11, prefix: 'Maintenance_M' },
-  { id: 'SO', name: 'Store Operations', questions: 16, prefix: 'StoreOperations_SO' },
-  { id: 'HC', name: 'Hygiene & Compliance', questions: 6, prefix: 'HygieneCompliance_HC' }
+  { id: 'ZT', name: 'Zero Tolerance', questions: 6, prefix: 'ZT_' },
+  { id: 'Store', name: 'Store Operations', questions: 94, prefix: 'S_' },
+  { id: 'A', name: 'QA', questions: 3, prefix: 'A_' },
+  { id: 'M', name: 'Maintenance', questions: 11, prefix: 'M_' },
+  { id: 'HR', name: 'HR', questions: 2, prefix: 'HR_' }
 ];
 
 const QASectionScoresInfographic: React.FC<QASectionScoresInfographicProps> = ({ submissions }) => {
@@ -39,60 +40,70 @@ const QASectionScoresInfographic: React.FC<QASectionScoresInfographicProps> = ({
             
             submissions.forEach((submission, submissionIndex) => {
                 let sectionScore = 0;
+                let maxPossibleScore = 0;
                 let answeredQuestions = 0;
                 
-                // Count responses for each section based on the actual field names from Google Sheets
-                // Google Sheets uses descriptive field names, not simple codes
-                for (let i = 1; i <= section.questions; i++) {
-                    let response = null;
-                    let questionKey = '';
-                    
-                    // Get all keys that match the section pattern
-                    const allKeys = Object.keys(submission);
-                    let sectionFields = [];
-                    
+                // Get all keys from submission
+                const allKeys = Object.keys(submission);
+                
+                // Find all fields for this section
+                let sectionFields = allKeys.filter(k => {
+                    // Extract the short code from the header (e.g., "ZT_1:" becomes "ZT_")
                     if (section.id === 'ZT') {
-                        sectionFields = allKeys.filter(k => k.startsWith('ZT_'));
+                        return k.startsWith('ZT_');
+                    } else if (section.id === 'Store') {
+                        return k.startsWith('S_') && !k.startsWith('Store') && k.includes(':');
+                    } else if (section.id === 'A') {
+                        return k.startsWith('A_') && k.includes(':');
                     } else if (section.id === 'M') {
-                        sectionFields = allKeys.filter(k => k.startsWith('M_'));
-                    } else if (section.id === 'SO') {
-                        sectionFields = allKeys.filter(k => k.startsWith('SO_'));
-                    } else if (section.id === 'HC') {
-                        sectionFields = allKeys.filter(k => k.startsWith('HC_'));
+                        return k.startsWith('M_') && k.includes(':');
+                    } else if (section.id === 'HR') {
+                        return k.startsWith('HR_') && k.includes(':');
                     }
-                    
-                    // Get the field for this question number (i-1 because arrays are 0-indexed)
-                    if (sectionFields.length >= i) {
-                        questionKey = sectionFields[i-1];
-                        response = (submission as any)[questionKey];
-                    }
-                    
-                    if (submissionIndex === 0) {
-                        console.log(`  Question ${i}: key="${questionKey}" value="${response}"`);
-                    }
-                    
-                    if (response !== undefined && response !== null && response !== '') {
-                        answeredQuestions++;
-                        // For QA checklists, be more flexible with scoring
-                        const responseStr = response.toString().toLowerCase().trim();
-                        if (responseStr === 'yes' || 
-                            responseStr === 'compliant' ||
-                            responseStr === 'passed' ||
-                            responseStr === 'pass' ||
-                            responseStr === 'good' ||
-                            responseStr === 'satisfactory' ||
-                            responseStr === '1' || 
-                            responseStr === 'true') {
-                            sectionScore++;
-                        }
-                    }
+                    return false;
+                }).sort(); // Sort to maintain order
+                
+                if (submissionIndex === 0) {
+                    console.log(`  Found ${sectionFields.length} fields for ${section.name}:`, sectionFields.slice(0, 5));
                 }
                 
-                if (answeredQuestions > 0) {
-                    const percentage = (sectionScore / section.questions) * 100;
+                // Process each field
+                sectionFields.forEach((field, idx) => {
+                    const response = (submission as any)[field];
+                    
+                    if (response && response !== '' && response !== 'undefined') {
+                        answeredQuestions++;
+                        const responseStr = response.toString().toLowerCase().trim();
+                        
+                        // Skip 'na' responses - don't count them
+                        if (responseStr === 'na' || responseStr === 'n/a') {
+                            return;
+                        }
+                        
+                        // Add to max score
+                        maxPossibleScore++;
+                        
+                        // Zero Tolerance: compliant = 1, non-compliant = 0
+                        if (section.id === 'ZT') {
+                            if (responseStr === 'compliant') {
+                                sectionScore++;
+                            }
+                        } else {
+                            // Other sections: compliant = 1, partially-compliant = 0.5, not-compliant = 0
+                            if (responseStr === 'compliant') {
+                                sectionScore++;
+                            } else if (responseStr === 'partially-compliant') {
+                                sectionScore += 0.5;
+                            }
+                        }
+                    }
+                });
+                
+                if (maxPossibleScore > 0) {
+                    const percentage = (sectionScore / maxPossibleScore) * 100;
                     sectionScores.push(percentage);
                     if (submissionIndex === 0) {
-                        console.log(`  Submission ${submissionIndex}: ${sectionScore}/${section.questions} = ${percentage}%`);
+                        console.log(`  Submission ${submissionIndex}: ${sectionScore}/${maxPossibleScore} = ${percentage.toFixed(1)}%`);
                     }
                 }
             });
@@ -101,7 +112,7 @@ const QASectionScoresInfographic: React.FC<QASectionScoresInfographicProps> = ({
                 ? sectionScores.reduce((a, b) => a + b, 0) / sectionScores.length
                 : 0;
 
-            console.log(`Section ${section.name} final average: ${averageScore}% (from ${sectionScores.length} submissions)`);
+            console.log(`Section ${section.name} final average: ${averageScore.toFixed(1)}% (from ${sectionScores.length} submissions)`);
 
             return {
                 id: section.id,

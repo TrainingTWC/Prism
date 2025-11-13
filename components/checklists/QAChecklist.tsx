@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { UserRole, canAccessStore, canAccessAM } from '../../roleMapping';
-import { AREA_MANAGERS } from '../../constants';
 import { hapticFeedback } from '../../utils/haptics';
 import LoadingOverlay from '../LoadingOverlay';
-import hrMappingData from '../../src/hr_mapping.json';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
+import { QA_SECTIONS } from '../../config/qaQuestions';
+import { useComprehensiveMapping, useAreaManagers, useStoreDetails } from '../../hooks/useComprehensiveMapping';
 
-// Google Sheets endpoint for logging data
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbytHCowSWXzHY-Ej7NdkCnaObAFpTiSeT2cV1_63_yUUeHJTwMW9-ta_70XcLu--wUxog/exec';
+// Google Sheets endpoint for logging data - Updated to capture all 116 questions
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxsBs03icBM6DEIL6SvE4CyCv7ZCsaI2IYa2JlwBiemfeYX1F5dYD2d6QkWzzZ4_LvmOA/exec';
 
 interface SurveyResponse {
   [key: string]: string;
@@ -34,76 +34,10 @@ interface QAChecklistProps {
   onStatsUpdate: (stats: { completed: number; total: number; score: number }) => void;
 }
 
-const QA_SECTIONS = [
-  { 
-    id: 'ZeroTolerance', 
-    title: 'Zero Tolerance', 
-    items: [
-      {id: 'ZT_1', q: 'No expired food products in the café, and all food products are marked with clear date tags (MRD).', w: 4},
-      {id: 'ZT_2', q: 'The product shall comply with the secondary shelf life for critical products like chicken, paneer, sauces, chilled, frozen, and composite products.', w: 4},
-      {id: 'ZT_3', q: 'All food products should be stored according to the appropriate storage conditions (Frozen, Chilled, and Ambient).', w: 4},
-      {id: 'ZT_4', q: 'RO/Mineral water TDS must be between 50 to 150 ± 10 ppm that is being used for processing inside the cafe.', w: 4},
-      {id: 'ZT_5', q: 'Temperature sensitive food items shall not be transferred to other store in uncontrolled medium', w: 4},
-      {id: 'ZT_6', q: 'No live pest activity, including but not limited to rodents, rats, cockroaches, and spiders was seen inside the café.', w: 4}
-    ]
-  },
-  { 
-    id: 'Maintenance', 
-    title: 'Maintenance', 
-    items: [
-      {id: 'M_1', q: 'All windows opening to external environment fitted with insect-protective mesh.', w: 2},
-      {id: 'M_2', q: 'No wall damage, floor damage, door damage, and false ceiling damage.', w: 2},
-      {id: 'M_3', q: 'No unsecured wires from electrical lines or equipment.', w: 2},
-      {id: 'M_4', q: 'All lighting above food areas has shatterproof protective covers and is clean.', w: 2},
-      {id: 'M_5', q: 'Fire extinguishers are in working condition and not expired.', w: 2},
-      {id: 'M_6', q: 'Absence of pest entry points - no damages in walls, tap holes, exhaust holes.', w: 2},
-      {id: 'M_7', q: 'Pest control devices working and placed at max height of 6 feet away from food areas.', w: 2},
-      {id: 'M_8', q: 'Equipment maintenance file checked and service records available.', w: 2},
-      {id: 'M_9', q: 'Plumbing and fixtures maintained in good repair.', w: 2},
-      {id: 'M_10', q: 'Freezer, FDU and Chillers are in good working condition.', w: 2},
-      {id: 'M_11', q: 'RO water service records available and up to date.', w: 2}
-    ]
-  },
-  { 
-    id: 'StoreOperations', 
-    title: 'Store Operations', 
-    items: [
-      {id: 'SO_1', q: 'Action plans for previous audit non-conformities shared and closed in CAPA format', w: 2},
-      {id: 'SO_2', q: 'No junk material, wastage, unused items found in store surroundings', w: 2},
-      {id: 'SO_3', q: 'Dishwasher and sink area checked for cleanliness, odor, covers, leakage', w: 2},
-      {id: 'SO_4', q: 'Glass doors, cupboards, shelves clean and in good condition without damage', w: 2},
-      {id: 'SO_5', q: 'Area below shelves and machinery clean and free of food particles/dust', w: 2},
-      {id: 'SO_6', q: 'Tables and chairs for customers in good condition and free of dust/stains', w: 2},
-      {id: 'SO_7', q: 'Food & packaging material not stored on the floor', w: 2},
-      {id: 'SO_8', q: 'Food-contact materials and containers clean and made of non-toxic materials', w: 2},
-      {id: 'SO_9', q: 'Segregated materials (knives, cutting boards) colour coded as Veg/Non-veg', w: 2},
-      {id: 'SO_10', q: 'Glasses clean and arranged upside down in clean rack', w: 1},
-      {id: 'SO_11', q: 'All equipment cleaned per SOP to prevent mould/fungi growth', w: 2},
-      {id: 'SO_12', q: 'Chiller/Deep Freezer temperatures maintained as per standard', w: 2},
-      {id: 'SO_13', q: 'Merry chef inner body checked for food particles/rust, filters clean', w: 2},
-      {id: 'SO_14', q: 'Microwaves, grillers, coffee makers, food warmers operational and clean', w: 2},
-      {id: 'SO_15', q: 'Coffee machine and grinder operational, in good condition and clean', w: 2},
-      {id: 'SO_16', q: 'All small wares (scoops, knives, spatulas) in good condition and clean', w: 2}
-    ]
-  },
-  { 
-    id: 'HygieneCompliance', 
-    title: 'Hygiene & Compliance', 
-    items: [
-      {id: 'HC_1', q: 'Medical records for all staff including housekeeper available in store', w: 2},
-      {id: 'HC_2', q: 'Annual medical examination & inoculation of food handlers completed with records', w: 2},
-      {id: 'HC_3', q: 'Partner well groomed (cap, t-shirt, apron, name badge, black trouser)', w: 2},
-      {id: 'HC_4', q: 'Personal hygiene maintained - haircut, nails, shave, no skin infections', w: 2},
-      {id: 'HC_5', q: 'Hand washing procedures followed, sanitizer usage checked', w: 2},
-      {id: 'HC_6', q: 'Gloves used during food handling and changed after every use', w: 2}
-    ]
-  }
-];
-
 const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) => {
   const { config, loading: configLoading } = useConfig();
   
-  // Use config data if available, otherwise fall back to hardcoded QA_SECTIONS
+  // Use comprehensive QA sections from qaQuestions.ts
   const sections = config?.CHECKLISTS?.QA || QA_SECTIONS;
   
   const [responses, setResponses] = useState<SurveyResponse>(() => {
@@ -111,6 +45,22 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
       return JSON.parse(localStorage.getItem('qa_resp') || '{}'); 
     } catch (e) { 
       return {}; 
+    }
+  });
+
+  const [questionImages, setQuestionImages] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('qa_images') || '{}');
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const [signatures, setSignatures] = useState<{ auditor: string; sm: string }>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('qa_signatures') || '{"auditor":"","sm":""}');
+    } catch (e) {
+      return { auditor: '', sm: '' };
     }
   });
 
@@ -138,7 +88,20 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
 
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [allStores, setAllStores] = useState<Store[]>([]);
+  
+  // Load comprehensive mapping data
+  const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
+  const { areaManagers, loading: amLoading } = useAreaManagers();
+  
+  // Convert comprehensive mapping to store format
+  const allStores = useMemo(() => {
+    return comprehensiveMapping.map(store => ({
+      name: store['Store Name'],
+      id: store['Store ID'],
+      region: store['Region'],
+      amId: store['AM']
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [comprehensiveMapping]);
   
   const [amSearchTerm, setAmSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
@@ -146,6 +109,11 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   const [selectedAmIndex, setSelectedAmIndex] = useState(-1);
   const [selectedStoreIndex, setSelectedStoreIndex] = useState(-1);
+
+  // Signature canvas refs
+  const auditorCanvasRef = useRef<HTMLCanvasElement>(null);
+  const smCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState<{ auditor: boolean; sm: boolean }>({ auditor: false, sm: false });
 
   // Autofill QA fields when user role is qa
   useEffect(() => {
@@ -158,37 +126,23 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
     }
   }, [authUserRole, employeeData]);
 
-  // Load stores from hr_mapping.json
+  // Auto-fill AM when store is selected from comprehensive mapping
   useEffect(() => {
-    const loadStores = () => {
-      try {
-        const storeMap = new Map();
-        
-        hrMappingData.forEach((item: any) => {
-          if (!storeMap.has(item.storeId)) {
-            storeMap.set(item.storeId, {
-              name: item.locationName,
-              id: item.storeId,
-              region: item.region
-            });
-          }
-        });
-        
-        const stores = Array.from(storeMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
-        setAllStores(stores);
-      } catch (error) {
-        console.warn('Could not load stores from mapping data:', error);
-        setAllStores([
-          { name: 'Defence Colony', id: 'S027' },
-          { name: 'Khan Market', id: 'S037' },
-          { name: 'UB City', id: 'S007' },
-          { name: 'Koramangala 1', id: 'S001' }
-        ]);
+    if (meta.storeId && comprehensiveMapping.length > 0) {
+      const store = comprehensiveMapping.find(s => s['Store ID'] === meta.storeId);
+      if (store && store.AM && !meta.amId) {
+        const am = areaManagers.find(a => a.id === store.AM);
+        if (am) {
+          setMeta(prev => ({
+            ...prev,
+            amId: am.id,
+            amName: am.name
+          }));
+          console.log(`✅ Auto-filled AM ${am.name} (${am.id}) for store ${store['Store Name']}`);
+        }
       }
-    };
-    
-    loadStores();
-  }, []);
+    }
+  }, [meta.storeId, comprehensiveMapping, areaManagers]);
 
   // Save responses to localStorage whenever they change
   useEffect(() => {
@@ -200,6 +154,16 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
     localStorage.setItem('qa_meta', JSON.stringify(meta));
   }, [meta]);
 
+  // Save images to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('qa_images', JSON.stringify(questionImages));
+  }, [questionImages]);
+
+  // Save signatures to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('qa_signatures', JSON.stringify(signatures));
+  }, [signatures]);
+
   // Update stats whenever responses change
   useEffect(() => {
     const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
@@ -207,36 +171,55 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
       responses[key] && responses[key] !== '' && !key.includes('_remarks')
     ).length;
     
-    // Calculate score
+    // Calculate score properly (same logic as submission)
     let totalScore = 0;
     let maxScore = 0;
     
     sections.forEach(section => {
       section.items.forEach(item => {
-        maxScore += item.w;
         const response = responses[`${section.id}_${item.id}`];
-        if (response === 'yes') {
-          totalScore += item.w;
+        
+        // Skip NA responses - don't add to max score
+        if (response === 'na') {
+          return;
+        }
+        
+        // Add to max score (only if not NA)
+        maxScore += item.w;
+        
+        // Calculate score based on response type
+        if (section.id === 'ZeroTolerance') {
+          // Zero Tolerance: compliant = full points, non-compliant = 0
+          if (response === 'compliant') {
+            totalScore += item.w;
+          }
+        } else {
+          // Other sections: compliant = full, partially-compliant = half, not-compliant = 0
+          if (response === 'compliant') {
+            totalScore += item.w;
+          } else if (response === 'partially-compliant') {
+            totalScore += item.w / 2;
+          }
         }
       });
     });
     
-    const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+    const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100 * 100) / 100 : 0;
     
     onStatsUpdate({
       completed: answeredQuestions,
       total: totalQuestions,
       score: scorePercentage
     });
-  }, [responses, onStatsUpdate]);
+  }, [responses, onStatsUpdate, sections]);
 
   const filteredAreaManagers = useMemo(() => {
-    if (!amSearchTerm) return AREA_MANAGERS;
-    return AREA_MANAGERS.filter(am => 
+    if (!amSearchTerm) return areaManagers;
+    return areaManagers.filter(am => 
       am.name.toLowerCase().includes(amSearchTerm.toLowerCase()) ||
       am.id.toLowerCase().includes(amSearchTerm.toLowerCase())
     );
-  }, [amSearchTerm]);
+  }, [amSearchTerm, areaManagers]);
 
   const filteredStores = useMemo(() => {
     if (!storeSearchTerm) return allStores;
@@ -281,44 +264,70 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
     setIsLoading(true);
 
     try {
-      // Calculate scores
+      // Calculate scores properly based on response types
+      // Zero Tolerance: compliant/non-compliant (binary scoring)
+      // Other sections: compliant (full points), partially-compliant (half points), not-compliant (0), na (excluded)
       let totalScore = 0;
       let maxScore = 0;
       
       sections.forEach(section => {
         section.items.forEach(item => {
-          maxScore += item.w;
           const response = responses[`${section.id}_${item.id}`];
-          if (response === 'yes') {
-            totalScore += item.w;
+          
+          // Skip NA responses - don't add to max score
+          if (response === 'na') {
+            return;
+          }
+          
+          // Add to max score (only if not NA)
+          maxScore += item.w;
+          
+          // Calculate score based on response type
+          if (section.id === 'ZeroTolerance') {
+            // Zero Tolerance: compliant = full points, non-compliant = 0
+            if (response === 'compliant') {
+              totalScore += item.w;
+            }
+          } else {
+            // Other sections: compliant = full, partially-compliant = half, not-compliant = 0
+            if (response === 'compliant') {
+              totalScore += item.w;
+            } else if (response === 'partially-compliant') {
+              totalScore += item.w / 2;
+            }
           }
         });
       });
       
-      const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+      const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100 * 100) / 100 : 0;
+      
+      console.log(`📊 Score Calculation: ${totalScore}/${maxScore} = ${scorePercentage}%`);
 
-      // Detect region and correct store ID
+      // Detect region and correct store ID from comprehensive mapping
       let detectedRegion = '';
       let correctedStoreId = meta.storeId;
       try {
-        if (meta.storeId) {
-          let storeMapping = hrMappingData.find((item: any) => item.storeId === meta.storeId);
+        if (meta.storeId && comprehensiveMapping.length > 0) {
+          let storeMapping = comprehensiveMapping.find(item => item['Store ID'] === meta.storeId);
           
+          // Try with S prefix if not found
           if (!storeMapping && !isNaN(Number(meta.storeId)) && !meta.storeId.startsWith('S')) {
             const sFormattedId = `S${meta.storeId.padStart(3, '0')}`;
-            storeMapping = hrMappingData.find((item: any) => item.storeId === sFormattedId);
+            storeMapping = comprehensiveMapping.find(item => item['Store ID'] === sFormattedId);
           }
           
+          // Try by store name if still not found
           if (!storeMapping && meta.storeName) {
-            storeMapping = hrMappingData.find((item: any) => 
-              item.locationName.toLowerCase().includes(meta.storeName.toLowerCase()) ||
-              meta.storeName.toLowerCase().includes(item.locationName.toLowerCase())
+            storeMapping = comprehensiveMapping.find(item => 
+              item['Store Name'].toLowerCase().includes(meta.storeName.toLowerCase()) ||
+              meta.storeName.toLowerCase().includes(item['Store Name'].toLowerCase())
             );
           }
           
           if (storeMapping) {
-            detectedRegion = storeMapping.region || '';
-            correctedStoreId = storeMapping.storeId;
+            detectedRegion = storeMapping.Region || '';
+            correctedStoreId = storeMapping['Store ID'];
+            console.log(`✅ Store ${meta.storeName} mapped to region: ${detectedRegion}`);
           }
         }
       } catch (error) {
@@ -338,6 +347,8 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
         totalScore: String(totalScore),
         maxScore: String(maxScore),
         scorePercentage: String(scorePercentage),
+        auditorSignature: signatures.auditor || '',
+        smSignature: signatures.sm || '',
         // responses may contain non-string values; ensure we stringify them
         ...Object.fromEntries(Object.entries(responses).map(([k, v]) => [k, String(v)]))
       };
@@ -365,6 +376,152 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
     }
   };
 
+  const handleImageUpload = (questionId: string, file: File) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setQuestionImages(prev => ({
+        ...prev,
+        [questionId]: base64String
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = (questionId: string) => {
+    setQuestionImages(prev => {
+      const updated = { ...prev };
+      delete updated[questionId];
+      return updated;
+    });
+  };
+
+  // State to store last coordinates for smooth curve drawing
+  const [lastPoint, setLastPoint] = useState<{ auditor: { x: number; y: number } | null; sm: { x: number; y: number } | null }>({
+    auditor: null,
+    sm: null
+  });
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, type: 'auditor' | 'sm') => {
+    const canvas = type === 'auditor' ? auditorCanvasRef.current : smCanvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    setIsDrawing(prev => ({ ...prev, [type]: true }));
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const x = ('touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left) * scaleX;
+    const y = ('touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top) * scaleY;
+
+    setLastPoint(prev => ({ ...prev, [type]: { x, y } }));
+    
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, type: 'auditor' | 'sm') => {
+    if (!isDrawing[type]) return;
+
+    const canvas = type === 'auditor' ? auditorCanvasRef.current : smCanvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const currentX = ('touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left) * scaleX;
+    const currentY = ('touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top) * scaleY;
+
+    const last = lastPoint[type];
+    if (!last) {
+      setLastPoint(prev => ({ ...prev, [type]: { x: currentX, y: currentY } }));
+      return;
+    }
+
+    // Use quadratic curve for smoother drawing
+    const midX = (last.x + currentX) / 2;
+    const midY = (last.y + currentY) / 2;
+
+    ctx.quadraticCurveTo(last.x, last.y, midX, midY);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(midX, midY);
+    
+    setLastPoint(prev => ({ ...prev, [type]: { x: currentX, y: currentY } }));
+  };
+
+  const stopDrawing = (type: 'auditor' | 'sm') => {
+    setIsDrawing(prev => ({ ...prev, [type]: false }));
+    setLastPoint(prev => ({ ...prev, [type]: null }));
+    
+    const canvas = type === 'auditor' ? auditorCanvasRef.current : smCanvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.closePath();
+    }
+
+    // Save signature as base64
+    const dataUrl = canvas.toDataURL('image/png', 1.0);
+    setSignatures(prev => ({
+      ...prev,
+      [type]: dataUrl
+    }));
+  };
+
+  const clearSignature = (type: 'auditor' | 'sm') => {
+    const canvas = type === 'auditor' ? auditorCanvasRef.current : smCanvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setLastPoint(prev => ({ ...prev, [type]: null }));
+    setSignatures(prev => ({
+      ...prev,
+      [type]: ''
+    }));
+  };
+
+  // Initialize canvas when signatures are loaded from localStorage
+  useEffect(() => {
+    if (signatures.auditor && auditorCanvasRef.current) {
+      const ctx = auditorCanvasRef.current.getContext('2d');
+      if (ctx) {
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0);
+        };
+        img.src = signatures.auditor;
+      }
+    }
+    if (signatures.sm && smCanvasRef.current) {
+      const ctx = smCanvasRef.current.getContext('2d');
+      if (ctx) {
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0);
+        };
+        img.src = signatures.sm;
+      }
+    }
+  }, []);
+
   const resetSurvey = () => {
     if (confirm('Are you sure you want to reset the survey? All responses will be lost.')) {
       setResponses({});
@@ -376,14 +533,18 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
         storeName: '',
         storeId: ''
       });
+      setQuestionImages({});
+      setSignatures({ auditor: '', sm: '' });
       setSubmitted(false);
       localStorage.removeItem('qa_resp');
       localStorage.removeItem('qa_meta');
+      localStorage.removeItem('qa_images');
+      localStorage.removeItem('qa_signatures');
     }
   };
 
   const autofillForTesting = () => {
-    if (confirm('This will fill the form with test data. Continue?')) {
+    if (confirm('This will fill the ENTIRE form with test data. Continue?')) {
       // Fill metadata
       setMeta({
         qaName: 'Test QA Auditor',
@@ -394,37 +555,47 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
         storeId: 'S027'
       });
 
-      // Generate realistic test responses
+      // Generate realistic test responses for ALL sections
       const testResponses: SurveyResponse = {};
       
       sections.forEach(section => {
         section.items.forEach((item, index) => {
-          // Create realistic distribution: mostly yes, some no, few na
+          // Create realistic distribution based on section type
           const rand = Math.random();
           let answer;
-          if (rand < 0.75) answer = 'yes';  // 75% yes
-          else if (rand < 0.90) answer = 'no';  // 15% no
-          else answer = 'na';  // 10% na
+          
+          if (section.id === 'ZeroTolerance') {
+            // Zero Tolerance: mostly compliant, occasionally non-compliant
+            answer = rand < 0.90 ? 'compliant' : 'non-compliant';
+          } else {
+            // Other sections: compliant/partially-compliant/not-compliant/na
+            if (rand < 0.70) answer = 'compliant';  // 70% compliant
+            else if (rand < 0.85) answer = 'partially-compliant';  // 15% partially
+            else if (rand < 0.95) answer = 'not-compliant';  // 10% not compliant
+            else answer = 'na';  // 5% na
+          }
           
           testResponses[`${section.id}_${item.id}`] = answer;
         });
         
-        // Add some sample remarks
+        // Add comprehensive remarks for each section
         if (section.id === 'ZeroTolerance') {
-          testResponses[`${section.id}_remarks`] = 'All critical food safety standards met. Minor training needed on date tag placement.';
+          testResponses[`${section.id}_remarks`] = 'All critical food safety standards met. Date tags properly labeled. TDS within acceptable range. No pest activity observed.';
+        } else if (section.id === 'Store') {
+          testResponses[`${section.id}_remarks`] = 'Store operations running smoothly. Excellent cleanliness standards maintained. Equipment properly maintained. Minor improvements needed in food contact material storage.';
         } else if (section.id === 'Maintenance') {
-          testResponses[`${section.id}_remarks`] = 'Equipment in good condition. Pest control devices checked and functioning properly.';
-        } else if (section.id === 'StoreOperations') {
-          testResponses[`${section.id}_remarks`] = 'Store operations running smoothly. Excellent cleanliness standards maintained.';
-        } else if (section.id === 'HygieneCompliance') {
-          testResponses[`${section.id}_remarks`] = 'Staff hygiene protocols followed correctly. All medical records up to date.';
+          testResponses[`${section.id}_remarks`] = 'Equipment in good condition. Pest control devices checked and functioning properly. Fire safety equipment current and accessible.';
+        } else if (section.id === 'A') {
+          testResponses[`${section.id}_remarks`] = 'Product quality standards maintained. Minor adjustments needed in presentation consistency.';
+        } else if (section.id === 'HR') {
+          testResponses[`${section.id}_remarks`] = 'Staff hygiene protocols followed correctly. All medical records up to date. Grooming standards excellent.';
         }
       });
 
       setResponses(testResponses);
       
       // Show success message
-      alert('Form autofilled with test data! You can now review and submit.');
+      alert('Entire form autofilled with test data! All 116 questions completed. You can now review and submit.');
     }
   };
 
@@ -453,22 +624,22 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 pb-6 sm:pb-8">
       {isLoading && <LoadingOverlay />}
       
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-6 border border-orange-200 dark:border-orange-800">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
+      <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-4 sm:p-6 border border-orange-200 dark:border-orange-800">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
           🔍 Quality Assurance Assessment
         </h1>
-        <p className="text-gray-600 dark:text-slate-400">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400">
           Comprehensive quality and safety assessment covering zero tolerance, maintenance, operations, and hygiene standards.
         </p>
       </div>
 
       {/* Audit Information */}
-      <div id="audit-information" className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">
+      <div id="audit-information" className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">
           Assessment Information
         </h2>
         
@@ -590,45 +761,127 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
       </div>
 
       {/* QA Sections */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4 sm:mb-6">
           Quality Assessment
         </h2>
         
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           {sections.map((section, sectionIndex) => (
-            <div key={section.id} className="border-l-4 border-orange-500 pl-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4 text-orange-700 dark:text-orange-300">
+            <div key={section.id} className="border-l-4 border-orange-500 pl-3 sm:pl-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3 sm:mb-4 text-orange-700 dark:text-orange-300">
                 {section.title}
               </h3>
               
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {section.items.map((item, itemIndex) => (
-                  <div key={item.id} className="p-4 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                    <div className="flex items-start gap-3">
-                      <span className="inline-flex items-center justify-center w-6 h-6 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
+                  <div key={item.id} className="p-3 sm:p-4 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <div className="flex items-start gap-2 sm:gap-3 mb-3">
+                      <span className="inline-flex items-center justify-center w-7 h-7 sm:w-6 sm:h-6 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-xs font-medium flex-shrink-0">
                         {itemIndex + 1}
                       </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-3">
-                          {item.q}
-                        </p>
-                        <div className="flex gap-4">
-                          {['yes', 'no', 'na'].map(option => (
-                            <label key={option} className="flex items-center space-x-2 cursor-pointer">
-                              <input
-                                type="radio"
-                                name={`${section.id}_${item.id}`}
-                                value={option}
-                                checked={responses[`${section.id}_${item.id}`] === option}
-                                onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500"
-                              />
-                              <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
-                            </label>
-                          ))}
+                      <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-slate-100 leading-relaxed flex-1">
+                        {item.q}
+                      </p>
+                    </div>
+                    
+                    {/* Response Options - Stacked on mobile, wrapped on desktop */}
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3 mb-3 pl-0 sm:pl-9">
+                      {section.options.map(option => (
+                        <label key={option} className="flex items-center gap-2 sm:gap-2 cursor-pointer p-2 sm:p-0 rounded hover:bg-gray-100 dark:hover:bg-slate-700 sm:hover:bg-transparent transition-colors min-h-[44px] sm:min-h-0">
+                          <input
+                            type="radio"
+                            name={`${section.id}_${item.id}`}
+                            value={option}
+                            checked={responses[`${section.id}_${item.id}`] === option}
+                            onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                            className="w-5 h-5 sm:w-4 sm:h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500 flex-shrink-0"
+                          />
+                          <span className="text-sm sm:text-sm text-gray-700 dark:text-slate-300 font-medium">
+                            {option === 'compliant' ? 'Compliant' : 
+                             option === 'partially-compliant' ? 'Partially Compliant' :
+                             option === 'not-compliant' ? 'Not Compliant' :
+                             option === 'non-compliant' ? 'Non-Compliant' :
+                             'N/A'}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+
+                    {/* Image Upload Section - Mobile Optimized */}
+                    <div className="pl-0 sm:pl-9">
+                      {!questionImages[`${section.id}_${item.id}`] ? (
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <label className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Camera
+                            <input
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageUpload(`${section.id}_${item.id}`, file);
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+                          
+                          <label className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Gallery
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageUpload(`${section.id}_${item.id}`, file);
+                              }}
+                              className="hidden"
+                            />
+                          </label>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="relative inline-block w-full">
+                            <img 
+                              src={questionImages[`${section.id}_${item.id}`]} 
+                              alt="Uploaded" 
+                              className="w-full max-h-64 object-contain rounded-lg border-2 border-gray-300 dark:border-slate-600"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(`${section.id}_${item.id}`)}
+                              className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                              title="Remove image"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                          <label className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px]">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Replace Image
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageUpload(`${section.id}_${item.id}`, file);
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -652,17 +905,132 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
         </div>
       </div>
 
-      <div className="flex justify-between items-center">
-        <div className="flex gap-3">
+      {/* Signatures Section - Mobile Optimized */}
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4 sm:mb-6">
+          Signatures
+        </h2>
+        
+        <div className="space-y-6 md:space-y-0 md:grid md:grid-cols-2 md:gap-6">
+          {/* Auditor Signature */}
+          <div className="space-y-3">
+            <label className="block text-base sm:text-sm font-medium text-gray-700 dark:text-slate-300">
+              Auditor Signature *
+            </label>
+            <div className="border-3 border-gray-400 dark:border-slate-500 rounded-xl bg-white p-1 shadow-inner">
+              <canvas
+                ref={auditorCanvasRef}
+                width={800}
+                height={300}
+                onMouseDown={(e) => startDrawing(e, 'auditor')}
+                onMouseMove={(e) => draw(e, 'auditor')}
+                onMouseUp={() => stopDrawing('auditor')}
+                onMouseLeave={() => stopDrawing('auditor')}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  startDrawing(e, 'auditor');
+                }}
+                onTouchMove={(e) => {
+                  e.preventDefault();
+                  draw(e, 'auditor');
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  stopDrawing('auditor');
+                }}
+                className="w-full h-auto touch-none rounded-lg"
+                style={{ 
+                  touchAction: 'none',
+                  cursor: 'crosshair',
+                  WebkitTouchCallout: 'none',
+                  WebkitUserSelect: 'none',
+                  userSelect: 'none'
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => clearSignature('auditor')}
+              className="w-full px-4 py-3 sm:py-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 min-h-[48px] sm:min-h-0"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Clear Signature
+            </button>
+            <p className="text-sm text-gray-600 dark:text-slate-400 text-center font-medium">
+              {typeof window !== 'undefined' && 'ontouchstart' in window 
+                ? '✍️ Draw with your finger' 
+                : '🖱️ Draw with your mouse'}
+            </p>
+          </div>
+
+          {/* Store Manager Signature */}
+          <div className="space-y-3">
+            <label className="block text-base sm:text-sm font-medium text-gray-700 dark:text-slate-300">
+              Store Manager (SM) Signature *
+            </label>
+            <div className="border-3 border-gray-400 dark:border-slate-500 rounded-xl bg-white p-1 shadow-inner">
+              <canvas
+                ref={smCanvasRef}
+                width={800}
+                height={300}
+                onMouseDown={(e) => startDrawing(e, 'sm')}
+                onMouseMove={(e) => draw(e, 'sm')}
+                onMouseUp={() => stopDrawing('sm')}
+                onMouseLeave={() => stopDrawing('sm')}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  startDrawing(e, 'sm');
+                }}
+                onTouchMove={(e) => {
+                  e.preventDefault();
+                  draw(e, 'sm');
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  stopDrawing('sm');
+                }}
+                className="w-full h-auto touch-none rounded-lg"
+                style={{ 
+                  touchAction: 'none',
+                  cursor: 'crosshair',
+                  WebkitTouchCallout: 'none',
+                  WebkitUserSelect: 'none',
+                  userSelect: 'none'
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => clearSignature('sm')}
+              className="w-full px-4 py-3 sm:py-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 min-h-[48px] sm:min-h-0"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Clear Signature
+            </button>
+            <p className="text-sm text-gray-600 dark:text-slate-400 text-center font-medium">
+              {typeof window !== 'undefined' && 'ontouchstart' in window 
+                ? '✍️ Draw with your finger' 
+                : '🖱️ Draw with your mouse'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 order-2 sm:order-1">
           <button
             onClick={resetSurvey}
-            className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
+            className="px-4 sm:px-6 py-3 bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white rounded-lg font-medium transition-colors min-h-[48px]"
           >
             Reset Assessment
           </button>
           <button
             onClick={autofillForTesting}
-            className="px-6 py-3 btn-primary-gradient text-white rounded-lg font-medium transition-transform duration-150 transform hover:scale-105"
+            className="px-4 sm:px-6 py-3 btn-primary-gradient text-white rounded-lg font-medium transition-transform duration-150 active:scale-95 min-h-[48px]"
           >
             🧪 Autofill Test Data
           </button>
@@ -670,9 +1038,9 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate }) =>
         <button
           onClick={handleSubmit}
           disabled={isLoading}
-          className="px-6 py-3 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white rounded-lg font-medium transition-colors"
+          className="px-4 sm:px-6 py-3 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 disabled:bg-orange-400 text-white rounded-lg font-medium transition-colors order-1 sm:order-2 min-h-[52px] text-base sm:text-base"
         >
-          {isLoading ? 'Submitting...' : 'Submit Assessment'}
+          {isLoading ? 'Submitting...' : '📤 Submit Assessment'}
         </button>
       </div>
     </div>

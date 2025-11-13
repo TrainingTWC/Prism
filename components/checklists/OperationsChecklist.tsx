@@ -3,7 +3,7 @@ import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../../roleMa
 import { AREA_MANAGERS, HR_PERSONNEL, SENIOR_HR_ROLES } from '../../constants';
 import { Store } from '../../types';
 import { hapticFeedback } from '../../utils/haptics';
-import hrMappingData from '../../src/hr_mapping.json';
+import compStoreMapping from '../../src/comprehensive_store_mapping.json';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
 
@@ -276,126 +276,166 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     setStoreSearchTerm(metadata.storeName);
   }, []);
 
-  // Auto-fill HR and trainer when AM is selected from URL
+  // Trainer name overrides from comprehensive mapping
+  const trainerNameOverrides: Record<string, string> = {
+    H1761: 'Mahadev',
+    H701: 'Mallika',
+    H1697: 'Sheldon',
+    H2595: 'Kailash',
+    H3595: 'Bhawna',
+    H3252: 'Priyanka',
+    H1278: 'Viraj',
+    H3247: 'Sunil'
+  };
+
+  // Build unique trainers list from comprehensive store mapping - ULTIMATE SOURCE OF TRUTH
+  const uniqueTrainers = useMemo(() => {
+    const ids = Array.from(new Set((compStoreMapping as any[]).map((r: any) => r.Trainer).filter(Boolean)));
+    const trainers = ids.map((id: string) => ({
+      id,
+      name: trainerNameOverrides[id] || id
+    }));
+    return trainers.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
+  }, []);
+
+  // Extract stores from comprehensive store mapping as ULTIMATE SOURCE OF TRUTH
+  const uniqueStores = useMemo(() => {
+    const stores = (compStoreMapping as any[]).map((row: any) => ({
+      name: row['Store Name'],
+      id: row['Store ID'],
+      menu: row['Menu'],
+      storeType: row['Store Type'],
+      concept: row['Concept']
+    }));
+    return stores
+      .filter(store => store.name && store.id)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, []);
+
+  // Auto-populate fields when store is selected
   useEffect(() => {
-    if (metadata.amId && metadata.amName && (!metadata.hrName || !metadata.trainerName)) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const amFromUrl = urlParams.get('amId') || urlParams.get('am_id') || urlParams.get('r');
+    if (metadata.storeId) {
+      const normalizeId = (v: any) => (v || '').toString().trim().toUpperCase();
+      const storeIdNorm = normalizeId(metadata.storeId);
       
-      if (amFromUrl) {
-        // Auto-fill HR if not already set
-        if (!metadata.hrName) {
-          const amStores = hrMappingData.filter((item: any) => 
-            item.areaManagerId === metadata.amId
-          );
-          
-          if (amStores.length > 0) {
-            const firstStore = amStores[0];
-            const hrbp = HR_PERSONNEL.find(hr => hr.id === firstStore.hrbpId);
-            if (hrbp) {
-              setMetadata(prev => ({ ...prev, hrName: hrbp.name, hrId: hrbp.id }));
-              setHrSearchTerm(hrbp.name);
-            }
-          }
-        }
-        
-        // Auto-fill trainer if not already set
-        if (!metadata.trainerName) {
-          const amStores = hrMappingData.filter((item: any) => 
-            item.areaManagerId === metadata.amId
-          );
-          
-          if (amStores.length > 0) {
-            const firstStore = amStores[0];
-            if (firstStore.trainer && firstStore.trainerId) {
-              setMetadata(prev => ({ 
-                ...prev, 
-                trainerName: firstStore.trainer, 
-                trainerId: firstStore.trainerId 
-              }));
-              setTrainerSearchTerm(firstStore.trainer);
-            }
-          }
-        }
+      // Find store in comprehensive mapping
+      const storeData = (compStoreMapping as any[]).find((row: any) => 
+        normalizeId(row['Store ID']) === storeIdNorm
+      );
+      
+      if (storeData) {
+        // Auto-populate cafeType (Menu), storeType, and concept
+        setMetadata(prev => ({
+          ...prev,
+          cafeType: storeData['Menu'] || prev.cafeType,
+          storeType: storeData['Store Type'] || prev.storeType,
+          concept: storeData['Concept'] || prev.concept
+        }));
       }
     }
-  }, [metadata.amId, metadata.amName]);
+  }, [metadata.storeId]);
 
-  // Filtering functions
+  // Normalize ID helper
+  const normalizeId = (v: any) => (v || '').toString().trim().toUpperCase();
+
+  // Filtering functions using comprehensive store mapping as ULTIMATE SOURCE OF TRUTH
+  
+  // 1. Area Managers filtered by selected trainer (if any)
+  const filteredAM = AREA_MANAGERS.filter(am => {
+    // First apply search filter
+    const matchesSearch = amSearchTerm === '' || 
+      (am.name as string).toLowerCase().includes(amSearchTerm.toLowerCase()) ||
+      (am.id as string).toLowerCase().includes(amSearchTerm.toLowerCase());
+
+    // If no trainer is selected, show all AMs that match search
+    if (!metadata.trainerId) return matchesSearch;
+
+    // If trainer is selected, use comprehensive mapping to find AMs for that trainer
+    try {
+      const trainerIdNorm = normalizeId(metadata.trainerId);
+      const amsForTrainer = Array.from(new Set((compStoreMapping as any[])
+        .filter((r: any) => normalizeId(r.Trainer) === trainerIdNorm)
+        .map((r: any) => normalizeId(r.AM))
+        .filter(Boolean)));
+      return matchesSearch && amsForTrainer.includes(normalizeId(am.id));
+    } catch (e) {
+      // If error, only show AMs that match search
+      return matchesSearch;
+    }
+  });
+
+  // 2. Trainers - filtered by selected AM (if any)
+  const filteredTrainers = () => {
+    return uniqueTrainers.filter(trainer => {
+      // First apply search filter
+      const matchesSearch = trainerSearchTerm === '' || 
+        (trainer.name as string).toLowerCase().includes(trainerSearchTerm.toLowerCase()) ||
+        (trainer.id as string).toLowerCase().includes(trainerSearchTerm.toLowerCase());
+
+      // If no AM is selected, show all trainers that match search
+      if (!metadata.amId) return matchesSearch;
+
+      // If AM is selected, use comprehensive mapping to find trainers for that AM
+      try {
+        const amIdNorm = normalizeId(metadata.amId);
+        const trainersForAM = Array.from(new Set((compStoreMapping as any[])
+          .filter((r: any) => normalizeId(r.AM) === amIdNorm)
+          .map((r: any) => normalizeId(r.Trainer))
+          .filter(Boolean)));
+        return matchesSearch && trainersForAM.includes(normalizeId(trainer.id));
+      } catch (e) {
+        // If error, show all trainers that match search
+        return matchesSearch;
+      }
+    });
+  };
+
+  // 3. Stores filtered by selected Area Manager (if any)
+  const getStoresForAM = () => {
+    return uniqueStores.filter(store => {
+      // First apply search filter
+      const matchesSearch = storeSearchTerm === '' || 
+        (store.name as string).toLowerCase().includes(storeSearchTerm.toLowerCase()) ||
+        (store.id as string).toLowerCase().includes(storeSearchTerm.toLowerCase());
+
+      // If no AM is selected, show all stores that match search
+      if (!metadata.amId) return matchesSearch;
+
+      // If AM is selected, use comprehensive mapping to find stores for that AM
+      try {
+        const amIdNorm = normalizeId(metadata.amId);
+        const storesForAM = Array.from(new Set((compStoreMapping as any[])
+          .filter((r: any) => normalizeId(r.AM) === amIdNorm)
+          .map((r: any) => normalizeId(r['Store ID']))
+          .filter(Boolean)));
+        return matchesSearch && storesForAM.includes(normalizeId(store.id));
+      } catch (e) {
+        // If error, show all stores that match search
+        return matchesSearch;
+      }
+    });
+  };
+
+  // 4. HR filtered by selected AM (if any)
   const filteredHR = HR_PERSONNEL.filter(hr => {
     const matchesSearch = hr.name.toLowerCase().includes(hrSearchTerm.toLowerCase());
     
     // If no AM is selected, show all HR
     if (!metadata.amId) return matchesSearch;
     
-    // Filter HR based on selected AM - check if HR is associated with the AM's stores
-    const hrStores = hrMappingData.filter((item: any) => 
-      item.hrbpId === hr.id || item.regionalHrId === hr.id || item.hrHeadId === hr.id
-    );
-    
-    const amStores = hrMappingData.filter((item: any) => 
-      item.areaManagerId === metadata.amId
-    );
-    
-    // Check if HR has any stores in common with the selected AM
-    const hasCommonStores = hrStores.some((hrStore: any) =>
-      amStores.some((amStore: any) => amStore.storeId === hrStore.storeId)
-    );
-    
-    return matchesSearch && hasCommonStores;
-  });
-
-  const filteredAM = AREA_MANAGERS.filter(am => 
-    am.name.toLowerCase().includes(amSearchTerm.toLowerCase())
-  );
-
-  const filteredTrainers = () => {
-    // If no AM is selected, return empty array
-    if (!metadata.amId) return [];
-    
-    // Get unique trainers for the selected AM's stores
-    const trainers = new Map();
-    hrMappingData.forEach((item: any) => {
-      if (item.areaManagerId === metadata.amId && item.trainer && item.trainerId) {
-        trainers.set(item.trainerId, {
-          id: item.trainerId,
-          name: item.trainer
-        });
-      }
-    });
-    
-    return Array.from(trainers.values()).filter(trainer =>
-      trainer.name.toLowerCase().includes(trainerSearchTerm.toLowerCase())
-    );
-  };
-
-  const getStoresForAM = () => {
-    if (!metadata.amId && !metadata.amName) {
-      // If no AM selected, show all stores
-      const allStores: Array<{id: string, name: string}> = [];
-      Object.entries(hrMappingData).forEach(([storeId, storeData]) => {
-        if (storeData.locationName && !allStores.find(s => s.id === storeId)) {
-          allStores.push({ id: storeId, name: storeData.locationName });
-        }
-      });
-      return allStores.filter(store => 
-        store.name.toLowerCase().includes(storeSearchTerm.toLowerCase())
-      );
+    // Filter HR based on selected AM using comprehensive mapping
+    try {
+      const amIdNorm = normalizeId(metadata.amId);
+      const hrbpsForAM = Array.from(new Set((compStoreMapping as any[])
+        .filter((r: any) => normalizeId(r.AM) === amIdNorm)
+        .map((r: any) => normalizeId(r.HRBP))
+        .filter(Boolean)));
+      return matchesSearch && hrbpsForAM.includes(normalizeId(hr.id));
+    } catch (e) {
+      // If error, show all HR that match search
+      return matchesSearch;
     }
-    
-    // Show stores for selected AM
-    const stores: Array<{id: string, name: string}> = [];
-    const selectedAM = AREA_MANAGERS.find(am => am.id === metadata.amId || am.name === metadata.amName);
-    
-    Object.entries(hrMappingData).forEach(([storeId, storeData]) => {
-      if (storeData.areaManagerId === selectedAM?.id) {
-        stores.push({ id: storeId, name: storeData.locationName });
-      }
-    });
-    return stores.filter(store => 
-      store.name.toLowerCase().includes(storeSearchTerm.toLowerCase())
-    );
-  };
+  });
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -461,40 +501,28 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
       // Calculate scores
       const { score, maxScore, percentage } = calculateScore();
       
-      // Detect region and correct store ID based on store ID
+      // Detect region from comprehensive store mapping - ULTIMATE SOURCE OF TRUTH
       let detectedRegion = '';
-      let correctedStoreId = metadata.storeId; // Default to original
       try {
         if (metadata.storeId) {
-          // Try to find by exact store ID match first
-          let storeMapping = hrMappingData.find((item: any) => item.storeId === metadata.storeId);
+          const storeIdNorm = normalizeId(metadata.storeId);
           
-          // If not found and storeId is numeric, try with S prefix
-          if (!storeMapping && !isNaN(Number(metadata.storeId)) && !metadata.storeId.startsWith('S')) {
-            const sFormattedId = `S${metadata.storeId.padStart(3, '0')}`;
-            storeMapping = hrMappingData.find((item: any) => item.storeId === sFormattedId);
-          }
-          
-          // If still not found, try to match by store name
-          if (!storeMapping && metadata.storeName) {
-            storeMapping = hrMappingData.find((item: any) => 
-              item.locationName.toLowerCase().includes(metadata.storeName.toLowerCase()) ||
-              metadata.storeName.toLowerCase().includes(item.locationName.toLowerCase())
-            );
-          }
+          // Find in comprehensive mapping
+          const storeMapping = (compStoreMapping as any[]).find((row: any) => 
+            normalizeId(row['Store ID']) === storeIdNorm
+          );
           
           if (storeMapping) {
-            detectedRegion = storeMapping.region || '';
-            correctedStoreId = storeMapping.storeId; // Use the correct S-prefixed store ID
-            console.log(`✅ Store mapped: ${metadata.storeId} (${metadata.storeName}) → ${correctedStoreId} → Region: ${detectedRegion}`);
+            detectedRegion = storeMapping['Region'] || '';
+            console.log(`✅ Store mapped from comprehensive_store_mapping.json: ${metadata.storeId} (${metadata.storeName}) → Region: ${detectedRegion}`);
           } else {
-            console.warn(`❌ No mapping found for store ${metadata.storeId} (${metadata.storeName})`);
+            console.warn(`❌ No mapping found in comprehensive_store_mapping.json for store ${metadata.storeId} (${metadata.storeName})`);
           }
         } else {
           console.warn(`❌ No store ID provided for region detection`);
         }
       } catch (error) {
-        console.warn('Could not load HR mapping data for region detection:', error);
+        console.warn('Could not load comprehensive store mapping for region detection:', error);
       }
 
       // Prepare data for Google Sheets
@@ -507,7 +535,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         trainerName: metadata.trainerName,
         trainerId: metadata.trainerId || metadata.trainerName,
         storeName: metadata.storeName,
-        storeId: correctedStoreId, // Use the corrected S-prefixed store ID
+        storeId: metadata.storeId,
         region: detectedRegion || 'Unknown',
         bscAchievement: metadata.bscAchievement,
         peopleOnShift: metadata.peopleOnShift,
@@ -928,7 +956,15 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
                       key={store.id}
                       className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600 cursor-pointer dark:text-slate-100"
                       onClick={() => {
-                        setMetadata(prev => ({ ...prev, storeName: store.name, storeId: store.id }));
+                        // Auto-populate all fields from comprehensive mapping
+                        setMetadata(prev => ({ 
+                          ...prev, 
+                          storeName: store.name, 
+                          storeId: store.id,
+                          cafeType: store.menu || prev.cafeType,
+                          storeType: store.storeType || prev.storeType,
+                          concept: store.concept || prev.concept
+                        }));
                         setStoreSearchTerm(store.name);
                         setShowStoreDropdown(false);
                       }}
