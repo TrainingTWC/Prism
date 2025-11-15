@@ -4,6 +4,7 @@ import InfographicCard from './InfographicCard';
 
 interface AMPerformanceProps {
   submissions: Submission[];
+  onAMClick?: (amName: string, amId: string) => void;
 }
 
 const PerformanceStat: React.FC<{
@@ -25,7 +26,7 @@ const PerformanceStat: React.FC<{
     </div>
 );
 
-const AMPerformanceInfographic: React.FC<AMPerformanceProps> = ({ submissions }) => {
+const AMPerformanceInfographic: React.FC<AMPerformanceProps> = ({ submissions, onAMClick }) => {
     const performanceData = useMemo(() => {
         if (submissions.length === 0) return { top: null, bottom: null };
         
@@ -56,7 +57,19 @@ const AMPerformanceInfographic: React.FC<AMPerformanceProps> = ({ submissions })
     }, [submissions]);
 
     return (
-        <InfographicCard title="Team Satisfaction by AM">
+        <InfographicCard 
+            title="Team Satisfaction by AM"
+            clickable={!!onAMClick}
+            onClick={() => {
+                if (onAMClick && performanceData.top) {
+                    // Find the AM ID from submissions
+                    const topAM = submissions.find(s => s.amName === performanceData.top?.name);
+                    if (topAM) {
+                        onAMClick(topAM.amName, topAM.amId);
+                    }
+                }
+            }}
+        >
             <div className="flex flex-col h-full">
                 <div className="flex-1 flex items-center">
                     <PerformanceStat

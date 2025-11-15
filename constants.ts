@@ -70,12 +70,26 @@ export const HR_PERSONNEL: HRPerson[] = [
     { name: 'Subin', id: 'H2761' },
     { name: 'Swati', id: 'H1972' },
     { name: 'Manasi', id: 'H3603' },
+    { name: 'Sumanjali', id: 'H3730' },
     { name: 'Sunil', id: 'H3247' },
     { name: 'Sarit', id: 'H2081' },
     { name: 'Pooja', id: 'HC002' },
     { name: 'Rohit Paul', id: 'H3551' },
     { name: 'Training Head', id: 'H3237' },
     { name: 'LMS Head', id: 'H541' }
+];
+
+// Trainer Personnel - separate from HR/HRBP
+export const TRAINER_PERSONNEL: HRPerson[] = [
+    { name: 'Mallika', id: 'H701' },
+    { name: 'Hema', id: 'H1169' },
+    { name: 'Viraj', id: 'H1278' },
+    { name: 'Sheldon', id: 'H1697' },
+    { name: 'Mahadev', id: 'H1761' },
+    { name: 'Kailash', id: 'H2595' },
+    { name: 'Sunil', id: 'H3247' },
+    { name: 'Priyanka', id: 'H3252' },
+    { name: 'Bhavna', id: 'H3595' }
 ];
 
 // Senior HR roles that should have access to all Area Managers
@@ -442,3 +456,6 @@ export const TRAINING_QUESTIONS: Question[] = [
     {label: 'Yes', score: 2}, {label: 'No', score: 0}
   ]}
 ];
+
+// Default script URLs for various forms
+export const CAMPUS_HIRING_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkH1lI4DyXsFDcAjW81UGLxu8BJ2hvAS39Qy8PaVCl9O0apDHckvnRYLuQjK4woWmE9g/exec';

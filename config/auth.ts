@@ -54,14 +54,19 @@ export const AUTH_CONFIG: AuthConfig = {
       permissions: ['finance', 'dashboard', 'financial-reports'],
       dashboardAccess: ['finance-dashboard', 'financial-analytics', 'budget-reports']
     },
+    'campus-hiring': {
+      password: 'CampusHire2024!',
+      permissions: ['campus-hiring', 'dashboard'],
+      dashboardAccess: ['campus-hiring-dashboard'] // Access to campus hiring dashboard
+    },
     admin: {
       password: 'AdminView2024!',
-      permissions: ['operations', 'hr', 'qa', 'training', 'finance', 'dashboard'],
+      permissions: ['operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'dashboard'],
       dashboardAccess: ['all']
     },
     editor: {
       password: 'Editornotcreator2025!',
-      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'dashboard'],
+      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'dashboard'],
       dashboardAccess: ['all']
     }
   },

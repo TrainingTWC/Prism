@@ -4,6 +4,7 @@ import InfographicCard from './InfographicCard';
 
 interface HRPerformanceProps {
   submissions: Submission[];
+  onHRClick?: (hrName: string, hrId: string) => void;
 }
 
 const PerformanceStat: React.FC<{
@@ -25,7 +26,7 @@ const PerformanceStat: React.FC<{
     </div>
 );
 
-const HRPerformanceInfographic: React.FC<HRPerformanceProps> = ({ submissions }) => {
+const HRPerformanceInfographic: React.FC<HRPerformanceProps> = ({ submissions, onHRClick }) => {
     const performanceData = useMemo(() => {
         if (submissions.length === 0) return { top: null, bottom: null };
 
@@ -56,7 +57,19 @@ const HRPerformanceInfographic: React.FC<HRPerformanceProps> = ({ submissions })
     }, [submissions]);
 
     return (
-        <InfographicCard title="Team Satisfaction by HR">
+        <InfographicCard 
+            title="Team Satisfaction by HR"
+            clickable={!!onHRClick}
+            onClick={() => {
+                if (onHRClick && performanceData.top) {
+                    // Find the HR ID from submissions
+                    const topHR = submissions.find(s => s.hrName === performanceData.top?.name);
+                    if (topHR) {
+                        onHRClick(topHR.hrName, topHR.hrId);
+                    }
+                }
+            }}
+        >
             <div className="flex flex-col h-full">
                 <div className="flex-1 flex items-center">
                     <PerformanceStat

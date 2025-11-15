@@ -4,7 +4,7 @@ import { QUESTIONS, AREA_MANAGERS, HR_PERSONNEL, SENIOR_HR_ROLES } from '../../c
 import { Question, Choice, Store } from '../../types';
 import { hapticFeedback } from '../../utils/haptics';
 import LoadingOverlay from '../LoadingOverlay';
-import hrMappingData from '../../src/hr_mapping.json';
+import compStoreMapping from '../../src/comprehensive_store_mapping.json';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
 
@@ -108,18 +108,22 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     }
   }, [authUserRole, employeeData]);
 
-  // Load stores from hr_mapping.json
+  // Load stores from comprehensive_store_mapping.json
   useEffect(() => {
     const loadStores = () => {
       try {
         const storeMap = new Map();
         
-        hrMappingData.forEach((item: any) => {
-          if (!storeMap.has(item.storeId)) {
-            storeMap.set(item.storeId, {
-              name: item.locationName,
-              id: item.storeId,
-              region: item.region
+        compStoreMapping.forEach((item: any) => {
+          const storeId = item['Store ID'];
+          const storeName = item['Store Name'];
+          const region = item.Region;
+          
+          if (!storeMap.has(storeId)) {
+            storeMap.set(storeId, {
+              name: storeName,
+              id: storeId,
+              region: region
             });
           }
         });
@@ -149,25 +153,25 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
       }
 
       try {
-        const hrStoreIds = hrMappingData
+        const hrStoreIds = compStoreMapping
           .filter((mapping: any) => 
-            mapping.hrbpId === meta.hrId || 
-            mapping.regionalHrId === meta.hrId || 
-            mapping.hrHeadId === meta.hrId
+            mapping.HRBP === meta.hrId || 
+            mapping['Regional Training Manager'] === meta.hrId || 
+            mapping['HR Head'] === meta.hrId
           )
-          .map((mapping: any) => mapping.storeId);
+          .map((mapping: any) => mapping['Store ID']);
         
         const hrStores = allStores.filter(store => hrStoreIds.includes(store.id));
         setFilteredStoresByHR(hrStores);
         
         if (hrStores.length > 0 && !meta.amId) {
-          const firstStoreMapping = hrMappingData.find((mapping: any) => 
-            mapping.storeId === hrStores[0].id
+          const firstStoreMapping = compStoreMapping.find((mapping: any) => 
+            mapping['Store ID'] === hrStores[0].id
           );
           
           if (firstStoreMapping) {
-            const amId = firstStoreMapping.areaManagerId;
-            const amPerson = AREA_MANAGERS.find(am => am.id === amId);
+            const amId = firstStoreMapping.AM;
+            const amPerson = AREA_MANAGERS.find(am => am.id.toLowerCase() === amId.toLowerCase());
             
             if (amPerson) {
               setMeta(prev => ({
@@ -199,15 +203,21 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     
     const hrAreaManagerIds = new Set<string>();
     
-    hrMappingData.forEach((mapping: any) => {
-      if (mapping.hrbpId === meta.hrId || 
-          mapping.regionalHrId === meta.hrId || 
-          mapping.hrHeadId === meta.hrId) {
-        hrAreaManagerIds.add(mapping.areaManagerId);
+    compStoreMapping.forEach((mapping: any) => {
+      if (mapping.HRBP === meta.hrId || 
+          mapping['Regional Training Manager'] === meta.hrId || 
+          mapping['HR Head'] === meta.hrId) {
+        if (mapping.AM) {
+          hrAreaManagerIds.add(mapping.AM);
+        }
       }
     });
     
-    const filteredAMs = AREA_MANAGERS.filter(am => hrAreaManagerIds.has(am.id));
+    const filteredAMs = AREA_MANAGERS.filter(am => 
+      hrAreaManagerIds.has(am.id) || 
+      hrAreaManagerIds.has(am.id.toUpperCase()) || 
+      hrAreaManagerIds.has(am.id.toLowerCase())
+    );
     
     return filteredAMs;
   }, [userRole, meta.hrId]);
@@ -221,9 +231,15 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
       return roleBasedStores;
     }
     
-    const amStoreIds = hrMappingData
-      .filter((mapping: any) => mapping.areaManagerId === meta.amId)
-      .map((mapping: any) => mapping.storeId);
+    const amStoreIds = compStoreMapping
+      .filter((mapping: any) => {
+        const am = mapping.AM;
+        return am && (
+          am === meta.amId || 
+          am.toUpperCase() === meta.amId.toUpperCase()
+        );
+      })
+      .map((mapping: any) => mapping['Store ID']);
     
     const filteredStores = allStores.filter(store => amStoreIds.includes(store.id));
     
@@ -298,12 +314,12 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
       const next = { ...prev, [key]: value };
       
       if (key === 'storeId' && value) {
-        const storeMapping = hrMappingData.find((mapping: any) => mapping.storeId === value);
+        const storeMapping = compStoreMapping.find((mapping: any) => mapping['Store ID'] === value);
         
         if (storeMapping) {
           setMeta(current => ({
             ...current,
-            storeName: storeMapping.locationName
+            storeName: storeMapping['Store Name']
           }));
         }
       }
@@ -364,32 +380,32 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
       try {
         if (meta.storeId) {
           // Try to find by exact store ID match first
-          let storeMapping = hrMappingData.find((item: any) => item.storeId === meta.storeId);
+          let storeMapping = compStoreMapping.find((item: any) => item['Store ID'] === meta.storeId);
           
           // If not found and storeId is numeric, try with S prefix
           if (!storeMapping && !isNaN(Number(meta.storeId)) && !meta.storeId.startsWith('S')) {
             const sFormattedId = `S${meta.storeId.padStart(3, '0')}`;
-            storeMapping = hrMappingData.find((item: any) => item.storeId === sFormattedId);
+            storeMapping = compStoreMapping.find((item: any) => item['Store ID'] === sFormattedId);
           }
           
           // If still not found, try to match by store name
           if (!storeMapping && meta.storeName) {
-            storeMapping = hrMappingData.find((item: any) => 
-              item.locationName.toLowerCase().includes(meta.storeName.toLowerCase()) ||
-              meta.storeName.toLowerCase().includes(item.locationName.toLowerCase())
+            storeMapping = compStoreMapping.find((item: any) => 
+              item['Store Name'].toLowerCase().includes(meta.storeName.toLowerCase()) ||
+              meta.storeName.toLowerCase().includes(item['Store Name'].toLowerCase())
             );
           }
           
           if (storeMapping) {
-            detectedRegion = storeMapping.region || '';
-            correctedStoreId = storeMapping.storeId; // Use the correct S-prefixed store ID
+            detectedRegion = storeMapping.Region || '';
+            correctedStoreId = storeMapping['Store ID']; // Use the correct S-prefixed store ID
             console.log(`✅ HR Survey - Store mapped: ${meta.storeId} (${meta.storeName}) → ${correctedStoreId} → Region: ${detectedRegion}`);
           } else {
             console.warn(`❌ HR Survey - No mapping found for store ${meta.storeId} (${meta.storeName})`);
           }
         }
       } catch (error) {
-        console.warn('Could not load HR mapping data for region detection:', error);
+        console.warn('Could not load comprehensive store mapping for region detection:', error);
       }
 
       // Prepare data in the expected Google Sheets format
@@ -572,6 +588,9 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
                     onClick={() => {
                       handleMetaChange('amId', am.id);
                       handleMetaChange('amName', am.name);
+                      // Reset store selection when AM changes
+                      handleMetaChange('storeId', '');
+                      handleMetaChange('storeName', '');
                       setAmSearchTerm('');
                       setShowAmDropdown(false);
                     }}

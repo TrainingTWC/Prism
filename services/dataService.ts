@@ -16,6 +16,9 @@ const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzSibBi
 // QA Assessment endpoint - UPDATED URL (Data fetched from Google Sheets)
 const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbythMmyeF6TWRx1Q2Icy9XfB9z1UVYFwau02u7BEr3GgabMIomF1lkAyCx1xq0BAA1LIQ/exec';
 
+// Campus Hiring endpoint - UPDATED URL
+const CAMPUS_HIRING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzkH1lI4DyXsFDcAjW81UGLxu8BJ2hvAS39Qy8PaVCl9O0apDHckvnRYLuQjK4woWmE9g/exec';
+
 // Cache for store mapping data
 let storeMappingCache: any[] | null = null;
 
@@ -259,14 +262,20 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
     console.log(`Final scores - Total: ${finalTotalScore}, Max: ${finalMaxScore}, Percent: ${finalPercent}%`);
 
     // Get proper mappings for the store
-    let amId = row.amId || '';
-    let amName = row.amName || '';
-    let hrId = row.hrId || '';
-    let hrName = row.hrName || '';
-    let region = row.region || 'Unknown';
+    // Try both formats: with spaces (from Google Sheets) and without (from local data)
+    let amId = row['AM ID'] || row.amId || '';
+    let amName = row['AM Name'] || row.amName || '';
+    // IMPORTANT: Keep the original HR data from Google Sheets (who actually did the survey)
+    // Don't overwrite with store mapping HRBP
+    const originalHrId = row['HR ID'] || row.hrId || '';
+    const originalHrName = row['HR Name'] || row.hrName || '';
+    let hrId = originalHrId;
+    let hrName = originalHrName;
+    let region = row['Region'] || row.region || 'Unknown';
     
-    if (row.storeID || row.storeId) {
-      const storeId = row.storeID || row.storeId;
+    // Always look up from comprehensive store mapping to ensure we have the latest data
+    if (row['Store ID'] || row.storeID || row.storeId) {
+      const storeId = row['Store ID'] || row.storeID || row.storeId;
       try {
         const mappingData = await loadStoreMapping();
         const storeMapping = mappingData.find((mapping: any) => 
@@ -274,25 +283,39 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
         );
         
         if (storeMapping) {
-          // Get Area Manager
-          amId = storeMapping['Area Manager ID'] || storeMapping.areaManagerId;
-          const amPerson = AREA_MANAGERS.find(am => am.id === amId);
-          amName = amPerson?.name || `AM ${amId}`;
+          // Get Area Manager - use mapping as primary source
+          const mappedAmId = storeMapping.AM || storeMapping['Area Manager ID'] || storeMapping.areaManagerId;
+          if (mappedAmId) {
+            amId = mappedAmId;
+            const amPerson = AREA_MANAGERS.find(am => am.id === amId);
+            amName = amPerson?.name || `AM ${amId}`;
+          }
           
-          // Get HR (Priority: HRBP > Regional HR > HR Head)
-          hrId = storeMapping['HRBP ID'] || storeMapping['Regional HR ID'] || storeMapping['HR Head ID'] || 
-                 storeMapping.hrbpId || storeMapping.regionalHrId || storeMapping.hrHeadId;
-          const hrPerson = HR_PERSONNEL.find(hr => hr.id === hrId);
-          hrName = hrPerson?.name || `HR ${hrId}`;
+          // Only use store mapping HRBP if Google Sheets didn't provide HR data
+          if (!originalHrId) {
+            const mappedHrId = storeMapping.HRBP || storeMapping['Regional Training Manager'] || 
+                               storeMapping['HR Head'] || storeMapping.hrbpId || 
+                               storeMapping.regionalHrId || storeMapping.hrHeadId;
+            if (mappedHrId) {
+              hrId = mappedHrId;
+              const hrPerson = HR_PERSONNEL.find(hr => hr.id === hrId);
+              hrName = hrPerson?.name || `HR ${hrId}`;
+            }
+          }
           
           // Get Region from mapping
-          region = storeMapping['Region'] || storeMapping.region || 'Unknown';
+          const mappedRegion = storeMapping.Region || storeMapping['Region'] || storeMapping.region;
+          if (mappedRegion) {
+            region = mappedRegion;
+          }
           
           console.log(`Successfully mapped store ${storeId}:`, {
             amId, amName, hrId, hrName, region,
+            fromSheets: { hrId: originalHrId, hrName: originalHrName },
             rawMapping: {
-              amId: storeMapping['Area Manager ID'] || storeMapping.areaManagerId,
-              region: storeMapping['Region'] || storeMapping.region
+              amId: storeMapping.AM || storeMapping['Area Manager ID'],
+              hrbp: storeMapping.HRBP,
+              region: storeMapping.Region || storeMapping.region
             }
           });
         } else {
@@ -304,15 +327,15 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
     }
 
     const submission: Submission = {
-      submissionTime: row.submissionTime || new Date().toISOString(),
+      submissionTime: row['Submission Time'] || row.submissionTime || new Date().toISOString(),
       hrName: hrName,
       hrId: hrId,
       amName: amName,
       amId: amId,
-      empName: row.empName || '',
-      empId: row.empId || '',
-      storeName: row.storeName || '',
-      storeID: row.storeID || row.storeId || '',
+      empName: row['Emp Name'] || row.empName || '',
+      empId: row['Emp ID'] || row.empId || '',
+      storeName: row['Store Name'] || row.storeName || '',
+      storeID: row['Store ID'] || row.storeID || row.storeId || '',
       region: region,
       q1: row.q1 || '',
       q1_remarks: row.q1_remarks || '',
@@ -1173,3 +1196,132 @@ export const fetchQAData = async (): Promise<QASubmission[]> => {
     return STATIC_QA_DATA;
   }
 };
+
+// Interface for Campus Hiring submission
+export interface CampusHiringSubmission {
+  'Timestamp': string;
+  'Submission Time': string;
+  'Candidate Name': string;
+  'Candidate Phone': string;
+  'Candidate Email': string;
+  'Campus Name': string;
+  'Total Score': string;
+  'Max Score': string;
+  'Score Percentage': string;
+  // Category scores
+  'Communication Score %': string;
+  'Problem Solving Score %': string;
+  'Leadership Score %': string;
+  'Attention to Detail Score %': string;
+  'Customer Service Score %': string;
+  'Integrity Score %': string;
+  'Teamwork Score %': string;
+  'Time Management Score %': string;
+  'Planning Score %': string;
+  'Adaptability Score %': string;
+  'Analysis Score %': string;
+  'Growth Mindset Score %': string;
+  // All question responses
+  [key: string]: string; // For dynamic question keys like Q1, Q1_weight, Q2, etc.
+}
+
+// Fetch Campus Hiring data
+export const fetchCampusHiringData = async (): Promise<CampusHiringSubmission[]> => {
+  try {
+    console.log('Fetching Campus Hiring Assessment data from Google Sheets...');
+    
+    let response;
+    let data;
+    
+    try {
+      console.log('Trying direct request to Campus Hiring Google Apps Script...');
+      const directUrl = CAMPUS_HIRING_ENDPOINT + '?action=getData';
+      
+      response = await fetch(directUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        redirect: 'follow',
+      });
+      
+      if (response.ok) {
+        data = await response.json();
+        console.log('Direct request successful, Campus Hiring data received:', data.length, 'submissions');
+        console.log('Sample Campus Hiring submission from Google Sheets:', data[0]);
+        if (data[0]) {
+          console.log('Google Sheets Campus Hiring field names:', Object.keys(data[0]));
+        }
+      } else {
+        throw new Error(`Direct request failed: ${response.status}`);
+      }
+    } catch (directError) {
+      console.log('Direct request failed for Campus Hiring, trying CORS proxy...', directError);
+      
+      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+      const targetUrl = CAMPUS_HIRING_ENDPOINT + '?action=getData';
+
+      response = await fetch(proxyUrl + targetUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        redirect: 'follow',
+      });
+      
+      if (response.ok) {
+        data = await response.json();
+        console.log('CORS proxy request successful, Campus Hiring data received:', data.length, 'submissions');
+        console.log('Sample Campus Hiring submission from Google Sheets (via proxy):', data[0]);
+        if (data[0]) {
+          console.log('Google Sheets Campus Hiring field names (via proxy):', Object.keys(data[0]));
+        }
+      } else {
+        throw new Error(`CORS proxy request failed: ${response.status}`);
+      }
+    }
+    
+    if (!data || !Array.isArray(data)) {
+      console.warn('Campus Hiring data is not in expected format:', data);
+      return [];
+    }
+    
+    // Process and return the data
+    const processedData = data.map((row: any) => {
+      // Normalize field names in case they come in different formats
+      return {
+        'Timestamp': row['Timestamp'] || row.timestamp || '',
+        'Submission Time': row['Submission Time'] || row.submissionTime || '',
+        'Candidate Name': row['Candidate Name'] || row.candidateName || '',
+        'Candidate Phone': row['Candidate Phone'] || row.candidatePhone || '',
+        'Candidate Email': row['Candidate Email'] || row.candidateEmail || '',
+        'Campus Name': row['Campus Name'] || row.campusName || '',
+        'Total Score': row['Total Score'] || row.totalScore || '0',
+        'Max Score': row['Max Score'] || row.maxScore || '90',
+        'Score Percentage': row['Score Percentage'] || row.scorePercentage || '0',
+        'Communication Score %': row['Communication Score %'] || row['category_Communication'] || '0',
+        'Problem Solving Score %': row['Problem Solving Score %'] || row['category_Problem Solving'] || '0',
+        'Leadership Score %': row['Leadership Score %'] || row['category_Leadership'] || '0',
+        'Attention to Detail Score %': row['Attention to Detail Score %'] || row['category_Attention to Detail'] || '0',
+        'Customer Service Score %': row['Customer Service Score %'] || row['category_Customer Service'] || '0',
+        'Integrity Score %': row['Integrity Score %'] || row['category_Integrity'] || '0',
+        'Teamwork Score %': row['Teamwork Score %'] || row['category_Teamwork'] || '0',
+        'Time Management Score %': row['Time Management Score %'] || row['category_Time Management'] || '0',
+        'Planning Score %': row['Planning Score %'] || row['category_Planning'] || '0',
+        'Adaptability Score %': row['Adaptability Score %'] || row['category_Adaptability'] || '0',
+        'Analysis Score %': row['Analysis Score %'] || row['category_Analysis'] || '0',
+        'Growth Mindset Score %': row['Growth Mindset Score %'] || row['category_Growth Mindset'] || '0',
+        ...row // Include all other fields (questions, weights, etc.)
+      };
+    });
+    
+    console.log('✅ Campus Hiring data processed successfully:', processedData.length, 'submissions');
+    return processedData;
+    
+  } catch (error) {
+    console.error('Error fetching Campus Hiring data:', error);
+    console.warn('⚠️ Failed to fetch Campus Hiring data from Google Sheets');
+    return [];
+  }
+};
+

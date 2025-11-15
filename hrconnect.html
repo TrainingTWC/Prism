@@ -35,7 +35,64 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
-    const AREA_MANAGERS = [
+    // Load stores and area managers from comprehensive_store_mapping.json
+    const [AREA_MANAGERS_DATA, setAreaManagersData] = React.useState([]);
+    const [STORES_DATA, setStoresData] = React.useState([]);
+    const [mappingLoaded, setMappingLoaded] = React.useState(false);
+
+    // Fetch comprehensive store mapping on component mount
+    React.useEffect(() => {
+      const loadComprehensiveMapping = async () => {
+        try {
+          const response = await fetch('./comprehensive_store_mapping.json');
+          if (!response.ok) {
+            console.warn('Failed to load comprehensive_store_mapping.json, trying fallback...');
+            // Fallback to src folder
+            const fallbackResponse = await fetch('./src/comprehensive_store_mapping.json');
+            if (fallbackResponse.ok) {
+              const data = await fallbackResponse.json();
+              processMapping(data);
+            }
+          } else {
+            const data = await response.json();
+            processMapping(data);
+          }
+        } catch (error) {
+          console.error('Error loading comprehensive store mapping:', error);
+          // Use empty arrays as fallback
+          setAreaManagersData([]);
+          setStoresData([]);
+          setMappingLoaded(true);
+        }
+      };
+
+      const processMapping = (data) => {
+        // Extract unique Area Managers
+        const amSet = new Map();
+        data.forEach(store => {
+          if (store.AM) {
+            const amId = store.AM.toLowerCase();
+            amSet.set(amId, { name: store.AM, id: amId });
+          }
+        });
+        const managers = Array.from(amSet.values()).sort((a, b) => a.name.localeCompare(b.name));
+        setAreaManagersData(managers);
+
+        // Extract Stores
+        const stores = data.map(store => ({
+          name: store['Store Name'],
+          id: store['Store ID']
+        })).sort((a, b) => a.name.localeCompare(b.name));
+        setStoresData(stores);
+        
+        setMappingLoaded(true);
+      };
+
+      loadComprehensiveMapping();
+    }, []);
+
+    // Fallback data (kept for backward compatibility if loading fails)
+    const AREA_MANAGERS_FALLBACK = [
       { name: 'Abhishek Vilas Satardekar', id: 'h3386' },
       { name: 'Ajay  Hatimuria', id: 'h546' },
       { name: 'Ajay Omnath Tiwari', id: 'h1815' },
@@ -54,7 +111,9 @@
       { name: 'Nandish', id: 'H833' }
     ].sort((a, b) => a.name.localeCompare(b.name));
 
-    const STORES = [
+    const AREA_MANAGERS = AREA_MANAGERS_DATA.length > 0 ? AREA_MANAGERS_DATA : AREA_MANAGERS_FALLBACK;
+
+    const STORES_FALLBACK = [
       { name: 'Koramangala 1', id: 'S001' },
       { name: 'CMH Indiranagar', id: 'S002' },
       { name: 'HSR Layout 1', id: 'S003' },
@@ -227,6 +286,8 @@
       { name: 'NXT Whitefield', id: 'S189' }
     ].sort((a, b) => a.name.localeCompare(b.name));
 
+    const STORES = STORES_DATA.length > 0 ? STORES_DATA : STORES_FALLBACK;
+
     const QUESTIONS = [
       { id: 'q1', title: 'Is there any work pressure in the café?', type: 'radio', choices: [
         {label: 'Every time', score: 1}, {label: 'Most of the time', score:2}, {label: 'Sometime', score:3}, {label: 'At Time', score:4}, {label: 'Never', score:5}
@@ -264,6 +325,9 @@
 
     const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKMVh-lnNBnINskIqD10CnQHvGsW_R2SLASGSdBDN9lTGj1gznlNbHORQ/exec';
 
+    // Store comprehensive mapping data globally
+    let COMPREHENSIVE_MAPPING = [];
+
     function HRConnectForm(){
 
       const getUrlParams = () => {
@@ -297,6 +361,69 @@
           storeId: stored.storeId || ''
         };
       });
+
+      // Load comprehensive mapping data
+      useEffect(() => {
+        const loadMapping = async () => {
+          try {
+            const response = await fetch('./comprehensive_store_mapping.json');
+            if (response.ok) {
+              COMPREHENSIVE_MAPPING = await response.json();
+            }
+          } catch (error) {
+            console.warn('Could not load comprehensive mapping:', error);
+          }
+        };
+        loadMapping();
+      }, []);
+
+      // Filter Area Managers based on selected HR
+      const filteredAreaManagers = useMemo(() => {
+        if (!meta.hrId || !COMPREHENSIVE_MAPPING.length) {
+          return AREA_MANAGERS;
+        }
+        
+        // Find all stores managed by this HR
+        const hrStores = COMPREHENSIVE_MAPPING.filter(store => 
+          store.HRBP === meta.hrId || 
+          store['Regional Training Manager'] === meta.hrId ||
+          store['HR Head'] === meta.hrId
+        );
+        
+        // Extract unique AMs from those stores
+        const amSet = new Set();
+        hrStores.forEach(store => {
+          if (store.AM) {
+            amSet.add(store.AM);
+          }
+        });
+        
+        // Filter AREA_MANAGERS to only include those in the set
+        return AREA_MANAGERS.filter(am => 
+          amSet.has(am.id) || amSet.has(am.id.toUpperCase()) || amSet.has(am.id.toLowerCase())
+        );
+      }, [meta.hrId, AREA_MANAGERS]);
+
+      // Filter Stores based on selected AM
+      const filteredStores = useMemo(() => {
+        if (!meta.amId || !COMPREHENSIVE_MAPPING.length) {
+          return STORES;
+        }
+        
+        // Find all stores managed by this AM
+        const amStores = COMPREHENSIVE_MAPPING.filter(store => 
+          store.AM && (
+            store.AM === meta.amId || 
+            store.AM.toUpperCase() === meta.amId.toUpperCase()
+          )
+        );
+        
+        // Map to store IDs
+        const storeIds = new Set(amStores.map(store => store['Store ID']));
+        
+        // Filter STORES to only include those in the set
+        return STORES.filter(store => storeIds.has(store.id));
+      }, [meta.amId, STORES]);
 
       // Enforce URL dominance in case localStorage had old values or if URL changes before remount.
       useEffect(() => {
@@ -560,13 +687,16 @@
                     className="p-2 border rounded"
                     value={meta.amName || ''}
                     onChange={e => {
-                      const selected = AREA_MANAGERS.find(am => am.name === e.target.value);
+                      const selected = filteredAreaManagers.find(am => am.name === e.target.value);
                       handleMetaChange('amName', selected ? selected.name : '');
                       handleMetaChange('amId', selected ? selected.id : '');
+                      // Reset store selection when AM changes
+                      handleMetaChange('storeName', '');
+                      handleMetaChange('storeId', '');
                     }}
                   >
                     <option value="">Select Area Manager</option>
-                    {AREA_MANAGERS.map(am => (
+                    {filteredAreaManagers.map(am => (
                       <option key={am.id} value={am.name}>{am.name}</option>
                     ))}
                   </select>
@@ -589,13 +719,13 @@
                     className="p-2 border rounded"
                     value={meta.storeName || ''}
                     onChange={e => {
-                      const selected = STORES.find(store => store.name === e.target.value);
+                      const selected = filteredStores.find(store => store.name === e.target.value);
                       handleMetaChange('storeName', selected ? selected.name : '');
                       handleMetaChange('storeId', selected ? selected.id : '');
                     }}
                   >
                     <option value="">Select Store</option>
-                    {STORES.map(store => (
+                    {filteredStores.map(store => (
                       <option key={store.id} value={store.name}>{store.name}</option>
                     ))}
                   </select>

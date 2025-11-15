@@ -5,6 +5,7 @@ import InfographicCard from './InfographicCard';
 interface RegionPerformanceProps {
   submissions: Submission[];
   stores: Store[];
+  onRegionClick?: (region: string, label: string) => void;
 }
 
 const PerformanceStat: React.FC<{
@@ -27,7 +28,7 @@ const PerformanceStat: React.FC<{
 );
 
 
-const RegionPerformanceInfographic: React.FC<RegionPerformanceProps> = ({ submissions, stores }) => {
+const RegionPerformanceInfographic: React.FC<RegionPerformanceProps> = ({ submissions, stores, onRegionClick }) => {
     const performanceData = useMemo(() => {
         if (submissions.length === 0) return { top: null, bottom: null };
 
@@ -62,7 +63,11 @@ const RegionPerformanceInfographic: React.FC<RegionPerformanceProps> = ({ submis
     }, [submissions, stores]);
 
     return (
-        <InfographicCard title="Regional Satisfaction">
+        <InfographicCard 
+            title="Regional Satisfaction" 
+            clickable={!!onRegionClick}
+            onClick={() => onRegionClick && performanceData.top && onRegionClick(performanceData.top.name, 'Top Region')}
+        >
             <div className="flex flex-col h-full">
                 <div className="flex-1 flex items-center">
                     <PerformanceStat

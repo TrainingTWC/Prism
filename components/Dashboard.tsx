@@ -4,9 +4,10 @@ import autoTable from 'jspdf-autotable';
 import { buildTrainingPDF } from '../src/utils/trainingReport';
 import { buildOperationsPDF } from '../src/utils/operationsReport';
 import { buildQAPDF } from '../src/utils/qaReport';
-import { Users, Clipboard, GraduationCap, BarChart3 } from 'lucide-react';
+import { buildHRPDF } from '../src/utils/hrReport';
+import { Users, Clipboard, GraduationCap, BarChart3, Brain } from 'lucide-react';
 import { Submission, Store } from '../types';
-import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission } from '../services/dataService';
+import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchCampusHiringData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, CampusHiringSubmission } from '../services/dataService';
 import { hapticFeedback } from '../utils/haptics';
 import StatCard from './StatCard';
 import Loader from './Loader';
@@ -14,7 +15,7 @@ import SkeletonLoader from './SkeletonLoader';
 import NotificationOverlay from './NotificationOverlay';
 import ScoreDistributionChart from './ScoreDistributionChart';
 import AverageScoreByManagerChart from './AverageScoreByManagerChart';
-import { QUESTIONS, OPERATIONS_QUESTIONS, TRAINING_QUESTIONS, AREA_MANAGERS, HR_PERSONNEL, REGIONS, SENIOR_HR_ROLES } from '../constants';
+import { QUESTIONS, OPERATIONS_QUESTIONS, TRAINING_QUESTIONS, AREA_MANAGERS, HR_PERSONNEL, TRAINER_PERSONNEL, REGIONS, SENIOR_HR_ROLES } from '../constants';
 import DashboardFilters from './DashboardFilters';
 // import RCACapaAnalysis from './RCACapaAnalysis'; // Commented out - file not found
 import RegionPerformanceInfographic from './RegionPerformanceInfographic';
@@ -43,6 +44,7 @@ import OperationsRadarChart from './OperationsRadarChart';
 import TrainingDetailModal from './TrainingDetailModal';
 import TrainingHealthBreakdownModal from './TrainingHealthBreakdownModal';
 import AuditScoreDetailsModal from './AuditScoreDetailsModal';
+import HRDetailModal from './HRDetailModal';
 import NowBarMobile from './NowBarMobile';
 // Multi-Month Trends Components (Google Sheets Integration)
 import HeaderSummary from '../src/components/dashboard/HeaderSummary';
@@ -59,6 +61,7 @@ import QARadarChart from './QARadarChart';
 import QAAMPerformanceInfographic from './QAAMPerformanceInfographic';
 import QAAverageScoreChart from './QAAverageScoreChart';
 import QAEditModal from './QAEditModal';
+import CampusHiringStats from './CampusHiringStats';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../roleMapping';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -72,6 +75,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const [amOperationsData, setAMOperationsData] = useState<AMOperationsSubmission[]>([]);
   const [trainingData, setTrainingData] = useState<TrainingAuditSubmission[]>([]);
   const [qaData, setQAData] = useState<QASubmission[]>([]);
+  const [campusHiringData, setCampusHiringData] = useState<CampusHiringSubmission[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +92,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     hr: false,
     operations: false,
     training: false,
-    qa: false
+    qa: false,
+    campusHiring: false
   });
   
   const [filters, setFilters] = useState({
@@ -96,12 +101,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     store: '',
     am: '',
     trainer: '',
+    hrPerson: '', // Separate filter for HR personnel
     health: ''
   });
+
+  // Leaderboard view toggle state
+  const [leaderboardView, setLeaderboardView] = useState<'count' | 'score'>('count');
 
   // Normalized trainer filter id for robust comparisons (handle h3595 vs H3595 etc.)
   const normalizeId = (v: any) => (v === undefined || v === null) ? '' : String(v).toUpperCase();
   const trainerFilterId = normalizeId(filters.trainer);
+  const hrPersonFilterId = normalizeId(filters.hrPerson);
 
   // Monthly Trends data for Training Dashboard
   const { rows: trendsData, loading: trendsLoading } = useTrendsData();
@@ -114,10 +124,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       { id: 'training', label: 'Training Audits', access: 'training-dashboard' },
       { id: 'qa', label: 'QA Assessments', access: 'qa-dashboard' },
       { id: 'finance', label: 'Finance Reports', access: 'finance-dashboard' },
+      { id: 'campus-hiring', label: 'Campus Hiring', access: 'campus-hiring-dashboard' },
       { id: 'consolidated', label: 'Consolidated View', access: 'all' }
     ];
 
-    if (authUserRole === 'admin') {
+    if (authUserRole === 'admin' || authUserRole === 'editor') {
       return allTypes; // Admin can see everything
     }
 
@@ -160,6 +171,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   // QA Edit modal state
   const [showQAEdit, setShowQAEdit] = useState(false);
   const [qaEditSubmission, setQAEditSubmission] = useState<QASubmission | null>(null);
+
+  // HR detail modal state
+  const [showHRDetail, setShowHRDetail] = useState(false);
+  const [hrDetailFilter, setHRDetailFilter] = useState<{
+    type: 'region' | 'am' | 'hr' | 'store';
+    value: string;
+    title: string;
+  } | null>(null);
 
   // Training detail modal handlers
   const handleRegionClick = (region: string) => {
@@ -250,6 +269,63 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     setShowTrainingDetail(true);
   };
 
+  // HR detail modal handlers
+  const handleHRRegionClick = (region: string, label: string) => {
+    console.log('HR Region clicked - showing all regions');
+    setHRDetailFilter({
+      type: 'region',
+      value: 'all',
+      title: 'All Regions - HR Employee Surveys'
+    });
+    setShowHRDetail(true);
+  };
+
+  const handleHRAMClick = (amName: string, amId: string) => {
+    console.log('HR AM clicked - showing all AMs');
+    setHRDetailFilter({
+      type: 'region',
+      value: 'all',
+      title: 'All Area Managers - HR Employee Surveys'
+    });
+    setShowHRDetail(true);
+  };
+
+  const handleHRPersonClick = (hrName: string, hrId: string) => {
+    console.log('HR Person clicked - showing all HRs');
+    setHRDetailFilter({
+      type: 'region',
+      value: 'all',
+      title: 'All HRBPs - HR Employee Surveys'
+    });
+    setShowHRDetail(true);
+  };
+
+  const closeHRDetail = () => {
+    setShowHRDetail(false);
+    setHRDetailFilter(null);
+  };
+
+  // HR stat card click handlers
+  const handleHRTotalSubmissionsClick = () => {
+    console.log('HR Total Submissions clicked');
+    setHRDetailFilter({
+      type: 'region',
+      value: 'all',
+      title: 'All HR Employee Surveys'
+    });
+    setShowHRDetail(true);
+  };
+
+  const handleHRStoresCoveredClick = () => {
+    console.log('HR Stores Covered clicked');
+    setHRDetailFilter({
+      type: 'region',
+      value: 'all',
+      title: 'All Stores - HR Surveys'
+    });
+    setShowHRDetail(true);
+  };
+
   // Auto-populate filters from URL parameters - but only when explicitly intended for dashboard filtering
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -275,12 +351,21 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     }
   }, []);
 
-  // Load stores, area managers, and HR personnel from hr_mapping.json
+  // Load stores, area managers, and HR personnel from comprehensive_store_mapping.json
   useEffect(() => {
     const loadMappingData = async () => {
       try {
   const base = (import.meta as any).env?.BASE_URL || '/';
-  const response = await fetch(`${base}hr_mapping.json`);
+  // Try comprehensive_store_mapping.json first (ULTIMATE SOURCE OF TRUTH)
+  let response;
+  try {
+    response = await fetch(`${base}comprehensive_store_mapping.json`);
+    if (!response.ok) throw new Error('Comprehensive mapping not found');
+  } catch {
+    // Fallback to hr_mapping.json if comprehensive is not available
+    console.warn('Falling back to hr_mapping.json');
+    response = await fetch(`${base}hr_mapping.json`);
+  }
         const mappingData = await response.json();
         setHrMappingData(mappingData);
         
@@ -290,34 +375,44 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         const hrMap = new Map();
         
         mappingData.forEach((item: any) => {
+          // Handle both comprehensive_store_mapping.json and hr_mapping.json formats
+          const storeId = item['Store ID'] || item.storeId;
+          const storeName = item['Store Name'] || item.locationName;
+          const region = item.Region || item.region;
+          const amId = item.AM || item.areaManagerId;
+          const hrbpId = item.HRBP || item.hrbpId;
+          const regionalHrId = item['Regional Training Manager'] || item.regionalHrId;
+          const hrHeadId = item['HR Head'] || item.hrHeadId;
+          const lmsHeadId = item['E-Learning Specialist'] || item.lmsHeadId;
+          
           // Stores
-          if (!storeMap.has(item.storeId)) {
-            storeMap.set(item.storeId, {
-              name: item.locationName,
-              id: item.storeId,
-              region: item.region
+          if (storeId && !storeMap.has(storeId)) {
+            storeMap.set(storeId, {
+              name: storeName,
+              id: storeId,
+              region: region
             });
           }
           
           // Area Managers
-          if (item.areaManagerId && !amMap.has(item.areaManagerId)) {
+          if (amId && !amMap.has(amId)) {
             // Find the AM name from constants or use ID
-            const amFromConstants = AREA_MANAGERS.find(am => am.id === item.areaManagerId);
-            amMap.set(item.areaManagerId, {
-              name: amFromConstants?.name || `AM ${item.areaManagerId}`,
-              id: item.areaManagerId
+            const amFromConstants = AREA_MANAGERS.find(am => am.id.toLowerCase() === amId.toLowerCase());
+            amMap.set(amId, {
+              name: amFromConstants?.name || `AM ${amId}`,
+              id: amId
             });
           }
           
           // HR Personnel (HRBP, Regional HR, HR Head)
           [
-            { id: item.hrbpId, type: 'HRBP' },
-            { id: item.regionalHrId, type: 'Regional HR' },
-            { id: item.hrHeadId, type: 'HR Head' },
-            { id: item.lmsHeadId, type: 'LMS Head' }
+            { id: hrbpId, type: 'HRBP' },
+            { id: regionalHrId, type: 'Regional HR' },
+            { id: hrHeadId, type: 'HR Head' },
+            { id: lmsHeadId, type: 'LMS Head' }
           ].forEach(({ id, type }) => {
             if (id && !hrMap.has(id)) {
-              const hrFromConstants = HR_PERSONNEL.find(hr => hr.id === id);
+              const hrFromConstants = HR_PERSONNEL.find(hr => hr.id.toLowerCase() === id.toLowerCase());
               hrMap.set(id, {
                 name: hrFromConstants?.name || `${type} ${id}`,
                 id: id
@@ -359,39 +454,39 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             console.log(`Dashboard - Merged stores from comprehensive mapping: ${mergedStores.length} total stores`);
             setAllStores(mergedStores);
             setAllAreaManagers(areaManagers);
-            setAllHRPersonnel(hrPersonnel);
-            // Build a map of Trainer ID -> occurrences
+            
+            // Build HRBP list for HR dashboard
+            const hrbpIds = new Set<string>();
+            comp.forEach((row: any) => {
+              if (row.HRBP) hrbpIds.add(String(row.HRBP).toUpperCase());
+            });
+            console.log('Dashboard - HRBP IDs found:', Array.from(hrbpIds));
+
+            const hrbpArr: any[] = [];
+            hrbpIds.forEach((hrbpId) => {
+              const found = HR_PERSONNEL.find((h: any) => String(h.id).toUpperCase() === hrbpId);
+              const name = found?.name || hrbpId;
+              hrbpArr.push({ id: hrbpId, name });
+            });
+            hrbpArr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+            console.log('Dashboard - Built HRBP list:', hrbpArr);
+            setAllHRPersonnel(hrbpArr);
+            
+            // Build Trainer list for Training/Operations/QA dashboards
             const trainerIds = new Set<string>();
             comp.forEach((row: any) => {
               if (row.Trainer) trainerIds.add(String(row.Trainer).toUpperCase());
             });
             console.log('Dashboard - Trainer IDs found:', Array.from(trainerIds));
-
-            // User-provided mapping overrides (ID -> Name) - ACTUAL TRAINERS
-            const provided: Record<string, string> = {
-              'H1761': 'Mahadev',
-              'H701': 'Mallika', 
-              'H1697': 'Sheldon',
-              'H2595': 'Kailash',
-              'H3595': 'Bhawna', 
-              'H3252': 'Priyanka',
-              'H1278': 'Viraj',
-              'H3247': 'Sunil'
-            };
-
+            
             const trainersArr: any[] = [];
-            trainerIds.forEach((tid) => {
-              const nameFromProvided = provided[tid.toUpperCase()];
-              // try to find in hrPersonnel as fallback
-              const found = hrPersonnel.find((h: any) => String(h.id).toUpperCase() === tid);
-              const name = nameFromProvided || found?.name || tid;
-              trainersArr.push({ id: tid, name });
+            trainerIds.forEach((trainerId) => {
+              const found = TRAINER_PERSONNEL.find((t: any) => String(t.id).toUpperCase() === trainerId);
+              const name = found?.name || trainerId;
+              trainersArr.push({ id: trainerId, name });
             });
-            console.log('Dashboard - Built trainersArr:', trainersArr);
-
-            // Sort by name
             trainersArr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
-            console.log('Dashboard - Using custom trainer mapping:', trainersArr);
+            console.log('Dashboard - Built Trainer list:', trainersArr);
             setAllTrainers(trainersArr);
           } else {
             // Fallback: use HR personnel names where trainer ids appear
@@ -509,6 +604,24 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         );
       } else if (targetDashboard === 'qa' && dataLoadedFlags.qa) {
         console.log('♻️ Using cached QA data');
+      }
+      
+      // Load Campus Hiring data if viewing campus hiring dashboard or admin consolidated view
+      if ((targetDashboard === 'campus-hiring' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.campusHiring || isRefresh)) {
+        loadPromises.push(
+          fetchCampusHiringData().then(data => {
+            console.log('✅ Loaded Campus Hiring data:', data.length, 'submissions');
+            if (data.length > 0) {
+              console.log('Campus Hiring data sample:', data[0]);
+            }
+            setCampusHiringData(data);
+            setDataLoadedFlags(prev => ({ ...prev, campusHiring: true }));
+          }).catch(err => {
+            console.error('❌ Failed to load Campus Hiring data:', err);
+          })
+        );
+      } else if (dataLoadedFlags.campusHiring) {
+        console.log('♻️ Using cached Campus Hiring data');
       }
       
       // If no promises to load, we're using all cached data
@@ -697,16 +810,23 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       console.log(`AM filter (${filters.am}): ${beforeAMFilter} -> ${filtered.length} submissions`);
     }
 
-    // Filter by HR personnel
+    // Filter by trainer (for Training/Operations/QA dashboards)
     if (trainerFilterId) {
       const beforeTrainerFilter = filtered.length;
   filtered = filtered.filter(submission => normalizeId(submission.hrId) === trainerFilterId || normalizeId((submission as any).trainerId) === trainerFilterId || normalizeId((submission as any).trainer) === trainerFilterId);
       console.log(`Trainer filter (${filters.trainer} -> ${trainerFilterId}): ${beforeTrainerFilter} -> ${filtered.length} submissions`);
     }
 
+    // Filter by HR person (for HR dashboard)
+    if (hrPersonFilterId) {
+      const beforeHRFilter = filtered.length;
+      filtered = filtered.filter(submission => normalizeId(submission.hrId) === hrPersonFilterId);
+      console.log(`HR filter (${filters.hrPerson} -> ${hrPersonFilterId}): ${beforeHRFilter} -> ${filtered.length} submissions`);
+    }
+
     console.log('Final filtered submissions:', filtered.length);
     return filtered;
-  }, [submissions, filters, userRole, allStores]);
+  }, [submissions, filters, userRole, allStores, trainerFilterId, hrPersonFilterId]);
 
   const filteredSubmissions = filteredData || [];
 
@@ -1289,7 +1409,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   };
 
   const resetFilters = () => {
-    setFilters({ region: '', store: '', am: '', trainer: '', health: '' });
+    setFilters({ region: '', store: '', am: '', trainer: '', hrPerson: '', health: '' });
   };
 
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -1567,6 +1687,61 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         pdf.save(fileName);
         setIsGenerating(false);
         showNotificationMessage('QA Assessment PDF generated successfully!', 'success');
+        return;
+      }
+
+      // HR dashboard: use the HR-specific PDF builder (similar to training)
+      if (dashboardType === 'hr') {
+        const meta: any = {};
+        
+        // Store filter
+        if (filters.store) {
+          const s = allStores.find(s => s.id === filters.store);
+          meta.storeName = s?.name || filters.store;
+          meta.storeId = filters.store;
+        } else if (reportData.length > 0 && reportData.length === 1) {
+          const firstRecord = reportData[0] as any;
+          meta.storeName = firstRecord.storeName || firstRecord.store_name || '';
+          meta.storeId = firstRecord.storeId || firstRecord.storeID || '';
+        } else if (filters.region) {
+          meta.storeName = `${filters.region} Region`;
+          meta.storeId = '';
+        } else if (reportData.length > 0) {
+          meta.storeName = 'All Stores (Filtered)';
+          meta.storeId = '';
+        }
+
+        // HR Person filter
+        if (filters.hrPerson) {
+          const hr = HR_PERSONNEL.find(h => h.id === filters.hrPerson);
+          meta.hrPersonName = hr?.name || filters.hrPerson;
+          meta.hrPersonId = filters.hrPerson;
+        } else if (reportData.length > 0 && reportData.length === 1) {
+          const firstRecord = reportData[0] as any;
+          meta.hrPersonName = firstRecord.hrPersonName || firstRecord.hr_person || '';
+          meta.hrPersonId = firstRecord.hrPersonId || firstRecord.hr_person_id || '';
+        } else if (reportData.length > 0) {
+          meta.hrPersonName = 'Multiple HR Personnel';
+          meta.hrPersonId = '';
+        }
+
+        // AM filter
+        if (filters.am) {
+          const am = AREA_MANAGERS.find(a => a.id === filters.am);
+          meta.amName = am?.name || filters.am;
+        } else if (reportData.length > 0 && reportData.length === 1) {
+          const firstRecord = reportData[0] as any;
+          meta.amName = firstRecord.amName || firstRecord.am_name || '';
+        }
+
+        // Date metadata
+        if (lastRefresh) meta.date = lastRefresh.toLocaleString();
+
+        const fileName = `HR_Survey_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+        const pdf = await buildHRPDF(reportData as any, meta, { title: 'HR Employee Survey' });
+        pdf.save(fileName);
+        setIsGenerating(false);
+        showNotificationMessage('HR Survey PDF generated successfully!', 'success');
         return;
       }
 
@@ -2483,7 +2658,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         </div>
 
         <div className="text-center text-sm text-gray-500 dark:text-slate-400 mt-4">
-          Loading {dashboardType === 'training' ? 'training' : dashboardType === 'operations' ? 'operations' : dashboardType === 'qa' ? 'QA' : dashboardType === 'hr' ? 'HR' : ''} dashboard data...
+          Loading {dashboardType === 'training' ? 'training' : dashboardType === 'operations' ? 'operations' : dashboardType === 'qa' ? 'QA' : dashboardType === 'hr' ? 'HR' : dashboardType === 'campus-hiring' ? 'Campus Hiring' : ''} dashboard data...
         </div>
       </div>
     );
@@ -2540,6 +2715,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                     </svg>
                   );
+                  case 'campus-hiring': return <Brain className="w-4 h-4 sm:w-5 sm:h-5" />;
                   default: return <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />;
                 }
               };
@@ -2551,7 +2727,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                   case 'training': return dashboardType === 'training' ? 'bg-purple-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'qa': return dashboardType === 'qa' ? 'bg-red-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'finance': return dashboardType === 'finance' ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
-                  case 'consolidated': return dashboardType === 'consolidated' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'campus-hiring': return dashboardType === 'campus-hiring' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'consolidated': return dashboardType === 'consolidated' ? 'bg-slate-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   default: return 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                 }
               };
@@ -2575,26 +2752,31 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             {dashboardType === 'training' && 'View insights from Training Audit Checklists'}
             {dashboardType === 'qa' && 'View insights from Quality Assurance Assessments'}
             {dashboardType === 'finance' && 'View insights from Finance Reports and Analytics'}
+            {dashboardType === 'campus-hiring' && 'View Campus Hiring Psychometric Assessment Results'}
             {dashboardType === 'consolidated' && 'View combined insights from all authorized checklist types'}
           </p>
         </div>
       )}
 
-      <div data-tour="filters">
-        <DashboardFilters
-          regions={availableRegions}
-          stores={availableStores}
-          areaManagers={availableAreaManagers}
-          // Prefer comprehensive trainer mapping when available
-          hrPersonnel={allTrainers && allTrainers.length > 0 ? allTrainers : availableHRPersonnel}
-          trainers={allTrainers && allTrainers.length > 0 ? allTrainers : undefined}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          onReset={resetFilters}
-          onDownload={generatePDFReport}
-          isGenerating={isGenerating}
-        />
-      </div>
+      {dashboardType !== 'campus-hiring' && (
+        <div data-tour="filters">
+          <DashboardFilters
+            regions={availableRegions}
+            stores={availableStores}
+            areaManagers={availableAreaManagers}
+            // Pass HR personnel for HR filter
+            hrPersonnel={allHRPersonnel && allHRPersonnel.length > 0 ? allHRPersonnel : availableHRPersonnel}
+            // Pass trainers for Trainer filter
+            trainers={allTrainers && allTrainers.length > 0 ? allTrainers : undefined}
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            onReset={resetFilters}
+            onDownload={generatePDFReport}
+            isGenerating={isGenerating}
+            dashboardType={dashboardType}
+          />
+        </div>
+      )}
 
       {/* RCA & CAPA Analysis - Only for Operations Dashboard */}
       {/* Commented out - RCACapaAnalysis component not found
@@ -2607,7 +2789,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       */}
 
       {/* Check if we have data for the selected dashboard type */}
-      {((dashboardType === 'hr' && filteredSubmissions.length > 0) || 
+      {dashboardType === 'campus-hiring' ? (
+        // Campus Hiring Dashboard
+        campusHiringData.length > 0 ? (
+          <CampusHiringStats submissions={campusHiringData} />
+        ) : (
+          <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-lg text-center">
+            <Brain className="w-16 h-16 mx-auto text-indigo-600 dark:text-indigo-400 mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">No Campus Hiring Data</h3>
+            <p className="text-gray-600 dark:text-slate-400">No psychometric assessment submissions found. Candidates can submit assessments through the Campus Hiring form.</p>
+          </div>
+        )
+      ) : ((dashboardType === 'hr' && filteredSubmissions.length > 0) || 
         (dashboardType === 'operations' && filteredAMOperations.length > 0) ||
         (dashboardType === 'training' && filteredTrainingData.length > 0) ||
         (dashboardType === 'qa' && filteredQAData.length > 0) ||
@@ -2651,7 +2844,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             </>
           ) : (
             <div className={`grid grid-cols-1 gap-5 ${dashboardType === 'qa' ? 'md:grid-cols-3' : 'md:grid-cols-4'}`}>
-              <StatCard title="Total Submissions" value={stats?.totalSubmissions} onClick={handleTotalSubmissionsClick} />
+              <StatCard 
+                title="Total Submissions" 
+                value={stats?.totalSubmissions} 
+                onClick={dashboardType === 'hr' ? handleHRTotalSubmissionsClick : handleTotalSubmissionsClick} 
+              />
               <StatCard title="Average Score" value={String(getAverageScoreDisplay())} />
               {dashboardType !== 'qa' && (
                 <StatCard 
@@ -2659,17 +2856,191 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                   value={stats?.uniqueEmployees} 
                 />
               )}
-              <StatCard title="Stores Covered" value={stats?.uniqueStores} onClick={handleStoresCoveredClick} />
+              <StatCard 
+                title="Stores Covered" 
+                value={stats?.uniqueStores} 
+                onClick={dashboardType === 'hr' ? handleHRStoresCoveredClick : handleStoresCoveredClick} 
+              />
             </div>
           )}
 
           {/* Show HR Dashboard Content */}
           {(dashboardType === 'hr' || dashboardType === 'consolidated') && (
             <>
+              {/* HRBP Leaderboard - Combined with toggle */}
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">HRBP Leaderboard</h3>
+                      <p className="text-sm text-gray-500 dark:text-slate-400">All HRBPs</p>
+                    </div>
+                  </div>
+                  
+                  {/* Toggle Buttons */}
+                  <div className="flex items-center bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
+                    <button
+                      onClick={() => setLeaderboardView('count')}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        leaderboardView === 'count'
+                          ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                          : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span className="hidden sm:inline">Employees</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setLeaderboardView('score')}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        leaderboardView === 'score'
+                          ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                          : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="hidden sm:inline">Avg Score</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Leaderboard Content */}
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {(() => {
+                    if (leaderboardView === 'count') {
+                      // By Employees Surveyed
+                      const hrStats: { [key: string]: { name: string; count: number } } = {};
+                      filteredSubmissions.forEach(sub => {
+                        const hrId = sub.hrId || 'Unknown';
+                        const hrName = sub.hrName || 'Unknown';
+                        if (!hrStats[hrId]) {
+                          hrStats[hrId] = { name: hrName, count: 0 };
+                        }
+                        hrStats[hrId].count++;
+                      });
+                      
+                      const sortedHRs = Object.entries(hrStats)
+                        .sort(([, a], [, b]) => b.count - a.count);
+                      
+                      const maxCount = sortedHRs[0]?.[1].count || 1;
+                      
+                      return sortedHRs.map(([hrId, data], index) => (
+                        <div key={hrId} className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                            index === 0 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' :
+                            index === 1 ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' :
+                            index === 2 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' :
+                            'bg-gray-50 dark:bg-slate-700/50 text-gray-500 dark:text-slate-400'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{data.name}</span>
+                              <span className="text-sm font-bold text-gray-900 dark:text-white ml-2">{data.count} employees</span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  index === 0 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                                  index === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-500' :
+                                  index === 2 ? 'bg-gradient-to-r from-orange-400 to-orange-500' :
+                                  'bg-gradient-to-r from-indigo-400 to-purple-500'
+                                }`}
+                                style={{ width: `${(data.count / maxCount) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ));
+                    } else {
+                      // By Average Score
+                      const hrStats: { [key: string]: { name: string; total: number; count: number } } = {};
+                      filteredSubmissions.forEach(sub => {
+                        const hrId = sub.hrId || 'Unknown';
+                        const hrName = sub.hrName || 'Unknown';
+                        if (!hrStats[hrId]) {
+                          hrStats[hrId] = { name: hrName, total: 0, count: 0 };
+                        }
+                        hrStats[hrId].total += sub.percent || 0;
+                        hrStats[hrId].count++;
+                      });
+                      
+                      const sortedHRs = Object.entries(hrStats)
+                        .map(([hrId, data]) => ({
+                          hrId,
+                          name: data.name,
+                          avgScore: data.count > 0 ? Math.round(data.total / data.count) : 0,
+                          count: data.count
+                        }))
+                        .sort((a, b) => b.avgScore - a.avgScore);
+                      
+                      return sortedHRs.map((hr, index) => (
+                        <div key={hr.hrId} className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                            index === 0 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' :
+                            index === 1 ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' :
+                            index === 2 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' :
+                            'bg-gray-50 dark:bg-slate-700/50 text-gray-500 dark:text-slate-400'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{hr.name}</span>
+                              <span className={`text-sm font-bold ml-2 ${
+                                hr.avgScore >= 80 ? 'text-green-600 dark:text-green-400' :
+                                hr.avgScore >= 60 ? 'text-yellow-600 dark:text-yellow-400' :
+                                'text-red-600 dark:text-red-400'
+                              }`}>
+                                {hr.avgScore}%
+                              </span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  hr.avgScore >= 80 ? 'bg-gradient-to-r from-green-400 to-green-500' :
+                                  hr.avgScore >= 60 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                                  'bg-gradient-to-r from-red-400 to-red-500'
+                                }`}
+                                style={{ width: `${hr.avgScore}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ));
+                    }
+                  })()}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                <RegionPerformanceInfographic submissions={filteredSubmissions} stores={allStores} />
-                <AMPerformanceInfographic submissions={filteredSubmissions} />
-                <HRPerformanceInfographic submissions={filteredSubmissions} />
+                <RegionPerformanceInfographic 
+                  submissions={filteredSubmissions} 
+                  stores={allStores}
+                  onRegionClick={handleHRRegionClick}
+                />
+                <AMPerformanceInfographic 
+                  submissions={filteredSubmissions}
+                  onAMClick={handleHRAMClick}
+                />
+                <HRPerformanceInfographic 
+                  submissions={filteredSubmissions}
+                  onHRClick={handleHRPersonClick}
+                />
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -3060,6 +3431,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               )}
             </>
           )}
+
+          {/* Campus Hiring Stats - Only show in consolidated view for admins */}
+          {dashboardType === 'consolidated' && campusHiringData.length > 0 && (
+            <>
+              {/* Separator */}
+              <div className="border-t-4 border-indigo-500 my-8"></div>
+              
+              <CampusHiringStats submissions={campusHiringData} />
+            </>
+          )}
         </>
       ) : (
         <div className="text-center py-10 bg-white/70 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-xl backdrop-blur-sm">
@@ -3076,8 +3457,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             </p>
         </div>
       )}
-
-      {/* Notification Overlay */}
       <NotificationOverlay
         isVisible={showNotification}
         message={notificationMessage}
@@ -3112,6 +3491,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         filters={filters}
         compStoreMapping={compStoreMapping || []}
       />
+
+      {/* HR Detail Modal */}
+      {hrDetailFilter && (
+        <HRDetailModal
+          isOpen={showHRDetail}
+          onClose={closeHRDetail}
+          submissions={filteredSubmissions}
+          filterType={hrDetailFilter.type}
+          filterValue={hrDetailFilter.value}
+          title={hrDetailFilter.title}
+        />
+      )}
 
       {/* QA Edit Modal */}
       {qaEditSubmission && (

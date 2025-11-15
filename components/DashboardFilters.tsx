@@ -15,13 +15,15 @@ interface DashboardFiltersProps {
     store: string;
     am: string;
     trainer: string;
+    hrPerson: string; // Separate filter for HR personnel
     // store health filter - '', 'Needs Attention', 'Brewing', 'Perfect Shot'
     health?: string;
   };
-  onFilterChange: (filterName: 'region' | 'store' | 'am' | 'trainer' | 'health', value: string) => void;
+  onFilterChange: (filterName: 'region' | 'store' | 'am' | 'trainer' | 'hrPerson' | 'health', value: string) => void;
   onReset: () => void;
   onDownload?: () => void;
   isGenerating?: boolean;
+  dashboardType?: string; // Add dashboard type to customize labels
 }
 
 // Searchable Filter Component
@@ -232,6 +234,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   onReset,
   onDownload,
   isGenerating = false,
+  dashboardType = 'training', // Default to training for backward compatibility
 }) => {
   // Mobile drawer state
   const [showMobileFilters, setShowMobileFilters] = React.useState(false);
@@ -240,11 +243,15 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   console.log('DashboardFilters - trainers prop:', trainers);
   console.log('DashboardFilters - trainers length:', trainers?.length || 0);
   console.log('DashboardFilters - hrPersonnel length:', hrPersonnel?.length || 0);
-  console.log('DashboardFilters - using trainers?', trainers && trainers.length > 0);
+  console.log('DashboardFilters - dashboardType:', dashboardType);
 
-  // Determine which trainer list to use
-  const effectiveTrainers = (trainers && trainers.length > 0) ? trainers : hrPersonnel;
+  // trainers prop contains the actual trainers for Training dashboards
+  // hrPersonnel contains HR/HRBP personnel for HR dashboards
+  const effectiveTrainers = trainers || [];
+  const effectiveHRPersonnel = hrPersonnel || [];
+  
   console.log('DashboardFilters - effective trainers:', effectiveTrainers.slice(0, 3)); // Log first 3
+  console.log('DashboardFilters - effective HR personnel:', effectiveHRPersonnel.slice(0, 3)); // Log first 3
 
   const handleRefresh = (e?: React.KeyboardEvent | React.MouseEvent) => {
     // allow keyboard activation via Enter/Space
@@ -328,14 +335,29 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             disabled={stores.length === 0}
           />
 
-          <SearchableFilter
-            label="Trainer"
-            value={filters.trainer}
-            onChange={(value) => onFilterChange('trainer', value)}
-            placeholder="All Trainers"
-            options={effectiveTrainers.map(t => ({ value: t.id, label: t.name, id: t.id }))}
-            disabled={effectiveTrainers.length === 0}
-          />
+          {/* Trainer Filter - Only show on non-HR dashboards */}
+          {dashboardType !== 'hr' && effectiveTrainers.length > 0 && (
+            <SearchableFilter
+              label="Trainer"
+              value={filters.trainer}
+              onChange={(value) => onFilterChange('trainer', value)}
+              placeholder="All Trainers"
+              options={effectiveTrainers.map(t => ({ value: t.id, label: t.name, id: t.id }))}
+              disabled={effectiveTrainers.length === 0}
+            />
+          )}
+
+          {/* HR Filter - Only show on HR dashboard */}
+          {dashboardType === 'hr' && effectiveHRPersonnel.length > 0 && (
+            <SearchableFilter
+              label="HR"
+              value={filters.hrPerson}
+              onChange={(value) => onFilterChange('hrPerson', value)}
+              placeholder="All HRs"
+              options={effectiveHRPersonnel.map(h => ({ value: h.id, label: h.name, id: h.id }))}
+              disabled={effectiveHRPersonnel.length === 0}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -401,17 +423,33 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             />
           </div>
           
-          {/* Trainer - Searchable */}
-          <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
-            <SearchableFilter
-              label="Trainer"
-              value={filters.trainer}
-              onChange={(value) => onFilterChange('trainer', value)}
-              placeholder="All Trainers"
-              options={effectiveTrainers.map(t => ({ value: t.id, label: t.name, id: t.id }))}
-              disabled={effectiveTrainers.length === 0}
-            />
-          </div>
+          {/* Trainer Filter - Only show on non-HR dashboards */}
+          {dashboardType !== 'hr' && effectiveTrainers.length > 0 && (
+            <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+              <SearchableFilter
+                label="Trainer"
+                value={filters.trainer}
+                onChange={(value) => onFilterChange('trainer', value)}
+                placeholder="All Trainers"
+                options={effectiveTrainers.map(t => ({ value: t.id, label: t.name, id: t.id }))}
+                disabled={effectiveTrainers.length === 0}
+              />
+            </div>
+          )}
+
+          {/* HR Filter - Only show on HR dashboard */}
+          {dashboardType === 'hr' && effectiveHRPersonnel.length > 0 && (
+            <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+              <SearchableFilter
+                label="HR"
+                value={filters.hrPerson}
+                onChange={(value) => onFilterChange('hrPerson', value)}
+                placeholder="All HRs"
+                options={effectiveHRPersonnel.map(h => ({ value: h.id, label: h.name, id: h.id }))}
+                disabled={effectiveHRPersonnel.length === 0}
+              />
+            </div>
+          )}
         </div>
         
         {/* Action buttons row */}
