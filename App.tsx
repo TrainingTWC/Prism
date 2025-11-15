@@ -7,13 +7,11 @@ import ChecklistsAndSurveys from './components/ChecklistsAndSurveys';
 import Header from './components/Header';
 import Login from './components/Login';
 import AccessDenied from './components/AccessDenied';
-import TourGuide from './components/TourGuide';
 import { getUserRole, UserRole } from './roleMapping';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConfigProvider } from './contexts/ConfigContext';
 import AdminConfig from './components/AdminConfig';
-import { TourProvider, useTour } from './contexts/TourContext';
 
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'ai-insights' | 'checklists' | 'admin'>('dashboard');
@@ -23,7 +21,6 @@ const AppContent: React.FC = () => {
   const [accessDenied, setAccessDenied] = useState<boolean>(false);
   const [empIdChecked, setEmpIdChecked] = useState<boolean>(false);
   const { isAuthenticated, isLoading: authLoading, loginWithEmpId, isEmployeeValidated } = useAuth();
-  const { isTourActive, startTour, completeTour, skipTour, shouldShowTour } = useTour();
 
   // Check URL for EMPID and validate against employee_data.json - ONCE on mount
   useEffect(() => {
@@ -109,17 +106,6 @@ const AppContent: React.FC = () => {
       }
     }
   }, []);
-
-  // Auto-start tour after login if user hasn't seen it
-  useEffect(() => {
-    if (isAuthenticated && shouldShowTour && !isTourActive) {
-      // Small delay to let the UI render
-      const timer = setTimeout(() => {
-        startTour();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [isAuthenticated, shouldShowTour, isTourActive, startTour]);
 
   // Show loading while checking authentication
   if (authLoading || loading) {
@@ -208,28 +194,8 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
       <Header />
       
-      {/* Tour Guide */}
-      <TourGuide
-        isActive={isTourActive}
-        onComplete={completeTour}
-        onSkip={skipTour}
-      />
-
-      {/* Help Button - Floating - HIDDEN */}
-      {false && (
-        <button
-          onClick={startTour}
-          className="fixed bottom-6 right-6 z-[9999] btn-primary-gradient text-white p-4 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-transform duration-150 flex items-center gap-2"
-          title="Take a tour"
-          aria-label="Start guided tour"
-        >
-          <HelpCircle className="w-6 h-6" />
-          <span className="hidden sm:inline font-medium">Need Help?</span>
-        </button>
-      )}
-      
       {/* Tab Navigation */}
-      <nav className="px-2 sm:px-4 lg:px-8 border-b border-gray-200 dark:border-slate-700" data-tour="tabs">
+      <nav className="px-2 sm:px-4 lg:px-8 border-b border-gray-200 dark:border-slate-700">
         <div className="flex space-x-4 sm:space-x-8 overflow-x-auto">
           {tabs.map(tab => {
             const IconComponent = tab.icon;
@@ -237,7 +203,6 @@ const AppContent: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as 'dashboard' | 'ai-insights' | 'checklists')}
-                data-tour={tab.id === 'checklists' ? 'checklist-tab' : tab.id === 'dashboard' ? 'dashboard-tab' : ''}
                 className={`flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 outline-none ${
                   activeTab === tab.id
                     ? 'border-sky-400 text-sky-400'
@@ -268,9 +233,7 @@ const App: React.FC = () => {
     <AuthProvider>
       <ConfigProvider>
         <ThemeProvider>
-          <TourProvider>
-            <AppContent />
-          </TourProvider>
+          <AppContent />
         </ThemeProvider>
       </ConfigProvider>
     </AuthProvider>

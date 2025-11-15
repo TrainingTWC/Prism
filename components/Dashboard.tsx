@@ -2759,7 +2759,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       )}
 
       {dashboardType !== 'campus-hiring' && (
-        <div data-tour="filters">
+        <div>
           <DashboardFilters
             regions={availableRegions}
             stores={availableStores}
@@ -2878,7 +2878,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white">HRBP Leaderboard</h3>
-                      <p className="text-sm text-gray-500 dark:text-slate-400">All HRBPs</p>
+                      <p className="text-sm text-gray-500 dark:text-slate-400">9 HRBPs</p>
                     </div>
                   </div>
                   
@@ -2922,14 +2922,28 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                   {(() => {
                     if (leaderboardView === 'count') {
                       // By Employees Surveyed
+                      // Initialize with all HRBPs from HR_PERSONNEL (excluding leadership)
                       const hrStats: { [key: string]: { name: string; count: number } } = {};
+                      
+                      // Filter out leadership roles (LMS Head, Training Head, Sarit)
+                      const excludedIds = ['H541', 'H3237', 'H2081']; // LMS Head, Training Head, Sarit
+                      const activeHRBPs = HR_PERSONNEL.filter(hr => !excludedIds.includes(hr.id));
+                      
+                      // First, add all active HRBPs with 0 count
+                      activeHRBPs.forEach(hr => {
+                        hrStats[hr.id] = { name: hr.name, count: 0 };
+                      });
+                      
+                      // Then update counts from actual submissions
                       filteredSubmissions.forEach(sub => {
                         const hrId = sub.hrId || 'Unknown';
                         const hrName = sub.hrName || 'Unknown';
-                        if (!hrStats[hrId]) {
-                          hrStats[hrId] = { name: hrName, count: 0 };
+                        if (hrStats[hrId]) {
+                          hrStats[hrId].count++;
+                        } else if (!excludedIds.includes(hrId)) {
+                          // Handle cases where HR is in submissions but not in HR_PERSONNEL (and not excluded)
+                          hrStats[hrId] = { name: hrName, count: 1 };
                         }
-                        hrStats[hrId].count++;
                       });
                       
                       const sortedHRs = Object.entries(hrStats)
@@ -2968,15 +2982,29 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                       ));
                     } else {
                       // By Average Score
+                      // Initialize with all HRBPs from HR_PERSONNEL (excluding leadership)
                       const hrStats: { [key: string]: { name: string; total: number; count: number } } = {};
+                      
+                      // Filter out leadership roles (LMS Head, Training Head, Sarit)
+                      const excludedIds = ['H541', 'H3237', 'H2081']; // LMS Head, Training Head, Sarit
+                      const activeHRBPs = HR_PERSONNEL.filter(hr => !excludedIds.includes(hr.id));
+                      
+                      // First, add all active HRBPs with 0 count
+                      activeHRBPs.forEach(hr => {
+                        hrStats[hr.id] = { name: hr.name, total: 0, count: 0 };
+                      });
+                      
+                      // Then update counts and totals from actual submissions
                       filteredSubmissions.forEach(sub => {
                         const hrId = sub.hrId || 'Unknown';
                         const hrName = sub.hrName || 'Unknown';
-                        if (!hrStats[hrId]) {
-                          hrStats[hrId] = { name: hrName, total: 0, count: 0 };
+                        if (hrStats[hrId]) {
+                          hrStats[hrId].total += sub.percent || 0;
+                          hrStats[hrId].count++;
+                        } else if (!excludedIds.includes(hrId)) {
+                          // Handle cases where HR is in submissions but not in HR_PERSONNEL (and not excluded)
+                          hrStats[hrId] = { name: hrName, total: sub.percent || 0, count: 1 };
                         }
-                        hrStats[hrId].total += sub.percent || 0;
-                        hrStats[hrId].count++;
                       });
                       
                       const sortedHRs = Object.entries(hrStats)
@@ -2986,7 +3014,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           avgScore: data.count > 0 ? Math.round(data.total / data.count) : 0,
                           count: data.count
                         }))
-                        .sort((a, b) => b.avgScore - a.avgScore);
+                        .sort((a, b) => {
+                          // Sort by avgScore descending, but put 0% (no submissions) at the end
+                          if (a.avgScore === 0 && b.avgScore === 0) return 0;
+                          if (a.avgScore === 0) return 1;
+                          if (b.avgScore === 0) return -1;
+                          return b.avgScore - a.avgScore;
+                        });
                       
                       return sortedHRs.map((hr, index) => (
                         <div key={hr.hrId} className="flex items-center gap-3">
@@ -3260,7 +3294,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               {/* Historic Trends Section - Collapsible */}
               <HistoricTrendsSection />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" data-tour="region-chart">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 <TrainingRegionPerformanceInfographic 
                   submissions={filteredTrainingData} 
                   onRegionClick={handleRegionClick}
@@ -3276,7 +3310,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div data-tour="score-chart">
+                <div>
                   <TrainingScoreDistributionChart 
                     submissions={filteredTrainingData} 
                     onScoreRangeClick={handleScoreRangeClick}
