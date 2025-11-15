@@ -480,10 +480,36 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
 
   const resetSurvey = () => {
     if (confirm('Are you sure you want to reset the survey? All responses will be lost.')) {
+      // Preserve HR name and ID from URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const hrId = urlParams.get('hrId') || urlParams.get('hr_id') || '';
+      const hrName = urlParams.get('hrName') || urlParams.get('hr_name') || '';
+      
+      const findHRById = (id: string) => {
+        if (!id) return null;
+        return HR_PERSONNEL.find(hr => hr.id === id || hr.id.toLowerCase() === id.toLowerCase());
+      };
+      
+      let finalHrName = hrName;
+      let finalHrId = hrId;
+      
+      if (hrId) {
+        const hrPerson = findHRById(hrId);
+        if (hrPerson) {
+          finalHrName = hrPerson.name;
+          finalHrId = hrPerson.id;
+        }
+      } else if (hrName && !hrId) {
+        const hrPerson = HR_PERSONNEL.find(hr => hr.name === hrName);
+        if (hrPerson) {
+          finalHrId = hrPerson.id;
+        }
+      }
+      
       setResponses({});
       setMeta({
-        hrName: '',
-        hrId: '',
+        hrName: finalHrName,
+        hrId: finalHrId,
         amName: '',
         amId: '',
         empName: '',
@@ -551,7 +577,11 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
                 handleMetaChange('hrId', e.target.value);
                 handleMetaChange('hrName', selectedHR ? selectedHR.name : '');
               }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+              disabled={(() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                return !!(urlParams.get('hrId') || urlParams.get('hr_id') || urlParams.get('hrName') || urlParams.get('hr_name'));
+              })()}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <option value="">Select HR Person</option>
               {availableHRPersonnel.map(hr => (
