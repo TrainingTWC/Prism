@@ -32,7 +32,7 @@ export const AUTH_CONFIG: AuthConfig = {
     hr: {
       password: 'HRConnect2024!',
       permissions: ['hr', 'dashboard', 'employee-data'],
-      dashboardAccess: ['hr-dashboard', 'hr-analytics', 'employee-reports', 'training-audit']
+      dashboardAccess: ['hr-dashboard', 'hr-analytics', 'employee-reports', 'training-audit', 'campus-hiring-dashboard']
     },
     qa: {
       password: 'QualityCheck2024!',
@@ -62,12 +62,12 @@ export const AUTH_CONFIG: AuthConfig = {
     admin: {
       password: 'AdminView2024!',
       permissions: ['operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'dashboard'],
-      dashboardAccess: ['all']
+      dashboardAccess: ['all', 'campus-hiring-dashboard']
     },
     editor: {
       password: 'Editornotcreator2025!',
       permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'dashboard'],
-      dashboardAccess: ['all']
+      dashboardAccess: ['all', 'campus-hiring-dashboard']
     }
   },
   
