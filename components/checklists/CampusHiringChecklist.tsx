@@ -1440,17 +1440,14 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
         <>
           {/* Status Messages */}
       {submitStatus === 'success' && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-start gap-3">
-          <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-green-900 dark:text-green-100">
-              {isAutoSubmit ? 'Time Expired - Assessment Auto-Submitted!' : 'Assessment Submitted Successfully!'}
-            </h3>
-            <p className="text-sm text-green-700 dark:text-green-300">
-              {isAutoSubmit 
-                ? 'Your assessment has been automatically submitted as the time limit was reached. Unanswered questions have been scored as 0.'
-                : 'The psychometric assessment has been recorded.'
-              }
+        <div className="fixed inset-0 bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center z-50">
+          <div className="text-center text-white px-8 py-12 max-w-2xl">
+            <CheckCircle className="w-24 h-24 mx-auto mb-6 animate-bounce" />
+            <h1 className="text-5xl font-bold mb-4">
+              Thanks for taking the Assessment!
+            </h1>
+            <p className="text-2xl font-light mb-8">
+              You can close this tab.
             </p>
           </div>
         </div>
@@ -1468,28 +1465,14 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
 
       {/* Locked Out Screen */}
       {submitStatus === 'locked' && (
-        <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 dark:border-red-600 rounded-lg p-6">
-          <div className="text-center">
-            <AlertCircle className="w-16 h-16 text-red-600 dark:text-red-400 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-red-900 dark:text-red-100 mb-2">
-              Assessment Locked - Violation Detected
-            </h3>
-            <p className="text-red-700 dark:text-red-300 mb-4">
-              {faceNotDetectedCount >= 2 
-                ? 'Your assessment has been automatically submitted due to multiple instances of face not being detected. This is a violation of assessment integrity rules.'
-                : 'Your assessment has been automatically submitted due to multiple tab switches. This is a violation of assessment integrity rules.'
-              }
-            </p>
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 text-left">
-              <h4 className="font-semibold text-gray-900 dark:text-slate-100 mb-2">Violation Summary:</h4>
-              <ul className="text-sm text-gray-700 dark:text-slate-300 space-y-1">
-                <li>• Face not detected violations: {faceNotDetectedCount}</li>
-                <li>• Tab switch violations: {tabSwitchCount}</li>
-                <li>• Assessment status: Auto-submitted</li>
-              </ul>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-slate-400 mt-4">
-              Please contact the administrator if you believe this is an error.
+        <div className="fixed inset-0 bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center z-50">
+          <div className="text-center text-white px-8 py-12 max-w-2xl">
+            <CheckCircle className="w-24 h-24 mx-auto mb-6 animate-bounce" />
+            <h1 className="text-5xl font-bold mb-4">
+              Thanks for taking the Assessment!
+            </h1>
+            <p className="text-2xl font-light mb-8">
+              You can close this tab.
             </p>
           </div>
         </div>
