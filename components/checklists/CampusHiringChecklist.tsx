@@ -3,6 +3,7 @@ import { Save, CheckCircle, AlertCircle, Building2, User, Calendar, Brain, Trend
 import { UserRole } from '../../roleMapping';
 import { useComprehensiveMapping } from '../../hooks/useComprehensiveMapping';
 import { useConfig } from '../../contexts/ConfigContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface CampusHiringChecklistProps {
   userRole: UserRole;
@@ -30,6 +31,7 @@ interface ProctoringViolation {
 const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole, onStatsUpdate, onBackToChecklists }) => {
   const { config } = useConfig();
   const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
+  const { logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error' | 'locked'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -957,6 +959,16 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     }
   }, [tabSwitchCount, isLocked, proctoringEnabled]);
 
+  // Terminate session when locked out
+  useEffect(() => {
+    if (submitStatus === 'locked') {
+      // Logout after 3 seconds to show the thank you message
+      setTimeout(() => {
+        logout();
+      }, 3000);
+    }
+  }, [submitStatus, logout]);
+
   // Prevent right-click and copy-paste during assessment
   useEffect(() => {
     if (proctoringEnabled) {
@@ -1160,17 +1172,11 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
         setSubmitStatus('success');
         // Stop proctoring on successful submission
         stopProctoring();
-        // Clear form after successful submission
+        
+        // Terminate session after 2 seconds
         setTimeout(() => {
-          setCandidateName('');
-          setCandidatePhone('');
-          setCandidateEmail('');
-          setCampusName('');
-          setAnswers({});
-          setSubmitStatus('idle');
-          setViolations([]);
-          setTabSwitchCount(0);
-        }, 3000);
+          logout();
+        }, 2000);
       } else {
         throw new Error(result.message || 'Submission failed');
       }
