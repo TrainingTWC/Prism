@@ -34,6 +34,13 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
   const auditorName = urlParams.get('auditorName') || urlParams.get('name') || urlParams.get('hrName') || 'Unknown Auditor';
   const auditorId = urlParams.get('auditorId') || urlParams.get('id') || urlParams.get('hrId') || 'unknown';
 
+  // Auto-open campus hiring checklist for campus-hiring role users
+  useEffect(() => {
+    if (authUserRole === 'campus-hiring' && !activeChecklist) {
+      setActiveChecklist('campus-hiring');
+    }
+  }, [authUserRole]);
+
   // Filter checklists based on user permissions
   const getAvailableChecklists = () => {
     const allChecklists = [
@@ -138,23 +145,31 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
           <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 py-3 sm:px-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <button
-                  onClick={handleBackToOverview}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                  aria-label="Back to checklists overview"
-                >
-                  <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-                </button>
-                
-                <nav className="flex items-center space-x-2 text-sm">
+                {/* Hide back button for campus-hiring role */}
+                {authUserRole !== 'campus-hiring' && (
                   <button
                     onClick={handleBackToOverview}
-                    className="flex items-center space-x-1 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                    aria-label="Back to checklists overview"
                   >
-                    <Home className="w-4 h-4" />
-                    <span>Checklists</span>
+                    <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-slate-400" />
                   </button>
-                  <span className="text-gray-400 dark:text-slate-500">/</span>
+                )}
+                
+                <nav className="flex items-center space-x-2 text-sm">
+                  {/* Hide breadcrumb for campus-hiring role */}
+                  {authUserRole !== 'campus-hiring' && (
+                    <>
+                      <button
+                        onClick={handleBackToOverview}
+                        className="flex items-center space-x-1 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
+                      >
+                        <Home className="w-4 h-4" />
+                        <span>Checklists</span>
+                      </button>
+                      <span className="text-gray-400 dark:text-slate-500">/</span>
+                    </>
+                  )}
                   <span className="text-gray-900 dark:text-slate-100 font-medium">
                     {getChecklistLabel(activeChecklist)}
                   </span>

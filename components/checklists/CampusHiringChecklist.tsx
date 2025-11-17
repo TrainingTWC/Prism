@@ -31,7 +31,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
   const { config } = useConfig();
   const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
   const [loading, setLoading] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error' | 'locked'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [isAutoSubmit, setIsAutoSubmit] = useState(false);
   const campusDropdownRef = useRef<HTMLDivElement>(null);
@@ -48,13 +48,21 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
   
   // Proctoring state
   const [proctoringEnabled, setProctoringEnabled] = useState(false);
+  const [streamReady, setStreamReady] = useState(false); // Track when stream is available
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'pending'>('pending');
   const [micPermission, setMicPermission] = useState<'granted' | 'denied' | 'pending'>('pending');
   const [faceDetected, setFaceDetected] = useState(false);
   const [violations, setViolations] = useState<ProctoringViolation[]>([]);
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [noiseLevel, setNoiseLevel] = useState(0);
+  
+  // Violation counts and warnings
+  const [faceNotDetectedCount, setFaceNotDetectedCount] = useState(0);
+  const [noiseWarnings, setNoiseWarnings] = useState<string[]>([]); // Array of warning messages to show
+  const [isLocked, setIsLocked] = useState(false); // Whether user is locked out
+  
   const videoRef = useRef<HTMLVideoElement>(null);
+  const displayVideoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -63,6 +71,61 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
   const noiseDetectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const noFaceDetectionCount = useRef<number>(0); // Track consecutive no-face detections
   const lastFaceDetectionTime = useRef<number>(Date.now()); // Track last time face was detected
+  const noiseLevelHistory = useRef<number[]>([]); // Track noise levels over time
+  const lastNoiseViolationTime = useRef<number>(0); // Prevent duplicate noise violations
+
+  // Sync stream to display video when proctoring is enabled
+  useEffect(() => {
+    console.log('===== DISPLAY VIDEO SYNC EFFECT =====');
+    console.log('proctoringEnabled:', proctoringEnabled);
+    console.log('streamReady:', streamReady);
+    console.log('displayVideoRef.current exists:', !!displayVideoRef.current);
+    console.log('streamRef.current exists:', !!streamRef.current);
+    
+    if (displayVideoRef.current) {
+      console.log('Display video element details:', {
+        nodeName: displayVideoRef.current.nodeName,
+        className: displayVideoRef.current.className,
+        style: displayVideoRef.current.style.cssText,
+        srcObject: displayVideoRef.current.srcObject,
+        readyState: displayVideoRef.current.readyState
+      });
+    }
+    
+    if (proctoringEnabled && streamReady && displayVideoRef.current && streamRef.current) {
+      console.log('🎬 All conditions met - syncing stream to display video');
+      console.log('Stream details:', {
+        id: streamRef.current.id,
+        active: streamRef.current.active,
+        videoTracks: streamRef.current.getVideoTracks().length,
+        audioTracks: streamRef.current.getAudioTracks().length
+      });
+      
+      try {
+        displayVideoRef.current.srcObject = streamRef.current;
+        console.log('✓ Stream assigned to display video');
+        
+        displayVideoRef.current.play()
+          .then(() => {
+            console.log('✓ Display video is now playing');
+            setTimeout(() => {
+              if (displayVideoRef.current) {
+                console.log('Display video dimensions after play:', 
+                  displayVideoRef.current.videoWidth, 'x', displayVideoRef.current.videoHeight);
+              }
+            }, 500);
+          })
+          .catch(err => {
+            console.error('❌ Display video play error:', err);
+          });
+      } catch (error) {
+        console.error('❌ Error setting stream:', error);
+      }
+    } else {
+      console.log('❌ Conditions not met for sync');
+    }
+    console.log('===== END DISPLAY VIDEO SYNC =====');
+  }, [proctoringEnabled, streamReady]);
 
   // Form state
   const [candidateName, setCandidateName] = useState('');
@@ -513,7 +576,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
   };
 
   // Proctoring Functions
-  const logViolation = (type: ProctoringViolation['type'], details: string) => {
+  const logViolation = (type: ProctoringViolation['type'], details: string, overrideCount?: number) => {
     const violation: ProctoringViolation = {
       type,
       timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
@@ -521,6 +584,18 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     };
     setViolations(prev => [...prev, violation]);
     console.warn('Proctoring Violation:', violation);
+
+    // Handle different violation types - just show warnings, useEffect handles lockout
+    if (type === 'excessive-noise') {
+      // Show warning snackbar for noise
+      const warningMsg = `⚠️ Warning: ${details}`;
+      setNoiseWarnings(prev => [...prev, warningMsg]);
+      
+      // Auto-remove warning after 5 seconds
+      setTimeout(() => {
+        setNoiseWarnings(prev => prev.filter(msg => msg !== warningMsg));
+      }, 5000);
+    }
   };
 
   // Start the assessment (called after proctoring is enabled)
@@ -535,13 +610,6 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
   const startProctoring = async () => {
     try {
       console.log('=== Starting Proctoring ===');
-      
-      // STEP 1: Enable proctoring UI first so video element gets rendered
-      setProctoringEnabled(true);
-      console.log('✓ Proctoring UI enabled, video element should now be in DOM');
-      
-      // STEP 2: Wait for React to render the video element
-      await new Promise(resolve => setTimeout(resolve, 100));
       
       console.log('Requesting camera and microphone permissions...');
       
@@ -569,13 +637,9 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       setCameraPermission('granted');
       setMicPermission('granted');
       
-      // STEP 3: Wait again to ensure video element ref is attached
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
       // Setup video element
       if (!videoRef.current) {
-        console.error('Video element ref is STILL null after waiting!');
-        console.error('proctoringEnabled state:', proctoringEnabled);
+        console.error('Video element ref is null!');
         throw new Error('Video element not found');
       }
       
@@ -620,6 +684,17 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
       console.log('✓ Audio analysis ready');
+
+      // Enable proctoring UI and trigger display video sync
+      console.log('🎯 About to enable proctoring UI...');
+      console.log('Current proctoringEnabled:', proctoringEnabled);
+      console.log('Current streamReady:', streamReady);
+      
+      setProctoringEnabled(true);
+      console.log('✓ setProctoringEnabled(true) called');
+      
+      setStreamReady(true);
+      console.log('✓ setStreamReady(true) called');
 
       // Initialize face detection tracking
       lastFaceDetectionTime.current = Date.now();
@@ -700,6 +775,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     }
 
     setProctoringEnabled(false);
+    setStreamReady(false);
   };
 
   // Basic face detection using video analysis
@@ -746,27 +822,28 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       }
 
       const facePresenceRatio = brightPixels / totalPixels;
+      console.log('🔍 Face detection - Presence ratio:', facePresenceRatio.toFixed(3), 'Currently detected:', faceDetected);
       
       // If less than 20% of pixels match face-like brightness, consider face not detected
       if (facePresenceRatio < 0.2) {
         // Face not detected
-        const currentTime = Date.now();
-        const timeSinceLastDetection = (currentTime - lastFaceDetectionTime.current) / 1000; // in seconds
-        
         if (faceDetected) {
-          // Face just disappeared
-          console.log('⚠️ Face not detected - starting countdown. Ratio:', facePresenceRatio);
+          // Face just disappeared - this is a NEW violation instance
+          console.log('⚠️ Face not detected - logging violation. Ratio:', facePresenceRatio);
           setFaceDetected(false);
-        }
-        
-        // Check if face has been missing for 3+ seconds
-        if (timeSinceLastDetection >= 3) {
-          // Only log violation once every 3 seconds to avoid spam
-          if (noFaceDetectionCount.current === 0 || timeSinceLastDetection >= (noFaceDetectionCount.current + 1) * 3) {
-            logViolation('face-not-detected', `Face not visible for ${Math.floor(timeSinceLastDetection)} seconds`);
-            noFaceDetectionCount.current++;
-            console.log(`🚨 VIOLATION: Face not detected for ${Math.floor(timeSinceLastDetection)}s (violation #${noFaceDetectionCount.current})`);
-          }
+          
+          // Use callback form to get the latest count and pass it to logViolation
+          setFaceNotDetectedCount(prevCount => {
+            const newCount = prevCount + 1;
+            console.log(`🚨 VIOLATION: Face not detected (violation #${newCount})`);
+            
+            // Log violation with the new count passed as override
+            logViolation('face-not-detected', `Face not visible (violation ${newCount}/2)`, newCount);
+            
+            return newCount;
+          });
+          
+          noFaceDetectionCount.current++;
         }
       } else {
         // Face detected
@@ -774,16 +851,15 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
           console.log('✓ Face detected again - ratio:', facePresenceRatio);
           setFaceDetected(true);
         }
-        // Reset counters when face is detected
+        // Reset timer when face is detected (but keep violation count)
         lastFaceDetectionTime.current = Date.now();
-        noFaceDetectionCount.current = 0;
       }
     } catch (error) {
       console.error('Error in face detection:', error);
     }
   };
 
-  // Detect excessive background noise
+  // Detect excessive background noise (improved to distinguish sustained noise from brief spikes)
   const detectNoise = () => {
     if (!analyserRef.current) return;
 
@@ -800,23 +876,41 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     const average = sum / bufferLength;
     setNoiseLevel(average);
 
-    // If noise level exceeds threshold (adjustable)
-    if (average > 50) {
-      logViolation('excessive-noise', `High background noise detected (level: ${Math.round(average)})`);
+    // Add to noise history (keep last 5 seconds at 1 check per second)
+    noiseLevelHistory.current.push(average);
+    if (noiseLevelHistory.current.length > 5) {
+      noiseLevelHistory.current.shift();
+    }
+
+    // Only trigger violation if noise is sustained (not just a brief spike like cough/sneeze)
+    if (noiseLevelHistory.current.length >= 3) { // Need at least 3 seconds of data
+      const recentLevels = noiseLevelHistory.current.slice(-3); // Last 3 seconds
+      const sustainedHighNoise = recentLevels.filter(level => level > 60).length >= 2; // 2 out of 3 seconds high
+      
+      // Prevent duplicate violations within 10 seconds
+      const now = Date.now();
+      const timeSinceLastViolation = now - lastNoiseViolationTime.current;
+      
+      if (sustainedHighNoise && timeSinceLastViolation > 10000) {
+        const avgRecent = recentLevels.reduce((a, b) => a + b, 0) / recentLevels.length;
+        logViolation('excessive-noise', `Sustained background noise detected - possible conversation or music (level: ${Math.round(avgRecent)})`);
+        lastNoiseViolationTime.current = now;
+      }
     }
   };
 
   // Tab switch detection
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden && proctoringEnabled && submitStatus !== 'success') {
-        setTabSwitchCount(prev => prev + 1);
-        logViolation('tab-switch', `Candidate switched tabs/windows (count: ${tabSwitchCount + 1})`);
+      if (document.hidden && proctoringEnabled && submitStatus !== 'success' && !isLocked) {
+        const newCount = tabSwitchCount + 1;
+        setTabSwitchCount(newCount);
+        logViolation('tab-switch', `Candidate switched tabs/windows (count: ${newCount})`);
       }
     };
 
     const handleBlur = () => {
-      if (proctoringEnabled && submitStatus !== 'success') {
+      if (proctoringEnabled && submitStatus !== 'success' && !isLocked) {
         logViolation('window-blur', 'Window lost focus - candidate may have switched applications');
       }
     };
@@ -828,7 +922,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [proctoringEnabled, submitStatus, tabSwitchCount]);
+  }, [proctoringEnabled, submitStatus, tabSwitchCount, isLocked]);
 
   // Cleanup proctoring on unmount
   useEffect(() => {
@@ -836,6 +930,32 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       stopProctoring();
     };
   }, []);
+
+  // Monitor face detection count and trigger lockout
+  useEffect(() => {
+    if (faceNotDetectedCount >= 2 && !isLocked && proctoringEnabled) {
+      console.log('🚨 LOCKING OUT - 2 face detection violations (useEffect)');
+      setIsLocked(true);
+      setSubmitStatus('locked');
+      setIsAutoSubmit(true);
+      setTimeout(() => {
+        handleSubmit(true);
+      }, 100);
+    }
+  }, [faceNotDetectedCount, isLocked, proctoringEnabled]);
+
+  // Monitor tab switch count and trigger lockout
+  useEffect(() => {
+    if (tabSwitchCount >= 3 && !isLocked && proctoringEnabled) {
+      console.log('🚨 LOCKING OUT - 3 tab switch violations (useEffect)');
+      setIsLocked(true);
+      setSubmitStatus('locked');
+      setIsAutoSubmit(true);
+      setTimeout(() => {
+        handleSubmit(true);
+      }, 100);
+    }
+  }, [tabSwitchCount, isLocked, proctoringEnabled]);
 
   // Prevent right-click and copy-paste during assessment
   useEffect(() => {
@@ -1076,21 +1196,20 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      {/* Hidden video and canvas elements - always in DOM for ref access */}
+      <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0, overflow: 'hidden' }}>
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+        />
+        <canvas ref={canvasRef} />
+      </div>
+
       {/* Show Rules Page First */}
       {showRules ? (
         <>
-          {/* Breadcrumbs */}
-          <nav className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
-            <button
-              onClick={onBackToChecklists}
-              className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-            >
-              Checklists & Surveys
-            </button>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-gray-900 dark:text-slate-100 font-medium">Third Wave Coffee | Campus Drive</span>
-          </nav>
-
           {/* Rules Header */}
           <div className="bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg shadow-lg p-8 text-white">
             <div className="flex items-center gap-4 mb-4">
@@ -1278,18 +1397,6 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       ) : (
         <>
           {/* Original Assessment UI - Only shown after proctoring is enabled */}
-          {/* Breadcrumbs */}
-          <nav className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
-            <button
-              onClick={onBackToChecklists}
-              className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-            >
-              Checklists & Surveys
-            </button>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-gray-900 dark:text-slate-100 font-medium">Third Wave Coffee | Campus Drive</span>
-          </nav>
-
           {/* Header */}
           <div className="bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg shadow-lg p-6 text-white">
             <div className="flex items-center justify-between">
@@ -1359,6 +1466,48 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
         </div>
       )}
 
+      {/* Locked Out Screen */}
+      {submitStatus === 'locked' && (
+        <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 dark:border-red-600 rounded-lg p-6">
+          <div className="text-center">
+            <AlertCircle className="w-16 h-16 text-red-600 dark:text-red-400 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold text-red-900 dark:text-red-100 mb-2">
+              Assessment Locked - Violation Detected
+            </h3>
+            <p className="text-red-700 dark:text-red-300 mb-4">
+              {faceNotDetectedCount >= 2 
+                ? 'Your assessment has been automatically submitted due to multiple instances of face not being detected. This is a violation of assessment integrity rules.'
+                : 'Your assessment has been automatically submitted due to multiple tab switches. This is a violation of assessment integrity rules.'
+              }
+            </p>
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 text-left">
+              <h4 className="font-semibold text-gray-900 dark:text-slate-100 mb-2">Violation Summary:</h4>
+              <ul className="text-sm text-gray-700 dark:text-slate-300 space-y-1">
+                <li>• Face not detected violations: {faceNotDetectedCount}</li>
+                <li>• Tab switch violations: {tabSwitchCount}</li>
+                <li>• Assessment status: Auto-submitted</li>
+              </ul>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-slate-400 mt-4">
+              Please contact the administrator if you believe this is an error.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Noise Warning Snackbars */}
+      <div className="fixed top-20 right-4 z-50 space-y-2">
+        {noiseWarnings.map((warning, index) => (
+          <div
+            key={index}
+            className="animate-slide-in-right bg-orange-500 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3 max-w-md"
+          >
+            <Volume2 className="w-5 h-5 flex-shrink-0" />
+            <span className="text-sm font-medium">{warning}</span>
+          </div>
+        ))}
+      </div>
+
       {/* Proctoring Panel */}
       {!proctoringEnabled ? (
         <div className="bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg shadow-lg p-6 text-white">
@@ -1421,61 +1570,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Camera Feed */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2">
-                <Video className="w-4 h-4" />
-                Camera Feed
-              </h4>
-              <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
-                faceDetected 
-                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-              }`}>
-                {faceDetected ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                {faceDetected ? 'Face Detected' : 'No Face'}
-              </div>
-            </div>
-            <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover mirror"
-                style={{ transform: 'scaleX(-1)' }}
-              />
-              <canvas ref={canvasRef} className="hidden" />
-              
-              {/* Debug info */}
-              {proctoringEnabled && videoRef.current && (
-                <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded space-y-1">
-                  <div>
-                    📹 {videoRef.current.videoWidth || 0}x{videoRef.current.videoHeight || 0}
-                  </div>
-                  <div>
-                    {videoRef.current.readyState === 4 ? '✓ Ready' : 
-                     videoRef.current.readyState === 3 ? '⏳ Loading...' :
-                     videoRef.current.readyState === 2 ? '⏳ Metadata...' :
-                     videoRef.current.readyState === 1 ? '⏳ Metadata...' :
-                     '❌ No data'}
-                  </div>
-                  <div>
-                    {streamRef.current?.active ? '🟢 Live' : '🔴 No stream'}
-                  </div>
-                </div>
-              )}
-              
-              {!faceDetected && proctoringEnabled && (
-                <div className="absolute inset-0 bg-red-500/20 border-2 border-red-500 flex items-center justify-center">
-                  <p className="text-white text-sm font-semibold">Look at the camera</p>
-                </div>
-              )}
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Proctoring Stats */}
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4">
             <h4 className="font-semibold text-gray-900 dark:text-slate-100 mb-3 flex items-center gap-2">
@@ -1483,6 +1578,13 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
               Monitoring Status
             </h4>
             <div className="space-y-3">
+              <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-700 rounded">
+                <span className="text-sm text-gray-700 dark:text-slate-300">Face Detection</span>
+                <span className={`font-bold flex items-center gap-1 ${faceDetected ? 'text-green-600' : 'text-red-600'}`}>
+                  {faceDetected ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  {faceDetected ? 'Detected' : 'Not Detected'}
+                </span>
+              </div>
               <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-700 rounded">
                 <span className="text-sm text-gray-700 dark:text-slate-300">Tab Switches</span>
                 <span className={`font-bold ${tabSwitchCount > 0 ? 'text-red-600' : 'text-green-600'}`}>
@@ -1514,7 +1616,33 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
 
           {/* Recent Violations */}
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4">
-            <h4 className="font-semibold text-gray-900 dark:text-slate-100 mb-3">Recent Violations</h4>
+            <h4 className="font-semibold text-gray-900 dark:text-slate-100 mb-3 flex items-center justify-between">
+              <span>Violations Summary</span>
+              <span className={`text-sm px-2 py-1 rounded ${violations.length > 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'}`}>
+                Total: {violations.length}
+              </span>
+            </h4>
+            
+            {/* Violation Type Breakdown */}
+            {violations.length > 0 && (
+              <div className="mb-3 p-3 bg-gray-50 dark:bg-slate-700 rounded space-y-2">
+                {Object.entries(
+                  violations.reduce((acc, v) => {
+                    acc[v.type] = (acc[v.type] || 0) + 1;
+                    return acc;
+                  }, {} as Record<string, number>)
+                ).map(([type, count]) => (
+                  <div key={type} className="flex items-center justify-between text-sm">
+                    <span className="text-gray-700 dark:text-slate-300">
+                      {type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </span>
+                    <span className="font-bold text-red-600 dark:text-red-400">{count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Recent Violations List */}
             <div className="space-y-2 max-h-32 overflow-y-auto">
               {violations.slice(-5).reverse().map((violation, index) => (
                 <div key={index} className="text-xs p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
@@ -1528,7 +1656,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
               ))}
               {violations.length === 0 && (
                 <div className="text-sm text-gray-500 dark:text-slate-400 text-center py-4">
-                  No violations detected
+                  ✓ No violations detected
                 </div>
               )}
             </div>
@@ -1551,7 +1679,8 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
               type="text"
               value={candidateName}
               onChange={(e) => setCandidateName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              disabled={isLocked}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="Enter candidate name"
             />
           </div>
@@ -1576,7 +1705,8 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
                   e.preventDefault();
                 }
               }}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              disabled={isLocked}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="+91 XXXXX XXXXX"
               maxLength={15}
             />
@@ -1590,7 +1720,8 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
               type="email"
               value={candidateEmail}
               onChange={(e) => setCandidateEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              disabled={isLocked}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="candidate@example.com"
             />
           </div>
@@ -1601,8 +1732,10 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
             </label>
             <div className="relative" ref={campusDropdownRef}>
               <div
-                className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 cursor-pointer flex items-center justify-between"
-                onClick={() => setCampusSearchOpen(!campusSearchOpen)}
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 flex items-center justify-between ${
+                  isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                }`}
+                onClick={() => !isLocked && setCampusSearchOpen(!campusSearchOpen)}
               >
                 <span className={campusName ? '' : 'text-gray-400 dark:text-slate-500'}>
                   {campusName || 'Select campus'}
@@ -1688,7 +1821,11 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
                       {Object.entries(question.options).map(([key, option]) => (
                         <label
                           key={key}
-                          className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          className={`flex items-start gap-3 p-4 rounded-lg border-2 transition-all ${
+                            isLocked 
+                              ? 'cursor-not-allowed opacity-50' 
+                              : 'cursor-pointer'
+                          } ${
                             answers[question.id] === key
                               ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20'
                               : 'border-gray-200 dark:border-slate-600 hover:border-cyan-300 dark:hover:border-cyan-700'
@@ -1700,7 +1837,8 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
                             value={key}
                             checked={answers[question.id] === key}
                             onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                            className="mt-1 text-cyan-600 focus:ring-cyan-500"
+                            disabled={isLocked}
+                            className="mt-1 text-cyan-600 focus:ring-cyan-500 disabled:cursor-not-allowed"
                           />
                           <div className="flex-1">
                             <span className="text-gray-900 dark:text-slate-100">{key}. {option.text}</span>
@@ -1733,7 +1871,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
           </div>
           <button
             onClick={() => handleSubmit(false)}
-            disabled={loading}
+            disabled={loading || isLocked}
             className="btn-primary-gradient text-white px-8 py-3 rounded-lg font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2"
           >
             {loading ? (

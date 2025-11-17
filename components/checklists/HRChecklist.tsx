@@ -526,6 +526,16 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
   if (submitted) {
     return (
       <div className="p-6">
+        {/* Breadcrumbs */}
+        <nav className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400 mb-6">
+          <button
+            onClick={() => window.history.back()}
+            className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+          >
+            ← Back to Checklists
+          </button>
+        </nav>
+
         <div className="max-w-2xl mx-auto text-center">
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-8">
             <div className="text-green-600 dark:text-green-400 text-6xl mb-4">✅</div>
@@ -551,6 +561,16 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       {isLoading && <LoadingOverlay />}
       
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
+        <button
+          onClick={() => window.history.back()}
+          className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+        >
+          ← Back to Checklists
+        </button>
+      </nav>
+
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
           👥 HR Employee Satisfaction Survey
@@ -568,7 +588,7 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              HR Name
+              HR Name *
             </label>
             <select
               value={meta.hrId}
@@ -581,6 +601,7 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
                 const urlParams = new URLSearchParams(window.location.search);
                 return !!(urlParams.get('hrId') || urlParams.get('hr_id') || urlParams.get('hrName') || urlParams.get('hr_name'));
               })()}
+              required
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <option value="">Select HR Person</option>
@@ -594,7 +615,7 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
 
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Area Manager
+              Area Manager *
             </label>
             <input
               type="text"
@@ -607,6 +628,7 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
               onFocus={() => setShowAmDropdown(true)}
               onBlur={() => setTimeout(() => setShowAmDropdown(false), 200)}
               placeholder="Search Area Manager..."
+              required
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
             />
             
@@ -637,26 +659,28 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Employee Name
+              Employee Name *
             </label>
             <input
               type="text"
               value={meta.empName}
               onChange={(e) => handleMetaChange('empName', e.target.value)}
               placeholder="Enter employee name"
+              required
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Employee ID
+              Employee ID *
             </label>
             <input
               type="text"
               value={meta.empId}
               onChange={(e) => handleMetaChange('empId', e.target.value)}
               placeholder="Enter employee ID"
+              required
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
             />
           </div>
@@ -664,7 +688,7 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
           <div className="md:col-span-2">
             <div className="relative">
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                Store Location
+                Store Location *
               </label>
               <input
                 type="text"
@@ -677,6 +701,7 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
                 onFocus={() => setShowStoreDropdown(true)}
                 onBlur={() => setTimeout(() => setShowStoreDropdown(false), 200)}
                 placeholder="Search Store..."
+                required
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
               />
               

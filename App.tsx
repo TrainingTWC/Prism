@@ -189,6 +189,26 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // If user has campus-hiring role, only show the campus hiring checklist
+  if (authUserRole === 'campus-hiring') {
+    const campusHiringRole = {
+      userId: 'campus-hiring',
+      name: 'Campus Hiring Access',
+      role: 'campus-hiring' as const,
+      allowedStores: [],
+      allowedAMs: [],
+      allowedHRs: []
+    };
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
+        <Header />
+        <main className="p-2 sm:p-4 lg:p-8">
+          <ChecklistsAndSurveys userRole={campusHiringRole} />
+        </main>
+      </div>
+    );
+  }
+
   // For all other roles, show the normal interface
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
