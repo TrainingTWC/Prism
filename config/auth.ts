@@ -56,8 +56,8 @@ export const AUTH_CONFIG: AuthConfig = {
     },
     'campus-hiring': {
       password: 'CampusHire2024!',
-      permissions: ['campus-hiring', 'dashboard'],
-      dashboardAccess: ['campus-hiring-dashboard'] // Access to campus hiring dashboard
+      permissions: ['campus-hiring'],
+      dashboardAccess: [] // No dashboard access - checklist only
     },
     admin: {
       password: 'AdminView2024!',
