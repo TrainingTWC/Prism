@@ -1442,7 +1442,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       {submitStatus === 'success' && (
         <div className="fixed inset-0 bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center z-50">
           <div className="text-center text-white px-8 py-12 max-w-2xl">
-            <CheckCircle className="w-24 h-24 mx-auto mb-6 animate-bounce" />
+            <CheckCircle className="w-24 h-24 mx-auto mb-6" />
             <h1 className="text-5xl font-bold mb-4">
               Thanks for taking the Assessment!
             </h1>
@@ -1467,7 +1467,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       {submitStatus === 'locked' && (
         <div className="fixed inset-0 bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center z-50">
           <div className="text-center text-white px-8 py-12 max-w-2xl">
-            <CheckCircle className="w-24 h-24 mx-auto mb-6 animate-bounce" />
+            <CheckCircle className="w-24 h-24 mx-auto mb-6" />
             <h1 className="text-5xl font-bold mb-4">
               Thanks for taking the Assessment!
             </h1>
