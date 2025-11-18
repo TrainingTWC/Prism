@@ -21,14 +21,6 @@ export default defineConfig(({ mode }) => {
           }
         }
       },
-      css: {
-        postcss: {
-          plugins: [
-            require('tailwindcss'),
-            require('autoprefixer'),
-          ]
-        }
-      },
       plugins: [react()],
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
