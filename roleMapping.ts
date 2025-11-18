@@ -18,22 +18,32 @@ const loadMappingData = async (): Promise<any[]> => {
     let response;
     let mappingData;
 
-    // Try comprehensive TWC mapping first
+    // Try comprehensive store mapping first
     try {
-      response = await fetch(`${base}twc_store_mapping.json`);
+      response = await fetch(`${base}comprehensive_store_mapping.json`);
       if (response.ok) {
         mappingData = await response.json();
-        console.log('Loaded comprehensive TWC store mapping for role access');
+        console.log('Loaded comprehensive store mapping for role access');
         return mappingData;
       } else {
         throw new Error('Comprehensive mapping not found');
       }
     } catch {
-      // Fallback to hr_mapping.json
-      response = await fetch(`${base}hr_mapping.json`);
-      mappingData = await response.json();
-      console.log('Loaded fallback HR mapping for role access');
-      return mappingData;
+      // Fallback to twc_store_mapping.json
+      try {
+        response = await fetch(`${base}twc_store_mapping.json`);
+        if (response.ok) {
+          mappingData = await response.json();
+          console.log('Loaded TWC store mapping for role access');
+          return mappingData;
+        }
+      } catch {
+        // Final fallback to hr_mapping.json
+        response = await fetch(`${base}hr_mapping.json`);
+        mappingData = await response.json();
+        console.log('Loaded fallback HR mapping for role access');
+        return mappingData;
+      }
     }
   } catch (error) {
     console.warn('Could not load mapping data for roles, using fallback');
@@ -99,19 +109,25 @@ const createRoleMappings = (hrMappingData: any[]): UserRole[] => {
   const regionalHrRegions: { [key: string]: string } = {};
 
   hrMappingData.forEach((item: any) => {
-    // Handle both old and new field formats
+    // Handle both old and new field formats from comprehensive_store_mapping.json
     const storeId = item['Store ID'] || item.storeId;
-    const areaManagerId = item['Area Manager ID'] || item.areaManagerId;
-    const hrbpId = item['HRBP ID'] || item.hrbpId;
-    const regionalHrId = item['Regional HR ID'] || item.regionalHrId;
-    const hrHeadId = item['HR Head ID'] || item.hrHeadId;
-    const lmsHeadId = item['LMS Head ID'] || item.lmsHeadId;
+    const areaManagerId = item['AM'] || item['Area Manager ID'] || item.areaManagerId;
+    const hrbpId = item['HRBP'] || item['HRBP ID'] || item.hrbpId;
+    const regionalHrId = item['Regional Training Manager'] || item['Regional HR ID'] || item.regionalHrId;
+    const hrHeadId = item['HR Head'] || item['HR Head ID'] || item.hrHeadId;
+    const lmsHeadId = item['E-Learning Specialist'] || item['Training Head'] || item['LMS Head ID'] || item.lmsHeadId;
     const region = item['Region'] || item.region;
+
+    // Special case: Add Rohit Paul (H3551) as Regional Training Manager for all South region stores
+    let effectiveRegionalHrId = regionalHrId;
+    if (region === 'South') {
+      effectiveRegionalHrId = 'H3551'; // Rohit Paul - Regional Manager HR for South
+    }
 
     // Collect unique IDs
     if (areaManagerId) areaManagers.add(areaManagerId);
     if (hrbpId) hrbps.add(hrbpId);
-    if (regionalHrId) regionalHrs.add(regionalHrId);
+    if (effectiveRegionalHrId) regionalHrs.add(effectiveRegionalHrId);
     if (hrHeadId) hrHeads.add(hrHeadId);
     if (lmsHeadId) lmsHeads.add(lmsHeadId);
 
@@ -134,19 +150,19 @@ const createRoleMappings = (hrMappingData: any[]): UserRole[] => {
     }
 
     // Regional HR mappings
-    if (regionalHrId) {
-      if (!regionalHrStores[regionalHrId]) regionalHrStores[regionalHrId] = [];
-      if (!regionalHrAMs[regionalHrId]) regionalHrAMs[regionalHrId] = [];
-      if (!regionalHrHRBPs[regionalHrId]) regionalHrHRBPs[regionalHrId] = [];
+    if (effectiveRegionalHrId) {
+      if (!regionalHrStores[effectiveRegionalHrId]) regionalHrStores[effectiveRegionalHrId] = [];
+      if (!regionalHrAMs[effectiveRegionalHrId]) regionalHrAMs[effectiveRegionalHrId] = [];
+      if (!regionalHrHRBPs[effectiveRegionalHrId]) regionalHrHRBPs[effectiveRegionalHrId] = [];
       
-      regionalHrStores[regionalHrId].push(storeId);
-      if (areaManagerId && !regionalHrAMs[regionalHrId].includes(areaManagerId)) {
-        regionalHrAMs[regionalHrId].push(areaManagerId);
+      regionalHrStores[effectiveRegionalHrId].push(storeId);
+      if (areaManagerId && !regionalHrAMs[effectiveRegionalHrId].includes(areaManagerId)) {
+        regionalHrAMs[effectiveRegionalHrId].push(areaManagerId);
       }
-      if (hrbpId && !regionalHrHRBPs[regionalHrId].includes(hrbpId)) {
-        regionalHrHRBPs[regionalHrId].push(hrbpId);
+      if (hrbpId && !regionalHrHRBPs[effectiveRegionalHrId].includes(hrbpId)) {
+        regionalHrHRBPs[effectiveRegionalHrId].push(hrbpId);
       }
-      regionalHrRegions[regionalHrId] = region;
+      regionalHrRegions[effectiveRegionalHrId] = region;
     }
   });
 
