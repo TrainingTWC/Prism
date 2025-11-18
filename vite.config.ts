@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
     return {
       // Use repo name as base path when deploying to GitHub Pages
       base: '/Prism/',
+      clearScreen: false,
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -18,6 +19,14 @@ export default defineConfig(({ mode }) => {
             target: 'http://localhost:4001',
             changeOrigin: true,
           }
+        }
+      },
+      css: {
+        postcss: {
+          plugins: [
+            require('tailwindcss'),
+            require('autoprefixer'),
+          ]
         }
       },
       plugins: [react()],
