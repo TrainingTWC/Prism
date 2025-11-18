@@ -192,58 +192,73 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
   }, [meta.hrId, allStores]);
 
   const availableAreaManagers = useMemo(() => {
+    // If no HR is selected, show all accessible AMs
     if (!meta.hrId) {
       return AREA_MANAGERS.filter(am => canAccessAM(userRole, am.id));
     }
     
+    // If HR is a senior role, show all accessible AMs
     if (SENIOR_HR_ROLES.includes(meta.hrId)) {
       const allAccessibleAMs = AREA_MANAGERS.filter(am => canAccessAM(userRole, am.id));
       return allAccessibleAMs;
     }
     
+    // Filter AMs based on selected HR
     const hrAreaManagerIds = new Set<string>();
     
     compStoreMapping.forEach((mapping: any) => {
+      // Check if this store is managed by the selected HR
       if (mapping.HRBP === meta.hrId || 
           mapping['Regional Training Manager'] === meta.hrId || 
           mapping['HR Head'] === meta.hrId) {
         if (mapping.AM) {
+          // Add AM in all case variations
           hrAreaManagerIds.add(mapping.AM);
+          hrAreaManagerIds.add(mapping.AM.toUpperCase());
+          hrAreaManagerIds.add(mapping.AM.toLowerCase());
         }
       }
     });
     
+    // Filter AREA_MANAGERS to only those managed by this HR
     const filteredAMs = AREA_MANAGERS.filter(am => 
       hrAreaManagerIds.has(am.id) || 
       hrAreaManagerIds.has(am.id.toUpperCase()) || 
       hrAreaManagerIds.has(am.id.toLowerCase())
     );
     
+    console.log(`[HR Checklist] Filtered AMs for HR ${meta.hrId}:`, filteredAMs.length, 'AMs');
     return filteredAMs;
   }, [userRole, meta.hrId]);
 
   const availableStores = useMemo(() => {
-    if (!meta.amId) {
-      if (meta.hrId) {
-        return filteredStoresByHR;
-      }
-      const roleBasedStores = allStores.filter(store => canAccessStore(userRole, store.id));
-      return roleBasedStores;
+    // If AM is selected, filter stores by AM
+    if (meta.amId) {
+      const amStoreIds = compStoreMapping
+        .filter((mapping: any) => {
+          const am = mapping.AM;
+          return am && (
+            am === meta.amId || 
+            am.toUpperCase() === meta.amId.toUpperCase()
+          );
+        })
+        .map((mapping: any) => mapping['Store ID']);
+      
+      const filteredStores = allStores.filter(store => amStoreIds.includes(store.id));
+      console.log(`[HR Checklist] Filtered stores for AM ${meta.amId}:`, filteredStores.length, 'stores');
+      return filteredStores;
     }
     
-    const amStoreIds = compStoreMapping
-      .filter((mapping: any) => {
-        const am = mapping.AM;
-        return am && (
-          am === meta.amId || 
-          am.toUpperCase() === meta.amId.toUpperCase()
-        );
-      })
-      .map((mapping: any) => mapping['Store ID']);
+    // If only HR is selected (no AM), show all stores under that HR
+    if (meta.hrId) {
+      console.log(`[HR Checklist] Showing HR stores (no AM selected):`, filteredStoresByHR.length, 'stores');
+      return filteredStoresByHR;
+    }
     
-    const filteredStores = allStores.filter(store => amStoreIds.includes(store.id));
-    
-    return filteredStores;
+    // No filters - show role-based stores
+    const roleBasedStores = allStores.filter(store => canAccessStore(userRole, store.id));
+    console.log(`[HR Checklist] Showing role-based stores:`, roleBasedStores.length, 'stores');
+    return roleBasedStores;
   }, [userRole, allStores, filteredStoresByHR, meta.hrId, meta.amId]);
 
   const availableHRPersonnel = useMemo(() => {
@@ -313,14 +328,25 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     setMeta(prev => {
       const next = { ...prev, [key]: value };
       
-      if (key === 'storeId' && value) {
+      // Clear dependent fields when parent field changes
+      if (key === 'hrId') {
+        // When HR changes, clear AM and Store
+        next.amId = '';
+        next.amName = '';
+        next.storeId = '';
+        next.storeName = '';
+        console.log('[HR Checklist] HR changed, cleared AM and Store');
+      } else if (key === 'amId') {
+        // When AM changes, clear Store
+        next.storeId = '';
+        next.storeName = '';
+        console.log('[HR Checklist] AM changed, cleared Store');
+      } else if (key === 'storeId' && value) {
+        // Auto-fill store name when store is selected
         const storeMapping = compStoreMapping.find((mapping: any) => mapping['Store ID'] === value);
         
         if (storeMapping) {
-          setMeta(current => ({
-            ...current,
-            storeName: storeMapping['Store Name']
-          }));
+          next.storeName = storeMapping['Store Name'];
         }
       }
       
