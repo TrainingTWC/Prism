@@ -250,8 +250,11 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   const effectiveTrainers = trainers || [];
   const effectiveHRPersonnel = hrPersonnel || [];
   
+  console.log('DashboardFilters - received trainers prop:', trainers?.length || 0);
   console.log('DashboardFilters - effective trainers:', effectiveTrainers.slice(0, 3)); // Log first 3
   console.log('DashboardFilters - effective HR personnel:', effectiveHRPersonnel.slice(0, 3)); // Log first 3
+  console.log('DashboardFilters - dashboardType:', dashboardType);
+  console.log('DashboardFilters - will show trainer filter?', dashboardType !== 'hr' && effectiveTrainers.length > 0);
 
   const handleRefresh = (e?: React.KeyboardEvent | React.MouseEvent) => {
     // allow keyboard activation via Enter/Space

@@ -4,8 +4,8 @@ import { generateTrainingTestData } from '../utils/trainingTestData';
 import { STATIC_TRAINING_DATA } from './staticTrainingData';
 import { STATIC_AM_OPERATIONS_DATA } from './staticOperationsData';
 
-// Google Apps Script endpoint for fetching data
-const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKMVh-lnNBnINskIqD10CnQHvGsW_R2SLASGSdBDN9lTGj1gznlNbHORQ/exec';
+// Google Apps Script endpoint for fetching data - UPDATED with DD/MM/YYYY date formatting
+const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzjSz9tePMAh3bOVfx9-Cnkj8hgZpLhUZ4UPKteSuD40BsDi6PM1v8D3ZSsxQxXYDXgjg/exec';
 
 // AM Operations endpoint - UPDATED URL with comprehensive mapping support
 const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxGons1Zbb6_9CpkzuYnEDXuIXWs7-tI-Oe1HY4dijXCtkN8XzQg1bCVo19euGbh5Hk/exec';
@@ -132,6 +132,95 @@ const getStoresForAM = async (amId: string): Promise<{storeId: string, storeName
 };
 
 const getRandomItem = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+
+// Utility function to deduplicate submissions
+// Keeps only the latest submission for each employee per day
+const deduplicateSubmissions = (submissions: Submission[]): Submission[] => {
+  console.log('🔍 Deduplicating submissions...');
+  console.log('Original count:', submissions.length);
+  
+  // Group submissions by employee (empName + empId) and date
+  const submissionMap = new Map<string, Submission>();
+  
+  submissions.forEach(submission => {
+    const empKey = `${submission.empName}_${submission.empId}`.toLowerCase();
+    
+    // Extract date from submission time (ignore time component)
+    const submissionDate = parseSubmissionDate(submission.submissionTime);
+    if (!submissionDate) {
+      console.warn('Could not parse date for submission:', submission.submissionTime);
+      return;
+    }
+    
+    const dateKey = `${submissionDate.getFullYear()}-${submissionDate.getMonth()}-${submissionDate.getDate()}`;
+    const uniqueKey = `${empKey}_${dateKey}`;
+    
+    // Check if we already have a submission for this employee on this date
+    const existing = submissionMap.get(uniqueKey);
+    
+    if (!existing) {
+      // First submission for this employee on this date
+      submissionMap.set(uniqueKey, submission);
+    } else {
+      // Compare timestamps to keep the latest one
+      const existingDate = parseSubmissionDate(existing.submissionTime);
+      
+      if (existingDate && submissionDate > existingDate) {
+        // Current submission is newer, replace the existing one
+        console.log(`📝 Replacing duplicate: ${submission.empName} (${submission.empId}) - Keeping ${submission.submissionTime} over ${existing.submissionTime}`);
+        submissionMap.set(uniqueKey, submission);
+      } else {
+        console.log(`📝 Skipping duplicate: ${submission.empName} (${submission.empId}) - Keeping earlier ${existing.submissionTime} over ${submission.submissionTime}`);
+      }
+    }
+  });
+  
+  const deduplicated = Array.from(submissionMap.values());
+  console.log('✅ Deduplicated count:', deduplicated.length);
+  console.log(`Removed ${submissions.length - deduplicated.length} duplicate(s)`);
+  
+  return deduplicated;
+};
+
+// Helper function to parse submission date/time string
+const parseSubmissionDate = (submissionTime: string): Date | null => {
+  if (!submissionTime) return null;
+  
+  try {
+    // Handle ISO format (from mock data)
+    if (submissionTime.includes('T')) {
+      return new Date(submissionTime);
+    }
+    
+    // Parse DD/MM/YYYY, HH:MM:SS format (from Google Sheets)
+    const dateStr = submissionTime.trim().replace(',', '');
+    const parts = dateStr.split(' ');
+    
+    if (parts.length < 1) return null;
+    
+    // Parse date part (DD/MM/YYYY)
+    const dateParts = parts[0].split('/');
+    if (dateParts.length !== 3) return null;
+    
+    const day = parseInt(dateParts[0], 10);
+    const month = parseInt(dateParts[1], 10) - 1; // Months are 0-indexed
+    const year = parseInt(dateParts[2], 10);
+    
+    // Parse time part if available (HH:MM:SS)
+    let hour = 0, minute = 0, second = 0;
+    if (parts.length > 1 && parts[1]) {
+      const timeParts = parts[1].split(':');
+      hour = parseInt(timeParts[0] || '0', 10);
+      minute = parseInt(timeParts[1] || '0', 10);
+      second = parseInt(timeParts[2] || '0', 10);
+    }
+    
+    return new Date(year, month, day, hour, minute, second);
+  } catch (err) {
+    console.error('Error parsing date:', err, 'Input:', submissionTime);
+    return null;
+  }
+};
 
 const generateMockData = async (count: number): Promise<Submission[]> => {
   const data: Submission[] = [];
@@ -382,13 +471,18 @@ export const fetchSubmissions = async (): Promise<Submission[]> => {
     
     try {
       console.log('Trying direct request to Google Apps Script...');
-      const directUrl = SHEETS_ENDPOINT + '?action=getData';
+      // Add cache-busting parameter to force fresh data
+      const cacheBuster = `&_t=${Date.now()}`;
+      const directUrl = SHEETS_ENDPOINT + '?action=getData' + cacheBuster;
+      console.log('📡 Fetching from URL:', directUrl);
+      console.log('📡 Using endpoint:', SHEETS_ENDPOINT);
       
       response = await fetch(directUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
         },
+        cache: 'no-cache', // Disable browser caching
         redirect: 'follow',
       });
       
@@ -442,7 +536,10 @@ export const fetchSubmissions = async (): Promise<Submission[]> => {
       return await generateMockData(20);
     }
     
-    return submissions;
+    // Deduplicate submissions - keep only the latest submission per employee per day
+    const deduplicatedSubmissions = deduplicateSubmissions(submissions);
+    
+    return deduplicatedSubmissions;
   } catch (error) {
     console.error('Error fetching from Google Sheets:', error);
     console.log('Failed to fetch data, generating mock data...');

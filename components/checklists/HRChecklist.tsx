@@ -153,13 +153,26 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
       }
 
       try {
-        const hrStoreIds = compStoreMapping
-          .filter((mapping: any) => 
-            mapping.HRBP === meta.hrId || 
-            mapping['Regional Training Manager'] === meta.hrId || 
-            mapping['HR Head'] === meta.hrId
-          )
-          .map((mapping: any) => mapping['Store ID']);
+        let hrStoreIds: string[];
+        
+        // Special case: Rohit Paul (H3551) - Regional Manager for South
+        // Give access to ALL South region stores
+        if (meta.hrId === 'H3551') {
+          hrStoreIds = compStoreMapping
+            .filter((mapping: any) => mapping.Region === 'South')
+            .map((mapping: any) => mapping['Store ID']);
+          
+          console.log(`[HR Checklist] Rohit (Regional Manager South) - Stores:`, hrStoreIds.length, 'South stores');
+        } else {
+          // Normal HR filtering
+          hrStoreIds = compStoreMapping
+            .filter((mapping: any) => 
+              mapping.HRBP === meta.hrId || 
+              mapping['Regional Training Manager'] === meta.hrId || 
+              mapping['HR Head'] === meta.hrId
+            )
+            .map((mapping: any) => mapping['Store ID']);
+        }
         
         const hrStores = allStores.filter(store => hrStoreIds.includes(store.id));
         setFilteredStoresByHR(hrStores);
@@ -201,6 +214,30 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     if (SENIOR_HR_ROLES.includes(meta.hrId)) {
       const allAccessibleAMs = AREA_MANAGERS.filter(am => canAccessAM(userRole, am.id));
       return allAccessibleAMs;
+    }
+    
+    // Special case: Rohit Paul (H3551) - Regional Manager for South
+    // Give access to ALL Area Managers in South region
+    if (meta.hrId === 'H3551') {
+      const southAMIds = new Set<string>();
+      
+      // Find all AMs who manage South region stores
+      compStoreMapping.forEach((mapping: any) => {
+        if (mapping.Region === 'South' && mapping.AM) {
+          southAMIds.add(mapping.AM);
+          southAMIds.add(mapping.AM.toUpperCase());
+          southAMIds.add(mapping.AM.toLowerCase());
+        }
+      });
+      
+      const southAMs = AREA_MANAGERS.filter(am => 
+        southAMIds.has(am.id) || 
+        southAMIds.has(am.id.toUpperCase()) || 
+        southAMIds.has(am.id.toLowerCase())
+      );
+      
+      console.log(`[HR Checklist] Rohit (Regional Manager South) - AMs:`, southAMs.length, 'South AMs');
+      return southAMs;
     }
     
     // Filter AMs based on selected HR

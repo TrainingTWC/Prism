@@ -23,6 +23,7 @@ import AMPerformanceInfographic from './AMPerformanceInfographic';
 import HRPerformanceInfographic from './HRPerformanceInfographic';
 import QuestionScoresInfographic from './QuestionScoresInfographic';
 import AMRadarChart from './AMRadarChart';
+import AMScorecardSection from './AMScorecardSection';
 // Operations Dashboard Components
 import OperationsRegionPerformanceInfographic from './OperationsRegionPerformanceInfographic';
 import OperationsAMPerformanceInfographic from './OperationsAMPerformanceInfographic';
@@ -45,6 +46,7 @@ import TrainingDetailModal from './TrainingDetailModal';
 import TrainingHealthBreakdownModal from './TrainingHealthBreakdownModal';
 import AuditScoreDetailsModal from './AuditScoreDetailsModal';
 import HRDetailModal from './HRDetailModal';
+import HRBPCalendarModal from './HRBPCalendarModal';
 import NowBarMobile from './NowBarMobile';
 // Multi-Month Trends Components (Google Sheets Integration)
 import HeaderSummary from '../src/components/dashboard/HeaderSummary';
@@ -107,6 +109,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   // Leaderboard view toggle state
   const [leaderboardView, setLeaderboardView] = useState<'count' | 'score'>('count');
+  
+  // HRBP Calendar Modal state
+  const [selectedHRBP, setSelectedHRBP] = useState<{ id: string; name: string } | null>(null);
+  const [showHRBPCalendar, setShowHRBPCalendar] = useState(false);
 
   // Normalized trainer filter id for robust comparisons (handle h3595 vs H3595 etc.)
   const normalizeId = (v: any) => (v === undefined || v === null) ? '' : String(v).toUpperCase();
@@ -455,22 +461,32 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             setAllStores(mergedStores);
             setAllAreaManagers(areaManagers);
             
-            // Build HRBP list for HR dashboard
-            const hrbpIds = new Set<string>();
+            // Build comprehensive HR list for HR dashboard (HRBP, Regional HR, HR Head)
+            const allHrIds = new Set<string>();
+            
+            // Add HRBPs from comprehensive mapping
             comp.forEach((row: any) => {
-              if (row.HRBP) hrbpIds.add(String(row.HRBP).toUpperCase());
+              if (row.HRBP) allHrIds.add(String(row.HRBP).toUpperCase());
+              if (row['HR Head']) allHrIds.add(String(row['HR Head']).toUpperCase());
             });
-            console.log('Dashboard - HRBP IDs found:', Array.from(hrbpIds));
+            
+            // Add all HR personnel from constants (includes Regional HR like Pooja)
+            HR_PERSONNEL.forEach((hr: any) => {
+              if (hr.id) allHrIds.add(String(hr.id).toUpperCase());
+            });
+            
+            console.log('Dashboard - All HR IDs found:', Array.from(allHrIds));
 
-            const hrbpArr: any[] = [];
-            hrbpIds.forEach((hrbpId) => {
-              const found = HR_PERSONNEL.find((h: any) => String(h.id).toUpperCase() === hrbpId);
-              const name = found?.name || hrbpId;
-              hrbpArr.push({ id: hrbpId, name });
+            const allHrArr: any[] = [];
+            allHrIds.forEach((hrId) => {
+              const found = HR_PERSONNEL.find((h: any) => String(h.id).toUpperCase() === hrId);
+              if (found) {
+                allHrArr.push({ id: hrId, name: found.name });
+              }
             });
-            hrbpArr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
-            console.log('Dashboard - Built HRBP list:', hrbpArr);
-            setAllHRPersonnel(hrbpArr);
+            allHrArr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+            console.log('Dashboard - Built comprehensive HR list:', allHrArr);
+            setAllHRPersonnel(allHrArr);
             
             // Build Trainer list for Training/Operations/QA dashboards
             const trainerIds = new Set<string>();
@@ -488,6 +504,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             trainersArr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
             console.log('Dashboard - Built Trainer list:', trainersArr);
             setAllTrainers(trainersArr);
+            
+            // If no trainers found, fallback to TRAINER_PERSONNEL constants
+            if (trainersArr.length === 0) {
+              console.warn('Dashboard - No trainers found in comprehensive mapping, using TRAINER_PERSONNEL constants');
+              setAllTrainers(TRAINER_PERSONNEL);
+            }
           } else {
             // Fallback: use HR personnel names where trainer ids appear
             console.log('Dashboard - Using fallback HR personnel for trainers');
@@ -687,7 +709,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       console.log('Filtering Stores for Area Manager:', filters.am);
       
       // For Training dashboard, use comprehensive mapping; for others, use HR mapping
-      if (dashboardType === 'training' && compStoreMapping && compStoreMapping.length > 0) {
+      if (compStoreMapping && compStoreMapping.length > 0) {
         const amStoreIds = compStoreMapping
           .filter((mapping: any) => mapping.AM === filters.am || mapping.am === filters.am)
           .map((mapping: any) => mapping['Store ID'] || mapping.storeId || mapping.StoreID || mapping.store_id);
@@ -715,6 +737,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       console.log(`Found ${stores.length} stores for Trainer ${trainerFilterId}:`, stores);
     }
     
+    console.log(`Available stores for ${dashboardType} dashboard:`, stores.length);
     return stores;
   }, [filters.region, filters.am, filters.trainer, userRole, allStores, hrMappingData, compStoreMapping, dashboardType]);
 
@@ -2758,25 +2781,28 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         </div>
       )}
 
-      {dashboardType !== 'campus-hiring' && (
-        <div>
-          <DashboardFilters
-            regions={availableRegions}
-            stores={availableStores}
-            areaManagers={availableAreaManagers}
-            // Pass HR personnel for HR filter
-            hrPersonnel={allHRPersonnel && allHRPersonnel.length > 0 ? allHRPersonnel : availableHRPersonnel}
-            // Pass trainers for Trainer filter
-            trainers={allTrainers && allTrainers.length > 0 ? allTrainers : undefined}
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            onReset={resetFilters}
-            onDownload={generatePDFReport}
-            isGenerating={isGenerating}
-            dashboardType={dashboardType}
-          />
-        </div>
-      )}
+      {dashboardType !== 'campus-hiring' && (() => {
+        console.log(`Dashboard - Passing to filters - trainers:`, allTrainers?.length || 0, 'stores:', availableStores.length, 'AMs:', availableAreaManagers.length);
+        return (
+          <div>
+            <DashboardFilters
+              regions={availableRegions}
+              stores={availableStores}
+              areaManagers={availableAreaManagers}
+              // Pass HR personnel for HR filter
+              hrPersonnel={allHRPersonnel && allHRPersonnel.length > 0 ? allHRPersonnel : availableHRPersonnel}
+              // Pass trainers for Trainer filter
+              trainers={allTrainers && allTrainers.length > 0 ? allTrainers : undefined}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              onReset={resetFilters}
+              onDownload={generatePDFReport}
+              isGenerating={isGenerating}
+              dashboardType={dashboardType}
+            />
+          </div>
+        );
+      })()}
 
       {/* RCA & CAPA Analysis - Only for Operations Dashboard */}
       {/* Commented out - RCACapaAnalysis component not found
@@ -2952,7 +2978,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                       const maxCount = sortedHRs[0]?.[1].count || 1;
                       
                       return sortedHRs.map(([hrId, data], index) => (
-                        <div key={hrId} className="flex items-center gap-3">
+                        <div 
+                          key={hrId} 
+                          className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 p-2 rounded-lg transition-colors"
+                          onClick={() => {
+                            setSelectedHRBP({ id: hrId, name: data.name });
+                            setShowHRBPCalendar(true);
+                          }}
+                        >
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
                             index === 0 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' :
                             index === 1 ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' :
@@ -3023,7 +3056,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         });
                       
                       return sortedHRs.map((hr, index) => (
-                        <div key={hr.hrId} className="flex items-center gap-3">
+                        <div 
+                          key={hr.hrId} 
+                          className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 p-2 rounded-lg transition-colors"
+                          onClick={() => {
+                            setSelectedHRBP({ id: hr.hrId, name: hr.name });
+                            setShowHRBPCalendar(true);
+                          }}
+                        >
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
                             index === 0 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' :
                             index === 1 ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' :
@@ -3087,6 +3127,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               <div className="grid grid-cols-1 gap-6">
                 <AMRadarChart submissions={filteredSubmissions} />
               </div>
+
+              {/* Area Manager Scorecards Section with Filters */}
+              <AMScorecardSection
+                areaManagers={availableAreaManagers}
+                submissions={filteredSubmissions}
+              />
             </>
           )}
 
@@ -3550,6 +3596,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           }}
           submission={qaEditSubmission}
           userRole={userRole}
+        />
+      )}
+
+      {/* HRBP Calendar Modal */}
+      {showHRBPCalendar && selectedHRBP && (
+        <HRBPCalendarModal
+          hrbp={selectedHRBP}
+          submissions={filteredSubmissions}
+          onClose={() => {
+            setShowHRBPCalendar(false);
+            setSelectedHRBP(null);
+          }}
         />
       )}
     </div>

@@ -687,13 +687,11 @@ export const buildHRPDF = async (
     
     submissions.forEach((sub, idx) => {
       const overall = computeOverall(sub);
-      const empName = sub.empName || 'N/A';
       const store = sub.storeName || 'N/A';
       const date = formatDate(sub.submissionTime || 'N/A');
       
       tableData.push([
         idx + 1,
-        empName,
         store,
         date,
         `${overall.pct}%`
@@ -702,7 +700,7 @@ export const buildHRPDF = async (
 
     autoTable(doc, {
       startY: y,
-      head: [['#', 'Employee', 'Store', 'Date', 'Score']],
+      head: [['#', 'Store', 'Date', 'Score']],
       body: tableData,
       theme: 'striped',
       headStyles: {
@@ -716,11 +714,10 @@ export const buildHRPDF = async (
         textColor: [31, 41, 55]
       },
       columnStyles: {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 50 },
-        2: { cellWidth: 60 },
-        3: { cellWidth: 42 },
-        4: { cellWidth: 20, halign: 'center' }
+        0: { cellWidth: 15 },
+        1: { cellWidth: 85 },
+        2: { cellWidth: 52 },
+        3: { cellWidth: 30, halign: 'center' }
       },
       margin: { left: 14, right: 14 },
       didDrawPage: (data) => {

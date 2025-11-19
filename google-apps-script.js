@@ -178,7 +178,20 @@ function getDataFromSheet() {
       var obj = {};
       
       // Basic info from columns A-J (as seen in the screenshot)
-      obj.submissionTime = row[1] || '';    // Column B - Submission Time
+      // Format submission time to ensure DD/MM/YYYY format
+      var submissionTimeValue = row[1];
+      if (submissionTimeValue instanceof Date) {
+        // If it's a Date object, format it as DD/MM/YYYY, HH:MM:SS
+        var day = Utilities.formatDate(submissionTimeValue, Session.getScriptTimeZone(), 'dd');
+        var month = Utilities.formatDate(submissionTimeValue, Session.getScriptTimeZone(), 'MM');
+        var year = Utilities.formatDate(submissionTimeValue, Session.getScriptTimeZone(), 'yyyy');
+        var time = Utilities.formatDate(submissionTimeValue, Session.getScriptTimeZone(), 'HH:mm:ss');
+        obj.submissionTime = day + '/' + month + '/' + year + ', ' + time;
+      } else {
+        // If it's already a string, use it as-is
+        obj.submissionTime = submissionTimeValue || '';
+      }
+      // obj.submissionTime = row[1] || '';    // Column B - Submission Time (OLD)
       obj.hrName = row[2] || '';            // Column C - HR Name
       obj.hrId = row[3] || '';              // Column D - HR ID
       obj.amName = row[4] || '';            // Column E - AM Name

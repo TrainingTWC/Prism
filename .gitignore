@@ -9,6 +9,12 @@ lerna-debug.log*
 
 node_modules
 dist
+
+# Environment variables (contains sensitive information)
+.env
+.env.local
+.env.production
+.env.development
 dist-ssr
 *.local
 
