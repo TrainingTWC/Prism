@@ -293,6 +293,17 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    const maxContentHeight = pageHeight - 30; // Leave space for footer
+    
+    // Helper function to check if we need a new page
+    const checkPageBreak = (currentY: number, requiredSpace: number) => {
+      if (currentY + requiredSpace > maxContentHeight) {
+        doc.addPage();
+        return 20; // Reset to top margin
+      }
+      return currentY;
+    };
     
     // Modern One UI Header with Logo
     // Soft gradient header background
@@ -440,6 +451,9 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
 
       yPos = (doc as any).lastAutoTable.finalY + 15;
 
+      // Check if we need a new page for AI insights section
+      yPos = checkPageBreak(yPos, 80); // Reserve space for header and first section
+      
       // AI Insights section with detailed analysis
       // Section header
       doc.setFontSize(14);
@@ -461,12 +475,12 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
       const detailedPositives = aiInsights?.detailedInsights?.positives || [];
       const detailedNegatives = aiInsights?.detailedInsights?.negatives || [];
       
-      // Success Factors Section
+      // Check if we need a new page for Success Factors section
+      yPos = checkPageBreak(yPos, 60);
+      
+      // Success Factors Section - Dynamic height
+      const successSectionStart = yPos;
       doc.setFillColor(240, 253, 244); // emerald-50
-      doc.roundedRect(15, yPos, pageWidth - 30, 45, 3, 3, 'F');
-      doc.setDrawColor(167, 243, 208); // emerald-200
-      doc.setLineWidth(0.5);
-      doc.roundedRect(15, yPos, pageWidth - 30, 45, 3, 3, 'S');
       
       // Positives header
       doc.setFontSize(12);
@@ -506,14 +520,21 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
         });
       }
       
-      yPos = Math.max(yPos + 45, currentY) + 10;
-      
-      // Areas for Improvement Section
-      doc.setFillColor(255, 251, 235); // amber-50
-      doc.roundedRect(15, yPos, pageWidth - 30, 45, 3, 3, 'F');
-      doc.setDrawColor(253, 230, 138); // amber-200
+      // Draw dynamic success factors box
+      const successSectionHeight = Math.max(45, currentY - successSectionStart + 5);
+      doc.roundedRect(15, successSectionStart, pageWidth - 30, successSectionHeight, 3, 3, 'F');
+      doc.setDrawColor(167, 243, 208); // emerald-200
       doc.setLineWidth(0.5);
-      doc.roundedRect(15, yPos, pageWidth - 30, 45, 3, 3, 'S');
+      doc.roundedRect(15, successSectionStart, pageWidth - 30, successSectionHeight, 3, 3, 'S');
+      
+      yPos = currentY + 10;
+      
+      // Check if we need a new page for Improvements section  
+      yPos = checkPageBreak(yPos, 60);
+      
+      // Areas for Improvement Section - Dynamic height
+      const improvementSectionStart = yPos;
+      doc.setFillColor(255, 251, 235); // amber-50
       
       // Improvements header
       doc.setFontSize(12);
@@ -553,7 +574,17 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
         });
       }
       
-      yPos = Math.max(yPos + 45, currentY) + 15;
+      // Draw dynamic improvement box
+      const improvementSectionHeight = Math.max(45, currentY - improvementSectionStart + 5);
+      doc.roundedRect(15, improvementSectionStart, pageWidth - 30, improvementSectionHeight, 3, 3, 'F');
+      doc.setDrawColor(253, 230, 138); // amber-200
+      doc.setLineWidth(0.5);
+      doc.roundedRect(15, improvementSectionStart, pageWidth - 30, improvementSectionHeight, 3, 3, 'S');
+      
+      yPos = currentY + 15;
+      
+      // Check if we need a new page for Attribution section
+      yPos = checkPageBreak(yPos, 35);
       
       // AI Analysis Attribution Section
       doc.setFillColor(248, 250, 252); // slate-50
