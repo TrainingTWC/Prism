@@ -589,16 +589,6 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
   if (submitted) {
     return (
       <div className="p-6">
-        {/* Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400 mb-6">
-          <button
-            onClick={() => window.history.back()}
-            className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-          >
-            ← Back to Checklists
-          </button>
-        </nav>
-
         <div className="max-w-2xl mx-auto text-center">
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-8">
             <div className="text-green-600 dark:text-green-400 text-6xl mb-4">✅</div>
@@ -624,16 +614,6 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       {isLoading && <LoadingOverlay />}
       
-      {/* Breadcrumbs */}
-      <nav className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
-        <button
-          onClick={() => window.history.back()}
-          className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-        >
-          ← Back to Checklists
-        </button>
-      </nav>
-
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
           👥 HR Employee Satisfaction Survey
