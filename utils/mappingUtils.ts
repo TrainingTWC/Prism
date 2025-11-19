@@ -18,6 +18,8 @@ export interface ComprehensiveMapping {
   'HR Head': string;
 }
 
+import { HR_PERSONNEL } from '../constants';
+
 let comprehensiveMappingCache: ComprehensiveMapping[] | null = null;
 
 /**
@@ -152,3 +154,59 @@ export const validateStoreAMMapping = async (storeId: string, amId: string): Pro
   
   return true;
 };
+
+/**
+ * Get HRBP for a specific Area Manager
+ */
+export const getHRBPForAM = async (amName: string): Promise<string | null> => {
+  const mapping = await loadComprehensiveMapping();
+  
+  // Import AM name mapping to get AM ID from name
+  const { getAMId } = await import('./amNameMapping');
+
+  // Resolve AM ID from provided name (amName may be either an ID or a display name)
+  const resolvedAMId = getAMId(amName) || amName;
+
+  // Normalize
+  const amIdToFind = String(resolvedAMId).trim();
+
+  // Find stores for this AM by exact AM ID match
+  const amStores = mapping.filter(store => store.AM && String(store.AM).trim() === amIdToFind);
+  
+  // If no exact match found, try a case-insensitive name match as a fallback
+  if (amStores.length === 0) {
+    const fallback = mapping.filter(store => {
+      try {
+        return store.AM && store.AM.toLowerCase().includes(String(amName || '').toLowerCase());
+      } catch (e) {
+        return false;
+      }
+    });
+    if (fallback.length > 0) {
+      amStores.push(...fallback);
+    }
+  }
+  
+  if (amStores.length === 0) {
+    return null;
+  }
+  
+  // Get the HRBP ID from the first store (they should all have the same HRBP for an AM)
+  const hrbpId = amStores[0]?.HRBP;
+  
+  // Count unique HRBPs to check consistency
+  const uniqueHRBPs = new Set(amStores.map(s => s.HRBP));
+  if (uniqueHRBPs.size > 1) {
+    console.warn(`⚠️ Multiple HRBPs found for AM ${amName}:`, Array.from(uniqueHRBPs));
+  }
+
+  // If no hrbpId found, return null
+  if (!hrbpId || hrbpId === 'N/A' || hrbpId === '') return null;
+
+  // Map HRBP ID to a human-readable name using HR_PERSONNEL
+  const hrPerson = HR_PERSONNEL.find(h => h.id === String(hrbpId).trim());
+  const hrbpName = hrPerson ? `${hrPerson.name} (${hrbpId})` : String(hrbpId);
+
+  return hrbpName;
+};
+

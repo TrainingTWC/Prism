@@ -3,6 +3,40 @@
  * Analyzes HR Connect survey remarks and generates positive/negative insights
  */
 
+import { aiRequestQueue } from './requestQueue';
+
+/**
+ * Removes duplicate insights based on similar summary text
+ */
+function removeDuplicates(items: any[]): any[] {
+  const seen = new Set<string>();
+  const unique: any[] = [];
+  
+  for (const item of items) {
+    const summary = typeof item === 'string' ? item : item.summary;
+    const normalizedSummary = summary.toLowerCase().trim();
+    
+    // Check if we've seen a very similar summary
+    let isDuplicate = false;
+    for (const seenSummary of seen) {
+      // Check for exact match or very high similarity
+      if (normalizedSummary === seenSummary || 
+          normalizedSummary.includes(seenSummary) || 
+          seenSummary.includes(normalizedSummary)) {
+        isDuplicate = true;
+        break;
+      }
+    }
+    
+    if (!isDuplicate) {
+      seen.add(normalizedSummary);
+      unique.push(item);
+    }
+  }
+  
+  return unique;
+}
+
 interface DetailedInsight {
   summary: string;
   explanation: string;
@@ -25,7 +59,10 @@ interface InsightResult {
  */
 export async function generateAMInsights(submissions: any[]): Promise<InsightResult> {
   try {
-    // Collect all remarks from submissions
+    // ALWAYS use fallback - AI disabled due to rate limits and reliability issues
+    console.log('📊 Using enhanced fallback analysis with training data (AI disabled)');
+    
+    // Collect all remarks from submissions for analysis
     const remarks: string[] = [];
     
     submissions.forEach((sub: any) => {
@@ -44,39 +81,13 @@ export async function generateAMInsights(submissions: any[]): Promise<InsightRes
       }
     });
 
-    // If no remarks found, return default insights
-    if (remarks.length === 0) {
-      const defaultDetailedPositives = [
-        { summary: 'Team performance is steady', explanation: 'The team maintains consistent work quality and meets basic job requirements. Staff complete their daily tasks reliably and serve customers properly.' },
-        { summary: 'Staff seem engaged at work', explanation: 'Employees appear to be interested in their work and participate in daily activities. There are no major signs of disengagement or unhappiness.' },
-        { summary: 'Work standards are being followed', explanation: 'Staff follow the company procedures and maintain the expected level of service quality. Basic operational requirements are being met consistently.' }
-      ];
-      
-      const defaultDetailedNegatives = [
-        { summary: 'Staff are not giving much feedback', explanation: 'Employees are not sharing their thoughts or suggestions about how to improve the workplace. This makes it harder to identify and solve problems.' },
-        { summary: 'Need more detailed opinions from staff', explanation: 'The feedback received is too general or brief. More specific input from employees would help understand what is working well and what needs improvement.' },
-        { summary: 'Communication could be better', explanation: 'There may be gaps in communication between staff and management. Better channels for sharing information and feedback would help everyone understand expectations and concerns.' }
-      ];
-      
-      return {
-        positives: defaultDetailedPositives.map(d => d.summary),
-        negatives: defaultDetailedNegatives.map(d => d.summary),
-        isAiGenerated: false,
-        detailedInsights: {
-          positives: defaultDetailedPositives,
-          negatives: defaultDetailedNegatives
-        }
-      };
-    }
-
-    // Use GitHub Models API (or fallback to local analysis)
-    const insights = await analyzeWithAI(remarks, submissions);
-    return insights;
+    // Always use fallback analysis with training data integration (reliable and fast)
+    return await generateFallbackInsights(submissions);
     
   } catch (error) {
-    console.error('Error generating AI insights:', error);
+    console.error('Error generating insights:', error);
     // Return fallback insights
-    return generateFallbackInsights(submissions);
+    return await generateFallbackInsights(submissions);
   }
 }
 
@@ -84,15 +95,26 @@ export async function generateAMInsights(submissions: any[]): Promise<InsightRes
  * Analyzes remarks using AI (GitHub Models or local analysis)
  */
 async function analyzeWithAI(remarks: string[], submissions: any[]): Promise<InsightResult> {
-  // GitHub token should be set via environment variable GITHUB_TOKEN
-  const githubToken = process.env.GITHUB_TOKEN || ''; // Set your GitHub Personal Access Token in environment variables
+  // GitHub token should be set via environment variable VITE_GITHUB_TOKEN
+  const githubToken = import.meta.env.VITE_GITHUB_TOKEN || '';
   
-  if (githubToken && githubToken.length > 0) {
+  console.log('🔍 Checking GitHub token availability:', githubToken ? '✅ Token found' : '❌ No token found');
+  
+  if (githubToken && githubToken.length > 10) {
     try {
-      return await analyzeWithGitHubModels(remarks, submissions, githubToken);
+      console.log('🚀 Queueing AI analysis request...');
+      console.log(`📊 Queue status: ${aiRequestQueue.getQueueLength()} pending, ${aiRequestQueue.isProcessing() ? 'processing' : 'idle'}`);
+      
+      // Use request queue to prevent rate limiting
+      return await aiRequestQueue.add(async () => {
+        console.log('🤖 Processing AI analysis with GitHub Models...');
+        return await analyzeWithGitHubModels(remarks, submissions, githubToken);
+      });
     } catch (error) {
-      console.warn('GitHub Models API failed, using fallback analysis:', error);
+      console.error('❌ GitHub Models API failed, using fallback analysis:', error);
     }
+  } else {
+    console.warn('⚠️ No GitHub token found. Set VITE_GITHUB_TOKEN in .env file. Using basic fallback analysis.');
   }
   
   // Fallback to local analysis
@@ -107,7 +129,11 @@ async function analyzeWithGitHubModels(
   submissions: any[], 
   token: string
 ): Promise<InsightResult> {
-  const endpoint = 'https://models.github.ai/inference/chat/completions';
+  // Use local proxy server to avoid CORS issues
+  // The proxy runs on localhost:3002 and forwards requests to GitHub Models
+  const endpoint = 'http://localhost:3002/api/ai/analyze';
+  
+  console.log('🌐 Using proxy endpoint:', endpoint);
   
   // Collect detailed response data for root cause analysis
   const responseData: { [key: string]: { scores: number[], remarks: string[] } } = {};
@@ -155,18 +181,18 @@ async function analyzeWithGitHubModels(
   // Question context with reverse scoring info
   const questionContext = `
 Question Details (1-5 scale where 5 is best, unless noted):
-Q1: Work pressure (REVERSE: 5=never pressured, 1=always pressured)
-Q2: Empowerment in customer decisions
-Q3: Regular feedback from manager
-Q4: Fair treatment (REVERSE: 5=always fair, 1=never fair)
-Q5: Wings training program quality
-Q6: Apps/benefits issues (REVERSE: 5=no issues, 1=many issues)
-Q7: HR handbook awareness
-Q8: Work schedule satisfaction
-Q9: Team collaboration quality
-Q10: Helpful colleague (text response)
-Q11: Improvement suggestions (text response)
-Q12: Overall TWC experience
+Q1: Work pressure and staffing adequacy (REVERSE: 5=never pressured/well-staffed, 1=always pressured/understaffed) - Relates to barista staffing during coffee rush hours
+Q2: Empowerment in customer service decisions - Can baristas/shift managers make decisions to serve customers without constant approval
+Q3: Regular feedback from Area Manager - How often AM provides guidance and performance feedback
+Q4: Fair treatment by management (REVERSE: 5=always fair treatment, 1=unfair treatment/favoritism) - Equal opportunities and respect for all staff
+Q5: Training program quality (Wings/ZingLearn) - Effectiveness of barista training on coffee preparation, customer service, systems
+Q6: Apps/systems/benefits issues (REVERSE: 5=no issues, 1=many issues) - ZingLearn app, POS systems, leave portal, salary processing problems
+Q7: HR handbook and policy awareness - Understanding of TWC policies (leave, OT, meals, RESPECT values, etc.)
+Q8: Work schedule satisfaction - Happiness with shift timings, weekly offs (4/month), work-life balance
+Q9: Team collaboration quality - How well baristas and shift managers work together during shifts
+Q10: Helpful colleague recognition (text response) - Naming peers who provide great support
+Q11: Improvement suggestions (text response) - Staff ideas for making TWC cafés better workplaces
+Q12: Overall TWC café experience - General satisfaction working at Third Wave Coffee
 `;
   
   // Prepare root cause analysis prompt
@@ -251,11 +277,87 @@ Return ONLY valid JSON with both short summaries AND detailed explanations:
       'Authorization': `Bearer ${token}`
     },
     body: JSON.stringify({
-      model: 'gpt-4.1-mini',
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: 'You are an expert workplace analyst who explains things in SIMPLE, CLEAR language that anyone can understand. You identify specific reasons why things are working well or poorly at work. Use everyday words, not technical jargon. Write as if explaining to someone who is new to the company. NEVER use vague terms like "poor content" or "bad management". Instead, explain exactly what is happening - like "not enough people working during busy times" or "manager only talks to staff once per month". Your explanations should be detailed but easy to read. Always respond with valid JSON only.'
+          content: `You are an expert workplace analyst for Third Wave Coffee (TWC), a specialty coffee chain in India. You analyze employee survey data to identify specific operational, management, and workplace issues.
+
+COMPANY CONTEXT - Third Wave Coffee (TWC):
+- Specialty coffee chain operating café stores across India (North, South, East, West regions)
+- Store ID format: S### (e.g., S056 Mall of India, S016 Jayanagar, S153 Lajpat Nagar)
+- Focus: Premium coffee experience, barista excellence, customer service
+
+STAFF ROLES & HIERARCHY:
+- Barista (café staff, partner) - Front-line team member preparing coffee and serving customers
+- Buddy Trainer - Peer mentor who trains new hires on coffee preparation and customer service
+- Shift Manager (shift lead, floor lead) - Manages day-to-day café operations during shifts
+- Area Manager (AM) - Oversees multiple stores in a geographical area
+- Regional Manager (RM) - Manages regional operations and multiple Area Managers
+- HRBP (HR Partner) - Handles employee relations, engagement, and HR matters for stores
+- Trainer/L&D - Learning & Development team managing training programs
+
+KEY TWC PROGRAMS:
+- RESPECT Values: Core values framework with digital badges (Responsibility, Empathy, Service Excellence, Performance with Purpose, Ethics, Collaboration, Trust)
+- ZingLearn LMS: Digital learning management system and communication platform
+- Orientation Online: Digital onboarding program for new hires
+- Bench Planning: Talent pipeline and succession planning for career progression
+- HR Connect: 15-minute one-on-one employee check-in conversations
+
+COFFEE OPERATIONS:
+- Peak Hours: Morning coffee rush (7-11 AM), evening rush (4-7 PM)
+- Core Activities: Espresso preparation, milk steaming, latte art, coffee quality control, equipment maintenance, inventory management, customer interaction
+- Critical Equipment: Espresso machines, coffee grinders, brewing equipment, milk steamers
+- Coffee Standards: Bean quality, grind consistency, extraction time, milk temperature, drink presentation
+
+COMMON TWC-SPECIFIC ISSUES TO IDENTIFY:
+Operational:
+- Staffing shortages during morning/evening coffee rush hours
+- Espresso machine or grinder breakdowns affecting service
+- ZingLearn app/system issues preventing training or communication
+- Inventory delays for coffee beans, milk, or supplies
+- Training gaps in barista skills (espresso extraction, milk steaming, latte art)
+- Work schedule conflicts or insufficient weekly offs
+
+Management:
+- Area Manager visit frequency and quality of support
+- Feedback regularity from AM to barista/shift manager
+- Recognition through RESPECT badges or appreciation programs
+- Fairness in treatment, promotions, and opportunities
+- Communication clarity on policies, changes, or expectations
+
+HR & Workplace:
+- Leave approval delays (EL - Earned Leave, FL - Flexi Leave)
+- Overtime payment issues (OT applies after +30 min beyond shift)
+- Work-life balance concerns (9-hour shifts with 1-hour break, 4 weekly offs/month)
+- HRBP responsiveness to store concerns
+- Meal policy implementation (2 beverages + 1 food per working day)
+
+Team & Culture:
+- Team collaboration and peer support
+- Store environment and workplace safety
+- Career growth opportunities (Barista → Buddy → Shift Manager progression)
+- Empowerment in decision-making for customer service
+
+ANALYSIS APPROACH:
+- Use SPECIFIC coffee shop terminology (barista, espresso, grinder, steamer, rush hour, etc.)
+- Reference TWC-specific systems (ZingLearn, RESPECT badges, HR Connect, Bench Planning)
+- Identify root causes related to coffee shop operations, not general restaurant issues
+- Connect survey scores to actual café operational factors
+- Use clear, simple language that TWC café staff will understand
+- Consider coffee industry specifics (quality standards, equipment uptime, barista skills)
+
+AVOID:
+- Generic restaurant terms (kitchen, food preparation, waitstaff)
+- Vague statements like "bad management" or "poor content"
+- Unactionable feedback
+- Non-coffee industry terminology
+
+OUTPUT FORMAT:
+- Summary: Clear, specific title using TWC context (e.g., "Not enough baristas during morning rush", "Espresso machine keeps breaking", "Need more training on latte art")
+- Explanation: Simple details about WHY this happens in a café context and its impact on daily coffee shop work
+
+Always respond with valid JSON only.`
         },
         {
           role: 'user',
@@ -284,15 +386,19 @@ Return ONLY valid JSON with both short summaries AND detailed explanations:
     try {
       const parsed = JSON.parse(jsonMatch[0]);
       
+      // Remove any duplicate items based on summary text
+      const uniquePositives = removeDuplicates(parsed.positives || []);
+      const uniqueNegatives = removeDuplicates(parsed.negatives || []);
+      
       // Convert new format to existing format for compatibility
-      const positives = (parsed.positives || []).slice(0, 3).map((item: any) => {
+      const positives = uniquePositives.slice(0, 3).map((item: any) => {
         if (typeof item === 'string') return item;
-        return `${item.summary}: ${item.explanation}`;
+        return item.summary;  // Just use summary, explanation will be in detailedInsights
       });
       
-      const negatives = (parsed.negatives || []).slice(0, 3).map((item: any) => {
+      const negatives = uniqueNegatives.slice(0, 3).map((item: any) => {
         if (typeof item === 'string') return item;
-        return `${item.summary}: ${item.explanation}`;
+        return item.summary;  // Just use summary, explanation will be in detailedInsights
       });
       
       return {
@@ -300,8 +406,8 @@ Return ONLY valid JSON with both short summaries AND detailed explanations:
         negatives,
         isAiGenerated: true,
         detailedInsights: {
-          positives: (parsed.positives || []).slice(0, 3),
-          negatives: (parsed.negatives || []).slice(0, 3)
+          positives: uniquePositives.slice(0, 3),
+          negatives: uniqueNegatives.slice(0, 3)
         }
       };
     } catch (e) {
@@ -313,11 +419,233 @@ Return ONLY valid JSON with both short summaries AND detailed explanations:
 }
 
 /**
+ * Fetches training audit data for AM's stores to enhance insights
+ */
+async function fetchTrainingDataForAM(submissions: any[]): Promise<any[]> {
+  try {
+    // Dynamic import to avoid circular dependencies
+    const { fetchTrainingData } = await import('./dataService');
+    
+    // Get all training audit data
+    const allTrainingData = await fetchTrainingData();
+    
+    // Extract unique store IDs from HR Connect submissions
+    const submissionStoreIds = new Set<string>();
+    submissions.forEach(sub => {
+      if (sub.store_id || sub.storeId) {
+        const storeId = (sub.store_id || sub.storeId).toString();
+        submissionStoreIds.add(storeId);
+        // Also add S-prefixed version
+        if (!storeId.startsWith('S')) {
+          submissionStoreIds.add(`S${storeId.padStart(3, '0')}`);
+        }
+      }
+    });
+    
+    console.log(`📊 Filtering training data for stores:`, Array.from(submissionStoreIds));
+    
+    // Filter training data for relevant stores
+    const relevantTrainingData = allTrainingData.filter(audit => {
+      const auditStoreId = (audit.storeId || '').toString();
+      return submissionStoreIds.has(auditStoreId) || 
+             submissionStoreIds.has(auditStoreId.replace(/^S0*/, ''));
+    });
+    
+    console.log(`✅ Found ${relevantTrainingData.length} training audits for ${submissionStoreIds.size} stores`);
+    
+    return relevantTrainingData;
+  } catch (error) {
+    console.error('⚠️ Could not fetch training data:', error);
+    return [];
+  }
+}
+
+/**
+ * Analyzes training audit data to generate training-specific insights
+ */
+function analyzeTrainingData(trainingAudits: any[]): {
+  positives: Array<{ theme: string, explanation: string, count: number }>,
+  negatives: Array<{ theme: string, explanation: string, count: number }>
+} {
+  const positives: Array<{ theme: string, explanation: string, count: number }> = [];
+  const negatives: Array<{ theme: string, explanation: string, count: number }> = [];
+  
+  if (trainingAudits.length === 0) {
+    return { positives, negatives };
+  }
+  
+  // Calculate average scores across all audits
+  let totalScores = 0;
+  let totalPercentages = 0;
+  let tsaCoffeeScores: number[] = [];
+  let tsaFoodScores: number[] = [];
+  let tsaCXScores: number[] = [];
+  
+  // Count specific issues
+  let missingMaterials = 0;
+  let lmsIssues = 0;
+  let buddyTrainingGood = 0;
+  let newJoinerTrainingGood = 0;
+  
+  trainingAudits.forEach(audit => {
+    // Overall score
+    const percentage = parseFloat(audit.percentageScore || audit.percentage || '0');
+    if (percentage > 0) {
+      totalPercentages += percentage;
+      totalScores++;
+    }
+    
+    // TSA Scores (Training Store Audit)
+    const tsaCoffee = parseFloat(audit.tsaCoffeeScore || audit.TSA_Coffee_Score || '0');
+    const tsaFood = parseFloat(audit.tsaFoodScore || audit.TSA_Food_Score || '0');
+    const tsaCX = parseFloat(audit.tsaCXScore || audit.TSA_CX_Score || '0');
+    
+    if (tsaCoffee > 0) tsaCoffeeScores.push(tsaCoffee);
+    if (tsaFood > 0) tsaFoodScores.push(tsaFood);
+    if (tsaCX > 0) tsaCXScores.push(tsaCX);
+    
+    // Training Materials (TM_1 to TM_9) - check for missing materials
+    for (let i = 1; i <= 9; i++) {
+      const tmKey = `TM_${i}`;
+      const value = String(audit[tmKey] || '').toLowerCase();
+      if (value === 'no' || value === '0' || value === 'missing') {
+        missingMaterials++;
+      }
+    }
+    
+    // LMS Usage (LMS_1 to LMS_3) - check for issues
+    for (let i = 1; i <= 3; i++) {
+      const lmsKey = `LMS_${i}`;
+      const value = String(audit[lmsKey] || '').toLowerCase();
+      if (value === 'no' || value === '0' || value.includes('issue') || value.includes('problem')) {
+        lmsIssues++;
+      }
+    }
+    
+    // Buddy Training (Buddy_1 to Buddy_6) - check for good performance
+    let buddyYesCount = 0;
+    for (let i = 1; i <= 6; i++) {
+      const buddyKey = `Buddy_${i}`;
+      const value = String(audit[buddyKey] || '').toLowerCase();
+      if (value === 'yes' || value === '1' || value === 'good') {
+        buddyYesCount++;
+      }
+    }
+    if (buddyYesCount >= 5) buddyTrainingGood++;
+    
+    // New Joiner Training (NJ_1 to NJ_7)
+    let njYesCount = 0;
+    for (let i = 1; i <= 7; i++) {
+      const njKey = `NJ_${i}`;
+      const value = String(audit[njKey] || '').toLowerCase();
+      if (value === 'yes' || value === '1' || value === 'good') {
+        njYesCount++;
+      }
+    }
+    if (njYesCount >= 6) newJoinerTrainingGood++;
+  });
+  
+  // Calculate averages
+  const avgPercentage = totalScores > 0 ? totalPercentages / totalScores : 0;
+  const avgTSACoffee = tsaCoffeeScores.length > 0 ? tsaCoffeeScores.reduce((a, b) => a + b, 0) / tsaCoffeeScores.length : 0;
+  const avgTSAFood = tsaFoodScores.length > 0 ? tsaFoodScores.reduce((a, b) => a + b, 0) / tsaFoodScores.length : 0;
+  const avgTSACX = tsaCXScores.length > 0 ? tsaCXScores.reduce((a, b) => a + b, 0) / tsaCXScores.length : 0;
+  
+  console.log(`📊 Training Analysis: Avg=${avgPercentage.toFixed(1)}%, TSA Coffee=${avgTSACoffee.toFixed(1)}/10, Food=${avgTSAFood.toFixed(1)}/10, CX=${avgTSACX.toFixed(1)}/10`);
+  
+  // Generate insights based on training data
+  
+  // POSITIVES
+  if (avgPercentage >= 85) {
+    positives.push({
+      theme: 'Excellent training audit scores',
+      explanation: `Cafes are scoring very high (${avgPercentage.toFixed(0)}%) on training audits. This shows that baristas are well-trained and follow proper coffee preparation standards, training materials are available, and buddy training is working effectively.`,
+      count: avgPercentage
+    });
+  }
+  
+  if (avgTSACoffee >= 8) {
+    positives.push({
+      theme: 'Strong coffee preparation skills',
+      explanation: `Training Store Audit scores for coffee are excellent (${avgTSACoffee.toFixed(1)}/10). Baristas demonstrate good espresso extraction technique, milk steaming skills, and latte art. This indicates effective coffee training programs.`,
+      count: avgTSACoffee * 10
+    });
+  }
+  
+  if (buddyTrainingGood >= trainingAudits.length * 0.7) {
+    positives.push({
+      theme: 'Buddy training program working well',
+      explanation: `Buddy training is effective in most cafes. New baristas are getting proper support from experienced peers who teach them coffee preparation, customer service skills, and daily operations. This peer mentoring approach is helping new staff learn faster.`,
+      count: buddyTrainingGood * 10
+    });
+  }
+  
+  if (newJoinerTrainingGood >= trainingAudits.length * 0.6) {
+    positives.push({
+      theme: 'Good onboarding for new joiners',
+      explanation: `New joiner training program is working well. Fresh baristas are receiving proper orientation about TWC values, coffee standards, equipment usage, and store procedures. This foundation helps them perform better in their roles.`,
+      count: newJoinerTrainingGood * 10
+    });
+  }
+  
+  // NEGATIVES
+  if (avgPercentage > 0 && avgPercentage < 70) {
+    negatives.push({
+      theme: 'Training audit scores are low',
+      explanation: `Cafes are scoring poorly (${avgPercentage.toFixed(0)}%) on training audits. This indicates gaps in barista training, missing training materials, incomplete buddy programs, or lack of proper coffee preparation skills. Immediate training intervention is needed.`,
+      count: (100 - avgPercentage)
+    });
+  }
+  
+  if (avgTSACoffee > 0 && avgTSACoffee < 6) {
+    negatives.push({
+      theme: 'Coffee skills need improvement',
+      explanation: `Training Store Audit scores for coffee are low (${avgTSACoffee.toFixed(1)}/10). Baristas are struggling with espresso extraction, milk steaming technique, or drink consistency. More hands-on coffee training sessions and practice are required.`,
+      count: (10 - avgTSACoffee) * 10
+    });
+  }
+  
+  if (avgTSAFood > 0 && avgTSAFood < 6) {
+    negatives.push({
+      theme: 'Food handling skills need work',
+      explanation: `Training Store Audit scores for food are low (${avgTSAFood.toFixed(1)}/10). Staff need better training on food safety, presentation standards, and menu knowledge. This affects customer experience and food quality.`,
+      count: (10 - avgTSAFood) * 8
+    });
+  }
+  
+  if (missingMaterials >= trainingAudits.length * 2) {
+    negatives.push({
+      theme: 'Training materials are missing',
+      explanation: `Many cafes do not have required training materials like FRM (Food Reference Manual), BRM (Beverage Reference Manual), cue cards, or one-pagers displayed. Without these reference materials, baristas cannot maintain quality standards consistently.`,
+      count: missingMaterials * 5
+    });
+  }
+  
+  if (lmsIssues >= trainingAudits.length * 0.5) {
+    negatives.push({
+      theme: 'ZingLearn LMS has problems',
+      explanation: `Staff are reporting issues with the ZingLearn learning management system. The app may not be working properly, training modules are incomplete, or staff cannot access required learning content. This prevents proper digital training delivery.`,
+      count: lmsIssues * 8
+    });
+  }
+  
+  return { positives, negatives };
+}
+
+/**
  * Generates insights using local analysis when AI is not available
  */
-function generateFallbackInsights(submissions: any[]): InsightResult {
+async function generateFallbackInsights(submissions: any[]): Promise<InsightResult> {
   const positives: Map<string, number> = new Map();
   const negatives: Map<string, number> = new Map();
+  
+  // Fetch training audit data for AM's stores
+  console.log('🎓 Fetching training audit data for enhanced insights...');
+  const trainingAudits = await fetchTrainingDataForAM(submissions);
+  
+  // Analyze training data
+  const trainingInsights = analyzeTrainingData(trainingAudits);
+  console.log(`✅ Generated ${trainingInsights.positives.length} positive and ${trainingInsights.negatives.length} negative training insights`);
   
   // Collect all remarks for frequency analysis
   const allRemarks: string[] = [];
@@ -544,6 +872,17 @@ function generateFallbackInsights(submissions: any[]): InsightResult {
     }
   });
 
+  // Merge training insights with HR Connect insights
+  trainingInsights.positives.forEach(insight => {
+    positives.set(insight.theme, insight.count);
+    positiveDetails.set(insight.theme, { count: insight.count, explanation: insight.explanation });
+  });
+  
+  trainingInsights.negatives.forEach(insight => {
+    negatives.set(insight.theme, insight.count);
+    negativeDetails.set(insight.theme, { count: insight.count, explanation: insight.explanation });
+  });
+
   // Get top 3 of each, sorted by frequency/score
   const topPositives = Array.from(positives.entries())
     .sort((a, b) => b[1] - a[1])
@@ -638,7 +977,7 @@ function parseScore(value: any): number {
  * Cache for AI insights to avoid repeated API calls
  */
 const insightsCache = new Map<string, { insights: InsightResult; timestamp: number }>();
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days - aggressive caching to minimize API calls
 
 /**
  * Analyzes monthly submission data for detailed insights
@@ -648,6 +987,8 @@ const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
  */
 export async function generateMonthlyInsights(monthName: string, submissions: any[]): Promise<InsightResult> {
   try {
+    console.log(`📊 [${monthName}] Using enhanced fallback analysis (AI disabled)`);
+    
     // If no submissions, return default
     if (submissions.length === 0) {
       return {
@@ -667,13 +1008,8 @@ export async function generateMonthlyInsights(monthName: string, submissions: an
       };
     }
 
-    // Calculate month-specific statistics
-    const monthStats = calculateMonthStats(submissions);
-    const remarks = extractRemarks(submissions);
-    
-    // Use AI analysis with month-specific context
-    const insights = await analyzeMonthWithAI(monthName, submissions, monthStats, remarks);
-    return insights;
+    // Always use fallback analysis for reliability
+    return generateMonthlyFallback(monthName, submissions);
     
   } catch (error) {
     console.error(`Error generating monthly insights for ${monthName}:`, error);
@@ -737,14 +1073,25 @@ function extractRemarks(submissions: any[]): string[] {
  * Uses AI to analyze monthly data
  */
 async function analyzeMonthWithAI(monthName: string, submissions: any[], monthStats: any, remarks: string[]): Promise<InsightResult> {
-  const githubToken = process.env.GITHUB_TOKEN || ''; // Set your GitHub Personal Access Token in environment variables
+  const githubToken = import.meta.env.VITE_GITHUB_TOKEN || '';
   
-  if (githubToken && githubToken.length > 0) {
+  console.log(`🔍 [${monthName}] Checking GitHub token:`, githubToken ? '✅ Available' : '❌ Missing');
+  
+  if (githubToken && githubToken.length > 10) {
     try {
-      return await analyzeMonthWithGitHubModels(monthName, submissions, monthStats, remarks, githubToken);
+      console.log(`🚀 [${monthName}] Queueing AI analysis...`);
+      console.log(`📊 Queue status: ${aiRequestQueue.getQueueLength()} pending`);
+      
+      // Use request queue to prevent rate limiting
+      return await aiRequestQueue.add(async () => {
+        console.log(`🤖 [${monthName}] Processing AI analysis...`);
+        return await analyzeMonthWithGitHubModels(monthName, submissions, monthStats, remarks, githubToken);
+      });
     } catch (error) {
-      console.warn(`GitHub Models API failed for ${monthName}, using fallback:`, error);
+      console.error(`❌ [${monthName}] GitHub Models API failed:`, error);
     }
+  } else {
+    console.warn(`⚠️ [${monthName}] No GitHub token. Using basic fallback analysis.`);
   }
   
   return generateMonthlyFallback(monthName, submissions);
@@ -760,7 +1107,10 @@ async function analyzeMonthWithGitHubModels(
   remarks: string[], 
   token: string
 ): Promise<InsightResult> {
-  const endpoint = 'https://models.github.ai/inference/chat/completions';
+  // Use local proxy server to avoid CORS issues
+  const endpoint = 'http://localhost:3002/api/ai/analyze';
+  
+  console.log(`🌐 [${monthName}] Using proxy endpoint:`, endpoint);
   
   // Prepare month-specific analysis
   const monthSummary = Object.entries(monthStats).map(([q, data]: [string, any]) => {
@@ -831,11 +1181,31 @@ Return ONLY valid JSON:
       'Authorization': `Bearer ${token}`
     },
     body: JSON.stringify({
-      model: 'gpt-4.1-mini',
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: `You are an expert workplace analyst who explains monthly performance patterns in SIMPLE, CLEAR language. Focus on what specifically happened during the given month that caused positive or negative experiences. Use everyday words and explain as if talking to someone new to the company. Always respond with valid JSON only.`
+          content: `You are an expert workplace analyst for Third Wave Coffee (TWC), a specialty coffee chain in India. You analyze monthly employee survey data to identify trends, operational patterns, and management effectiveness for specific time periods.
+
+TWC CONTEXT:
+- Specialty coffee shop operations with peak hours (morning coffee rush 7-11 AM, evening rush 4-7 PM)
+- Café staff (baristas, shift managers) managed by Area Managers with HRBP support
+- Monthly HR Connect surveys measure employee satisfaction across coffee shop operations
+- Common factors: barista staffing during rush hours, espresso machine/grinder uptime, manager support, coffee training quality (ZingLearn), work schedules and weekly offs
+- TWC Programs: RESPECT values/badges, ZingLearn LMS, Orientation, Bench Planning, HR Connect check-ins
+- Key Policies: 9-hour shifts with 1-hour break, 4 weekly offs/month, EL (24 days), FL (12-14 days), OT after +30 min, meal policy (2 beverages + 1 food)
+
+MONTHLY ANALYSIS FOCUS:
+- Seasonal factors (festival seasons, weather affecting coffee consumption, holiday staffing)
+- Operational changes during that month (new equipment, ZingLearn updates, policy changes)
+- Specific incidents or patterns unique to that time period (equipment failures, training rollouts, AM changes)
+- Month-over-month improvements or declines in key metrics
+- Short-term vs long-term issues in coffee shop operations
+- Coffee quality initiatives or barista training programs launched that month
+
+Use TWC-specific terminology and coffee shop operations context (barista, espresso, grinder, steamer, rush hours, café, ZingLearn, RESPECT badges, etc.). Explain in simple, clear language what specifically happened during the given month in the context of running specialty coffee cafés.
+
+Always respond with valid JSON only.`
         },
         {
           role: 'user',
@@ -860,14 +1230,18 @@ Return ONLY valid JSON:
     try {
       const parsed = JSON.parse(jsonMatch[0]);
       
-      const positives = (parsed.positives || []).slice(0, 3).map((item: any) => {
+      // Remove duplicates
+      const uniquePositives = removeDuplicates(parsed.positives || []);
+      const uniqueNegatives = removeDuplicates(parsed.negatives || []);
+      
+      const positives = uniquePositives.slice(0, 3).map((item: any) => {
         if (typeof item === 'string') return item;
-        return `${item.summary}: ${item.explanation}`;
+        return item.summary;
       });
       
-      const negatives = (parsed.negatives || []).slice(0, 3).map((item: any) => {
+      const negatives = uniqueNegatives.slice(0, 3).map((item: any) => {
         if (typeof item === 'string') return item;
-        return `${item.summary}: ${item.explanation}`;
+        return item.summary;
       });
       
       return {
@@ -875,8 +1249,8 @@ Return ONLY valid JSON:
         negatives,
         isAiGenerated: true,
         detailedInsights: {
-          positives: (parsed.positives || []).slice(0, 3),
-          negatives: (parsed.negatives || []).slice(0, 3)
+          positives: uniquePositives.slice(0, 3),
+          negatives: uniqueNegatives.slice(0, 3)
         }
       };
     } catch (e) {

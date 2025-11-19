@@ -181,17 +181,19 @@ const AMScorecardSection: React.FC<AMScorecardSectionProps> = ({ areaManagers, s
         </div>
       </div>
 
-      {/* Scorecards */}
-      <div className="bg-gray-50 dark:bg-slate-900 rounded-b-xl p-6 space-y-6">
+      {/* Scorecards - 3 Column Grid Layout */}
+      <div className="bg-gray-50 dark:bg-slate-900 rounded-b-xl p-6">
         {filteredAMs.length > 0 ? (
-          filteredAMs.map(am => (
-            <AMScorecard
-              key={am.id}
-              amId={am.id}
-              amName={am.name}
-              submissions={submissions}
-            />
-          ))
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredAMs.map(am => (
+              <AMScorecard
+                key={am.id}
+                amId={am.id}
+                amName={am.name}
+                submissions={submissions}
+              />
+            ))}
+          </div>
         ) : (
           <div className="text-center py-12">
             <svg className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
