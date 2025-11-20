@@ -268,9 +268,28 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
       }
     });
     
+    // Helper to normalize and deduplicate while preserving order
+    const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
+    const dedupe = (arr: string[]) => {
+      const seen = new Set<string>();
+      const out: string[] = [];
+      for (const v of arr) {
+        const n = normalize(v);
+        if (!n) continue;
+        if (!seen.has(n)) {
+          seen.add(n);
+          out.push(n);
+        }
+      }
+      return out;
+    };
+
+    const uniquePositives = dedupe(positives);
+    const uniqueNegatives = dedupe(negatives);
+
     return {
-      positives: positives.length > 0 ? positives.slice(0, 5) : ['No specific positive feedback recorded'],
-      negatives: negatives.length > 0 ? negatives.slice(0, 5) : ['No specific concerns recorded']
+      positives: uniquePositives.length > 0 ? uniquePositives.slice(0, 5) : ['No specific positive feedback recorded'],
+      negatives: uniqueNegatives.length > 0 ? uniqueNegatives.slice(0, 5) : ['No specific concerns recorded']
     };
   };
 
