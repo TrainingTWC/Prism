@@ -73,6 +73,21 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
       try {
         setLoadingInsights(true);
         const insights = await getCachedAMInsights(amId, amSubmissions);
+        // Transform any AI detailedInsight summaries to use product-specific terms
+        if (insights?.detailedInsights) {
+          try {
+            insights.detailedInsights.positives = (insights.detailedInsights.positives || []).map((p: any) => {
+              if (typeof p === 'string') return transformSummary(p);
+              return { ...p, summary: transformSummary(p.summary || '') };
+            });
+            insights.detailedInsights.negatives = (insights.detailedInsights.negatives || []).map((n: any) => {
+              if (typeof n === 'string') return transformSummary(n);
+              return { ...n, summary: transformSummary(n.summary || '') };
+            });
+          } catch (err) {
+            // non-fatal
+          }
+        }
         setAiInsights(insights);
       } catch (error) {
         console.error('Error loading AI insights:', error);
@@ -245,6 +260,14 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
     return t;
   };
 
+  // Transform specific phrases to more relevant terminology for this product
+  const transformSummary = (s: string) => {
+    if (!s) return s;
+    // Replace mentions of generic computer systems with product-specific names
+    return s.replace(/computer systems/ig, 'Zing Learning & Zing HR systems')
+            .replace(/computer system/ig, 'Zing Learning & Zing HR systems');
+  };
+
   const getMonthFeedback = (subs: any[]) => {
     const positives: string[] = [];
     const negatives: string[] = [];
@@ -342,8 +365,8 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
       return out;
     };
 
-    const uniquePositives = fuzzyDedupe(positives, 0.75);
-    const uniqueNegatives = fuzzyDedupe(negatives, 0.75);
+    const uniquePositives = fuzzyDedupe(positives, 0.75).map(transformSummary);
+    const uniqueNegatives = fuzzyDedupe(negatives, 0.75).map(transformSummary);
 
     return {
       positives: uniquePositives.length > 0 ? uniquePositives.slice(0, 5) : ['No specific positive feedback recorded'],
@@ -389,10 +412,13 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
             const newPos: any[] = [];
             (monthInsights.detailedInsights.positives || []).forEach((p: any) => {
               const summary = typeof p === 'string' ? p : p.summary || '';
-              const key = normalizeForDedupe(summary);
+              const transformed = transformSummary(summary);
+              const key = normalizeForDedupe(transformed);
               if (key && !posSeen.has(key)) {
                 posSeen.add(key);
-                newPos.push(p);
+                // preserve original object but with transformed summary
+                if (typeof p === 'string') newPos.push(transformed);
+                else newPos.push({ ...p, summary: transformed });
               }
             });
             dedupedPos = newPos;
@@ -401,10 +427,12 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
             const newNeg: any[] = [];
             (monthInsights.detailedInsights.negatives || []).forEach((n: any) => {
               const summary = typeof n === 'string' ? n : n.summary || '';
-              const key = normalizeForDedupe(summary);
+              const transformed = transformSummary(summary);
+              const key = normalizeForDedupe(transformed);
               if (key && !negSeen.has(key)) {
                 negSeen.add(key);
-                newNeg.push(n);
+                if (typeof n === 'string') newNeg.push(transformed);
+                else newNeg.push({ ...n, summary: transformed });
               }
             });
             dedupedNeg = newNeg;
