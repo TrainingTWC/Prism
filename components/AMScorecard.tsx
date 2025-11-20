@@ -482,41 +482,53 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
 
   const showPositivesModal = () => {
     const detailedPositives = aiInsights?.detailedInsights?.positives || [];
-    
+
+    const items = (detailedPositives.length > 0
+      ? detailedPositives.map((p: any, i: number) => {
+          const summary = typeof p === 'string' ? p : p.summary || '';
+          const explanation = typeof p === 'string' ? undefined : p.explanation;
+          return {
+            label: `Success Factor ${i + 1}`,
+            value: transformSummary(summary),
+            details: explanation
+          };
+        })
+      : feedbackData.positives.map((p: string, i: number) => ({
+          label: `Strength ${i + 1}`,
+          value: transformSummary(p),
+          details: 'Detailed analysis will be available once AI insights are processed.'
+        })));
+
     setModalData({
       title: 'Root Cause Analysis - Positive Factors',
       color: 'from-emerald-500 to-teal-600',
-      items: detailedPositives.length > 0 
-        ? detailedPositives.map((p, i) => ({
-            label: `Success Factor ${i + 1}`,
-            value: p.summary,
-            details: p.explanation
-          }))
-        : feedbackData.positives.map((p, i) => ({
-            label: `Strength ${i + 1}`,
-            value: p,
-            details: 'Detailed analysis will be available once AI insights are processed.'
-          }))
+      items
     });
   };
 
   const showNegativesModal = () => {
     const detailedNegatives = aiInsights?.detailedInsights?.negatives || [];
-    
+
+    const items = (detailedNegatives.length > 0
+      ? detailedNegatives.map((n: any, i: number) => {
+          const summary = typeof n === 'string' ? n : n.summary || '';
+          const explanation = typeof n === 'string' ? undefined : n.explanation;
+          return {
+            label: `Improvement Area ${i + 1}`,
+            value: transformSummary(summary),
+            details: explanation
+          };
+        })
+      : feedbackData.improvements.map((n: string, i: number) => ({
+          label: `Area ${i + 1}`,
+          value: transformSummary(n),
+          details: 'Detailed analysis will be available once AI insights are processed.'
+        })));
+
     setModalData({
       title: 'Root Cause Analysis - Areas for Improvement',
       color: 'from-amber-500 to-orange-600',
-      items: detailedNegatives.length > 0 
-        ? detailedNegatives.map((n, i) => ({
-            label: `Improvement Area ${i + 1}`,
-            value: n.summary,
-            details: n.explanation
-          }))
-        : feedbackData.improvements.map((n, i) => ({
-            label: `Area ${i + 1}`,
-            value: n,
-            details: 'Detailed analysis will be available once AI insights are processed.'
-          }))
+      items
     });
   };
 
