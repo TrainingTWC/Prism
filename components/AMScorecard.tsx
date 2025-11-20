@@ -233,6 +233,18 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
   }, [aiInsights]);
 
   // Extract positives and negatives from submissions
+  // Helper used to normalize strings for deduplication across insights
+  const normalizeForDedupe = (s: string) => {
+    if (!s) return '';
+    let t = String(s).replace(/[\u2018\u2019\u201C\u201D]/g, "'");
+    t = t.replace(/\s+/g, ' ').trim();
+    t = t.replace(/\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/gi, '');
+    t = t.replace(/\b\d{4}\b/g, '');
+    t = t.replace(/["\,\.;:\!\?\-\(\)\[\]\/]/g, '');
+    t = t.replace(/\s+/g, ' ').trim().toLowerCase();
+    return t;
+  };
+
   const getMonthFeedback = (subs: any[]) => {
     const positives: string[] = [];
     const negatives: string[] = [];
@@ -369,14 +381,43 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
         monthlyScores.map(async (ms) => {
           const monthInsights = await getMonthlyAIInsights(ms.month, ms.submissions);
           
+          // If AI produced detailed insights, dedupe summaries there as well to avoid repeats
+          let dedupedPos: any[] = monthInsights.detailedInsights?.positives || [];
+          let dedupedNeg: any[] = monthInsights.detailedInsights?.negatives || [];
+          if (monthInsights.detailedInsights) {
+            const posSeen = new Set<string>();
+            const newPos: any[] = [];
+            (monthInsights.detailedInsights.positives || []).forEach((p: any) => {
+              const summary = typeof p === 'string' ? p : p.summary || '';
+              const key = normalizeForDedupe(summary);
+              if (key && !posSeen.has(key)) {
+                posSeen.add(key);
+                newPos.push(p);
+              }
+            });
+            dedupedPos = newPos;
+
+            const negSeen = new Set<string>();
+            const newNeg: any[] = [];
+            (monthInsights.detailedInsights.negatives || []).forEach((n: any) => {
+              const summary = typeof n === 'string' ? n : n.summary || '';
+              const key = normalizeForDedupe(summary);
+              if (key && !negSeen.has(key)) {
+                negSeen.add(key);
+                newNeg.push(n);
+              }
+            });
+            dedupedNeg = newNeg;
+          }
+
           return {
-            label: ms.month,
-            value: `${ms.score} / 5`,
-            details: `${ms.count} submission${ms.count !== 1 ? 's' : ''} • ${monthInsights.isAiGenerated ? 'AI Analysis' : 'Basic Analysis'}`,
-            positives: monthInsights.detailedInsights?.positives || [],
-            negatives: monthInsights.detailedInsights?.negatives || [],
-            monthInsights // Store full insights for detailed modal
-          };
+                label: ms.month,
+                value: `${ms.score} / 5`,
+                details: `${ms.count} submission${ms.count !== 1 ? 's' : ''} • ${monthInsights.isAiGenerated ? 'AI Analysis' : 'Basic Analysis'}`,
+                positives: dedupedPos,
+                negatives: dedupedNeg,
+                monthInsights // Store full insights for detailed modal
+              };
         })
       );
       
