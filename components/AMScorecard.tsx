@@ -268,24 +268,59 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
       }
     });
     
-    // Helper to normalize and deduplicate while preserving order
-    const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
-    const dedupe = (arr: string[]) => {
-      const seen = new Set<string>();
+    // Helper to normalize text
+    const normalize = (s: string) => s.replace(/\s+/g, ' ').trim().replace(/[\u2018\u2019\u201C\u201D]/g, "'");
+
+    // Levenshtein distance for fuzzy similarity
+    const levenshtein = (a: string, b: string) => {
+      const aLen = a.length;
+      const bLen = b.length;
+      if (aLen === 0) return bLen;
+      if (bLen === 0) return aLen;
+      const v0 = new Array(bLen + 1).fill(0);
+      const v1 = new Array(bLen + 1).fill(0);
+      for (let j = 0; j <= bLen; j++) v0[j] = j;
+      for (let i = 0; i < aLen; i++) {
+        v1[0] = i + 1;
+        for (let j = 0; j < bLen; j++) {
+          const cost = a[i] === b[j] ? 0 : 1;
+          v1[j + 1] = Math.min(v1[j] + 1, v0[j + 1] + 1, v0[j] + cost);
+        }
+        for (let j = 0; j <= bLen; j++) v0[j] = v1[j];
+      }
+      return v1[bLen];
+    };
+
+    const similarity = (s1: string, s2: string) => {
+      if (!s1 || !s2) return 0;
+      const a = s1.toLowerCase();
+      const b = s2.toLowerCase();
+      const dist = levenshtein(a, b);
+      const maxLen = Math.max(a.length, b.length);
+      if (maxLen === 0) return 1;
+      return 1 - dist / maxLen;
+    };
+
+    // Fuzzy dedupe preserving order: skip items that are very similar to an earlier kept item
+    const fuzzyDedupe = (arr: string[], threshold = 0.82) => {
       const out: string[] = [];
       for (const v of arr) {
         const n = normalize(v);
         if (!n) continue;
-        if (!seen.has(n)) {
-          seen.add(n);
-          out.push(n);
+        let isDup = false;
+        for (const kept of out) {
+          if (similarity(n, kept) >= threshold) {
+            isDup = true;
+            break;
+          }
         }
+        if (!isDup) out.push(n);
       }
       return out;
     };
 
-    const uniquePositives = dedupe(positives);
-    const uniqueNegatives = dedupe(negatives);
+    const uniquePositives = fuzzyDedupe(positives, 0.82);
+    const uniqueNegatives = fuzzyDedupe(negatives, 0.82);
 
     return {
       positives: uniquePositives.length > 0 ? uniquePositives.slice(0, 5) : ['No specific positive feedback recorded'],
