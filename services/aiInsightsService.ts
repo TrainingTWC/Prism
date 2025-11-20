@@ -749,8 +749,8 @@ async function generateFallbackInsights(submissions: any[]): Promise<InsightResu
     },
     { 
       words: ['app', 'system', 'error', 'bug', 'crash'], 
-      theme: 'Computer systems have problems',
-      explanation: 'The apps and computer systems that staff use for work are not working properly. They crash, have errors, or are slow. This makes it difficult to serve customers and complete tasks efficiently.'
+      theme: 'Zing Learning & Zing HR systems have problems',
+      explanation: 'The Zing Learning and Zing HR systems and related apps that staff use for work are not working properly. They crash, have errors, or are slow. This makes it difficult to serve customers and complete tasks efficiently.'
     },
     { 
       words: ['salary', 'pay', 'money', 'compensation'], 
@@ -825,8 +825,8 @@ async function generateFallbackInsights(submissions: any[]): Promise<InsightResu
       negative: { theme: 'Training programs have problems', explanation: 'The training is not helpful or well-organized. Staff do not learn what they need to know, or the training methods are confusing and ineffective.' }
     },
     q6: { 
-      positive: { theme: 'Computer systems work well', explanation: 'The apps and computer systems that staff use are reliable and work properly. This helps people do their job efficiently without technical problems.' },
-      negative: { theme: 'Computer systems keep breaking', explanation: 'The apps and computer systems have many problems like crashes, errors, or slow performance. This makes it difficult for staff to serve customers and complete their work.' }
+      positive: { theme: 'Zing Learning & Zing HR systems work well', explanation: 'The Zing Learning and Zing HR systems and related apps that staff use are reliable and work properly. This helps people do their job efficiently without technical problems.' },
+      negative: { theme: 'Zing Learning & Zing HR systems keep breaking', explanation: 'The Zing Learning and Zing HR systems and related apps have problems like crashes, errors, or slow performance. This makes it difficult for staff to serve customers and complete their work.' }
     },
     q7: { 
       positive: { theme: 'Company information is clear', explanation: 'Staff understand company policies and procedures because information is shared clearly and regularly. Everyone knows what the rules are and how to follow them.' },
