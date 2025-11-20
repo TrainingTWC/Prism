@@ -12,7 +12,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-const PORT = 3002;
+// Allow overriding port via environment variable to avoid conflicts with dev server
+const PORT = process.env.AI_PROXY_PORT ? parseInt(process.env.AI_PROXY_PORT, 10) : (process.env.PORT ? parseInt(process.env.PORT, 10) : 3003);
 
 // Enable CORS for all origins (restrict in production)
 app.use(cors());
@@ -47,7 +48,8 @@ app.post('/api/ai/analyze', async (req, res) => {
       });
     }
     
-    const response = await fetch('https://models.github.ai/v1/chat/completions', {
+  // Use the GitHub Models inference endpoint per repository docs
+  const response = await fetch('https://models.github.ai/inference/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -59,28 +61,41 @@ app.post('/api/ai/analyze', async (req, res) => {
 
     // Get response as text first to handle non-JSON errors
     const text = await response.text();
-    
+
+    // Log upstream response status and a snippet for diagnostics
+    console.log('🔁 Upstream status:', response.status, response.statusText);
+    console.log('🔎 Upstream response snippet:', String(text).slice(0, 1024));
+
     if (!response.ok) {
       console.error(`❌ GitHub Models API error: ${response.status} ${response.statusText}`);
-      console.error('Response:', text);
-      
-      // Try to parse as JSON, fallback to text
+      // Try to parse as JSON, fallback to include raw text
       try {
         const errorData = JSON.parse(text);
         return res.status(response.status).json(errorData);
-      } catch {
+      } catch (parseErr) {
+        console.error('❌ Failed to parse upstream error as JSON:', parseErr.message);
         return res.status(response.status).json({ 
           error: response.statusText,
-          message: text,
+          message: String(text).slice(0, 4096),
           status: response.status
         });
       }
     }
 
-    // Parse successful response
-    const data = JSON.parse(text);
-    console.log('✅ GitHub Models API success');
-    res.json(data);
+    // Attempt to parse successful response as JSON; if parsing fails, return diagnostics
+    try {
+      const data = JSON.parse(text);
+      console.log('✅ GitHub Models API success');
+      return res.json(data);
+    } catch (parseErr) {
+      console.error('❌ Upstream returned non-JSON for success response:', parseErr.message);
+      // Return a clear 502 with the raw upstream text for debugging (trim to reasonable size)
+      return res.status(502).json({
+        error: 'Upstream returned non-JSON',
+        message: String(text).slice(0, 8192),
+        status: response.status
+      });
+    }
     
   } catch (error) {
     console.error('❌ Proxy error:', error);

@@ -396,17 +396,37 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
 
   // Modal handlers
   const showScoresModal = async () => {
+    // Open modal immediately with loading placeholders, then fetch insights per-month
     setLoadingMonthly(true);
-    
+
+    // Prepare initial items (placeholders) so modal appears instantly
+    const initialItems = monthlyScores.map((ms) => ({
+      label: ms.month,
+      value: `${ms.score} / 5`,
+      details: `${ms.count} submission${ms.count !== 1 ? 's' : ''} • Loading...`,
+      positives: [{ summary: 'Loading...', explanation: '' }],
+      negatives: [{ summary: 'Loading...', explanation: '' }],
+      monthInsights: null
+    }));
+
+    setModalData({
+      title: 'Monthly Performance Analysis',
+      color: 'from-violet-500 to-purple-600',
+      showFeedback: true,
+      isMonthlyAnalysis: true,
+      items: initialItems
+    });
+
     try {
-      // Generate AI insights for each month
-      const monthsWithInsights = await Promise.all(
-        monthlyScores.map(async (ms) => {
+      // Fetch insights for each month independently and update modal as results arrive
+      const updates = monthlyScores.map(async (ms, idx) => {
+        try {
           const monthInsights = await getMonthlyAIInsights(ms.month, ms.submissions);
-          
-          // If AI produced detailed insights, dedupe summaries there as well to avoid repeats
+
+          // Dedupe and transform detailed insights if present
           let dedupedPos: any[] = monthInsights.detailedInsights?.positives || [];
           let dedupedNeg: any[] = monthInsights.detailedInsights?.negatives || [];
+
           if (monthInsights.detailedInsights) {
             const posSeen = new Set<string>();
             const newPos: any[] = [];
@@ -416,7 +436,6 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
               const key = normalizeForDedupe(transformed);
               if (key && !posSeen.has(key)) {
                 posSeen.add(key);
-                // preserve original object but with transformed summary
                 if (typeof p === 'string') newPos.push(transformed);
                 else newPos.push({ ...p, summary: transformed });
               }
@@ -438,43 +457,48 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
             dedupedNeg = newNeg;
           }
 
-          return {
-                label: ms.month,
-                value: `${ms.score} / 5`,
-                details: `${ms.count} submission${ms.count !== 1 ? 's' : ''} • ${monthInsights.isAiGenerated ? 'AI Analysis' : 'Basic Analysis'}`,
-                positives: dedupedPos,
-                negatives: dedupedNeg,
-                monthInsights // Store full insights for detailed modal
-              };
-        })
-      );
-      
-      setModalData({
-        title: 'Monthly Performance Analysis',
-        color: 'from-violet-500 to-purple-600',
-        showFeedback: true,
-        isMonthlyAnalysis: true, // Flag to indicate this uses AI analysis
-        items: monthsWithInsights
-      });
-    } catch (error) {
-      console.error('Error loading monthly insights:', error);
-      
-      // Fallback to simple feedback if AI analysis fails
-      setModalData({
-        title: 'Monthly Performance',
-        color: 'from-violet-500 to-purple-600',
-        showFeedback: true,
-        items: monthlyScores.map(ms => {
+          // Update modalData incrementally
+          setModalData(prev => {
+            if (!prev) return prev;
+            const newItems = prev.items.map((it) =>
+              it.label === ms.month
+                ? {
+                    label: ms.month,
+                    value: `${ms.score} / 5`,
+                    details: `${ms.count} submission${ms.count !== 1 ? 's' : ''} • ${monthInsights.isAiGenerated ? 'AI Analysis' : 'Basic Analysis'}`,
+                    positives: dedupedPos,
+                    negatives: dedupedNeg,
+                    monthInsights
+                  }
+                : it
+            );
+            return { ...prev, items: newItems };
+          });
+        } catch (err) {
+          console.error('Error loading monthly insights for', ms.month, err);
+          // On error, populate with fallback basic feedback
           const feedback = getMonthFeedback(ms.submissions);
-          return {
-            label: ms.month,
-            value: `${ms.score} / 5`,
-            details: `${ms.count} submission${ms.count !== 1 ? 's' : ''}`,
-            positives: feedback.positives.map(p => ({ summary: p, explanation: 'Basic keyword analysis' })),
-            negatives: feedback.negatives.map(n => ({ summary: n, explanation: 'Basic keyword analysis' }))
-          };
-        })
+          setModalData(prev => {
+            if (!prev) return prev;
+            const newItems = prev.items.map((it) =>
+              it.label === ms.month
+                ? {
+                    label: ms.month,
+                    value: `${ms.score} / 5`,
+                    details: `${ms.count} submission${ms.count !== 1 ? 's' : ''} • Basic Analysis`,
+                    positives: feedback.positives.map(p => ({ summary: p, explanation: 'Basic keyword analysis' })),
+                    negatives: feedback.negatives.map(n => ({ summary: n, explanation: 'Basic keyword analysis' })),
+                    monthInsights: null
+                  }
+                : it
+            );
+            return { ...prev, items: newItems };
+          });
+        }
       });
+
+      // Wait for all background updates to complete, then turn off loading indicator
+      await Promise.allSettled(updates);
     } finally {
       setLoadingMonthly(false);
     }
