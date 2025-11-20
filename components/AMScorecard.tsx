@@ -268,8 +268,19 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
       }
     });
     
-    // Helper to normalize text
-    const normalize = (s: string) => s.replace(/\s+/g, ' ').trim().replace(/[\u2018\u2019\u201C\u201D]/g, "'");
+    // Helper to normalize text: collapse whitespace, normalize quotes, remove month names and years
+    const normalize = (s: string) => {
+      if (!s) return '';
+      let t = s.replace(/[\u2018\u2019\u201C\u201D]/g, "'");
+      t = t.replace(/\s+/g, ' ').trim();
+      // remove month names (case-insensitive) and standalone 4-digit years to avoid duplicate differences
+      t = t.replace(/\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/gi, '');
+      t = t.replace(/\b\d{4}\b/g, '');
+      // remove punctuation except apostrophes
+      t = t.replace(/["\,\.;:\!\?\-\(\)\[\]\/]/g, '');
+      t = t.replace(/\s+/g, ' ').trim();
+      return t;
+    };
 
     // Levenshtein distance for fuzzy similarity
     const levenshtein = (a: string, b: string) => {
@@ -302,7 +313,7 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
     };
 
     // Fuzzy dedupe preserving order: skip items that are very similar to an earlier kept item
-    const fuzzyDedupe = (arr: string[], threshold = 0.82) => {
+    const fuzzyDedupe = (arr: string[], threshold = 0.75) => {
       const out: string[] = [];
       for (const v of arr) {
         const n = normalize(v);
@@ -319,8 +330,8 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
       return out;
     };
 
-    const uniquePositives = fuzzyDedupe(positives, 0.82);
-    const uniqueNegatives = fuzzyDedupe(negatives, 0.82);
+    const uniquePositives = fuzzyDedupe(positives, 0.75);
+    const uniqueNegatives = fuzzyDedupe(negatives, 0.75);
 
     return {
       positives: uniquePositives.length > 0 ? uniquePositives.slice(0, 5) : ['No specific positive feedback recorded'],
@@ -540,7 +551,9 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
   // Latest score on the right side of the name card - vertically centered
   const latestScoreRaw = monthlyScores && monthlyScores.length ? monthlyScores[monthlyScores.length - 1].score : null;
   if (latestScoreRaw != null && latestScoreRaw !== '') {
-    const latestStr = typeof latestScoreRaw === 'number' ? latestScoreRaw.toFixed(2) : String(latestScoreRaw);
+    // monthlyScores store scores as strings (e.g. "4.28"); format numerics to 2 decimals
+    const numeric = Number(latestScoreRaw as any);
+    const latestStr = Number.isFinite(numeric) ? numeric.toFixed(2) : String(latestScoreRaw);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(124, 58, 237);
