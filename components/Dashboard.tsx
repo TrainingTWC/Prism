@@ -48,6 +48,8 @@ import AuditScoreDetailsModal from './AuditScoreDetailsModal';
 import HRDetailModal from './HRDetailModal';
 import HRBPCalendarModal from './HRBPCalendarModal';
 import NowBarMobile from './NowBarMobile';
+// Consolidated Dashboard
+import ConsolidatedDashboard from './ConsolidatedDashboard';
 // Multi-Month Trends Components (Google Sheets Integration)
 import HeaderSummary from '../src/components/dashboard/HeaderSummary';
 import StoreTrends from '../src/components/dashboard/StoreTrends';
@@ -1259,14 +1261,37 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
       const totalSubmissions = percentageRows.length;
 
-      // Calculate overall average score from all percentage rows
-      const avgScore = totalSubmissions > 0
-        ? percentageRows.reduce((acc: number, r: any) => acc + (parseFloat(r.metric_value) || 0), 0) / totalSubmissions
+      // IMPORTANT: Calculate average from LATEST month per store, not all historical months
+      // Group by store_id and get the latest period for each store
+      const latestPerStore = new Map<string, { period: string; value: number }>();
+      
+      percentageRows.forEach((r: any) => {
+        const storeId = r.store_id || r.storeId || '';
+        const period = r.observed_period || '';
+        const value = parseFloat(r.metric_value) || 0;
+        
+        if (!storeId || !period) return;
+        
+        const existing = latestPerStore.get(storeId);
+        if (!existing || period > existing.period) {
+          latestPerStore.set(storeId, { period, value });
+        }
+      });
+      
+      // Calculate average from latest values only
+      const latestScores = Array.from(latestPerStore.values());
+      const avgScore = latestScores.length > 0
+        ? latestScores.reduce((acc, item) => acc + item.value, 0) / latestScores.length
         : 0;
 
       // Get unique stores from the trends data
-      const uniqueStores = new Set(percentageRows.map((r: any) => r.store_id)).size;
-      console.log('📊 Training stats calculation:', { totalSubmissions, avgScore: Math.round(avgScore), uniqueStores });
+      const uniqueStores = latestPerStore.size;
+      console.log('📊 Training stats calculation (using latest per store):', { 
+        totalStores: uniqueStores, 
+        avgScore: Math.round(avgScore), 
+        totalHistoricalRecords: totalSubmissions,
+        latestScoresCount: latestScores.length
+      });
 
       // For unique employees/trainers, we need to use the actual training data
       // since Monthly_Trends doesn't have trainer information
@@ -2832,10 +2857,21 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         (dashboardType === 'qa' && filteredQAData.length > 0) ||
         (dashboardType === 'consolidated' && (filteredSubmissions.length > 0 || filteredAMOperations.length > 0 || filteredTrainingData.length > 0 || filteredQAData.length > 0))) ? (
         <>
-          {/* Dashboard Type Specific Content - Removed Coming Soon sections */}
-          
-          {/* Stats Grid - Different layouts based on dashboard type */}
-          {dashboardType === 'training' ? (
+          {/* Consolidated Dashboard - New 4Ps Framework */}
+          {dashboardType === 'consolidated' ? (
+            <ConsolidatedDashboard 
+              hrData={filteredSubmissions}
+              operationsData={filteredAMOperations}
+              trainingData={filteredTrainingData}
+              qaData={filteredQAData}
+              financeData={[]}
+            />
+          ) : (
+            <>
+              {/* Dashboard Type Specific Content - Removed Coming Soon sections */}
+              
+              {/* Stats Grid - Different layouts based on dashboard type */}
+              {dashboardType === 'training' ? (
             <>
               {/* Training Stats - Desktop/Tablet layout - All pills in one horizontal line */}
               <div className="hidden md:block mb-8 px-2">
@@ -2891,7 +2927,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           )}
 
           {/* Show HR Dashboard Content */}
-          {(dashboardType === 'hr' || dashboardType === 'consolidated') && (
+          {dashboardType === 'hr' && (
             <>
               {/* HRBP Leaderboard - Combined with toggle */}
               <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
@@ -3510,6 +3546,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                 </div>
               )}
             </>
+          )}
+          </>
           )}
 
           {/* Campus Hiring Stats - Only show in consolidated view for admins */}

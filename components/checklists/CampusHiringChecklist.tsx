@@ -15,10 +15,12 @@ interface QuestionData {
   id: string;
   text: string;
   category: string;
+  image?: string; // Optional image URL for visual questions
   options: {
     A: { text: string; weight: number };
     B: { text: string; weight: number };
     C: { text: string; weight: number };
+    D?: { text: string; weight: number };
   };
 }
 
@@ -155,12 +157,13 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
   // Questions and answers
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
-  // Psychometric Assessment Questions with weightage
+  // Campus Hiring Assessment Questions - 6 Categories, 5 Questions Each
   const questions: QuestionData[] = [
+    // ========== CATEGORY 1: PSYCHOMETRIC (5 questions) ==========
     {
       id: 'Q1',
       text: "Imagine you're explaining a new drink recipe to a teammate whose first language isn't English. You:",
-      category: 'Communication',
+      category: 'Psychometric',
       options: {
         A: { text: 'Repeat exactly what was told to you', weight: 1 },
         B: { text: 'Try to explain in simple words and gestures', weight: 2 },
@@ -169,18 +172,8 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     },
     {
       id: 'Q2',
-      text: "You're drafting a customer-facing message. You:",
-      category: 'Communication',
-      options: {
-        A: { text: 'Write it quickly and send', weight: 1 },
-        B: { text: 'Double-check grammar and spelling', weight: 2 },
-        C: { text: 'Read it out loud to see how it sounds and adjust tone', weight: 3 }
-      }
-    },
-    {
-      id: 'Q3',
       text: 'A drink consistently tastes off. You:',
-      category: 'Problem Solving',
+      category: 'Psychometric',
       options: {
         A: { text: 'Remake it and hope it improves next time', weight: 1 },
         B: { text: 'Try adjusting the grind or recipe slightly', weight: 2 },
@@ -188,19 +181,9 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       }
     },
     {
-      id: 'Q4',
-      text: 'You see two regular customers arguing over table space. You:',
-      category: 'Problem Solving',
-      options: {
-        A: { text: 'Avoid getting involved', weight: 1 },
-        B: { text: 'Politely ask them to lower their voices', weight: 2 },
-        C: { text: 'Listen first, then find a quick win-win solution', weight: 3 }
-      }
-    },
-    {
-      id: 'Q5',
+      id: 'Q3',
       text: "Your team isn't following the cleaning checklist. You:",
-      category: 'Leadership',
+      category: 'Psychometric',
       options: {
         A: { text: "Do it yourself without mentioning it", weight: 1 },
         B: { text: 'Remind them casually', weight: 2 },
@@ -208,39 +191,9 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       }
     },
     {
-      id: 'Q6',
-      text: 'You spot a loose screw on a grinder. You:',
-      category: 'Attention to Detail',
-      options: {
-        A: { text: "Ignore it for now; it's still working", weight: 1 },
-        B: { text: 'Mention it in the WhatsApp group', weight: 2 },
-        C: { text: 'Tag it and report it via maintenance SOP', weight: 3 }
-      }
-    },
-    {
-      id: 'Q7',
-      text: 'A team member is constantly late. You:',
-      category: 'Leadership',
-      options: {
-        A: { text: 'Cover their shift and stay silent', weight: 1 },
-        B: { text: "Ask them what's happening", weight: 2 },
-        C: { text: 'Discuss it constructively in your 1-on-1', weight: 3 }
-      }
-    },
-    {
-      id: 'Q8',
-      text: 'Your shift reports are often missing small details. You:',
-      category: 'Attention to Detail',
-      options: {
-        A: { text: 'Focus on just submitting them on time', weight: 1 },
-        B: { text: 'Start using a checklist to double-check', weight: 2 },
-        C: { text: 'Ask peers for feedback and improve accuracy', weight: 3 }
-      }
-    },
-    {
-      id: 'Q9',
+      id: 'Q4',
       text: 'A customer says their drink tastes "strange." You:',
-      category: 'Customer Service',
+      category: 'Psychometric',
       options: {
         A: { text: 'Say sorry and move on', weight: 1 },
         B: { text: 'Offer to remake it once', weight: 2 },
@@ -248,213 +201,295 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       }
     },
     {
-      id: 'Q10',
-      text: 'Your supplier offers to deliver faster if you pay in cash under the table. You:',
-      category: 'Integrity',
-      options: {
-        A: { text: "Accept since it's quicker", weight: 1 },
-        B: { text: 'Delay and think about it', weight: 2 },
-        C: { text: 'Decline and report to Ops', weight: 3 }
-      }
-    },
-    {
-      id: 'Q11',
-      text: "The AC isn't working, and the café is full. You:",
-      category: 'Problem Solving',
-      options: {
-        A: { text: 'Do nothing and wait', weight: 1 },
-        B: { text: 'Apologize to customers', weight: 2 },
-        C: { text: 'Offer ice water, open windows, call maintenance', weight: 3 }
-      }
-    },
-    {
-      id: 'Q12',
-      text: 'A guest wants a very complex drink. You:',
-      category: 'Customer Service',
-      options: {
-        A: { text: "Say it can't be made", weight: 1 },
-        B: { text: 'Try your best to match it', weight: 2 },
-        C: { text: 'Make it personal and engaging', weight: 3 }
-      }
-    },
-    {
-      id: 'Q13',
-      text: "You've had a long day and another team asks for help. You:",
-      category: 'Teamwork',
-      options: {
-        A: { text: 'Say no immediately', weight: 1 },
-        B: { text: "Ask if it's urgent", weight: 2 },
-        C: { text: 'Pitch in briefly, then recharge', weight: 3 }
-      }
-    },
-    {
-      id: 'Q14',
-      text: 'You have 10 tasks and limited time. You:',
-      category: 'Time Management',
-      options: {
-        A: { text: 'Do the easiest things first', weight: 1 },
-        B: { text: 'Estimate time and divide work', weight: 2 },
-        C: { text: 'Prioritize based on customer impact', weight: 3 }
-      }
-    },
-    {
-      id: 'Q15',
-      text: 'An event is scheduled tomorrow. You:',
-      category: 'Planning',
-      options: {
-        A: { text: 'Plan on the fly', weight: 1 },
-        B: { text: "Check last year's notes", weight: 2 },
-        C: { text: 'Create a checklist and prep ahead', weight: 3 }
-      }
-    },
-    {
-      id: 'Q16',
-      text: 'The new menu changes every week. You:',
-      category: 'Adaptability',
-      options: {
-        A: { text: 'Complain to others', weight: 1 },
-        B: { text: 'Try learning it when needed', weight: 2 },
-        C: { text: 'Block time to master it and quiz others', weight: 3 }
-      }
-    },
-    {
-      id: 'Q17',
-      text: 'You need to brief a team from a different city. You:',
-      category: 'Communication',
-      options: {
-        A: { text: 'Use complex English as in HQ docs', weight: 1 },
-        B: { text: 'Simplify your language', weight: 2 },
-        C: { text: 'Use visuals, voice notes, and examples', weight: 3 }
-      }
-    },
-    {
-      id: 'Q18',
-      text: "The POS isn't responding. You:",
-      category: 'Problem Solving',
-      options: {
-        A: { text: 'Wait for someone else to fix it', weight: 1 },
-        B: { text: 'Restart and try again', weight: 2 },
-        C: { text: 'Switch to manual billing and log issue', weight: 3 }
-      }
-    },
-    {
-      id: 'Q19',
-      text: 'You spot three small hygiene errors. You:',
-      category: 'Attention to Detail',
-      options: {
-        A: { text: 'Fix one and move on', weight: 1 },
-        B: { text: "Fix all but don't mention them", weight: 2 },
-        C: { text: 'Correct, record, and coach others', weight: 3 }
-      }
-    },
-    {
-      id: 'Q20',
-      text: "You're asked why cold brews aren't selling. You:",
-      category: 'Analysis',
-      options: {
-        A: { text: "Say customers don't want it", weight: 1 },
-        B: { text: 'Blame the weather', weight: 2 },
-        C: { text: 'Check recipe, pitch quality, offer sampling', weight: 3 }
-      }
-    },
-    {
-      id: 'Q21',
-      text: 'Your handheld ordering device has new features. You:',
-      category: 'Adaptability',
-      options: {
-        A: { text: 'Avoid using it', weight: 1 },
-        B: { text: 'Ask others how to use it', weight: 2 },
-        C: { text: 'Explore it and teach teammates', weight: 3 }
-      }
-    },
-    {
-      id: 'Q22',
-      text: 'A team member is demotivated. You:',
-      category: 'Leadership',
-      options: {
-        A: { text: 'Hope they come around', weight: 1 },
-        B: { text: 'Say something encouraging', weight: 2 },
-        C: { text: 'Sit down and explore the root cause', weight: 3 }
-      }
-    },
-    {
-      id: 'Q23',
+      id: 'Q5',
       text: 'You find a wallet on the café floor. You:',
-      category: 'Integrity',
+      category: 'Psychometric',
       options: {
         A: { text: 'Leave it at the counter', weight: 1 },
         B: { text: 'Keep it safe and note the time', weight: 2 },
         C: { text: 'Record it and report to shift lead', weight: 3 }
       }
     },
+
+    // ========== CATEGORY 2: ENGLISH PROFICIENCY (5 questions) ==========
+    {
+      id: 'Q6',
+      text: 'Which sentence is grammatically correct?',
+      category: 'English Proficiency',
+      options: {
+        A: { text: 'The team are working hard.', weight: 1 },
+        B: { text: 'The team is working hard.', weight: 3 },
+        C: { text: 'The team were working hard.', weight: 2 }
+      }
+    },
+    {
+      id: 'Q7',
+      text: 'Choose the correctly spelled word:',
+      category: 'English Proficiency',
+      options: {
+        A: { text: 'Occured', weight: 1 },
+        B: { text: 'Ocurred', weight: 1 },
+        C: { text: 'Occurred', weight: 3 }
+      }
+    },
+    {
+      id: 'Q8',
+      text: 'Select the sentence with proper punctuation:',
+      category: 'English Proficiency',
+      options: {
+        A: { text: "Let's eat, Grandma!", weight: 3 },
+        B: { text: "Lets eat Grandma!", weight: 1 },
+        C: { text: "Let's eat Grandma!", weight: 1 }
+      }
+    },
+    {
+      id: 'Q9',
+      text: 'What is the meaning of "proactive"?',
+      category: 'English Proficiency',
+      options: {
+        A: { text: 'Reacting after something happens', weight: 1 },
+        B: { text: 'Taking action in advance', weight: 3 },
+        C: { text: 'Being professional', weight: 1 }
+      }
+    },
+    {
+      id: 'Q10',
+      text: 'Complete the sentence: "Neither the manager ___ the team members were present."',
+      category: 'English Proficiency',
+      options: {
+        A: { text: 'or', weight: 1 },
+        B: { text: 'nor', weight: 3 },
+        C: { text: 'and', weight: 1 }
+      }
+    },
+
+    // ========== CATEGORY 3: NUMERICAL APTITUDE (5 questions) ==========
+    {
+      id: 'Q11',
+      text: 'A cook uses a mixture where the ratio of flour to sugar is (x+2):(x–1). If the mixture weighs 21 kg and sugar is 6 kg, find x.',
+      category: 'Numerical Aptitude',
+      options: {
+        A: { text: '1', weight: 1 },
+        B: { text: '2', weight: 1 },
+        C: { text: '3', weight: 1 },
+        D: { text: '4', weight: 3 }
+      }
+    },
+    {
+      id: 'Q12',
+      text: 'A hotel invests ₹20,000 at 10% compound interest, compounded annually for 3 years. Amount earned?',
+      category: 'Numerical Aptitude',
+      options: {
+        A: { text: '₹24,200', weight: 1 },
+        B: { text: '₹26,620', weight: 3 },
+        C: { text: '₹26,000', weight: 1 },
+        D: { text: '₹27,300', weight: 1 }
+      }
+    },
+    {
+      id: 'Q13',
+      text: '40% of the guests ordered breakfast. If there were 300 guests, how many ordered breakfast?',
+      category: 'Numerical Aptitude',
+      options: {
+        A: { text: '100', weight: 1 },
+        B: { text: '120', weight: 3 },
+        C: { text: '140', weight: 1 },
+        D: { text: '160', weight: 1 }
+      }
+    },
+    {
+      id: 'Q14',
+      text: 'A dish costs ₹250 to prepare and is sold at 20% profit. Selling price?',
+      category: 'Numerical Aptitude',
+      options: {
+        A: { text: '₹270', weight: 1 },
+        B: { text: '₹275', weight: 1 },
+        C: { text: '₹300', weight: 3 },
+        D: { text: '₹320', weight: 1 }
+      }
+    },
+    {
+      id: 'Q15',
+      text: 'Two waiters can set 30 tables in 3 hours. How many tables can one waiter set in 2 hours? (They work at the same rate.)',
+      category: 'Numerical Aptitude',
+      options: {
+        A: { text: '5', weight: 1 },
+        B: { text: '10', weight: 3 },
+        C: { text: '15', weight: 1 },
+        D: { text: '20', weight: 1 }
+      }
+    },
+
+    // ========== CATEGORY 4: LOGICAL REASONING (5 questions) ==========
+    {
+      id: 'Q16',
+      text: 'Circular Seating Arrangement: Six guests A, B, C, D, E, F sit around a circular table facing the center. B sits second to the right of A. E is not adjacent to B. C sits opposite A. F is to the immediate left of C. Who sits to the immediate right of D?',
+      category: 'Logical Reasoning',
+      options: {
+        A: { text: 'A', weight: 1 },
+        B: { text: 'B', weight: 1 },
+        C: { text: 'E', weight: 3 },
+        D: { text: 'F', weight: 1 }
+      }
+    },
+    {
+      id: 'Q17',
+      text: 'Puzzle (Hotel Room Allocation): Four guests (P, Q, R, S) booked four rooms (101, 102, 103, 104). Q does not stay in 101 or 102. R stays in an odd-numbered room. S stays immediately next to Q. P does not stay in 104. Where does R stay?',
+      category: 'Logical Reasoning',
+      options: {
+        A: { text: '101', weight: 1 },
+        B: { text: '103', weight: 3 },
+        C: { text: '104', weight: 1 },
+        D: { text: 'Cannot be determined', weight: 1 }
+      }
+    },
+    {
+      id: 'Q18',
+      text: 'Logical Deduction (Syllogism): Statements: (1) All chefs are trained professionals. (2) Some trained professionals are management graduates. (3) No management graduate is untrained. Conclusions: I. Some chefs may be management graduates. II. No chef is untrained. Which follows?',
+      category: 'Logical Reasoning',
+      options: {
+        A: { text: 'Only I follows', weight: 1 },
+        B: { text: 'Only II follows', weight: 1 },
+        C: { text: 'Both I and II follow', weight: 3 },
+        D: { text: 'Neither follows', weight: 1 }
+      }
+    },
+    {
+      id: 'Q19',
+      text: 'Coding–Decoding: In a certain code: SERVICE → TFWVJHK (Each letter is converted using different +/− positions). How is QUALITY coded if the pattern continues?',
+      category: 'Logical Reasoning',
+      options: {
+        A: { text: 'RVCPNKZ', weight: 3 },
+        B: { text: 'RVDQMJZ', weight: 1 },
+        C: { text: 'RBENLJX', weight: 1 },
+        D: { text: 'RVCOLKZ', weight: 1 }
+      }
+    },
+    {
+      id: 'Q20',
+      text: 'Direction Sense: A steward walks 6 m north, 8 m east, 6 m south. How far is he from the starting point?',
+      category: 'Logical Reasoning',
+      options: {
+        A: { text: '4 m', weight: 3 },
+        B: { text: '6 m', weight: 1 },
+        C: { text: '8 m', weight: 1 },
+        D: { text: '10 m', weight: 1 }
+      }
+    },
+
+    // ========== CATEGORY 5: ANALYTICAL APTITUDE (5 questions) ==========
+    {
+      id: 'Q21',
+      text: 'Aditya walked 15 m towards south and took a right turn and walked 3 m, he took a right turn again and walked 15 m before stopping. Which direction did he face?',
+      category: 'Analytical Aptitude',
+      options: {
+        A: { text: 'East', weight: 1 },
+        B: { text: 'West', weight: 1 },
+        C: { text: 'North', weight: 3 },
+        D: { text: 'South', weight: 1 }
+      }
+    },
+    {
+      id: 'Q22',
+      text: 'A bag contains Rs.30 which is in the form of 50 paisa, 1 ₹ and 2 ₹ coins. The ratio of their number is 4:2:1. How many 50 paisa coins are there?',
+      category: 'Analytical Aptitude',
+      options: {
+        A: { text: '20', weight: 3 },
+        B: { text: '10', weight: 1 },
+        C: { text: '5', weight: 1 },
+        D: { text: '15', weight: 1 }
+      }
+    },
+    {
+      id: 'Q23',
+      text: 'A shopkeeper selling his goods at 7% loss. Had he sold it for Rs.800 more, then he would get 9% profit. Find the CP of that article.',
+      category: 'Analytical Aptitude',
+      options: {
+        A: { text: '500', weight: 1 },
+        B: { text: '4000', weight: 1 },
+        C: { text: '6000', weight: 1 },
+        D: { text: '5000', weight: 3 }
+      }
+    },
     {
       id: 'Q24',
-      text: 'A guest insists they ordered something different. You:',
-      category: 'Customer Service',
+      text: 'Find the number of triangles in the given figure.',
+      category: 'Analytical Aptitude',
+      image: '/Prism/assessment-images/q24-triangles.svg',
       options: {
-        A: { text: 'Tell them the bill is final', weight: 1 },
-        B: { text: 'Check with the barista', weight: 2 },
-        C: { text: 'Apologize and offer to remake it', weight: 3 }
+        A: { text: '8', weight: 1 },
+        B: { text: '10', weight: 1 },
+        C: { text: '12', weight: 1 },
+        D: { text: '14', weight: 3 }
       }
     },
     {
       id: 'Q25',
-      text: 'A customer points out expired stock on display. You:',
-      category: 'Integrity',
+      text: 'Count the number of triangles and squares in the given figure.',
+      category: 'Analytical Aptitude',
+      image: '/Prism/assessment-images/q25-triangles-squares.svg',
       options: {
-        A: { text: 'Remove it silently', weight: 1 },
-        B: { text: 'Apologize and inform staff', weight: 2 },
-        C: { text: 'Apologize, remove it, and update inventory', weight: 3 }
+        A: { text: '36 triangles, 7 squares', weight: 1 },
+        B: { text: '38 triangles, 9 squares', weight: 1 },
+        C: { text: '40 triangles, 7 squares', weight: 3 },
+        D: { text: '42 triangles, 9 squares', weight: 1 }
       }
     },
+
+    // ========== CATEGORY 6: COURSE CURRICULUM (5 questions) ==========
     {
       id: 'Q26',
-      text: "It's rush hour and your delivery order sheet is missing. You:",
-      category: 'Problem Solving',
+      text: 'What falls in the danger zone?',
+      category: 'Course Curriculum',
       options: {
-        A: { text: 'Panic and improvise', weight: 1 },
-        B: { text: 'Take a photo of the kitchen docket', weight: 2 },
-        C: { text: 'Reconfirm verbally and redo the order sheet', weight: 3 }
+        A: { text: '1-5 degree Celsius', weight: 1 },
+        B: { text: '22-58 degree Celsius', weight: 3 },
+        C: { text: '65-80 degree Celsius', weight: 1 },
+        D: { text: '2-4 degree Celsius', weight: 1 }
       }
     },
     {
       id: 'Q27',
-      text: 'Your LMS assignment is due today. You:',
-      category: 'Time Management',
+      text: 'The two parts of HACCP include:',
+      category: 'Course Curriculum',
       options: {
-        A: { text: 'Skip it for now', weight: 1 },
-        B: { text: 'Skim through and submit', weight: 2 },
-        C: { text: 'Do it with full attention before closing', weight: 3 }
+        A: { text: 'Hazard analysis and critical control points', weight: 3 },
+        B: { text: 'Health analysis and critical control points', weight: 1 },
+        C: { text: 'Hazard analysis and critical conformation production', weight: 1 },
+        D: { text: 'Health analysis and critical conformation production', weight: 1 }
       }
     },
     {
       id: 'Q28',
-      text: "You've received critical feedback. You:",
-      category: 'Growth Mindset',
+      text: 'What is The Third Wave Movement of coffee about?',
+      category: 'Course Curriculum',
       options: {
-        A: { text: 'Defend yourself', weight: 1 },
-        B: { text: 'Think about it later', weight: 2 },
-        C: { text: 'Reflect, ask questions, and improve', weight: 3 }
+        A: { text: 'Bean to cup', weight: 3 },
+        B: { text: 'Flavoured coffee', weight: 1 },
+        C: { text: 'Farm to cup', weight: 1 },
+        D: { text: 'Monetization of coffee', weight: 1 }
       }
     },
     {
       id: 'Q29',
-      text: "You're under pressure but your team is new. You:",
-      category: 'Teamwork',
+      text: 'Which ISO standard is applicable for the QSR industry?',
+      category: 'Course Curriculum',
       options: {
-        A: { text: 'Focus only on your work', weight: 1 },
-        B: { text: 'Guide quickly when needed', weight: 2 },
-        C: { text: "Support them patiently even if it's slower", weight: 3 }
+        A: { text: 'ISO 9001', weight: 3 },
+        B: { text: 'ISO 22001', weight: 1 },
+        C: { text: 'ISO 22000', weight: 1 },
+        D: { text: 'ISO 27001', weight: 1 }
       }
     },
     {
       id: 'Q30',
-      text: "A customer speaks a regional language you don't know. You:",
-      category: 'Adaptability',
+      text: 'Which of these is not a type of contamination?',
+      category: 'Course Curriculum',
       options: {
-        A: { text: 'Smile and ignore the details', weight: 1 },
-        B: { text: 'Ask someone else to talk', weight: 2 },
-        C: { text: 'Use gestures, translator, or images', weight: 3 }
+        A: { text: 'Biological contamination', weight: 1 },
+        B: { text: 'Chemical contamination', weight: 1 },
+        C: { text: 'Physical contamination', weight: 1 },
+        D: { text: 'Social contamination', weight: 3 }
       }
     }
   ];
@@ -491,12 +526,22 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     
     // Calculate score based on weighted answers
     let totalScore = 0;
-    let maxPossibleScore = questions.length * 3; // Max weight is 3 per question
+    // Calculate max possible score dynamically based on each question's max weight
+    let maxPossibleScore = 0;
+    questions.forEach(q => {
+      const maxWeight = Math.max(
+        q.options.A.weight,
+        q.options.B.weight,
+        q.options.C.weight,
+        q.options.D?.weight || 0
+      );
+      maxPossibleScore += maxWeight;
+    });
     
     Object.entries(answers).forEach(([questionId, answer]) => {
       const question = questions.find(q => q.id === questionId);
       if (question && answer) {
-        const option = question.options[answer as 'A' | 'B' | 'C'];
+        const option = question.options[answer as 'A' | 'B' | 'C' | 'D'];
         if (option) {
           totalScore += option.weight;
         }
@@ -1002,23 +1047,31 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
 
   const calculateResults = () => {
     let totalScore = 0;
-    let maxPossibleScore = questions.length * 3;
+    let maxPossibleScore = 0;
     
     const categoryScores: Record<string, { score: number; max: number }> = {};
     
-    // First, initialize all categories with their max scores
+    // Initialize all categories and calculate their max scores dynamically
     questions.forEach(question => {
       if (!categoryScores[question.category]) {
         categoryScores[question.category] = { score: 0, max: 0 };
       }
-      categoryScores[question.category].max += 3; // Each question has max weight of 3
+      // Calculate max weight for this question (handle optional D)
+      const maxWeight = Math.max(
+        question.options.A.weight,
+        question.options.B.weight,
+        question.options.C.weight,
+        question.options.D?.weight || 0
+      );
+      categoryScores[question.category].max += maxWeight;
+      maxPossibleScore += maxWeight;
     });
     
     // Then add the actual scores from answers (unanswered questions get 0)
     questions.forEach(question => {
       const answer = answers[question.id];
       if (answer) {
-        const option = question.options[answer as 'A' | 'B' | 'C'];
+        const option = question.options[answer as 'A' | 'B' | 'C' | 'D'];
         if (option) {
           totalScore += option.weight;
           categoryScores[question.category].score += option.weight;
@@ -1806,6 +1859,19 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
                     <p className="font-medium text-gray-900 dark:text-slate-100 mb-4">
                       {globalIndex}. {question.text}
                     </p>
+                    
+                    {/* Display image if present */}
+                    {question.image && (
+                      <div className="my-4 flex justify-center">
+                        <img 
+                          src={question.image} 
+                          alt={`Question ${globalIndex} diagram`}
+                          className="max-w-full h-auto border-2 border-gray-300 dark:border-slate-600 rounded-lg p-4 bg-white"
+                          style={{ maxHeight: '300px' }}
+                        />
+                      </div>
+                    )}
+                    
                     <div className="space-y-2">
                       {Object.entries(question.options).map(([key, option]) => (
                         <label
