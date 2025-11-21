@@ -38,3 +38,5 @@ dist-ssr
 
 # Git submodules (excluded am-capa-planner)
 am-capa-planner/
+
+.vercel

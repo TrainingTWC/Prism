@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { QUESTIONS, AREA_MANAGERS, HR_PERSONNEL, SENIOR_HR_ROLES } from '../constants';
+import { QUESTIONS, AREA_MANAGERS, HR_PERSONNEL, SENIOR_HR_ROLES, NORTH_REGION_HRBPS, NORTH_REGION_AMS } from '../constants';
 import { Question, Choice, Store } from '../types';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../roleMapping';
 import { hapticFeedback } from '../utils/haptics';
 import LoadingOverlay from './LoadingOverlay';
-import hrMappingData from '../src/hr_mapping.json';
+import { STORES_PROMISE, MAPPED_STORES } from '../mappedStores';
 
 // Google Sheets endpoint for logging data
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKMVh-lnNBnINskIqD10CnQHvGsW_R2SLASGSdBDN9lTGj1gznlNbHORQ/exec';
@@ -189,41 +189,22 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
     }
   }, []);
 
-  // Load stores from hr_mapping.json
+  // Load normalized stores from mappedStores (this includes runtime overrides)
   useEffect(() => {
-    console.log('Loading stores from imported hr_mapping data...');
-    const loadStores = () => {
+    console.log('Loading stores from mappedStores/STORES_PROMISE...');
+    STORES_PROMISE.then((stores: any[]) => {
       try {
-        console.log('HR mapping data loaded, processing', hrMappingData.length, 'entries');
-        
-        const storeMap = new Map();
-        
-        hrMappingData.forEach((item: any) => {
-          if (!storeMap.has(item.storeId)) {
-            storeMap.set(item.storeId, {
-              name: item.locationName,
-              id: item.storeId,
-              region: item.region
-            });
-          }
-        });
-        
-        const stores = Array.from(storeMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
-        setAllStores(stores);
-        console.log(`Loaded ${stores.length} stores from mapping data`);
-      } catch (error) {
-        console.warn('Could not load stores from mapping data:', error);
-        // Fallback stores
-        setAllStores([
-          { name: 'Defence Colony', id: 'S027' },
-          { name: 'Khan Market', id: 'S037' },
-          { name: 'UB City', id: 'S007' },
-          { name: 'Koramangala 1', id: 'S001' }
-        ]);
+        // mappedStores provides normalized entries with id, name, region, amId, hrbpId, etc.
+        setAllStores(stores.map(s => ({ id: s.id, name: s.name, region: s.region, amId: s.amId, hrbpId: s.hrbpId, regionalHrId: s.regionalHrId, hrHeadId: s.hrHeadId })));
+        console.log(`Loaded ${stores.length} stores from mapping (mappedStores)`);
+      } catch (e) {
+        console.warn('Error processing mapped stores:', e);
+        setAllStores([]);
       }
-    };
-    
-    loadStores();
+    }).catch(err => {
+      console.warn('Could not load mapped stores:', err);
+      setAllStores([]);
+    });
   }, []);
 
   // Filter stores by HR (HR → AM → Stores flow)
@@ -236,33 +217,25 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
 
       try {
         console.log('Filtering stores for HR:', meta.hrId);
-        
+
         // Find stores where this HR is responsible (HRBP > Regional HR > HR Head priority)
-        const hrStoreIds = hrMappingData
-          .filter((mapping: any) => 
-            mapping.hrbpId === meta.hrId || 
-            mapping.regionalHrId === meta.hrId || 
-            mapping.hrHeadId === meta.hrId
-          )
-          .map((mapping: any) => mapping.storeId);
-        
+        const hrStoreIds = allStores
+          .filter((s: any) => s.hrbpId === meta.hrId || s.regionalHrId === meta.hrId || s.hrHeadId === meta.hrId)
+          .map((s: any) => s.id);
+
         console.log('Found store IDs for HR:', hrStoreIds);
-        
+
         const hrStores = allStores.filter(store => hrStoreIds.includes(store.id));
         setFilteredStoresByHR(hrStores);
-        
+
         console.log('Filtered stores:', hrStores);
-        
+
         // Auto-fill Area Manager based on HR
         if (hrStores.length > 0 && !meta.amId) {
-          const firstStoreMapping = hrMappingData.find((mapping: any) => 
-            mapping.storeId === hrStores[0].id
-          );
-          
-          if (firstStoreMapping) {
-            const amId = firstStoreMapping.areaManagerId;
+          const firstStore = allStores.find((s: any) => s.id === hrStores[0].id);
+          if (firstStore) {
+            const amId = firstStore.amId;
             const amPerson = AREA_MANAGERS.find(am => am.id === amId);
-            
             if (amPerson) {
               setMeta(prev => ({
                 ...prev,
@@ -272,7 +245,7 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
             }
           }
         }
-        
+
         console.log(`Filtered ${hrStores.length} stores for HR ${meta.hrId}`);
       } catch (error) {
         console.warn('Could not filter stores by HR:', error);
@@ -285,36 +258,57 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
 
   // Cascading filtering: HR ID → Area Managers → Stores
   const availableAreaManagers = useMemo(() => {
-    if (!meta.hrId) {
-      // No HR selected, show all available AMs based on role
-      return AREA_MANAGERS.filter(am => canAccessAM(userRole, am.id));
-    }
+    console.log('🔍 availableAreaManagers recalculating. meta.hrId:', meta.hrId, 'allStores.length:', allStores.length, 'MAPPED_STORES.length:', MAPPED_STORES.length);
     
+    // No HR selected: return all AMs that the user role can access
+    if (!meta.hrId) return AREA_MANAGERS.filter(am => canAccessAM(userRole, am.id));
+
     console.log('Filtering Area Managers for HR:', meta.hrId);
-    
-    // Check if this is a senior HR role that should have access to all AMs
+
+    // Senior HR roles see all AMs
     if (SENIOR_HR_ROLES.includes(meta.hrId)) {
       const allAccessibleAMs = AREA_MANAGERS.filter(am => canAccessAM(userRole, am.id));
       console.log(`HR ${meta.hrId} is a senior role with access to all Area Managers (${allAccessibleAMs.length} AMs)`);
       return allAccessibleAMs;
     }
-    
-    // Get unique Area Manager IDs that work under this HR
+
+    // SPECIAL CASE: North Region HRBPs - all North HRBPs should see ALL North AMs
+    // This ensures full regional visibility for the North team
+    if (NORTH_REGION_HRBPS.includes(meta.hrId)) {
+      const northAMs = AREA_MANAGERS.filter(am => NORTH_REGION_AMS.includes(am.id));
+      console.log(`HR ${meta.hrId} is a North HRBP with access to all ${northAMs.length} North Area Managers:`, northAMs);
+      return northAMs;
+    }
+
+    // Derive AM IDs from normalized mapping (allStores). Use `allStores` when
+    // available; fall back to the immediate `MAPPED_STORES` export so the UI can
+    // populate AMs even before async mapping loading completes.
     const hrAreaManagerIds = new Set<string>();
-    
-    hrMappingData.forEach((mapping: any) => {
-      if (mapping.hrbpId === meta.hrId || 
-          mapping.regionalHrId === meta.hrId || 
-          mapping.hrHeadId === meta.hrId) {
-        hrAreaManagerIds.add(mapping.areaManagerId);
+    const sourceStores = (allStores && allStores.length > 0) ? allStores : MAPPED_STORES || [];
+    sourceStores.forEach((s: any) => {
+      if (s.hrbpId === meta.hrId || s.regionalHrId === meta.hrId || s.hrHeadId === meta.hrId) {
+        if (s.amId) hrAreaManagerIds.add(s.amId);
       }
     });
-    
-    const filteredAMs = AREA_MANAGERS.filter(am => hrAreaManagerIds.has(am.id));
-    console.log(`Found ${filteredAMs.length} Area Managers for HR ${meta.hrId}:`, filteredAMs);
-    
-    return filteredAMs;
-  }, [userRole, meta.hrId]);
+
+  // First, pick matching AM objects from AREA_MANAGERS (do not gate by current
+  // user's access when HR is explicitly selected via meta.hrId — HR should be
+  // able to see AMs for their region regardless of the viewer's role).
+  const presentAMs = AREA_MANAGERS.filter(am => hrAreaManagerIds.has(am.id));
+
+  // If mapping references AM IDs that are not present in `AREA_MANAGERS`, create
+  // lightweight placeholders so the dropdown isn't empty. Use the ID as the
+  // display name as a fallback.
+  const missingIds = Array.from(hrAreaManagerIds).filter(id => !AREA_MANAGERS.some(am => am.id === id));
+  const missingAMs = missingIds.map(id => ({ id, name: id } as any));
+
+  const result = [...presentAMs, ...missingAMs];
+  console.log(`Found ${result.length} Area Managers for HR ${meta.hrId}:`, result);
+  console.log('Derived AM IDs from mapping for this HR:', Array.from(hrAreaManagerIds));
+  console.log('Source stores used:', sourceStores.length, 'stores');
+  if (missingIds && missingIds.length > 0) console.log('AM IDs referenced in mapping but missing from AREA_MANAGERS:', missingIds);
+  return result;
+  }, [userRole, meta.hrId, allStores, MAPPED_STORES]);
 
   const availableStores = useMemo(() => {
     if (!meta.amId) {
@@ -331,11 +325,8 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
     
     console.log('Filtering Stores for Area Manager:', meta.amId);
     
-    // Get stores that belong to this Area Manager
-    const amStoreIds = hrMappingData
-      .filter((mapping: any) => mapping.areaManagerId === meta.amId)
-      .map((mapping: any) => mapping.storeId);
-    
+    // Get stores that belong to this Area Manager using normalized mapping
+    const amStoreIds = allStores.filter((s: any) => s.amId === meta.amId).map((s: any) => s.id);
     const filteredStores = allStores.filter(store => amStoreIds.includes(store.id));
     console.log(`Found ${filteredStores.length} stores for AM ${meta.amId}:`, filteredStores);
     
@@ -367,28 +358,19 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
     setMeta(prev => {
       const next = { ...prev, [key]: value };
       
-      // Auto-fill region when store is selected
+      // Auto-fill region when store is selected using normalized mapping
       if (key === 'storeId' && value) {
-        const loadRegionForStore = async () => {
-          try {
-            const base = (import.meta as any).env?.BASE_URL || '/';
-            const response = await fetch(`${base}hr_mapping.json`);
-            const hrMappingData = await response.json();
-            const storeMapping = hrMappingData.find((mapping: any) => mapping.storeId === value);
-            
-            if (storeMapping) {
-              setMeta(current => ({
-                ...current,
-                storeName: storeMapping.locationName
-                // Region can be added here if needed
-              }));
-            }
-          } catch (error) {
-            console.warn('Could not load region for store:', error);
+        try {
+          const store = allStores.find(s => s.id === value);
+          if (store) {
+            setMeta(current => ({
+              ...current,
+              storeName: store.name
+            }));
           }
-        };
-        
-        loadRegionForStore();
+        } catch (error) {
+          console.warn('Could not auto-fill store name from mapping:', error);
+        }
       }
       
       try { 
@@ -497,9 +479,9 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
     // Detect region based on the selected store ID only from hr_mapping.json
     let detectedRegion = '';
     try {
-      // Only try to find region by store ID
+      // Only try to find region by store ID using normalized mapping
       if (meta.storeId) {
-        const storeMapping = hrMappingData.find((item: any) => item.storeId === meta.storeId);
+        const storeMapping = allStores.find((s: any) => s.id === meta.storeId);
         if (storeMapping) {
           detectedRegion = storeMapping.region || '';
         }

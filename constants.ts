@@ -57,6 +57,7 @@ export const AREA_MANAGERS: AreaManager[] = [
       { name: 'Atul', id: 'H2396' },
       { name: 'Sanjay', id: 'H2273' },
       { name: 'Rutuja', id: 'H2758' }
+      // Monica (H2165) removed - she is an HRBP, not an Area Manager
 ];
 
 export const REGIONS = ['North', 'South', 'West'];
@@ -72,6 +73,7 @@ export const HR_PERSONNEL: HRPerson[] = [
     { name: 'Manasi', id: 'H3603' },
     { name: 'Sumanjali', id: 'H3730' },
     { name: 'Sunil', id: 'H3247' },
+    { name: 'Siddhant', id: 'H3728' },
     { name: 'Sarit', id: 'H2081' },
     { name: 'Pooja', id: 'HC002' },
     { name: 'Rohit Paul', id: 'H3551' },
@@ -94,6 +96,13 @@ export const TRAINER_PERSONNEL: HRPerson[] = [
 
 // Senior HR roles that should have access to all Area Managers
 export const SENIOR_HR_ROLES = ['H2081', 'H3237', 'H541']; // Sarit, Training Head, LMS Head
+
+// North region HRBPs - all should have access to ALL North Area Managers
+// This ensures regional visibility across the North region team
+export const NORTH_REGION_HRBPS = ['H2165', 'H3578', 'H3728']; // Monica, Abhishek, Siddhant
+
+// North region Area Managers - all North HRBPs should see all of these AMs
+export const NORTH_REGION_AMS = ['H1766', 'H2396', 'H535', 'H955']; // Vishu, Atul, Amar, Himanshu
 
 // AM Operations Questions - 53 questions across 6 sections (COFFEE framework)
 export const OPERATIONS_QUESTIONS: Question[] = [

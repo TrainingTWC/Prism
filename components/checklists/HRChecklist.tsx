@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../../roleMapping';
-import { QUESTIONS, AREA_MANAGERS, HR_PERSONNEL, SENIOR_HR_ROLES } from '../../constants';
+import { QUESTIONS, AREA_MANAGERS, HR_PERSONNEL, SENIOR_HR_ROLES, NORTH_REGION_HRBPS, NORTH_REGION_AMS } from '../../constants';
 import { Question, Choice, Store } from '../../types';
 import { hapticFeedback } from '../../utils/haptics';
 import LoadingOverlay from '../LoadingOverlay';
-import compStoreMapping from '../../src/comprehensive_store_mapping.json';
+import { STORES_PROMISE, MAPPED_STORES } from '../../mappedStores';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
 
@@ -108,40 +108,24 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     }
   }, [authUserRole, employeeData]);
 
-  // Load stores from comprehensive_store_mapping.json
+  // Load stores from STORES_PROMISE (normalized mapping with runtime overrides)
   useEffect(() => {
-    const loadStores = () => {
-      try {
-        const storeMap = new Map();
-        
-        compStoreMapping.forEach((item: any) => {
-          const storeId = item['Store ID'];
-          const storeName = item['Store Name'];
-          const region = item.Region;
-          
-          if (!storeMap.has(storeId)) {
-            storeMap.set(storeId, {
-              name: storeName,
-              id: storeId,
-              region: region
-            });
-          }
-        });
-        
-        const stores = Array.from(storeMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
-        setAllStores(stores);
-      } catch (error) {
-        console.warn('Could not load stores from mapping data:', error);
-        setAllStores([
-          { name: 'Defence Colony', id: 'S027', region: 'Unknown' },
-          { name: 'Khan Market', id: 'S037', region: 'Unknown' },
-          { name: 'UB City', id: 'S007', region: 'Unknown' },
-          { name: 'Koramangala 1', id: 'S001', region: 'Unknown' }
-        ]);
-      }
-    };
+    console.log('[HRChecklist] Loading stores from STORES_PROMISE...');
     
-    loadStores();
+    // Immediately set MAPPED_STORES as fallback so UI is responsive
+    if (MAPPED_STORES && MAPPED_STORES.length > 0) {
+      console.log(`[HRChecklist] Setting fallback stores from MAPPED_STORES: ${MAPPED_STORES.length} stores`);
+      setAllStores(MAPPED_STORES as any[]);
+    }
+    
+    // Then load the full async mapping
+    STORES_PROMISE.then(stores => {
+      console.log(`[HRChecklist] Async stores loaded: ${stores.length} stores`);
+      setAllStores(stores as any[]);
+    }).catch(err => {
+      console.error('[HRChecklist] Failed to load stores:', err);
+      // Keep using MAPPED_STORES fallback
+    });
   }, []);
 
   // Filter stores by HR
@@ -153,40 +137,26 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
       }
 
       try {
-        let hrStoreIds: string[];
+        console.log(`[HRChecklist] Filtering stores for HR ${meta.hrId} from ${allStores.length} total stores`);
         
-        // Special case: Rohit Paul (H3551) - Regional Manager for South
-        // Give access to ALL South region stores
-        if (meta.hrId === 'H3551') {
-          hrStoreIds = compStoreMapping
-            .filter((mapping: any) => mapping.Region === 'South')
-            .map((mapping: any) => mapping['Store ID']);
-          
-          console.log(`[HR Checklist] Rohit (Regional Manager South) - Stores:`, hrStoreIds.length, 'South stores');
-        } else {
-          // Normal HR filtering
-          hrStoreIds = compStoreMapping
-            .filter((mapping: any) => 
-              mapping.HRBP === meta.hrId || 
-              mapping['Regional Training Manager'] === meta.hrId || 
-              mapping['HR Head'] === meta.hrId
-            )
-            .map((mapping: any) => mapping['Store ID']);
-        }
+        // Filter stores where the HR is assigned (check hrbpId, regionalHrId, hrHeadId)
+        const hrStores = allStores.filter((store: any) => 
+          store.hrbpId === meta.hrId || 
+          store.regionalHrId === meta.hrId || 
+          store.hrHeadId === meta.hrId
+        );
         
-        const hrStores = allStores.filter(store => hrStoreIds.includes(store.id));
+        console.log(`[HRChecklist] Found ${hrStores.length} stores for HR ${meta.hrId}`);
         setFilteredStoresByHR(hrStores);
         
+        // Auto-populate AM if stores are available and AM not yet set
         if (hrStores.length > 0 && !meta.amId) {
-          const firstStoreMapping = compStoreMapping.find((mapping: any) => 
-            mapping['Store ID'] === hrStores[0].id
-          );
-          
-          if (firstStoreMapping) {
-            const amId = firstStoreMapping.AM;
-            const amPerson = AREA_MANAGERS.find(am => am.id.toLowerCase() === amId.toLowerCase());
+          const firstStore = hrStores[0] as any;
+          if (firstStore.amId) {
+            const amPerson = AREA_MANAGERS.find(am => am.id === firstStore.amId);
             
             if (amPerson) {
+              console.log(`[HRChecklist] Auto-filling AM: ${amPerson.name} (${amPerson.id})`);
               setMeta(prev => ({
                 ...prev,
                 amId: amPerson.id,
@@ -205,6 +175,8 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
   }, [meta.hrId, allStores]);
 
   const availableAreaManagers = useMemo(() => {
+    console.log('🔍 [HRChecklist] availableAreaManagers recalculating. meta.hrId:', meta.hrId, 'allStores.length:', allStores.length);
+    
     // If no HR is selected, show all accessible AMs
     if (!meta.hrId) {
       return AREA_MANAGERS.filter(am => canAccessAM(userRole, am.id));
@@ -216,73 +188,49 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
       return allAccessibleAMs;
     }
     
-    // Special case: Rohit Paul (H3551) - Regional Manager for South
-    // Give access to ALL Area Managers in South region
-    if (meta.hrId === 'H3551') {
-      const southAMIds = new Set<string>();
-      
-      // Find all AMs who manage South region stores
-      compStoreMapping.forEach((mapping: any) => {
-        if (mapping.Region === 'South' && mapping.AM) {
-          southAMIds.add(mapping.AM);
-          southAMIds.add(mapping.AM.toUpperCase());
-          southAMIds.add(mapping.AM.toLowerCase());
-        }
-      });
-      
-      const southAMs = AREA_MANAGERS.filter(am => 
-        southAMIds.has(am.id) || 
-        southAMIds.has(am.id.toUpperCase()) || 
-        southAMIds.has(am.id.toLowerCase())
-      );
-      
-      console.log(`[HR Checklist] Rohit (Regional Manager South) - AMs:`, southAMs.length, 'South AMs');
-      return southAMs;
+    // SPECIAL CASE: North Region HRBPs - all North HRBPs should see ALL North AMs
+    // This ensures full regional visibility for the North team
+    if (NORTH_REGION_HRBPS.includes(meta.hrId)) {
+      const northAMs = AREA_MANAGERS.filter(am => NORTH_REGION_AMS.includes(am.id));
+      console.log(`[HRChecklist] HR ${meta.hrId} is a North HRBP with access to all ${northAMs.length} North Area Managers:`, northAMs);
+      return northAMs;
     }
     
-    // Filter AMs based on selected HR
+    // Derive AM IDs from normalized mapping (allStores). Use `allStores` when
+    // available; fall back to the immediate `MAPPED_STORES` export so the UI can
+    // populate AMs even before async mapping loading completes.
     const hrAreaManagerIds = new Set<string>();
+    const sourceStores = (allStores && allStores.length > 0) ? allStores : MAPPED_STORES || [];
     
-    compStoreMapping.forEach((mapping: any) => {
-      // Check if this store is managed by the selected HR
-      if (mapping.HRBP === meta.hrId || 
-          mapping['Regional Training Manager'] === meta.hrId || 
-          mapping['HR Head'] === meta.hrId) {
-        if (mapping.AM) {
-          // Add AM in all case variations
-          hrAreaManagerIds.add(mapping.AM);
-          hrAreaManagerIds.add(mapping.AM.toUpperCase());
-          hrAreaManagerIds.add(mapping.AM.toLowerCase());
-        }
+    console.log('[HRChecklist] Source stores used:', sourceStores.length, 'stores');
+    
+    sourceStores.forEach((s: any) => {
+      if (s.hrbpId === meta.hrId || s.regionalHrId === meta.hrId || s.hrHeadId === meta.hrId) {
+        if (s.amId) hrAreaManagerIds.add(s.amId);
       }
     });
     
-    // Filter AREA_MANAGERS to only those managed by this HR
-    const filteredAMs = AREA_MANAGERS.filter(am => 
-      hrAreaManagerIds.has(am.id) || 
-      hrAreaManagerIds.has(am.id.toUpperCase()) || 
-      hrAreaManagerIds.has(am.id.toLowerCase())
-    );
+    // First, pick matching AM objects from AREA_MANAGERS
+    const presentAMs = AREA_MANAGERS.filter(am => hrAreaManagerIds.has(am.id));
     
-    console.log(`[HR Checklist] Filtered AMs for HR ${meta.hrId}:`, filteredAMs.length, 'AMs');
-    return filteredAMs;
-  }, [userRole, meta.hrId]);
+    // If mapping references AM IDs that are not present in AREA_MANAGERS, create
+    // lightweight placeholders so the dropdown isn't empty
+    const missingIds = Array.from(hrAreaManagerIds).filter(id => !AREA_MANAGERS.some(am => am.id === id));
+    const missingAMs = missingIds.map(id => ({ id, name: id } as any));
+    
+    const result = [...presentAMs, ...missingAMs];
+    console.log(`[HRChecklist] Found ${result.length} Area Managers for HR ${meta.hrId}:`, result);
+    console.log('[HRChecklist] Derived AM IDs:', Array.from(hrAreaManagerIds));
+    
+    return result;
+  }, [userRole, meta.hrId, allStores, MAPPED_STORES]);
 
   const availableStores = useMemo(() => {
     // If AM is selected, filter stores by AM
     if (meta.amId) {
-      const amStoreIds = compStoreMapping
-        .filter((mapping: any) => {
-          const am = mapping.AM;
-          return am && (
-            am === meta.amId || 
-            am.toUpperCase() === meta.amId.toUpperCase()
-          );
-        })
-        .map((mapping: any) => mapping['Store ID']);
-      
-      const filteredStores = allStores.filter(store => amStoreIds.includes(store.id));
-      console.log(`[HR Checklist] Filtered stores for AM ${meta.amId}:`, filteredStores.length, 'stores');
+      console.log(`[HRChecklist] Filtering stores for AM ${meta.amId}`);
+      const filteredStores = allStores.filter((store: any) => store.amId === meta.amId);
+      console.log(`[HRChecklist] Filtered stores for AM ${meta.amId}:`, filteredStores.length, 'stores');
       return filteredStores;
     }
     
@@ -380,10 +328,10 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
         console.log('[HR Checklist] AM changed, cleared Store');
       } else if (key === 'storeId' && value) {
         // Auto-fill store name when store is selected
-        const storeMapping = compStoreMapping.find((mapping: any) => mapping['Store ID'] === value);
+        const selectedStore = allStores.find((store: any) => store.id === value);
         
-        if (storeMapping) {
-          next.storeName = storeMapping['Store Name'];
+        if (selectedStore) {
+          next.storeName = selectedStore.name;
         }
       }
       
@@ -443,25 +391,25 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
       try {
         if (meta.storeId) {
           // Try to find by exact store ID match first
-          let storeMapping = compStoreMapping.find((item: any) => item['Store ID'] === meta.storeId);
+          let storeData = allStores.find((store: any) => store.id === meta.storeId);
           
           // If not found and storeId is numeric, try with S prefix
-          if (!storeMapping && !isNaN(Number(meta.storeId)) && !meta.storeId.startsWith('S')) {
+          if (!storeData && !isNaN(Number(meta.storeId)) && !meta.storeId.startsWith('S')) {
             const sFormattedId = `S${meta.storeId.padStart(3, '0')}`;
-            storeMapping = compStoreMapping.find((item: any) => item['Store ID'] === sFormattedId);
+            storeData = allStores.find((store: any) => store.id === sFormattedId);
           }
           
           // If still not found, try to match by store name
-          if (!storeMapping && meta.storeName) {
-            storeMapping = compStoreMapping.find((item: any) => 
-              item['Store Name'].toLowerCase().includes(meta.storeName.toLowerCase()) ||
-              meta.storeName.toLowerCase().includes(item['Store Name'].toLowerCase())
+          if (!storeData && meta.storeName) {
+            storeData = allStores.find((store: any) => 
+              store.name.toLowerCase().includes(meta.storeName.toLowerCase()) ||
+              meta.storeName.toLowerCase().includes(store.name.toLowerCase())
             );
           }
           
-          if (storeMapping) {
-            detectedRegion = storeMapping.Region || '';
-            correctedStoreId = storeMapping['Store ID']; // Use the correct S-prefixed store ID
+          if (storeData) {
+            detectedRegion = storeData.region || '';
+            correctedStoreId = storeData.id; // Use the correct S-prefixed store ID
             console.log(`✅ HR Survey - Store mapped: ${meta.storeId} (${meta.storeName}) → ${correctedStoreId} → Region: ${detectedRegion}`);
           } else {
             console.warn(`❌ HR Survey - No mapping found for store ${meta.storeId} (${meta.storeName})`);

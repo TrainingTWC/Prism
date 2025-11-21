@@ -102,28 +102,21 @@ export async function generateAMInsights(submissions: any[]): Promise<InsightRes
  * Analyzes remarks using AI (GitHub Models or local analysis)
  */
 async function analyzeWithAI(remarks: string[], submissions: any[]): Promise<InsightResult> {
-  // GitHub token should be set via environment variable VITE_GITHUB_TOKEN
-  const githubToken = import.meta.env.VITE_GITHUB_TOKEN || '';
-  
-  console.log('🔍 Checking GitHub token availability:', githubToken ? '✅ Token found' : '❌ No token found');
-  
-  if (githubToken && githubToken.length > 10) {
-    try {
-      console.log('🚀 Queueing AI analysis request...');
-      console.log(`📊 Queue status: ${aiRequestQueue.getQueueLength()} pending, ${aiRequestQueue.isProcessing() ? 'processing' : 'idle'}`);
-      
-      // Use request queue to prevent rate limiting
-      return await aiRequestQueue.add(async () => {
-        console.log('🤖 Processing AI analysis with GitHub Models...');
-        return await analyzeWithGitHubModels(remarks, submissions, githubToken);
-      });
-    } catch (error) {
-      console.error('❌ GitHub Models API failed, using fallback analysis:', error);
-    }
-  } else {
-    console.warn('⚠️ No GitHub token found. Set VITE_GITHUB_TOKEN in .env file. Using basic fallback analysis.');
+  // Attempt to use the server-side proxy (/api/analyze). This avoids requiring the secret in the browser.
+  try {
+    console.log('🚀 Queueing AI analysis request via server proxy...');
+    console.log(`📊 Queue status: ${aiRequestQueue.getQueueLength()} pending, ${aiRequestQueue.isProcessing() ? 'processing' : 'idle'}`);
+
+    return await aiRequestQueue.add(async () => {
+      console.log('🤖 Processing AI analysis via server proxy...');
+      // Pass token if available (server-side deployments may provide it), otherwise proxy should use its own env var
+      const token = import.meta.env.VITE_GITHUB_TOKEN || '';
+      return await analyzeWithGitHubModels(remarks, submissions, token);
+    });
+  } catch (error) {
+    console.error('❌ Server proxy AI analysis failed, using fallback analysis:', error);
   }
-  
+
   // Fallback to local analysis
   return generateFallbackInsights(submissions);
 }
@@ -136,10 +129,19 @@ async function analyzeWithGitHubModels(
   submissions: any[], 
   token: string
 ): Promise<InsightResult> {
-  // Use local proxy server to avoid CORS issues
-  // The proxy default port is 3003 in development (configurable via AI_PROXY_PORT)
-  const endpoint = 'http://localhost:3003/api/ai/analyze';
-  
+  // Determine proxy endpoint. Prefer same-origin serverless function in production (/api/analyze).
+  let endpoint = '/api/analyze';
+  try {
+    if (typeof window === 'undefined') {
+      // running server-side (e.g., SSR or Node task) - allow override via env var
+      endpoint = process.env.AI_PROXY_ENDPOINT || 'http://localhost:3003/api/ai/analyze';
+    } else if (window && window.location && window.location.origin) {
+      endpoint = `${window.location.origin}/api/analyze`;
+    }
+  } catch (e) {
+    // fallback to default '/api/analyze'
+  }
+
   console.log('🌐 Using proxy endpoint:', endpoint);
   
   // Collect detailed response data for root cause analysis
@@ -277,12 +279,15 @@ Return ONLY valid JSON with both short summaries AND detailed explanations:
   ]
 }`;
 
+  // Build headers; include Authorization only when a token is supplied (some proxies accept token server-side)
+  const headers: any = { 'Content-Type': 'application/json' };
+  if (token && token.length > 10) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
+    headers,
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
@@ -1096,27 +1101,20 @@ function extractRemarks(submissions: any[]): string[] {
  * Uses AI to analyze monthly data
  */
 async function analyzeMonthWithAI(monthName: string, submissions: any[], monthStats: any, remarks: string[]): Promise<InsightResult> {
-  const githubToken = import.meta.env.VITE_GITHUB_TOKEN || '';
-  
-  console.log(`🔍 [${monthName}] Checking GitHub token:`, githubToken ? '✅ Available' : '❌ Missing');
-  
-  if (githubToken && githubToken.length > 10) {
-    try {
-      console.log(`🚀 [${monthName}] Queueing AI analysis...`);
-      console.log(`📊 Queue status: ${aiRequestQueue.getQueueLength()} pending`);
-      
-      // Use request queue to prevent rate limiting
-      return await aiRequestQueue.add(async () => {
-        console.log(`🤖 [${monthName}] Processing AI analysis...`);
-        return await analyzeMonthWithGitHubModels(monthName, submissions, monthStats, remarks, githubToken);
-      });
-    } catch (error) {
-      console.error(`❌ [${monthName}] GitHub Models API failed:`, error);
-    }
-  } else {
-    console.warn(`⚠️ [${monthName}] No GitHub token. Using basic fallback analysis.`);
+  // Try proxy-based AI first (works when token is provided server-side by the proxy). This avoids requiring client-side secret.
+  try {
+    console.log(`🚀 [${monthName}] Queueing AI analysis via server proxy...`);
+    console.log(`📊 Queue status: ${aiRequestQueue.getQueueLength()} pending`);
+
+    return await aiRequestQueue.add(async () => {
+      console.log(`🤖 [${monthName}] Processing AI analysis via server proxy...`);
+      const token = import.meta.env.VITE_GITHUB_TOKEN || '';
+      return await analyzeMonthWithGitHubModels(monthName, submissions, monthStats, remarks, token);
+    });
+  } catch (error) {
+    console.error(`❌ [${monthName}] Server proxy AI analysis failed:`, error);
   }
-  
+
   return generateMonthlyFallback(monthName, submissions);
 }
 
