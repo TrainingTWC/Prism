@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { CampusHiringSubmission } from '../../services/dataService';
 import { EMBEDDED_LOGO } from '../assets/embeddedLogo';
+import { CAMPUS_HIRING_QUESTIONS } from './campusHiringQuestions';
 
 interface ReportOptions {
   title?: string;
@@ -404,13 +405,13 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
     doc.text('Detailed Question-wise Performance', 14, y);
     y += 10;
 
-    // Build question details table - group by category
+    // Build question details table - group by category with full question text and actual responses
     const questionDetails: any[] = [];
     
     CATEGORIES.forEach(category => {
       // Add category header row
       questionDetails.push([
-        { content: category.name, colSpan: 4, styles: { fillColor: [99, 102, 241], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' } }
+        { content: category.name, colSpan: 3, styles: { fillColor: [99, 102, 241], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 11 } }
       ]);
       
       // Get questions for this category (5 questions per category)
@@ -419,78 +420,80 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
       const endQ = startQ + 5;
       
       for (let qNum = startQ; qNum < endQ; qNum++) {
-        const answer = submission[`Q${qNum}`] || '-';
+        // Find the question from our question bank
+        const question = CAMPUS_HIRING_QUESTIONS.find(q => q.id === `Q${qNum}`);
+        if (!question) continue;
+        
+        const answerKey = submission[`Q${qNum}`] || '-';
         const weight = submission[`Q${qNum} Weight`] || '0';
         const maxWeight = 3; // Most questions have max 3 points
         
+        // Get the actual response text
+        const responseText = answerKey !== '-' && question.options[answerKey as 'A' | 'B' | 'C' | 'D']
+          ? question.options[answerKey as 'A' | 'B' | 'C' | 'D'].text
+          : 'Not answered';
+        
+        // Determine assessment based on weight
+        let assessment = 'N/A';
+        let assessmentColor: [number, number, number] = [120, 130, 145];
+        if (weight === '3') {
+          assessment = 'Excellent';
+          assessmentColor = [34, 197, 94]; // Green
+        } else if (weight === '2') {
+          assessment = 'Good';
+          assessmentColor = [245, 158, 11]; // Orange
+        } else if (weight === '1') {
+          assessment = 'Fair';
+          assessmentColor = [239, 68, 68]; // Red
+        }
+        
         questionDetails.push([
-          `Q${qNum}`,
-          answer,
-          `${weight}/${maxWeight}`,
-          weight === '3' ? 'Excellent' : weight === '2' ? 'Good' : weight === '1' ? 'Fair' : 'N/A'
+          { content: `Q${qNum}: ${question.text}`, styles: { fontStyle: 'bold', fontSize: 9 } },
+          { content: responseText, styles: { fontSize: 9 } },
+          { content: assessment, styles: { fontSize: 9, fontStyle: 'bold', textColor: assessmentColor, halign: 'center' } }
         ]);
       }
     });
 
     autoTable(doc as any, {
       startY: y,
-      head: [['Question', 'Response', 'Score', 'Assessment']],
+      head: [['Question', 'Response', 'Assessment']],
       body: questionDetails,
       styles: {
         fontSize: 9,
-        cellPadding: 3,
-        halign: 'center'
+        cellPadding: 4,
+        overflow: 'linebreak',
+        cellWidth: 'wrap'
       },
       headStyles: {
         fillColor: [59, 130, 246],
         textColor: [255, 255, 255],
         fontStyle: 'bold',
-        halign: 'center'
+        halign: 'center',
+        fontSize: 10
       },
       columnStyles: {
-        0: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
-        1: { cellWidth: 70, halign: 'center' },
-        2: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
-        3: { cellWidth: 40, halign: 'center' }
+        0: { cellWidth: 95, halign: 'left', fontStyle: 'normal' },
+        1: { cellWidth: 70, halign: 'left' },
+        2: { cellWidth: 25, halign: 'center' }
       },
-      didParseCell: (data: any) => {
-        // Color code assessment column
-        if (data.section === 'body' && data.column.index === 3) {
-          const text = String(data.cell.raw);
-          if (text === 'Excellent') {
-            data.cell.styles.textColor = [34, 197, 94]; // Green
-            data.cell.styles.fontStyle = 'bold';
-          } else if (text === 'Good') {
-            data.cell.styles.textColor = [245, 158, 11]; // Orange
-          } else if (text === 'Fair') {
-            data.cell.styles.textColor = [239, 68, 68]; // Red
-          }
-        }
-        // Color code score column
-        if (data.section === 'body' && data.column.index === 2) {
-          const scoreText = String(data.cell.raw);
-          if (scoreText.startsWith('3')) {
-            data.cell.styles.textColor = [34, 197, 94]; // Green
-          } else if (scoreText.startsWith('2')) {
-            data.cell.styles.textColor = [245, 158, 11]; // Orange
-          } else if (scoreText.startsWith('1')) {
-            data.cell.styles.textColor = [239, 68, 68]; // Red
-          }
-        }
+      margin: { top: 20, bottom: 30 },
+      didDrawPage: (data: any) => {
+        // Page footer will be added later for all pages
       }
     });
 
-    // Footer (matching QA style)
+    // Footer for all pages
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
       doc.setTextColor(120, 130, 145);
-      doc.text(`Page ${i} of ${pageCount}`, 105, 280, { align: 'center' });
+      doc.text(`Page ${i} of ${pageCount}`, 105, doc.internal.pageSize.height - 15, { align: 'center' });
       doc.setFontSize(8);
       doc.setTextColor(156, 163, 175);
-      doc.text('This report is confidential and intended for internal use only.', 105, 285, { align: 'center' });
-      doc.text(`Generated on ${new Date().toLocaleDateString()} | Prism Campus Hiring System`, 105, 290, { align: 'center' });
+      doc.text('This report is confidential and intended for internal use only.', 105, doc.internal.pageSize.height - 10, { align: 'center' });
+      doc.text(`Generated on ${new Date().toLocaleDateString()} | Prism Campus Hiring System`, 105, doc.internal.pageSize.height - 5, { align: 'center' });
     }
     
     return doc;
