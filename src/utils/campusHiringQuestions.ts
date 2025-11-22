@@ -1,4 +1,9 @@
-// Campus Hiring Assessment Questions - Exported for PDF Report Generation
+/**
+ * Campus Hiring Questions Bank
+ * Complete list of all 30 questions with full text and options
+ * Used for PDF report generation to show full question details
+ */
+
 export const CAMPUS_HIRING_QUESTIONS = [
   // ========== CATEGORY 1: PSYCHOMETRIC (5 questions) ==========
   {
@@ -107,210 +112,228 @@ export const CAMPUS_HIRING_QUESTIONS = [
   // ========== CATEGORY 3: NUMERICAL APTITUDE (5 questions) ==========
   {
     id: 'Q11',
-    text: 'Solve: 2x + 5 = 15. What is x?',
+    text: 'A cook uses a mixture where the ratio of flour to sugar is (x+2):(x-1). If the mixture weighs 21 kg and sugar is 6 kg, find x.',
     category: 'Numerical Aptitude',
     options: {
-      A: { text: '5', weight: 3 },
-      B: { text: '10', weight: 1 },
-      C: { text: '7', weight: 1 }
+      A: { text: '1', weight: 1 },
+      B: { text: '2', weight: 1 },
+      C: { text: '3', weight: 1 },
+      D: { text: '4', weight: 3 }
     }
   },
   {
     id: 'Q12',
-    text: 'What is 15% of 200?',
+    text: 'A hotel invests Rs.20,000 at 10% compound interest, compounded annually for 3 years. Amount earned?',
     category: 'Numerical Aptitude',
     options: {
-      A: { text: '25', weight: 1 },
-      B: { text: '30', weight: 3 },
-      C: { text: '35', weight: 1 }
+      A: { text: 'Rs.24,200', weight: 1 },
+      B: { text: 'Rs.26,620', weight: 3 },
+      C: { text: 'Rs.26,000', weight: 1 },
+      D: { text: 'Rs.27,300', weight: 1 }
     }
   },
   {
     id: 'Q13',
-    text: 'If a product costs ₹150 and is sold for ₹180, what is the profit percentage?',
+    text: '40% of the guests ordered breakfast. If there were 300 guests, how many ordered breakfast?',
     category: 'Numerical Aptitude',
     options: {
-      A: { text: '15%', weight: 1 },
-      B: { text: '20%', weight: 3 },
-      C: { text: '25%', weight: 1 }
+      A: { text: '100', weight: 1 },
+      B: { text: '120', weight: 3 },
+      C: { text: '140', weight: 1 },
+      D: { text: '160', weight: 1 }
     }
   },
   {
     id: 'Q14',
-    text: 'A café sells 120 cups of coffee daily. If 30% are espresso, how many espressos are sold?',
+    text: 'A dish costs Rs.250 to prepare and is sold at 20% profit. Selling price?',
     category: 'Numerical Aptitude',
     options: {
-      A: { text: '30', weight: 1 },
-      B: { text: '36', weight: 3 },
-      C: { text: '40', weight: 1 }
+      A: { text: 'Rs.270', weight: 1 },
+      B: { text: 'Rs.275', weight: 1 },
+      C: { text: 'Rs.300', weight: 3 },
+      D: { text: 'Rs.320', weight: 1 }
     }
   },
   {
     id: 'Q15',
-    text: 'If 5 staff members prepare 100 drinks in 2 hours, how many drinks can 8 staff prepare in the same time?',
+    text: 'Two waiters can set 30 tables in 3 hours. How many tables can one waiter set in 2 hours? (They work at the same rate.)',
     category: 'Numerical Aptitude',
     options: {
-      A: { text: '120', weight: 1 },
-      B: { text: '150', weight: 1 },
-      C: { text: '160', weight: 3 }
+      A: { text: '5', weight: 1 },
+      B: { text: '10', weight: 3 },
+      C: { text: '15', weight: 1 },
+      D: { text: '20', weight: 1 }
     }
   },
 
   // ========== CATEGORY 4: LOGICAL REASONING (5 questions) ==========
   {
     id: 'Q16',
-    text: 'A, B, C, D, and E are sitting in a row. A is not at either end. C is sitting next to E. D is sitting at one end. Who is in the middle?',
+    text: 'Circular Seating Arrangement: Six guests A, B, C, D, E, F sit around a circular table facing the center. B sits second to the right of A. E is not adjacent to B. C sits opposite A. F is to the immediate left of C. Who sits to the immediate right of D?',
     category: 'Logical Reasoning',
     options: {
-      A: { text: 'A', weight: 3 },
+      A: { text: 'A', weight: 1 },
       B: { text: 'B', weight: 1 },
-      C: { text: 'C', weight: 1 }
+      C: { text: 'E', weight: 3 },
+      D: { text: 'F', weight: 1 }
     }
   },
   {
     id: 'Q17',
-    text: 'Find the odd one out: Apple, Banana, Carrot, Mango',
+    text: 'Puzzle (Hotel Room Allocation): Four guests (P, Q, R, S) booked four rooms (101, 102, 103, 104). Q does not stay in 101 or 102. R stays in an odd-numbered room. S stays immediately next to Q. P does not stay in 104. Where does R stay?',
     category: 'Logical Reasoning',
     options: {
-      A: { text: 'Apple', weight: 1 },
-      B: { text: 'Banana', weight: 1 },
-      C: { text: 'Carrot', weight: 3 }
+      A: { text: '101', weight: 1 },
+      B: { text: '103', weight: 3 },
+      C: { text: '104', weight: 1 },
+      D: { text: 'Cannot be determined', weight: 1 }
     }
   },
   {
     id: 'Q18',
-    text: 'All managers are leaders. Some leaders are trainers. Conclusion: All managers are trainers.',
+    text: 'Logical Deduction (Syllogism): Statements: (1) All chefs are trained professionals. (2) Some trained professionals are management graduates. (3) No management graduate is untrained. Conclusions: I. Some chefs may be management graduates. II. No chef is untrained. Which follows?',
     category: 'Logical Reasoning',
     options: {
-      A: { text: 'True', weight: 1 },
-      B: { text: 'False', weight: 3 },
-      C: { text: 'Cannot be determined', weight: 2 }
+      A: { text: 'Only I follows', weight: 1 },
+      B: { text: 'Only II follows', weight: 1 },
+      C: { text: 'Both I and II follow', weight: 3 },
+      D: { text: 'Neither follows', weight: 1 }
     }
   },
   {
     id: 'Q19',
-    text: 'Complete the series: 2, 6, 12, 20, __',
+    text: 'Coding-Decoding: In a certain code: SERVICE to TFWVJHK (Each letter is converted using different +/- positions). How is QUALITY coded if the pattern continues?',
     category: 'Logical Reasoning',
     options: {
-      A: { text: '28', weight: 1 },
-      B: { text: '30', weight: 3 },
-      C: { text: '32', weight: 1 }
+      A: { text: 'RVCPNKZ', weight: 3 },
+      B: { text: 'RVDQMJZ', weight: 1 },
+      C: { text: 'RBENLJX', weight: 1 },
+      D: { text: 'RVCOLKZ', weight: 1 }
     }
   },
   {
     id: 'Q20',
-    text: 'If "CAFE" is coded as "3165", what is "FACE" coded as?',
+    text: 'Direction Sense: A steward walks 6 m north, 8 m east, 6 m south. How far is he from the starting point?',
     category: 'Logical Reasoning',
     options: {
-      A: { text: '6135', weight: 1 },
-      B: { text: '6315', weight: 3 },
-      C: { text: '1635', weight: 1 }
+      A: { text: '4 m', weight: 3 },
+      B: { text: '6 m', weight: 1 },
+      C: { text: '8 m', weight: 1 },
+      D: { text: '10 m', weight: 1 }
     }
   },
 
   // ========== CATEGORY 5: ANALYTICAL APTITUDE (5 questions) ==========
   {
     id: 'Q21',
-    text: 'A person walks 5 km East, turns left walks 3 km, turns left again walks 5 km. How far is he from the starting point?',
+    text: 'Aditya walked 15 m towards south and took a right turn and walked 3 m, he took a right turn again and walked 15 m before stopping. Which direction did he face?',
     category: 'Analytical Aptitude',
     options: {
-      A: { text: '3 km', weight: 3 },
-      B: { text: '5 km', weight: 1 },
-      C: { text: '8 km', weight: 1 }
+      A: { text: 'East', weight: 1 },
+      B: { text: 'West', weight: 1 },
+      C: { text: 'North', weight: 3 },
+      D: { text: 'South', weight: 1 }
     }
   },
   {
     id: 'Q22',
-    text: 'You have 3 coins: one always shows heads, one always shows tails, one is fair. You pick a coin at random and flip it - it shows heads. Probability it is the fair coin?',
+    text: 'A bag contains Rs.30 which is in the form of 50 paisa, 1 Rs and 2 Rs coins. The ratio of their number is 4:2:1. How many 50 paisa coins are there?',
     category: 'Analytical Aptitude',
     options: {
-      A: { text: '1/3', weight: 3 },
-      B: { text: '1/2', weight: 1 },
-      C: { text: '2/3', weight: 1 }
+      A: { text: '20', weight: 3 },
+      B: { text: '10', weight: 1 },
+      C: { text: '5', weight: 1 },
+      D: { text: '15', weight: 1 }
     }
   },
   {
     id: 'Q23',
-    text: 'If you rearrange the letters "CIFAIPC", you get the name of a:',
+    text: 'A shopkeeper selling his goods at 7% loss. Had he sold it for Rs.800 more, then he would get 9% profit. Find the CP of that article.',
     category: 'Analytical Aptitude',
     options: {
-      A: { text: 'City', weight: 1 },
-      B: { text: 'Ocean', weight: 3 },
-      C: { text: 'Country', weight: 1 }
+      A: { text: '500', weight: 1 },
+      B: { text: '4000', weight: 1 },
+      C: { text: '6000', weight: 1 },
+      D: { text: '5000', weight: 3 }
     }
   },
   {
     id: 'Q24',
-    text: 'How many triangles are in the given figure? (See diagram)',
+    text: 'Find the number of triangles in the given figure.',
     category: 'Analytical Aptitude',
     options: {
-      A: { text: '12', weight: 1 },
-      B: { text: '14', weight: 3 },
-      C: { text: '16', weight: 1 }
-    },
-    image: '/Prism/assessment-images/q24-triangles.svg'
+      A: { text: '8', weight: 1 },
+      B: { text: '10', weight: 1 },
+      C: { text: '12', weight: 1 },
+      D: { text: '14', weight: 3 }
+    }
   },
   {
     id: 'Q25',
-    text: 'Count the number of triangles and squares in the figure. (See diagram)',
+    text: 'Count the number of triangles and squares in the given figure.',
     category: 'Analytical Aptitude',
     options: {
-      A: { text: '40 triangles, 7 squares', weight: 3 },
-      B: { text: '38 triangles, 8 squares', weight: 1 },
-      C: { text: '42 triangles, 6 squares', weight: 1 }
-    },
-    image: '/Prism/assessment-images/q25-triangles-squares.svg'
+      A: { text: '36 triangles, 7 squares', weight: 1 },
+      B: { text: '38 triangles, 9 squares', weight: 1 },
+      C: { text: '40 triangles, 7 squares', weight: 3 },
+      D: { text: '42 triangles, 9 squares', weight: 1 }
+    }
   },
 
   // ========== CATEGORY 6: COURSE CURRICULUM (5 questions) ==========
   {
     id: 'Q26',
-    text: 'What does FIFO stand for in food safety?',
+    text: 'What falls in the danger zone?',
     category: 'Course Curriculum',
     options: {
-      A: { text: 'First In, First Out', weight: 3 },
-      B: { text: 'Food In, Food Out', weight: 1 },
-      C: { text: 'Fresh In, Fresh Out', weight: 1 }
+      A: { text: '1-5 degree Celsius', weight: 1 },
+      B: { text: '22-58 degree Celsius', weight: 3 },
+      C: { text: '65-80 degree Celsius', weight: 1 },
+      D: { text: '2-4 degree Celsius', weight: 1 }
     }
   },
   {
     id: 'Q27',
-    text: 'What is the ideal temperature for storing milk?',
+    text: 'The two parts of HACCP include:',
     category: 'Course Curriculum',
     options: {
-      A: { text: '0-4°C', weight: 3 },
-      B: { text: '5-10°C', weight: 1 },
-      C: { text: '10-15°C', weight: 1 }
+      A: { text: 'Hazard analysis and critical control points', weight: 3 },
+      B: { text: 'Health analysis and critical control points', weight: 1 },
+      C: { text: 'Hazard analysis and critical conformation production', weight: 1 },
+      D: { text: 'Health analysis and critical conformation production', weight: 1 }
     }
   },
   {
     id: 'Q28',
-    text: 'HACCP stands for:',
+    text: 'What is The Third Wave Movement of coffee about?',
     category: 'Course Curriculum',
     options: {
-      A: { text: 'Hazard Analysis Critical Control Points', weight: 3 },
-      B: { text: 'Health and Critical Control Points', weight: 1 },
-      C: { text: 'Hygiene Analysis and Control Points', weight: 1 }
+      A: { text: 'Bean to cup', weight: 3 },
+      B: { text: 'Flavoured coffee', weight: 1 },
+      C: { text: 'Farm to cup', weight: 1 },
+      D: { text: 'Monetization of coffee', weight: 1 }
     }
   },
   {
     id: 'Q29',
-    text: 'Which certification is internationally recognized for food safety management?',
+    text: 'Which ISO standard is applicable for the QSR industry?',
     category: 'Course Curriculum',
     options: {
-      A: { text: 'ISO 9001', weight: 1 },
-      B: { text: 'ISO 22000', weight: 3 },
-      C: { text: 'ISO 14001', weight: 1 }
+      A: { text: 'ISO 9001', weight: 3 },
+      B: { text: 'ISO 22001', weight: 1 },
+      C: { text: 'ISO 22000', weight: 1 },
+      D: { text: 'ISO 27001', weight: 1 }
     }
   },
   {
     id: 'Q30',
-    text: 'What is cross-contamination?',
+    text: 'Which of these is not a type of contamination?',
     category: 'Course Curriculum',
     options: {
-      A: { text: 'Transfer of harmful bacteria from one food to another', weight: 3 },
-      B: { text: 'Mixing different ingredients together', weight: 1 },
-      C: { text: 'Using the same cutting board for everything', weight: 1 }
+      A: { text: 'Biological contamination', weight: 1 },
+      B: { text: 'Chemical contamination', weight: 1 },
+      C: { text: 'Physical contamination', weight: 1 },
+      D: { text: 'Mental contamination', weight: 3 }
     }
   }
 ];
