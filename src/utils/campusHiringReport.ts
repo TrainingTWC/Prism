@@ -9,18 +9,12 @@ interface ReportOptions {
 }
 
 const CATEGORIES = [
-  { key: 'Communication Score %', name: 'Communication' },
-  { key: 'Problem Solving Score %', name: 'Problem Solving' },
-  { key: 'Leadership Score %', name: 'Leadership' },
-  { key: 'Attention to Detail Score %', name: 'Attention to Detail' },
-  { key: 'Customer Service Score %', name: 'Customer Service' },
-  { key: 'Integrity Score %', name: 'Integrity' },
-  { key: 'Teamwork Score %', name: 'Teamwork' },
-  { key: 'Time Management Score %', name: 'Time Management' },
-  { key: 'Planning Score %', name: 'Planning' },
-  { key: 'Adaptability Score %', name: 'Adaptability' },
-  { key: 'Analysis Score %', name: 'Analysis' },
-  { key: 'Growth Mindset Score %', name: 'Growth Mindset' }
+  { key: 'Psychometric Score %', name: 'Psychometric' },
+  { key: 'English Proficiency Score %', name: 'English Proficiency' },
+  { key: 'Numerical Aptitude Score %', name: 'Numerical Aptitude' },
+  { key: 'Logical Reasoning Score %', name: 'Logical Reasoning' },
+  { key: 'Analytical Aptitude Score %', name: 'Analytical Aptitude' },
+  { key: 'Course Curriculum Score %', name: 'Course Curriculum' }
 ];
 
 async function addCompanyLogo(doc: jsPDF): Promise<void> {

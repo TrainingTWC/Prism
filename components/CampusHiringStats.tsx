@@ -43,18 +43,12 @@ const CampusHiringStats: React.FC<CampusHiringStatsProps> = ({ submissions }) =>
   
   // Calculate average category scores
   const categories = [
-    'Communication Score %',
-    'Problem Solving Score %',
-    'Leadership Score %',
-    'Attention to Detail Score %',
-    'Customer Service Score %',
-    'Integrity Score %',
-    'Teamwork Score %',
-    'Time Management Score %',
-    'Planning Score %',
-    'Adaptability Score %',
-    'Analysis Score %',
-    'Growth Mindset Score %'
+    'Psychometric Score %',
+    'English Proficiency Score %',
+    'Numerical Aptitude Score %',
+    'Logical Reasoning Score %',
+    'Analytical Aptitude Score %',
+    'Course Curriculum Score %'
   ];
 
   const categoryAverages = categories.map(category => {

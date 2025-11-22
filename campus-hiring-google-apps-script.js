@@ -9,10 +9,14 @@
  * 
  * STRUCTURE: 30 Questions + Metadata + Category Scores
  * - 30 Assessment Questions (Q1 to Q30)
- * - Each question has 3 options (A, B, C) with weights (1, 2, 3)
- * - Categories: Communication, Problem Solving, Leadership, Attention to Detail, 
- *   Customer Service, Integrity, Teamwork, Time Management, Planning, Adaptability,
- *   Analysis, Growth Mindset
+ * - Each question has 3-4 options (A, B, C, D) with weights (1, 2, 3, 4)
+ * - 6 Categories (5 questions each):
+ *   1. Psychometric (Q1-Q5)
+ *   2. English Proficiency (Q6-Q10)
+ *   3. Numerical Aptitude (Q11-Q15)
+ *   4. Logical Reasoning (Q16-Q20)
+ *   5. Analytical Aptitude (Q21-Q25)
+ *   6. Course Curriculum (Q26-Q30)
  * 
  * Functions:
  * 1. doPost() - Receives assessment submissions
@@ -230,30 +234,24 @@ function doPost(e) {
       params.Q30 || '',                             // BP: Q30 Answer
       params.Q30_weight || '',                      // BQ: Q30 Weight
       
-      // Category Scores (12 categories)
-      params.category_Communication || '',                 // BR: Communication Score
-      params['category_Problem Solving'] || '',            // BS: Problem Solving Score
-      params.category_Leadership || '',                    // BT: Leadership Score
-      params['category_Attention to Detail'] || '',        // BU: Attention to Detail Score
-      params['category_Customer Service'] || '',           // BV: Customer Service Score
-      params.category_Integrity || '',                     // BW: Integrity Score
-      params.category_Teamwork || '',                      // BX: Teamwork Score
-      params['category_Time Management'] || '',            // BY: Time Management Score
-      params.category_Planning || '',                      // BZ: Planning Score
-      params.category_Adaptability || '',                  // CA: Adaptability Score
-      params.category_Analysis || '',                      // CB: Analysis Score
-      params['category_Growth Mindset'] || '',             // CC: Growth Mindset Score
+      // Category Scores (6 categories)
+      params['category_Psychometric'] || '',                    // BR: Psychometric Score %
+      params['category_English Proficiency'] || '',             // BS: English Proficiency Score %
+      params['category_Numerical Aptitude'] || '',              // BT: Numerical Aptitude Score %
+      params['category_Logical Reasoning'] || '',               // BU: Logical Reasoning Score %
+      params['category_Analytical Aptitude'] || '',             // BV: Analytical Aptitude Score %
+      params['category_Course Curriculum'] || '',               // BW: Course Curriculum Score %
       
       // Proctoring Data
-      params.proctoringEnabled || 'false',                 // CD: Proctoring Enabled
-      params.totalViolations || '0',                       // CE: Total Violations
-      params.tabSwitchCount || '0',                        // CF: Tab Switch Count
-      params.tabSwitchViolations || '0',                   // CG: Tab Switch Violations
-      params.faceNotDetectedViolations || '0',             // CH: Face Not Detected Violations
-      params.multipleFacesViolations || '0',               // CI: Multiple Faces Violations
-      params.excessiveNoiseViolations || '0',              // CJ: Excessive Noise Violations
-      params.windowBlurViolations || '0',                  // CK: Window Blur Violations
-      params.violationDetails || ''                        // CL: Violation Details (JSON)
+      params.proctoringEnabled || 'false',                 // BX: Proctoring Enabled
+      params.totalViolations || '0',                       // BY: Total Violations
+      params.tabSwitchCount || '0',                        // BZ: Tab Switch Count
+      params.tabSwitchViolations || '0',                   // CA: Tab Switch Violations
+      params.faceNotDetectedViolations || '0',             // CB: Face Not Detected Violations
+      params.multipleFacesViolations || '0',               // CC: Multiple Faces Violations
+      params.excessiveNoiseViolations || '0',              // CD: Excessive Noise Violations
+      params.windowBlurViolations || '0',                  // CE: Window Blur Violations
+      params.violationDetails || ''                        // CF: Violation Details (JSON)
     ];
     
     Logger.log('Row data prepared with ' + rowData.length + ' fields');
@@ -263,24 +261,18 @@ function doPost(e) {
     
     // Log category scores for verification
     Logger.log('Category scores being saved:');
-    Logger.log('  BR (Communication): ' + (params.category_Communication || ''));
-    Logger.log('  BS (Problem Solving): ' + (params['category_Problem Solving'] || ''));
-    Logger.log('  BT (Leadership): ' + (params.category_Leadership || ''));
-    Logger.log('  BU (Attention to Detail): ' + (params['category_Attention to Detail'] || ''));
-    Logger.log('  BV (Customer Service): ' + (params['category_Customer Service'] || ''));
-    Logger.log('  BW (Integrity): ' + (params.category_Integrity || ''));
-    Logger.log('  BX (Teamwork): ' + (params.category_Teamwork || ''));
-    Logger.log('  BY (Time Management): ' + (params['category_Time Management'] || ''));
-    Logger.log('  BZ (Planning): ' + (params.category_Planning || ''));
-    Logger.log('  CA (Adaptability): ' + (params.category_Adaptability || ''));
-    Logger.log('  CB (Analysis): ' + (params.category_Analysis || ''));
-    Logger.log('  CC (Growth Mindset): ' + (params['category_Growth Mindset'] || ''));
+    Logger.log('  BR (Psychometric): ' + (params['category_Psychometric'] || ''));
+    Logger.log('  BS (English Proficiency): ' + (params['category_English Proficiency'] || ''));
+    Logger.log('  BT (Numerical Aptitude): ' + (params['category_Numerical Aptitude'] || ''));
+    Logger.log('  BU (Logical Reasoning): ' + (params['category_Logical Reasoning'] || ''));
+    Logger.log('  BV (Analytical Aptitude): ' + (params['category_Analytical Aptitude'] || ''));
+    Logger.log('  BW (Course Curriculum): ' + (params['category_Course Curriculum'] || ''));
     
     // Log proctoring data
     Logger.log('Proctoring data:');
-    Logger.log('  CD (Proctoring Enabled): ' + (params.proctoringEnabled || 'false'));
-    Logger.log('  CE (Total Violations): ' + (params.totalViolations || '0'));
-    Logger.log('  CF (Tab Switch Count): ' + (params.tabSwitchCount || '0'));
+    Logger.log('  BX (Proctoring Enabled): ' + (params.proctoringEnabled || 'false'));
+    Logger.log('  BY (Total Violations): ' + (params.totalViolations || '0'));
+    Logger.log('  BZ (Tab Switch Count): ' + (params.tabSwitchCount || '0'));
     
     // Add the data to the sheet
     sheet.appendRow(rowData);
@@ -341,96 +333,90 @@ function setupCampusHiringHeaders(sheet) {
     'Score Percentage',                          // I
     
     // Questions 1-30 (Answer + Weight for each)
-    'Q1: Recipe explanation to non-English teammate',        // J
-    'Q1 Weight',                                             // K
-    'Q2: Customer-facing message',                           // L
-    'Q2 Weight',                                             // M
-    'Q3: Drink tastes off',                                  // N
-    'Q3 Weight',                                             // O
-    'Q4: Customers arguing over table',                      // P
-    'Q4 Weight',                                             // Q
-    'Q5: Team not following cleaning checklist',            // R
-    'Q5 Weight',                                             // S
-    'Q6: Loose screw on grinder',                           // T
-    'Q6 Weight',                                             // U
-    'Q7: Team member constantly late',                       // V
-    'Q7 Weight',                                             // W
-    'Q8: Shift reports missing details',                     // X
-    'Q8 Weight',                                             // Y
-    'Q9: Customer says drink tastes strange',                // Z
-    'Q9 Weight',                                             // AA
-    'Q10: Supplier cash under table offer',                  // AB
-    'Q10 Weight',                                            // AC
-    'Q11: AC not working, cafe full',                        // AD
-    'Q11 Weight',                                            // AE
-    'Q12: Guest wants complex drink',                        // AF
-    'Q12 Weight',                                            // AG
-    'Q13: Long day, another team asks help',                 // AH
-    'Q13 Weight',                                            // AI
-    'Q14: 10 tasks, limited time',                           // AJ
-    'Q14 Weight',                                            // AK
-    'Q15: Event scheduled tomorrow',                         // AL
-    'Q15 Weight',                                            // AM
-    'Q16: New menu changes weekly',                          // AN
-    'Q16 Weight',                                            // AO
-    'Q17: Brief team from different city',                   // AP
-    'Q17 Weight',                                            // AQ
-    'Q18: POS not responding',                               // AR
-    'Q18 Weight',                                            // AS
-    'Q19: Three small hygiene errors',                       // AT
-    'Q19 Weight',                                            // AU
-    'Q20: Why cold brews not selling',                       // AV
-    'Q20 Weight',                                            // AW
-    'Q21: Handheld ordering device new features',            // AX
-    'Q21 Weight',                                            // AY
-    'Q22: Team member demotivated',                          // AZ
-    'Q22 Weight',                                            // BA
-    'Q23: Wallet on cafe floor',                             // BB
-    'Q23 Weight',                                            // BC
-    'Q24: Guest insists different order',                    // BD
-    'Q24 Weight',                                            // BE
-    'Q25: Customer points out expired stock',                // BF
-    'Q25 Weight',                                            // BG
-    'Q26: Rush hour, delivery sheet missing',                // BH
-    'Q26 Weight',                                            // BI
-    'Q27: LMS assignment due today',                         // BJ
-    'Q27 Weight',                                            // BK
-    'Q28: Critical feedback received',                       // BL
-    'Q28 Weight',                                            // BM
-    'Q29: Under pressure, team is new',                      // BN
-    'Q29 Weight',                                            // BO
-    'Q30: Customer speaks regional language',                // BP
-    'Q30 Weight',                                            // BQ
+    'Q1: Psychometric',                          // J
+    'Q1 Weight',                                 // K
+    'Q2: Psychometric',                          // L
+    'Q2 Weight',                                 // M
+    'Q3: Psychometric',                          // N
+    'Q3 Weight',                                 // O
+    'Q4: Psychometric',                          // P
+    'Q4 Weight',                                 // Q
+    'Q5: Psychometric',                          // R
+    'Q5 Weight',                                 // S
+    'Q6: English Proficiency',                   // T
+    'Q6 Weight',                                 // U
+    'Q7: English Proficiency',                   // V
+    'Q7 Weight',                                 // W
+    'Q8: English Proficiency',                   // X
+    'Q8 Weight',                                 // Y
+    'Q9: English Proficiency',                   // Z
+    'Q9 Weight',                                 // AA
+    'Q10: English Proficiency',                  // AB
+    'Q10 Weight',                                // AC
+    'Q11: Numerical Aptitude',                   // AD
+    'Q11 Weight',                                // AE
+    'Q12: Numerical Aptitude',                   // AF
+    'Q12 Weight',                                // AG
+    'Q13: Numerical Aptitude',                   // AH
+    'Q13 Weight',                                // AI
+    'Q14: Numerical Aptitude',                   // AJ
+    'Q14 Weight',                                // AK
+    'Q15: Numerical Aptitude',                   // AL
+    'Q15 Weight',                                // AM
+    'Q16: Logical Reasoning',                    // AN
+    'Q16 Weight',                                // AO
+    'Q17: Logical Reasoning',                    // AP
+    'Q17 Weight',                                // AQ
+    'Q18: Logical Reasoning',                    // AR
+    'Q18 Weight',                                // AS
+    'Q19: Logical Reasoning',                    // AT
+    'Q19 Weight',                                // AU
+    'Q20: Logical Reasoning',                    // AV
+    'Q20 Weight',                                // AW
+    'Q21: Analytical Aptitude',                  // AX
+    'Q21 Weight',                                // AY
+    'Q22: Analytical Aptitude',                  // AZ
+    'Q22 Weight',                                // BA
+    'Q23: Analytical Aptitude',                  // BB
+    'Q23 Weight',                                // BC
+    'Q24: Analytical Aptitude',                  // BD
+    'Q24 Weight',                                // BE
+    'Q25: Analytical Aptitude',                  // BF
+    'Q25 Weight',                                // BG
+    'Q26: Course Curriculum',                    // BH
+    'Q26 Weight',                                // BI
+    'Q27: Course Curriculum',                    // BJ
+    'Q27 Weight',                                // BK
+    'Q28: Course Curriculum',                    // BL
+    'Q28 Weight',                                // BM
+    'Q29: Course Curriculum',                    // BN
+    'Q29 Weight',                                // BO
+    'Q30: Course Curriculum',                    // BP
+    'Q30 Weight',                                // BQ
     
     // Category Scores
-    'Communication Score %',                     // BR
-    'Problem Solving Score %',                   // BS
-    'Leadership Score %',                        // BT
-    'Attention to Detail Score %',               // BU
-    'Customer Service Score %',                  // BV
-    'Integrity Score %',                         // BW
-    'Teamwork Score %',                          // BX
-    'Time Management Score %',                   // BY
-    'Planning Score %',                          // BZ
-    'Adaptability Score %',                      // CA
-    'Analysis Score %',                          // CB
-    'Growth Mindset Score %',                    // CC
+    'Psychometric Score %',                      // BR
+    'English Proficiency Score %',               // BS
+    'Numerical Aptitude Score %',                // BT
+    'Logical Reasoning Score %',                 // BU
+    'Analytical Aptitude Score %',               // BV
+    'Course Curriculum Score %',                 // BW
     
     // Proctoring Data
-    'Proctoring Enabled',                        // CD
-    'Total Violations',                          // CE
-    'Tab Switch Count',                          // CF
-    'Tab Switch Violations',                     // CG
-    'Face Not Detected Violations',              // CH
-    'Multiple Faces Violations',                 // CI
-    'Excessive Noise Violations',                // CJ
-    'Window Blur Violations',                    // CK
-    'Violation Details'                          // CL (JSON string)
+    'Proctoring Enabled',                        // BX
+    'Total Violations',                          // BY
+    'Tab Switch Count',                          // BZ
+    'Tab Switch Violations',                     // CA
+    'Face Not Detected Violations',              // CB
+    'Multiple Faces Violations',                 // CC
+    'Excessive Noise Violations',                // CD
+    'Window Blur Violations',                    // CE
+    'Violation Details'                          // CF (JSON string)
   ];
   
   Logger.log('Total headers: ' + headers.length);
-  Logger.log('Last header (should be Growth Mindset Score %): ' + headers[headers.length - 1]);
-  Logger.log('Expected to span columns A to CC (79 columns)');
+  Logger.log('Last header (should be Violation Details): ' + headers[headers.length - 1]);
+  Logger.log('Expected to span columns A to CF (85 columns)');
   
   // Clear the sheet first to avoid old data interfering
   sheet.clear();
@@ -472,50 +458,44 @@ function testCampusHiringScript() {
       scorePercentage: 83.33,
       
       // Sample answers for all 30 questions
-      Q1: 'C', Q1_weight: '3', Q1_category: 'Communication',
-      Q2: 'C', Q2_weight: '3', Q2_category: 'Communication',
-      Q3: 'C', Q3_weight: '3', Q3_category: 'Problem Solving',
-      Q4: 'C', Q4_weight: '3', Q4_category: 'Problem Solving',
-      Q5: 'B', Q5_weight: '2', Q5_category: 'Leadership',
-      Q6: 'C', Q6_weight: '3', Q6_category: 'Attention to Detail',
-      Q7: 'C', Q7_weight: '3', Q7_category: 'Leadership',
-      Q8: 'C', Q8_weight: '3', Q8_category: 'Attention to Detail',
-      Q9: 'C', Q9_weight: '3', Q9_category: 'Customer Service',
-      Q10: 'C', Q10_weight: '3', Q10_category: 'Integrity',
-      Q11: 'C', Q11_weight: '3', Q11_category: 'Problem Solving',
-      Q12: 'B', Q12_weight: '2', Q12_category: 'Customer Service',
-      Q13: 'C', Q13_weight: '3', Q13_category: 'Teamwork',
-      Q14: 'C', Q14_weight: '3', Q14_category: 'Time Management',
-      Q15: 'C', Q15_weight: '3', Q15_category: 'Planning',
-      Q16: 'B', Q16_weight: '2', Q16_category: 'Adaptability',
-      Q17: 'C', Q17_weight: '3', Q17_category: 'Communication',
-      Q18: 'C', Q18_weight: '3', Q18_category: 'Problem Solving',
-      Q19: 'C', Q19_weight: '3', Q19_category: 'Attention to Detail',
-      Q20: 'C', Q20_weight: '3', Q20_category: 'Analysis',
-      Q21: 'C', Q21_weight: '3', Q21_category: 'Adaptability',
-      Q22: 'C', Q22_weight: '3', Q22_category: 'Leadership',
-      Q23: 'C', Q23_weight: '3', Q23_category: 'Integrity',
-      Q24: 'B', Q24_weight: '2', Q24_category: 'Customer Service',
-      Q25: 'C', Q25_weight: '3', Q25_category: 'Integrity',
-      Q26: 'C', Q26_weight: '3', Q26_category: 'Problem Solving',
-      Q27: 'C', Q27_weight: '3', Q27_category: 'Time Management',
-      Q28: 'C', Q28_weight: '3', Q28_category: 'Growth Mindset',
-      Q29: 'B', Q29_weight: '2', Q29_category: 'Teamwork',
-      Q30: 'C', Q30_weight: '3', Q30_category: 'Adaptability',
+      Q1: 'C', Q1_weight: '3', Q1_category: 'Psychometric',
+      Q2: 'C', Q2_weight: '3', Q2_category: 'Psychometric',
+      Q3: 'C', Q3_weight: '3', Q3_category: 'Psychometric',
+      Q4: 'C', Q4_weight: '3', Q4_category: 'Psychometric',
+      Q5: 'B', Q5_weight: '2', Q5_category: 'Psychometric',
+      Q6: 'C', Q6_weight: '3', Q6_category: 'English Proficiency',
+      Q7: 'C', Q7_weight: '3', Q7_category: 'English Proficiency',
+      Q8: 'C', Q8_weight: '3', Q8_category: 'English Proficiency',
+      Q9: 'C', Q9_weight: '3', Q9_category: 'English Proficiency',
+      Q10: 'C', Q10_weight: '3', Q10_category: 'English Proficiency',
+      Q11: 'C', Q11_weight: '3', Q11_category: 'Numerical Aptitude',
+      Q12: 'B', Q12_weight: '2', Q12_category: 'Numerical Aptitude',
+      Q13: 'C', Q13_weight: '3', Q13_category: 'Numerical Aptitude',
+      Q14: 'C', Q14_weight: '3', Q14_category: 'Numerical Aptitude',
+      Q15: 'C', Q15_weight: '3', Q15_category: 'Numerical Aptitude',
+      Q16: 'B', Q16_weight: '2', Q16_category: 'Logical Reasoning',
+      Q17: 'C', Q17_weight: '3', Q17_category: 'Logical Reasoning',
+      Q18: 'C', Q18_weight: '3', Q18_category: 'Logical Reasoning',
+      Q19: 'C', Q19_weight: '3', Q19_category: 'Logical Reasoning',
+      Q20: 'C', Q20_weight: '3', Q20_category: 'Logical Reasoning',
+      Q21: 'C', Q21_weight: '3', Q21_category: 'Analytical Aptitude',
+      Q22: 'C', Q22_weight: '3', Q22_category: 'Analytical Aptitude',
+      Q23: 'C', Q23_weight: '3', Q23_category: 'Analytical Aptitude',
+      Q24: 'B', Q24_weight: '2', Q24_category: 'Analytical Aptitude',
+      Q25: 'C', Q25_weight: '3', Q25_category: 'Analytical Aptitude',
+      Q26: 'C', Q26_weight: '3', Q26_category: 'Course Curriculum',
+      Q27: 'C', Q27_weight: '3', Q27_category: 'Course Curriculum',
+      Q28: 'C', Q28_weight: '3', Q28_category: 'Course Curriculum',
+      Q29: 'B', Q29_weight: '2', Q29_category: 'Course Curriculum',
+      Q30: 'C', Q30_weight: '3', Q30_category: 'Course Curriculum',
       
-      // Category scores
-      category_Communication: '90.0',
-      'category_Problem Solving': '90.0',
-      category_Leadership: '83.33',
-      'category_Attention to Detail': '100.0',
-      'category_Customer Service': '88.89',
-      category_Integrity: '100.0',
-      category_Teamwork: '83.33',
-      'category_Time Management': '100.0',
-      category_Planning: '100.0',
-      category_Adaptability: '88.89',
-      category_Analysis: '100.0',
-      'category_Growth Mindset': '100.0'
+      // Category scores (6 categories)
+      'category_Psychometric': '86.67',
+      'category_English Proficiency': '100.0',
+      'category_Numerical Aptitude': '93.33',
+      'category_Logical Reasoning': '86.67',
+      'category_Analytical Aptitude': '86.67',
+      'category_Course Curriculum': '93.33'
     }
   };
   
