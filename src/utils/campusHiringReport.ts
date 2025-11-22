@@ -360,7 +360,7 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(22, 163, 74); // Green text
-    doc.text('✓ Top Strengths', 18, y + 8);
+    doc.text('Top Strengths', 18, y + 8);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
@@ -381,7 +381,7 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(217, 119, 6); // Orange text
-    doc.text('⚠ Development Areas', 18, y + 8);
+    doc.text('Development Areas', 18, y + 8);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
@@ -390,6 +390,94 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
     bottomThree.forEach((cat, index) => {
       doc.text(`${index + 1}. ${cat.name}: ${cat.score.toFixed(1)}%`, 20, devY);
       devY += 6;
+    });
+
+    y += 48;
+
+    // Question-wise Performance Details
+    doc.addPage();
+    y = 20;
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(17, 24, 39);
+    doc.text('Detailed Question-wise Performance', 14, y);
+    y += 10;
+
+    // Build question details table - group by category
+    const questionDetails: any[] = [];
+    
+    CATEGORIES.forEach(category => {
+      // Add category header row
+      questionDetails.push([
+        { content: category.name, colSpan: 4, styles: { fillColor: [99, 102, 241], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' } }
+      ]);
+      
+      // Get questions for this category (5 questions per category)
+      const categoryIndex = CATEGORIES.findIndex(c => c.key === category.key);
+      const startQ = categoryIndex * 5 + 1;
+      const endQ = startQ + 5;
+      
+      for (let qNum = startQ; qNum < endQ; qNum++) {
+        const answer = submission[`Q${qNum}`] || '-';
+        const weight = submission[`Q${qNum} Weight`] || '0';
+        const maxWeight = 3; // Most questions have max 3 points
+        
+        questionDetails.push([
+          `Q${qNum}`,
+          answer,
+          `${weight}/${maxWeight}`,
+          weight === '3' ? 'Excellent' : weight === '2' ? 'Good' : weight === '1' ? 'Fair' : 'N/A'
+        ]);
+      }
+    });
+
+    autoTable(doc as any, {
+      startY: y,
+      head: [['Question', 'Response', 'Score', 'Assessment']],
+      body: questionDetails,
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+        halign: 'center'
+      },
+      headStyles: {
+        fillColor: [59, 130, 246],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      columnStyles: {
+        0: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
+        1: { cellWidth: 70, halign: 'center' },
+        2: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
+        3: { cellWidth: 40, halign: 'center' }
+      },
+      didParseCell: (data: any) => {
+        // Color code assessment column
+        if (data.section === 'body' && data.column.index === 3) {
+          const text = String(data.cell.raw);
+          if (text === 'Excellent') {
+            data.cell.styles.textColor = [34, 197, 94]; // Green
+            data.cell.styles.fontStyle = 'bold';
+          } else if (text === 'Good') {
+            data.cell.styles.textColor = [245, 158, 11]; // Orange
+          } else if (text === 'Fair') {
+            data.cell.styles.textColor = [239, 68, 68]; // Red
+          }
+        }
+        // Color code score column
+        if (data.section === 'body' && data.column.index === 2) {
+          const scoreText = String(data.cell.raw);
+          if (scoreText.startsWith('3')) {
+            data.cell.styles.textColor = [34, 197, 94]; // Green
+          } else if (scoreText.startsWith('2')) {
+            data.cell.styles.textColor = [245, 158, 11]; // Orange
+          } else if (scoreText.startsWith('1')) {
+            data.cell.styles.textColor = [239, 68, 68]; // Red
+          }
+        }
+      }
     });
 
     // Footer (matching QA style)
