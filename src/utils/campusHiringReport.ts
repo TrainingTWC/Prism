@@ -374,6 +374,12 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
 
     y += 48;
 
+    // Check if there's enough space for Development Areas card (needs 50mm)
+    if (y > 230) {
+      doc.addPage();
+      y = 20;
+    }
+
     // Development Areas Card
     doc.setFillColor(254, 243, 199); // Light orange background
     doc.setDrawColor(253, 224, 71); // Orange border
@@ -477,7 +483,7 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
         1: { cellWidth: 70, halign: 'left' },
         2: { cellWidth: 25, halign: 'center' }
       },
-      margin: { top: 20, bottom: 30 },
+      margin: { top: 20, bottom: 40 },
       didDrawPage: (data: any) => {
         // Page footer will be added later for all pages
       }
