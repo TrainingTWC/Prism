@@ -17,7 +17,7 @@ const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzSibBi
 const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbythMmyeF6TWRx1Q2Icy9XfB9z1UVYFwau02u7BEr3GgabMIomF1lkAyCx1xq0BAA1LIQ/exec';
 
 // Campus Hiring endpoint - UPDATED URL
-const CAMPUS_HIRING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzkH1lI4DyXsFDcAjW81UGLxu8BJ2hvAS39Qy8PaVCl9O0apDHckvnRYLuQjK4woWmE9g/exec';
+const CAMPUS_HIRING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyalNdIb_BrBEGmMXfysS9Qp88SGMg5BXg7m9X41walQ2nhYZDgUy6vCTOCB4whsoJNrA/exec';
 
 // Cache for store mapping data
 let storeMappingCache: any[] | null = null;

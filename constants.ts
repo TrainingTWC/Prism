@@ -467,4 +467,4 @@ export const TRAINING_QUESTIONS: Question[] = [
 ];
 
 // Default script URLs for various forms
-export const CAMPUS_HIRING_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkH1lI4DyXsFDcAjW81UGLxu8BJ2hvAS39Qy8PaVCl9O0apDHckvnRYLuQjK4woWmE9g/exec';
+export const CAMPUS_HIRING_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyalNdIb_BrBEGmMXfysS9Qp88SGMg5BXg7m9X41walQ2nhYZDgUy6vCTOCB4whsoJNrA/exec';
