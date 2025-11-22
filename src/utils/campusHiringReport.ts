@@ -183,8 +183,8 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
     const metaY = y + 8;
     const dateStr = submission['Timestamp'] || submission['Submission Time'] || '';
     const campus = submission['Campus Name'] || '';
-    const email = submission['Email'] || '';
-    const phone = submission['Phone Number'] || '';
+    const email = submission['Candidate Email'] || '';
+    const phone = submission['Candidate Phone'] || '';
     
     const metaLine = [] as string[];
     if (dateStr) metaLine.push(`${dateStr}`);
@@ -430,12 +430,17 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
         const question = CAMPUS_HIRING_QUESTIONS.find(q => q.id === `Q${qNum}`);
         if (!question) continue;
         
-        const answerKey = submission[`Q${qNum}`] || '-';
+        // The Google Sheet headers include category suffix like "Q1: Psychometric"
+        // Try both formats to find the answer
+        const qHeader = Object.keys(submission).find(key => 
+          key.startsWith(`Q${qNum}:`) || key === `Q${qNum}`
+        );
+        const answerKey = (qHeader ? submission[qHeader] : '') || '-';
         const weight = submission[`Q${qNum} Weight`] || '0';
         const maxWeight = 3; // Most questions have max 3 points
         
         // Get the actual response text
-        const responseText = answerKey !== '-' && question.options[answerKey as 'A' | 'B' | 'C' | 'D']
+        const responseText = answerKey !== '-' && answerKey !== '' && question.options[answerKey as 'A' | 'B' | 'C' | 'D']
           ? question.options[answerKey as 'A' | 'B' | 'C' | 'D'].text
           : 'Not answered';
         
