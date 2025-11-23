@@ -20,7 +20,21 @@ const AppContent: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [accessDenied, setAccessDenied] = useState<boolean>(false);
   const [empIdChecked, setEmpIdChecked] = useState<boolean>(false);
-  const { isAuthenticated, isLoading: authLoading, loginWithEmpId, isEmployeeValidated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, loginWithEmpId, isEmployeeValidated, employeeData } = useAuth();
+
+  // Sync userRole when user gets authenticated (after password login or campus auto-auth)
+  useEffect(() => {
+    if (isAuthenticated && employeeData && !userRole) {
+      console.log('[App] User authenticated, setting userRole from employeeData:', employeeData.code);
+      try {
+        const role = getUserRole(employeeData.code);
+        setUserRole(role || { role: 'admin' } as any);
+      } catch (error) {
+        console.error('[App] Error getting user role:', error);
+        setUserRole({ role: 'admin' } as any);
+      }
+    }
+  }, [isAuthenticated, employeeData, userRole]);
 
   // Check URL for EMPID and validate against employee_data.json - ONCE on mount
   useEffect(() => {
@@ -55,16 +69,24 @@ const AppContent: React.FC = () => {
             // Employee ID not found - show access denied
             setAccessDenied(true);
           } else {
-            // Valid employee - set user data
+            // Valid employee - set user ID (but NOT userRole yet for regular employees)
             setUserId(empId);
-            try {
-              const role = getUserRole(empId);
-              setUserRole(role || { role: 'admin' } as any);
-            } catch (error) {
-              console.error('[App] Error getting user role:', error);
-              // Set a default admin role if role mapping fails
-              setUserRole({ role: 'admin' } as any);
+            
+            // Only set userRole if already authenticated (campus candidates)
+            // Regular employees need to enter password first
+            if (isAuthenticated) {
+              console.log('[App] User is authenticated, setting role');
+              try {
+                const role = getUserRole(empId);
+                setUserRole(role || { role: 'admin' } as any);
+              } catch (error) {
+                console.error('[App] Error getting user role:', error);
+                setUserRole({ role: 'admin' } as any);
+              }
+            } else {
+              console.log('[App] User validated but not authenticated - will show login screen');
             }
+            
             setAccessDenied(false);
           }
         }
@@ -120,6 +142,14 @@ const AppContent: React.FC = () => {
     );
   }
 
+  console.log('[App] 🔍 AUTH STATE CHECK:', {
+    accessDenied,
+    isEmployeeValidated,
+    isAuthenticated,
+    userRole,
+    userId
+  });
+
   // Show ACCESS DENIED if EMPID not found or not provided
   if (accessDenied) {
     console.log('[App] Showing ACCESS DENIED');
@@ -128,7 +158,7 @@ const AppContent: React.FC = () => {
 
   // Show login if employee validated but not authenticated with password
   if (isEmployeeValidated && !isAuthenticated) {
-    console.log('[App] Employee validated, showing Login. Employee:', isEmployeeValidated, 'Auth:', isAuthenticated);
+    console.log('[App] ✅ SHOWING LOGIN SCREEN - Employee validated but not authenticated');
     return <Login />;
   }
 

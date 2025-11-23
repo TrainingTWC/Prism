@@ -138,6 +138,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
   const [campusName, setCampusName] = useState('');
   const [campusSearchOpen, setCampusSearchOpen] = useState(false);
   const [campusSearchTerm, setCampusSearchTerm] = useState('');
+  const [candidateDataLoaded, setCandidateDataLoaded] = useState(false);
   
   // Campus options
   const campusOptions = [
@@ -148,6 +149,98 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     'IHM Bhuwaneshwar',
     'IHM Jaipur'
   ];
+  
+  // Load candidate data from URL on mount
+  useEffect(() => {
+    const loadCandidateFromURL = async () => {
+      try {
+        // Get email from URL parameter (EMPID)
+        const urlParams = new URLSearchParams(window.location.search);
+        const emailFromURL = urlParams.get('EMPID');
+        
+        if (!emailFromURL) {
+          console.log('No EMPID parameter found in URL');
+          return;
+        }
+        
+        console.log('Looking up candidate with email:', emailFromURL);
+        
+        // Fetch the IHM_Mumbai.json file (try multiple possible paths)
+        let response;
+        let data;
+        
+        // Try different paths
+        const paths = [
+          '/IHM_Mumbai.json',
+          '/Prism/IHM_Mumbai.json',
+          './IHM_Mumbai.json',
+          '../IHM_Mumbai.json'
+        ];
+        
+        let loaded = false;
+        for (const path of paths) {
+          try {
+            console.log('Trying to fetch from:', path);
+            response = await fetch(path);
+            if (response.ok) {
+              data = await response.json();
+              console.log('✓ Successfully loaded from:', path);
+              loaded = true;
+              break;
+            }
+          } catch (err) {
+            console.log('Failed to load from:', path);
+          }
+        }
+        
+        if (!loaded) {
+          console.error('Failed to load candidate data file from any path');
+          // Still pre-fill email as fallback
+          setCandidateEmail(emailFromURL);
+          return;
+        }
+        
+        // Find candidate by email (case-insensitive)
+        const candidate = data.candidates.find(
+          (c: any) => c.email.toLowerCase() === emailFromURL.toLowerCase()
+        );
+        
+        if (candidate) {
+          console.log('✓ Candidate found:', candidate.name);
+          console.log('Candidate data:', candidate);
+          
+          // Auto-populate the form fields
+          setCandidateName(candidate.name);
+          setCandidatePhone(candidate.phone);
+          setCandidateEmail(candidate.email);
+          setCampusName(candidate.institution);
+          setCandidateDataLoaded(true);
+          
+          console.log('✓ Candidate information auto-populated');
+          console.log('Name:', candidate.name);
+          console.log('Phone:', candidate.phone);
+          console.log('Email:', candidate.email);
+          console.log('Campus:', candidate.institution);
+        } else {
+          console.warn('⚠️ No candidate found with email:', emailFromURL);
+          console.log('Available candidates:', data.candidates.length);
+          
+          // Still pre-fill the email if no match found
+          setCandidateEmail(emailFromURL);
+        }
+      } catch (error) {
+        console.error('Error loading candidate data:', error);
+        // Pre-fill email as fallback
+        const urlParams = new URLSearchParams(window.location.search);
+        const emailFromURL = urlParams.get('EMPID');
+        if (emailFromURL) {
+          setCandidateEmail(emailFromURL);
+        }
+      }
+    };
+    
+    loadCandidateFromURL();
+  }, []);
   
   // Filtered campus options based on search
   const filteredCampuses = campusOptions.filter(campus =>
@@ -1382,38 +1475,16 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
 
           {/* Proctoring Panel */}
           {!proctoringEnabled ? (
-            <div className="bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg shadow-lg p-6 text-white">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Video className="w-6 h-6" />
-                    <h3 className="text-xl font-bold">Enable Proctoring to Start</h3>
-                  </div>
-                  <p className="text-sm text-purple-100 mb-4">
-                    Click the button to enable your camera and microphone. The assessment will begin automatically once proctoring is active.
-                  </p>
-                  <ul className="text-sm space-y-2 text-purple-100">
-                    <li className="flex items-center gap-2">
-                      <Eye className="w-4 h-4" /> 
-                      <span>Face detection - ensuring you're present and focused</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Wifi className="w-4 h-4" /> 
-                      <span>Tab switching - preventing unauthorized browsing</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Volume2 className="w-4 h-4" /> 
-                      <span>Background noise - detecting excessive disturbances</span>
-                    </li>
-                  </ul>
-                  <p className="text-xs text-purple-200 mt-4">
-                    Video feed is processed locally and not recorded or stored.
-                  </p>
+            <div className="bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg shadow-lg p-8 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Video className="w-8 h-8" />
+                  <h3 className="text-2xl font-bold">Enable Proctoring to Start</h3>
                 </div>
-                <div className="ml-6 flex flex-col gap-3">
+                <div className="flex gap-3">
                   <button
                     onClick={startProctoring}
-                    className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-purple-50 transition-all duration-200 flex items-center gap-2 shadow-lg"
+                    className="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold hover:bg-purple-50 transition-all duration-200 flex items-center gap-2 shadow-lg text-lg"
                   >
                     <Video className="w-5 h-5" />
                     Start Proctoring & Begin
@@ -1711,6 +1782,12 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
         <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2">
           <User className="w-5 h-5" />
           Candidate Information
+          {candidateDataLoaded && (
+            <span className="ml-auto text-xs px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              Auto-loaded
+            </span>
+          )}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -1721,7 +1798,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
               type="text"
               value={candidateName}
               onChange={(e) => setCandidateName(e.target.value)}
-              disabled={isLocked}
+              disabled={isLocked || candidateDataLoaded}
               className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="Enter candidate name"
             />
@@ -1747,7 +1824,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
                   e.preventDefault();
                 }
               }}
-              disabled={isLocked}
+              disabled={isLocked || candidateDataLoaded}
               className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="+91 XXXXX XXXXX"
               maxLength={15}
@@ -1762,7 +1839,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
               type="email"
               value={candidateEmail}
               onChange={(e) => setCandidateEmail(e.target.value)}
-              disabled={isLocked}
+              disabled={isLocked || candidateDataLoaded}
               className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="candidate@example.com"
             />
@@ -1775,17 +1852,19 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
             <div className="relative" ref={campusDropdownRef}>
               <div
                 className={`w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 flex items-center justify-between ${
-                  isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  isLocked || candidateDataLoaded ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 }`}
-                onClick={() => !isLocked && setCampusSearchOpen(!campusSearchOpen)}
+                onClick={() => !isLocked && !candidateDataLoaded && setCampusSearchOpen(!campusSearchOpen)}
               >
                 <span className={campusName ? '' : 'text-gray-400 dark:text-slate-500'}>
                   {campusName || 'Select campus'}
                 </span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${campusSearchOpen ? 'rotate-180' : ''}`} />
+                {!candidateDataLoaded && (
+                  <ChevronDown className={`w-4 h-4 transition-transform ${campusSearchOpen ? 'rotate-180' : ''}`} />
+                )}
               </div>
               
-              {campusSearchOpen && (
+              {campusSearchOpen && !candidateDataLoaded && (
                 <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg shadow-lg max-h-64 overflow-hidden">
                   {/* Search input */}
                   <div className="p-2 border-b border-gray-200 dark:border-slate-600">
@@ -1827,6 +1906,15 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
             </div>
           </div>
         </div>
+        
+        {candidateDataLoaded && (
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              Your information has been automatically loaded and cannot be modified. If this is incorrect, please contact the administrator.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Progress Summary - Questions Only */}

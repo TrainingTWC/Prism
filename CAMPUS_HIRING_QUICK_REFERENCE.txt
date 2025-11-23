@@ -1,0 +1,238 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                    CAMPUS HIRING ASSESSMENT - QUICK REFERENCE                ║
+║                              IHM Mumbai - 2025                               ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 📋 CANDIDATE INFORMATION                                                     │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Total Eligible Candidates: 75
+Institution: IHM Mumbai
+Assessment Type: Psychometric + Technical
+Duration: 30 Minutes (Timed)
+Proctoring: Required (Camera + Microphone)
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 🔗 URL FORMAT                                                                │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Production URL:
+https://trainingtwc.github.io/Prism/?EMPID=[candidate-email]
+
+Local Testing:
+http://localhost:5173/?EMPID=[candidate-email]
+
+Example:
+https://trainingtwc.github.io/Prism/?EMPID=shreya.dasghosh@gmail.com
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ ✨ AUTO-FILL FEATURES                                                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+When candidate clicks personalized link:
+  ✓ Email Verification    → Checked against IHM_Mumbai.json
+  ✓ Auto-Authentication   → NO PASSWORD REQUIRED! 🎉
+  ✓ Candidate Name        → Auto-populated
+  ✓ Phone Number          → Auto-populated
+  ✓ Email Address         → Auto-populated
+  ✓ Campus Name           → Auto-populated
+  ✓ All Fields            → Locked (read-only)
+  ✓ Identity Verified     → Green badge shown
+  ✓ Direct Access         → Taken straight to assessment!
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 🛠️ ADMINISTRATOR TOOLS                                                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+URL Generator Tool:
+https://trainingtwc.github.io/Prism/campus-url-generator.html
+
+Features:
+  • Load all 75 candidates
+  • Generate personalized URLs
+  • Copy individual URLs
+  • Export to CSV
+  • Download email template
+  • Toggle Production/Local URLs
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 📧 SAMPLE EMAIL INVITATION                                                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Subject: Third Wave Coffee - Campus Hiring Assessment
+
+Dear [Candidate Name],
+
+You are invited to take the Third Wave Coffee Campus Hiring Assessment.
+
+Your personalized link: [URL]
+
+✨ NO PASSWORD REQUIRED - Just click and start! ✨
+
+Duration: 30 minutes (timed, cannot pause)
+Requirements: Camera + Microphone (proctoring enabled)
+Environment: Quiet, well-lit room
+
+Assessment covers:
+• Psychometric evaluation
+• English proficiency  
+• Numerical aptitude
+• Logical reasoning
+• Analytical skills
+• Course curriculum
+
+Your information is pre-loaded. Do not share this link.
+
+Good luck!
+Third Wave Coffee Recruitment
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 📊 ASSESSMENT STRUCTURE                                                      │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Total Questions: 30 (Multiple Choice)
+
+Categories:
+  1. Psychometric             → 5 questions
+  2. English Proficiency      → 5 questions
+  3. Numerical Aptitude       → 5 questions (with options A, B, C, D)
+  4. Logical Reasoning        → 5 questions (with options A, B, C, D)
+  5. Analytical Aptitude      → 5 questions (with options A, B, C, D, some with images)
+  6. Course Curriculum        → 5 questions (with options A, B, C, D)
+
+Scoring: Weighted (different options have different weights)
+Timer: Countdown from 30:00 with warnings at 5:00 and 1:00
+Auto-Submit: When time expires
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 🎥 PROCTORING RULES                                                          │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Monitored Activities:
+  • Face Detection       → Must be visible at all times
+  • Tab Switching        → Maximum 2 allowed (3rd = lockout)
+  • Background Noise     → Sustained high noise triggers warning
+  • Window Focus         → Leaving window tracked
+
+Violations:
+  ⚠️  2 Face Detection Violations  → Automatic lockout
+  ⚠️  3 Tab Switch Violations      → Automatic lockout
+  ⚠️  Excessive Noise              → Warning messages
+
+Privacy:
+  ✓ Video processed locally (not recorded or stored)
+  ✓ Only violation counts and timestamps saved
+  ✓ No video/audio uploaded to server
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ ✅ DEPLOYMENT CHECKLIST                                                      │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Pre-Deployment:
+  [ ] Verify IHM_Mumbai.json in /public folder
+  [ ] Test auto-fill with sample URLs
+  [ ] Check campus-url-generator.html works
+  [ ] Verify proctoring functionality
+  [ ] Test complete assessment flow
+
+Post-Deployment:
+  [ ] Generate all candidate URLs
+  [ ] Download CSV for records
+  [ ] Prepare email invitations
+  [ ] Set deadline for completion
+  [ ] Monitor submission data
+  [ ] Provide support contact
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 🧪 TEST CANDIDATES                                                           │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Test URL 1: Shreya Dasghosh
+https://trainingtwc.github.io/Prism/?EMPID=shreya.dasghosh@gmail.com
+Expected: Shreya Dasghosh | 9831664676 | IHM Mumbai
+
+Test URL 2: Adhiraj Bhatnagar  
+https://trainingtwc.github.io/Prism/?EMPID=adhirajbhatnagar06@gmail.com
+Expected: Adhiraj Bhatnagar | 7017425065 | IHM Mumbai
+
+Test URL 3: Aditya Goyal
+https://trainingtwc.github.io/Prism/?EMPID=Adityagoyalihm@gmail.com
+Expected: Aditya Goyal | 7477052749 | IHM Mumbai
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 🔍 TROUBLESHOOTING                                                           │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Issue: Fields not auto-filling
+→ Check: Browser console for errors
+→ Verify: EMPID parameter in URL is correct
+→ Confirm: Email exists in IHM_Mumbai.json
+
+Issue: Camera not working
+→ Check: Browser permissions granted
+→ Verify: Camera not used by another app
+→ Try: Refresh page and allow again
+
+Issue: Assessment locked unexpectedly
+→ Cause: Too many violations triggered
+→ Solution: Candidate must follow proctoring rules
+→ Prevention: Clear instructions before start
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 📁 FILE LOCATIONS                                                            │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Candidate Database:
+  /public/IHM_Mumbai.json
+
+URL Generator:
+  /public/campus-url-generator.html
+
+Component:
+  /components/checklists/CampusHiringChecklist.tsx
+
+Documentation:
+  /CAMPUS_HIRING_URL_AUTOFILL.md
+  /CAMPUS_HIRING_TESTING_GUIDE.md
+  /CAMPUS_HIRING_IMPLEMENTATION_SUMMARY.md
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 📞 SUPPORT                                                                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Technical Issues:
+  • Check browser console (F12)
+  • Verify JSON file accessible
+  • Test with different browser
+
+Data Issues:
+  • Verify candidate email spelling
+  • Check IHM_Mumbai.json format
+  • Confirm institution name matches
+
+Feature Requests:
+  • Create GitHub issue
+  • Contact development team
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║  ✅ AUTO-FILL IMPLEMENTATION COMPLETE                                        ║
+║  📅 Version 1.0 | November 23, 2025                                          ║
+║  🏢 Third Wave Coffee | Campus Hiring 2025                                   ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝

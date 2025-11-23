@@ -102,18 +102,112 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Helper function to check if email is in campus hiring candidate list
+  const checkCampusHiringCandidate = async (email: string): Promise<boolean> => {
+    try {
+      console.log('[Auth] Checking if email is campus hiring candidate:', email);
+      
+      // Try multiple paths for the JSON file
+      const paths = [
+        '/IHM_Mumbai.json',
+        '/Prism/IHM_Mumbai.json',
+        './IHM_Mumbai.json',
+        '../IHM_Mumbai.json'
+      ];
+      
+      for (const path of paths) {
+        try {
+          const response = await fetch(path);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('[Auth] Loaded campus candidates from:', path);
+            
+            // Check if email exists in candidates list (case-insensitive)
+            const candidate = data.candidates?.find(
+              (c: any) => c.email.toLowerCase() === email.toLowerCase()
+            );
+            
+            if (candidate) {
+              console.log('[Auth] ✅ Found campus candidate:', candidate.name);
+              return true;
+            }
+            
+            console.log('[Auth] Email not found in campus candidates list');
+            return false;
+          }
+        } catch (err) {
+          // Continue to next path
+        }
+      }
+      
+      console.log('[Auth] Could not load campus candidates file from any path');
+      return false;
+    } catch (error) {
+      console.error('[Auth] Error checking campus hiring candidate:', error);
+      return false;
+    }
+  };
+
   const loginWithEmpId = async (empId: string): Promise<boolean> => {
     try {
       console.log('[Auth] Attempting login with EMPID:', empId);
       
-      // Clear any existing password-based authentication
-      // because EMPID login requires fresh password entry
-      localStorage.removeItem(AUTH_CONFIG.storageKeys.auth);
-      localStorage.removeItem(AUTH_CONFIG.storageKeys.timestamp);
-      localStorage.removeItem(AUTH_CONFIG.storageKeys.role);
+      // First, check if this is a campus hiring candidate (email format check)
+      const isCampusCandidate = await checkCampusHiringCandidate(empId);
+      
+      console.log('[Auth] Is campus candidate check result:', isCampusCandidate);
+      
+      if (isCampusCandidate) {
+        console.log('[Auth] ✅ Campus hiring candidate detected - auto-authenticating');
+        
+        // Auto-authenticate as campus-hiring role without password
+        const campusRole: UserRole = 'campus-hiring';
+        const config = AUTH_CONFIG.roles[campusRole];
+        
+        if (config) {
+          localStorage.setItem(AUTH_CONFIG.storageKeys.auth, 'true');
+          localStorage.setItem(AUTH_CONFIG.storageKeys.timestamp, Date.now().toString());
+          localStorage.setItem(AUTH_CONFIG.storageKeys.role, campusRole);
+          
+          setIsAuthenticated(true);
+          setUserRole(campusRole);
+          setRoleConfig(config);
+          
+          const employeeInfo: Employee = {
+            code: empId,
+            name: `Campus Candidate: ${empId}`
+          };
+          
+          setEmployeeData(employeeInfo);
+          setIsEmployeeValidated(true);
+          localStorage.setItem('auth_employee', JSON.stringify(employeeInfo));
+          localStorage.setItem('employee_validated', 'true');
+          
+          console.log('[Auth] ✅ Campus hiring candidate auto-authenticated successfully');
+          return true;
+        }
+      }
+      
+      console.log('[Auth] ⚠️ NOT a campus candidate - clearing auth and requiring password');
+      
+      // CRITICAL: Clear authentication FIRST before any state updates
+      // This must happen synchronously to prevent race conditions
+      try {
+        localStorage.removeItem(AUTH_CONFIG.storageKeys.auth);
+        localStorage.removeItem(AUTH_CONFIG.storageKeys.timestamp);
+        localStorage.removeItem(AUTH_CONFIG.storageKeys.role);
+        console.log('[Auth] 🗑️  Cleared localStorage auth tokens');
+      } catch (e) {
+        console.error('[Auth] Error clearing localStorage:', e);
+      }
+      
+      // CRITICAL: Set authenticated state to FALSE for regular employees
+      // This MUST be false so they see the login screen
       setIsAuthenticated(false);
       setUserRole(null);
       setRoleConfig(null);
+      
+      console.log('[Auth] 🔒 Authentication state CLEARED - isAuthenticated = FALSE, userRole = NULL');
       
       // UNIVERSAL ACCESS: Accept ANY employee ID without validation
       // This allows all employee IDs (including i192 and any format) to access the system

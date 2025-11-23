@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Hiring - URL Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Campus Hiring Assessment - URL Generator</h1>
+            <p class="text-gray-600">Generate personalized assessment links for IHM Mumbai candidates</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-900">Base URL</h2>
+                <button onclick="toggleBaseUrl()" class="text-sm text-blue-600 hover:text-blue-800">
+                    Switch to <span id="urlToggleText">Local</span>
+                </button>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <p class="text-sm font-mono text-gray-700" id="baseUrl">
+                    https://trainingtwc.github.io/Prism/
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Actions</h2>
+            <div class="flex gap-3">
+                <button onclick="loadCandidates()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                    Load Candidates
+                </button>
+                <button onclick="copyAllUrls()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition" disabled id="copyBtn">
+                    Copy All URLs
+                </button>
+                <button onclick="downloadCSV()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition" disabled id="csvBtn">
+                    Download CSV
+                </button>
+                <button onclick="downloadEmails()" class="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition" disabled id="emailBtn">
+                    Download Email Template
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-900">Generated URLs</h2>
+                <span id="candidateCount" class="text-sm text-gray-600">0 candidates</span>
+            </div>
+            <div id="urlsList" class="space-y-2">
+                <p class="text-gray-500 text-center py-8">Click "Load Candidates" to generate URLs</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let candidates = [];
+        let baseUrls = {
+            production: 'https://trainingtwc.github.io/Prism/',
+            local: 'http://localhost:5173/'
+        };
+        let currentBaseUrl = 'production';
+
+        function toggleBaseUrl() {
+            currentBaseUrl = currentBaseUrl === 'production' ? 'local' : 'production';
+            document.getElementById('baseUrl').textContent = baseUrls[currentBaseUrl];
+            document.getElementById('urlToggleText').textContent = currentBaseUrl === 'production' ? 'Local' : 'Production';
+            
+            // Reload URLs with new base
+            if (candidates.length > 0) {
+                displayUrls();
+            }
+        }
+
+        async function loadCandidates() {
+            try {
+                const response = await fetch('/IHM_Mumbai.json');
+                if (!response.ok) {
+                    throw new Error('Failed to load candidate data');
+                }
+                
+                const data = await response.json();
+                candidates = data.candidates;
+                
+                document.getElementById('candidateCount').textContent = `${candidates.length} candidates`;
+                document.getElementById('copyBtn').disabled = false;
+                document.getElementById('csvBtn').disabled = false;
+                document.getElementById('emailBtn').disabled = false;
+                
+                displayUrls();
+            } catch (error) {
+                alert('Error loading candidates: ' + error.message);
+            }
+        }
+
+        function displayUrls() {
+            const urlsList = document.getElementById('urlsList');
+            const baseUrl = baseUrls[currentBaseUrl];
+            
+            urlsList.innerHTML = candidates.map((candidate, index) => {
+                const url = `${baseUrl}?EMPID=${encodeURIComponent(candidate.email)}`;
+                return `
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition">
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-900">${candidate.name}</div>
+                            <div class="text-sm text-gray-600">${candidate.email}</div>
+                            <div class="text-xs font-mono text-blue-600 mt-1 break-all">${url}</div>
+                        </div>
+                        <button onclick="copyUrl('${url}', ${index})" class="bg-blue-100 text-blue-700 px-4 py-2 rounded hover:bg-blue-200 transition text-sm font-medium" id="copyBtn${index}">
+                            Copy
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function copyUrl(url, index) {
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.getElementById(`copyBtn${index}`);
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                btn.classList.add('bg-green-100', 'text-green-700');
+                btn.classList.remove('bg-blue-100', 'text-blue-700');
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('bg-green-100', 'text-green-700');
+                    btn.classList.add('bg-blue-100', 'text-blue-700');
+                }, 2000);
+            });
+        }
+
+        function copyAllUrls() {
+            const baseUrl = baseUrls[currentBaseUrl];
+            const allUrls = candidates.map(c => 
+                `${c.name}\t${c.email}\t${baseUrl}?EMPID=${encodeURIComponent(c.email)}`
+            ).join('\n');
+            
+            navigator.clipboard.writeText(allUrls).then(() => {
+                const btn = document.getElementById('copyBtn');
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied All!';
+                btn.classList.add('bg-green-700');
+                btn.classList.remove('bg-green-600');
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('bg-green-700');
+                    btn.classList.add('bg-green-600');
+                }, 2000);
+            });
+        }
+
+        function downloadCSV() {
+            const baseUrl = baseUrls[currentBaseUrl];
+            const csv = [
+                ['Name', 'Phone', 'Email', 'Institution', 'Assessment URL'].join(','),
+                ...candidates.map(c => [
+                    `"${c.name}"`,
+                    c.phone,
+                    c.email,
+                    `"${c.institution}"`,
+                    `"${baseUrl}?EMPID=${encodeURIComponent(c.email)}"`
+                ].join(','))
+            ].join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `IHM_Mumbai_Assessment_URLs_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function downloadEmails() {
+            const baseUrl = baseUrls[currentBaseUrl];
+            const emailTemplate = candidates.map(c => {
+                const url = `${baseUrl}?EMPID=${encodeURIComponent(c.email)}`;
+                return `
+To: ${c.email}
+Subject: Third Wave Coffee - Campus Hiring Assessment Invitation
+
+Dear ${c.name},
+
+Congratulations! You are invited to take the Third Wave Coffee Campus Hiring Assessment.
+
+Your personalized assessment link:
+${url}
+
+Important Instructions:
+• Duration: 30 minutes (timed)
+• Camera and microphone required (proctored assessment)
+• Ensure stable internet connection
+• Use a quiet, well-lit environment
+• Complete in one sitting (cannot be paused)
+
+The assessment covers:
+- Psychometric evaluation
+- English proficiency
+- Numerical aptitude
+- Logical reasoning
+- Analytical aptitude
+- Course curriculum knowledge
+
+Your information has been pre-loaded for verification. Please do not share this link with others.
+
+Best of luck!
+
+Third Wave Coffee Recruitment Team
+
+-------------------------------------------
+`;
+            }).join('\n\n');
+            
+            const blob = new Blob([emailTemplate], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `IHM_Mumbai_Email_Template_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
