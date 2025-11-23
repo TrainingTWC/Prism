@@ -157,13 +157,20 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
   // Load candidate data from URL on mount
   useEffect(() => {
     const loadCandidateFromURL = async () => {
+      // Always clear previous data first
+      setCandidateName('');
+      setCandidatePhone('');
+      setCandidateEmail('');
+      setCampusName('');
+      setCandidateDataLoaded(false);
+      
       try {
         // Get email from URL parameter (EMPID)
         const urlParams = new URLSearchParams(window.location.search);
         const emailFromURL = urlParams.get('EMPID');
         
         if (!emailFromURL) {
-          console.log('No EMPID parameter found in URL');
+          console.log('No EMPID parameter found in URL - form cleared');
           return;
         }
         
@@ -244,7 +251,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     };
     
     loadCandidateFromURL();
-  }, []);
+  }, [window.location.search]); // Re-run when URL changes
   
   // Filtered campus options based on search
   const filteredCampuses = campusOptions.filter(campus =>
@@ -925,7 +932,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
   // Basic face detection using video analysis
   const detectFace = () => {
     if (!videoRef.current || !canvasRef.current) {
-      console.log('Face detection skipped - video or canvas not available');
+      console.log('❌ Face detection skipped - video or canvas not available');
       return;
     }
 
@@ -934,18 +941,21 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     const context = canvas.getContext('2d');
 
     if (!context) {
-      console.log('Face detection skipped - no canvas context');
+      console.log('❌ Face detection skipped - no canvas context');
       return;
     }
 
     if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-      console.log('Face detection skipped - video not ready. ReadyState:', video.readyState);
+      console.log('❌ Face detection skipped - video not ready. ReadyState:', video.readyState);
       return;
     }
 
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    // Ensure canvas has proper dimensions
+    if (canvas.width === 0 || canvas.height === 0) {
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      console.log('📐 Canvas dimensions set to:', canvas.width, 'x', canvas.height);
+    }
     
     try {
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -954,26 +964,56 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
 
-      // Simple brightness-based detection (face detection proxy)
+      // Enhanced face detection - check for skin tones and face-like patterns
+      let skinTonePixels = 0;
       let brightPixels = 0;
+      let darkPixels = 0;
       const totalPixels = data.length / 4;
 
       for (let i = 0; i < data.length; i += 4) {
-        const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const brightness = (r + g + b) / 3;
+        
+        // Count bright pixels (face-like)
         if (brightness > 80 && brightness < 220) {
           brightPixels++;
         }
+        
+        // Count very dark pixels (covered camera)
+        if (brightness < 30) {
+          darkPixels++;
+        }
+        
+        // Detect skin tones (more reliable than just brightness)
+        // Skin tone detection: R > 95, G > 40, B > 20, R > G, R > B, |R - G| > 15
+        if (r > 95 && g > 40 && b > 20 && r > g && r > b && Math.abs(r - g) > 15) {
+          skinTonePixels++;
+        }
       }
 
-      const facePresenceRatio = brightPixels / totalPixels;
-      console.log('🔍 Face detection - Presence ratio:', facePresenceRatio.toFixed(3), 'Currently detected:', faceDetected);
+      const brightRatio = brightPixels / totalPixels;
+      const darkRatio = darkPixels / totalPixels;
+      const skinToneRatio = skinTonePixels / totalPixels;
       
-      // If less than 20% of pixels match face-like brightness, consider face not detected
-      if (facePresenceRatio < 0.2) {
+      // Face is detected if we see enough skin tone pixels OR reasonable brightness
+      // Face is NOT detected if screen is mostly dark (camera covered/turned away)
+      const faceIsPresent = (skinToneRatio > 0.08 || brightRatio > 0.25) && darkRatio < 0.7;
+      
+      console.log('🔍 Face detection analysis:', {
+        skinTone: skinToneRatio.toFixed(3),
+        bright: brightRatio.toFixed(3),
+        dark: darkRatio.toFixed(3),
+        facePresent: faceIsPresent,
+        currentlyDetected: faceDetected
+      });
+      
+      if (!faceIsPresent) {
         // Face not detected
         if (faceDetected) {
           // Face just disappeared - this is a NEW violation instance
-          console.log('⚠️ Face not detected - logging violation. Ratio:', facePresenceRatio);
+          console.log('⚠️ FACE LOST - Logging violation');
           setFaceDetected(false);
           
           // Use callback form to get the latest count and pass it to logViolation
@@ -982,24 +1022,26 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
             console.log(`🚨 VIOLATION: Face not detected (violation #${newCount})`);
             
             // Log violation with the new count passed as override
-            logViolation('face-not-detected', `Face not visible (violation ${newCount}/2)`, newCount);
+            logViolation('face-not-detected', `Face not visible (violation ${newCount})`, newCount);
             
             return newCount;
           });
           
           noFaceDetectionCount.current++;
+        } else {
+          console.log('⚠️ Face still not detected...');
         }
       } else {
         // Face detected
         if (!faceDetected) {
-          console.log('✓ Face detected again - ratio:', facePresenceRatio);
+          console.log('✅ Face DETECTED again');
           setFaceDetected(true);
         }
         // Reset timer when face is detected (but keep violation count)
         lastFaceDetectionTime.current = Date.now();
       }
     } catch (error) {
-      console.error('Error in face detection:', error);
+      console.error('❌ Error in face detection:', error);
     }
   };
 
@@ -1255,29 +1297,53 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
   // Prevent screenshots and screen recordings
   useEffect(() => {
     if (proctoringEnabled && assessmentStarted) {
-      // Prevent Print Screen key
-      const preventPrintScreen = (e: KeyboardEvent) => {
-        // Print Screen, Windows+Shift+S (Snipping Tool), Cmd+Shift+3/4 (Mac)
-        if (
-          e.key === 'PrintScreen' ||
-          (e.key === 'Print') ||
-          (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) ||
-          (e.metaKey && e.shiftKey && e.key === 's') ||
-          (e.key === 's' && e.metaKey && e.shiftKey) ||
-          (e.key === 'S' && e.shiftKey && (e.metaKey || e.ctrlKey))
-        ) {
+      let blockingActive = true;
+      
+      // Comprehensive screenshot prevention
+      const preventScreenshot = (e: KeyboardEvent) => {
+        if (!blockingActive) return;
+        
+        const key = e.key?.toLowerCase();
+        const code = e.code?.toLowerCase();
+        
+        // PrintScreen key (all variations)
+        if (key === 'printscreen' || code === 'printscreen' || key === 'print' || code === 'print') {
           e.preventDefault();
-          logViolation('window-blur', 'Screenshot attempt detected');
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          logViolation('window-blur', 'Screenshot attempt detected (Print Screen)');
           alert('⚠️ Screenshots are not allowed during the assessment!');
           return false;
         }
-      };
-
-      // Detect screen recording attempts via media permissions
-      const detectScreenRecording = () => {
-        if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-          // User attempting screen recording will trigger permission request
-          console.log('Screen recording detection active');
+        
+        // Windows Snipping Tool (Win+Shift+S, Ctrl+Shift+S)
+        if (e.shiftKey && (e.key === 'S' || e.key === 's') && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          logViolation('window-blur', 'Screenshot attempt detected (Snipping Tool)');
+          alert('⚠️ Screenshots are not allowed during the assessment!');
+          return false;
+        }
+        
+        // Mac screenshots (Cmd+Shift+3, Cmd+Shift+4, Cmd+Shift+5)
+        if (e.metaKey && e.shiftKey && (key === '3' || key === '4' || key === '5')) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          logViolation('window-blur', 'Screenshot attempt detected (Mac Screenshot)');
+          alert('⚠️ Screenshots are not allowed during the assessment!');
+          return false;
+        }
+        
+        // Alt+PrintScreen (Active window screenshot)
+        if (e.altKey && (key === 'printscreen' || code === 'printscreen')) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          logViolation('window-blur', 'Screenshot attempt detected (Alt+Print Screen)');
+          alert('⚠️ Screenshots are not allowed during the assessment!');
+          return false;
         }
       };
 
@@ -1313,14 +1379,21 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
         }
       };
 
-      document.addEventListener('keyup', preventPrintScreen);
-      document.addEventListener('keydown', preventPrintScreen);
+      // Add listeners with capture phase to intercept before any other handlers
+      document.addEventListener('keydown', preventScreenshot, true);
+      document.addEventListener('keyup', preventScreenshot, true);
+      document.addEventListener('keypress', preventScreenshot, true);
+      window.addEventListener('keydown', preventScreenshot, true);
+      window.addEventListener('keyup', preventScreenshot, true);
       document.addEventListener('visibilitychange', handleVisibilityChange);
-      detectScreenRecording();
 
       return () => {
-        document.removeEventListener('keyup', preventPrintScreen);
-        document.removeEventListener('keydown', preventPrintScreen);
+        blockingActive = false;
+        document.removeEventListener('keydown', preventScreenshot, true);
+        document.removeEventListener('keyup', preventScreenshot, true);
+        document.removeEventListener('keypress', preventScreenshot, true);
+        window.removeEventListener('keydown', preventScreenshot, true);
+        window.removeEventListener('keyup', preventScreenshot, true);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         const styleEl = document.getElementById('screenshot-protection');
         if (styleEl) {
@@ -1574,14 +1647,16 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       )}
 
       {/* Hidden video and canvas elements - always in DOM for ref access */}
-      <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0, overflow: 'hidden' }}>
+      {/* Hidden video and canvas for face detection processing */}
+      <div style={{ position: 'absolute', left: '-9999px', width: '640px', height: '480px', overflow: 'hidden' }}>
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
+          style={{ width: '640px', height: '480px' }}
         />
-        <canvas ref={canvasRef} />
+        <canvas ref={canvasRef} width={640} height={480} />
       </div>
 
       {/* Show Rules Page First */}
@@ -1722,18 +1797,18 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
 
           {/* Proctoring Panel */}
           {!proctoringEnabled ? (
-            <div className="bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg shadow-lg p-8 text-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Video className="w-8 h-8" />
-                  <h3 className="text-2xl font-bold">Enable Proctoring to Start</h3>
+            <div className="bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg shadow-lg p-4 sm:p-8 text-white">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <Video className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0" />
+                  <h3 className="text-lg sm:text-2xl font-bold">Enable Proctoring to Start</h3>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <button
                     onClick={startProctoring}
-                    className="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold hover:bg-purple-50 transition-all duration-200 flex items-center gap-2 shadow-lg text-lg"
+                    className="bg-white text-purple-600 px-4 py-3 sm:px-8 sm:py-4 rounded-lg font-semibold hover:bg-purple-50 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg text-base sm:text-lg w-full sm:w-auto"
                   >
-                    <Video className="w-5 h-5" />
+                    <Video className="w-4 h-4 sm:w-5 sm:h-5" />
                     Start Proctoring & Begin
                   </button>
                   
@@ -1752,7 +1827,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
                         alert('Camera test failed: ' + (err as Error).message);
                       }
                     }}
-                    className="bg-purple-100 text-purple-700 px-4 py-2 rounded text-sm hover:bg-purple-200 transition-all duration-200"
+                    className="bg-purple-100 text-purple-700 px-4 py-2 rounded text-sm hover:bg-purple-200 transition-all duration-200 w-full sm:w-auto"
                   >
                     🔧 Test Camera
                   </button>
@@ -1878,27 +1953,27 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
 
       {/* Proctoring Panel */}
       {!proctoringEnabled ? (
-        <div className="bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg shadow-lg p-6 text-white">
-          <div className="flex items-start justify-between">
+        <div className="bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg shadow-lg p-4 sm:p-6 text-white">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
-                <Video className="w-6 h-6" />
-                <h3 className="text-xl font-bold">Enable Proctoring</h3>
+                <Video className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+                <h3 className="text-lg sm:text-xl font-bold">Enable Proctoring</h3>
               </div>
               <p className="text-sm text-purple-100 mb-4">
                 This assessment requires proctoring to ensure integrity. We will monitor:
               </p>
               <ul className="text-sm space-y-2 text-purple-100">
                 <li className="flex items-center gap-2">
-                  <Eye className="w-4 h-4" /> 
+                  <Eye className="w-4 h-4 flex-shrink-0" /> 
                   <span>Face detection - ensuring you're present and focused</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Wifi className="w-4 h-4" /> 
+                  <Wifi className="w-4 h-4 flex-shrink-0" /> 
                   <span>Tab switching - preventing unauthorized browsing</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Volume2 className="w-4 h-4" /> 
+                  <Volume2 className="w-4 h-4 flex-shrink-0" /> 
                   <span>Background noise - detecting excessive disturbances</span>
                 </li>
               </ul>
@@ -1906,12 +1981,12 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
                 Your privacy is important. Video feed is processed locally and not recorded or stored.
               </p>
             </div>
-            <div className="ml-6 flex flex-col gap-3">
+            <div className="flex flex-col gap-2 sm:gap-3 sm:ml-6 w-full sm:w-auto">
               <button
                 onClick={startProctoring}
-                className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-purple-50 transition-all duration-200 flex items-center gap-2 shadow-lg"
+                className="bg-white text-purple-600 px-4 py-3 sm:px-6 sm:py-3 rounded-lg font-semibold hover:bg-purple-50 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg text-base w-full sm:w-auto"
               >
-                <Video className="w-5 h-5" />
+                <Video className="w-4 h-4 sm:w-5 sm:h-5" />
                 Start Proctoring
               </button>
               
@@ -1930,7 +2005,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
                     alert('Camera test failed: ' + (err as Error).message);
                   }
                 }}
-                className="bg-purple-100 text-purple-700 px-4 py-2 rounded text-sm hover:bg-purple-200 transition-all duration-200"
+                className="bg-purple-100 text-purple-700 px-4 py-2 rounded text-sm hover:bg-purple-200 transition-all duration-200 w-full sm:w-auto"
               >
                 🔧 Test Camera
               </button>
