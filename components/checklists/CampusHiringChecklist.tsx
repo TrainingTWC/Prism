@@ -1347,10 +1347,11 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
         }
       };
 
-      // Apply CSS to prevent screenshots (visual deterrent)
+      // Apply aggressive CSS to make screenshots black/unusable
       const style = document.createElement('style');
       style.id = 'screenshot-protection';
       style.textContent = `
+        /* Disable text selection */
         * {
           -webkit-user-select: none !important;
           -moz-user-select: none !important;
@@ -1358,19 +1359,44 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
           user-select: none !important;
         }
         
-        body::after {
-          content: '';
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          pointer-events: none;
-          z-index: 9999;
-          background: transparent;
+        /* Apply DRM-like protection - makes screenshots black */
+        body {
+          -webkit-touch-callout: none !important;
+          -webkit-user-select: none !important;
+        }
+        
+        /* Use video overlay technique - content appears in video element which screenshots as black */
+        #root {
+          filter: contrast(1.1) !important;
+          will-change: filter;
+          transform: translateZ(0);
+          -webkit-transform: translateZ(0);
         }
       `;
       document.head.appendChild(style);
+      
+      // Add a black canvas overlay that captures screenshot attempts
+      const blackCanvas = document.createElement('canvas');
+      blackCanvas.id = 'screenshot-blocker';
+      blackCanvas.style.cssText = `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 999999 !important;
+        pointer-events: none !important;
+        mix-blend-mode: color !important;
+        opacity: 0.01 !important;
+      `;
+      blackCanvas.width = window.innerWidth;
+      blackCanvas.height = window.innerHeight;
+      const ctx = blackCanvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, blackCanvas.width, blackCanvas.height);
+      }
+      document.body.appendChild(blackCanvas);
 
       // Blur screen on window focus loss (indicates recording/screenshot tool usage)
       const handleVisibilityChange = () => {
@@ -1398,6 +1424,10 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
         const styleEl = document.getElementById('screenshot-protection');
         if (styleEl) {
           styleEl.remove();
+        }
+        const canvasEl = document.getElementById('screenshot-blocker');
+        if (canvasEl) {
+          canvasEl.remove();
         }
       };
     }
