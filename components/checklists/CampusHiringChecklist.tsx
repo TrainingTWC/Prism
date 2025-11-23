@@ -1138,10 +1138,56 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
         }
       };
 
-      // Warn on page refresh or close
+      // Auto-submit on page refresh or close
       const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        // If assessment is in progress, auto-submit it
+        if (assessmentStarted && submitStatus === 'idle') {
+          // Use sendBeacon for reliable submission during unload
+          const formData = new FormData();
+          
+          // Add all form data
+          formData.append('candidateName', candidateName);
+          formData.append('candidatePhone', candidatePhone);
+          formData.append('candidateEmail', candidateEmail);
+          formData.append('campusName', campusName);
+          formData.append('answers', JSON.stringify(answers));
+          formData.append('autoSubmit', 'true');
+          formData.append('reason', 'Page refresh/close during assessment');
+          
+          // Add results
+          const results = calculateResults();
+          formData.append('totalScore', results.totalScore.toString());
+          formData.append('maxScore', results.maxPossibleScore.toString());
+          formData.append('percentage', results.percentage.toString());
+          formData.append('categoryScores', JSON.stringify(results.categoryScores));
+          
+          // Add violation data
+          const violationCounts: Record<string, number> = {};
+          violations.forEach(v => {
+            violationCounts[v.type] = (violationCounts[v.type] || 0) + 1;
+          });
+          formData.append('violations', JSON.stringify(violations));
+          formData.append('totalViolations', violations.length.toString());
+          formData.append('tabSwitchViolations', (violationCounts['tab-switch'] || 0).toString());
+          formData.append('faceNotDetectedViolations', (violationCounts['face-not-detected'] || 0).toString());
+          formData.append('multipleFacesViolations', (violationCounts['multiple-faces'] || 0).toString());
+          formData.append('noiseViolations', (violationCounts['excessive-noise'] || 0).toString());
+          formData.append('windowBlurViolations', (violationCounts['window-blur'] || 0).toString());
+          
+          // Use sendBeacon for reliable submission
+          const scriptUrl = config.googleAppsScriptUrl || '';
+          if (scriptUrl) {
+            navigator.sendBeacon(scriptUrl, formData);
+            console.log('🚨 Assessment auto-submitted due to page refresh/close');
+          }
+          
+          // Clear the draft
+          localStorage.removeItem('campusHiringDraft');
+        }
+        
+        // Show warning message
         e.preventDefault();
-        const message = 'Your assessment progress will be lost if you leave this page. Are you sure?';
+        const message = 'Your assessment will be auto-submitted if you leave this page.';
         e.returnValue = message;
         return message;
       };
@@ -1149,16 +1195,60 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       // Add initial history state to enable back button detection
       window.history.pushState(null, '', window.location.href);
       
+      // Auto-submit handler for page unload (more reliable, especially on mobile)
+      const handlePageHide = () => {
+        if (assessmentStarted && submitStatus === 'idle') {
+          // Use sendBeacon for reliable submission during unload
+          const formData = new FormData();
+          
+          formData.append('candidateName', candidateName);
+          formData.append('candidatePhone', candidatePhone);
+          formData.append('candidateEmail', candidateEmail);
+          formData.append('campusName', campusName);
+          formData.append('answers', JSON.stringify(answers));
+          formData.append('autoSubmit', 'true');
+          formData.append('reason', 'Page unload/hidden during assessment');
+          
+          const results = calculateResults();
+          formData.append('totalScore', results.totalScore.toString());
+          formData.append('maxScore', results.maxPossibleScore.toString());
+          formData.append('percentage', results.percentage.toString());
+          formData.append('categoryScores', JSON.stringify(results.categoryScores));
+          
+          const violationCounts: Record<string, number> = {};
+          violations.forEach(v => {
+            violationCounts[v.type] = (violationCounts[v.type] || 0) + 1;
+          });
+          formData.append('violations', JSON.stringify(violations));
+          formData.append('totalViolations', violations.length.toString());
+          formData.append('tabSwitchViolations', (violationCounts['tab-switch'] || 0).toString());
+          formData.append('faceNotDetectedViolations', (violationCounts['face-not-detected'] || 0).toString());
+          formData.append('multipleFacesViolations', (violationCounts['multiple-faces'] || 0).toString());
+          formData.append('noiseViolations', (violationCounts['excessive-noise'] || 0).toString());
+          formData.append('windowBlurViolations', (violationCounts['window-blur'] || 0).toString());
+          
+          const scriptUrl = config.googleAppsScriptUrl || '';
+          if (scriptUrl) {
+            navigator.sendBeacon(scriptUrl, formData);
+            console.log('🚨 Assessment auto-submitted via pagehide event');
+          }
+          
+          localStorage.removeItem('campusHiringDraft');
+        }
+      };
+      
       // Add event listeners
       window.addEventListener('popstate', handlePopState);
       window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('pagehide', handlePageHide); // More reliable on mobile
 
       return () => {
         window.removeEventListener('popstate', handlePopState);
         window.removeEventListener('beforeunload', handleBeforeUnload);
+        window.removeEventListener('pagehide', handlePageHide);
       };
     }
-  }, [assessmentStarted, submitStatus]);
+  }, [assessmentStarted, submitStatus, answers, candidateName, candidatePhone, candidateEmail, campusName, violations, config.googleAppsScriptUrl]);
 
   // Auto-save answers to localStorage as backup
   useEffect(() => {
