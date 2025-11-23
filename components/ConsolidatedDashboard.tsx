@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
-import { Users, TrendingUp, Package, MapPin, Brain, Award, AlertCircle, Target, CheckCircle, XCircle, X } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { Users, TrendingUp, Package, MapPin, Brain, Award, AlertCircle, Target, CheckCircle, XCircle, X, Sparkles, RefreshCw } from 'lucide-react';
 import { Submission } from '../types';
 import { AMOperationsSubmission, TrainingAuditSubmission, QASubmission } from '../services/dataService';
+import { generate4PAnalysis, FourPAnalysis } from '../services/fourPAnalysisService';
 
 interface ConsolidatedDashboardProps {
   hrData: Submission[];
@@ -33,12 +34,72 @@ const ConsolidatedDashboard: React.FC<ConsolidatedDashboardProps> = ({
   const [modalTitle, setModalTitle] = useState('');
   const [modalType, setModalType] = useState<'hr' | 'operations' | 'training' | 'qa' | 'region'>('hr');
 
+  // AI Analysis state
+  const [aiAnalysis, setAiAnalysis] = useState<FourPAnalysis | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [selectedPCategory, setSelectedPCategory] = useState<'people' | 'process' | 'product' | 'place' | null>(null);
+
   // Handler to open modal with specific data
   const openDetailModal = (title: string, data: any[], type: 'hr' | 'operations' | 'training' | 'qa' | 'region') => {
     setModalTitle(title);
     setModalData(data);
     setModalType(type);
     setModalOpen(true);
+  };
+
+  // Load AI Analysis
+  useEffect(() => {
+    const loadAIAnalysis = async () => {
+      if (hrData.length === 0 && operationsData.length === 0 && trainingData.length === 0 && qaData.length === 0) {
+        return; // No data to analyze
+      }
+
+      setAiLoading(true);
+      setAiError(null);
+
+      try {
+        const analysis = await generate4PAnalysis({
+          hr: hrData,
+          operations: operationsData,
+          training: trainingData,
+          qa: qaData,
+          finance: financeData
+        });
+        setAiAnalysis(analysis);
+      } catch (error) {
+        console.error('Failed to generate 4P AI analysis:', error);
+        setAiError('Failed to load AI insights. Using cached data if available.');
+      } finally {
+        setAiLoading(false);
+      }
+    };
+
+    loadAIAnalysis();
+  }, [hrData, operationsData, trainingData, qaData, financeData]);
+
+  // Refresh AI Analysis
+  const refreshAIAnalysis = async () => {
+    setAiLoading(true);
+    setAiError(null);
+
+    try {
+      // Clear cache and regenerate
+      const cacheKey = `4p_analysis_${Date.now()}`;
+      const analysis = await generate4PAnalysis({
+        hr: hrData,
+        operations: operationsData,
+        training: trainingData,
+        qa: qaData,
+        finance: financeData
+      });
+      setAiAnalysis(analysis);
+    } catch (error) {
+      console.error('Failed to refresh 4P AI analysis:', error);
+      setAiError('Failed to refresh AI insights.');
+    } finally {
+      setAiLoading(false);
+    }
   };
   
   // Calculate 4Ps metrics
@@ -415,6 +476,201 @@ const ConsolidatedDashboard: React.FC<ConsolidatedDashboardProps> = ({
           </div>
         </button>
       </div>
+
+      {/* AI-Powered 4P Insights Section */}
+      {aiAnalysis && (
+        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-900 rounded-xl p-6 border-2 border-indigo-200 dark:border-indigo-800">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">AI-Powered 4P Analysis</h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400">
+                  Insights generated from all checklist submissions
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={refreshAIAnalysis}
+              disabled={aiLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-700 rounded-lg border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${aiLoading ? 'animate-spin' : ''}`} />
+              <span className="text-sm font-medium">Refresh</span>
+            </button>
+          </div>
+
+          {/* Overall Score */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-4 mb-4">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 dark:text-slate-400">Overall 4P Score</span>
+              <div className="flex items-center gap-2">
+                <span className={`text-3xl font-bold ${
+                  aiAnalysis.overallPercentage >= 80 ? 'text-green-600' :
+                  aiAnalysis.overallPercentage >= 60 ? 'text-yellow-600' :
+                  'text-red-600'
+                }`}>
+                  {aiAnalysis.overallPercentage}%
+                </span>
+                <span className="text-sm text-gray-500">Weighted Average</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 4P Category Tabs */}
+          <div className="flex gap-2 mb-4 overflow-x-auto">
+            {['people', 'process', 'product', 'place'].map((category) => {
+              const cat = category as 'people' | 'process' | 'product' | 'place';
+              const categoryData = aiAnalysis[cat];
+              const isSelected = selectedPCategory === cat;
+              
+              return (
+                <button
+                  key={category}
+                  onClick={() => setSelectedPCategory(isSelected ? null : cat)}
+                  className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg font-medium transition-all ${
+                    isSelected
+                      ? 'bg-white dark:bg-slate-700 shadow-md scale-105'
+                      : 'bg-white/50 dark:bg-slate-700/50 hover:bg-white dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <div className="text-sm text-gray-600 dark:text-slate-400 uppercase">{category}</div>
+                  <div className={`text-2xl font-bold ${
+                    categoryData.percentage >= 80 ? 'text-green-600' :
+                    categoryData.percentage >= 60 ? 'text-yellow-600' :
+                    'text-red-600'
+                  }`}>
+                    {categoryData.percentage}%
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selected Category Details */}
+          {selectedPCategory && aiAnalysis[selectedPCategory] && (
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 pb-3">
+                <h4 className="text-xl font-bold text-gray-900 dark:text-white capitalize">
+                  {selectedPCategory} Analysis
+                </h4>
+                <button
+                  onClick={() => setSelectedPCategory(null)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {aiAnalysis[selectedPCategory].insights.map((insight, idx) => (
+                <div key={idx} className="border-l-4 border-indigo-500 pl-4 py-2">
+                  <h5 className="font-semibold text-gray-900 dark:text-white mb-1">
+                    {insight.summary}
+                  </h5>
+                  <p className="text-sm text-gray-700 dark:text-slate-300 mb-2">
+                    {insight.explanation}
+                  </p>
+                  {insight.source && (
+                    <span className="text-xs text-gray-500 dark:text-slate-500">
+                      Source: {insight.source}
+                    </span>
+                  )}
+                </div>
+              ))}
+
+              {aiAnalysis[selectedPCategory].insights.length === 0 && (
+                <p className="text-gray-500 dark:text-slate-400 text-center py-4">
+                  No specific insights available for this category yet.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Quick Summary when no category selected */}
+          {!selectedPCategory && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
+                <h4 className="font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  Top Insights
+                </h4>
+                <div className="space-y-2">
+                  {['people', 'process', 'product', 'place'].map((cat) => {
+                    const category = cat as 'people' | 'process' | 'product' | 'place';
+                    const topInsight = aiAnalysis[category].insights[0];
+                    return topInsight ? (
+                      <div key={cat} className="text-sm">
+                        <span className="font-medium capitalize text-gray-900 dark:text-white">{cat}:</span>
+                        <span className="text-gray-700 dark:text-slate-300 ml-2">
+                          {topInsight.summary}
+                        </span>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
+                <h4 className="font-semibold text-yellow-700 dark:text-yellow-400 mb-2 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  Areas to Focus
+                </h4>
+                <div className="space-y-2">
+                  {['people', 'process', 'product', 'place']
+                    .map((cat) => ({
+                      category: cat,
+                      score: aiAnalysis[cat as 'people' | 'process' | 'product' | 'place'].percentage
+                    }))
+                    .sort((a, b) => a.score - b.score)
+                    .slice(0, 3)
+                    .map((item) => (
+                      <div key={item.category} className="text-sm flex items-center justify-between">
+                        <span className="capitalize font-medium text-gray-900 dark:text-white">
+                          {item.category}
+                        </span>
+                        <span className={`font-bold ${
+                          item.score >= 80 ? 'text-green-600' :
+                          item.score >= 60 ? 'text-yellow-600' :
+                          'text-red-600'
+                        }`}>
+                          {item.score}%
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {aiError && (
+            <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">{aiError}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Loading State for AI */}
+      {aiLoading && !aiAnalysis && (
+        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-900 rounded-xl p-6 border-2 border-indigo-200 dark:border-indigo-800">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white animate-pulse" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Generating AI Insights...</h3>
+              <p className="text-sm text-gray-600 dark:text-slate-400">Analyzing remarks from all checklists</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-16 bg-white/50 dark:bg-slate-700/50 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick Insights - Compact */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
