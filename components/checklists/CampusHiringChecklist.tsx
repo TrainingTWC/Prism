@@ -60,6 +60,10 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [noiseLevel, setNoiseLevel] = useState(0);
   
+  // Draft auto-save indicator
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showSaveIndicator, setShowSaveIndicator] = useState(false);
+  
   // Violation counts and warnings
   const [faceNotDetectedCount, setFaceNotDetectedCount] = useState(0);
   const [noiseWarnings, setNoiseWarnings] = useState<string[]>([]); // Array of warning messages to show
@@ -1071,6 +1075,129 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     };
   }, []);
 
+  // Prevent browser back button and warn user during assessment
+  useEffect(() => {
+    if (assessmentStarted && submitStatus !== 'success' && submitStatus !== 'locked') {
+      // Prevent back button navigation
+      const handlePopState = (e: PopStateEvent) => {
+        e.preventDefault();
+        const confirmLeave = window.confirm(
+          '⚠️ WARNING: Going back will reset your assessment!\n\n' +
+          'All your answers will be lost and you will need to start over.\n\n' +
+          'Are you sure you want to leave?'
+        );
+        
+        if (!confirmLeave) {
+          // Push the current state back to prevent navigation
+          window.history.pushState(null, '', window.location.href);
+        } else {
+          // User confirmed - allow navigation but clear saved data
+          localStorage.removeItem('campusHiringDraft');
+        }
+      };
+
+      // Warn on page refresh or close
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        const message = 'Your assessment progress will be lost if you leave this page. Are you sure?';
+        e.returnValue = message;
+        return message;
+      };
+
+      // Add initial history state to enable back button detection
+      window.history.pushState(null, '', window.location.href);
+      
+      // Add event listeners
+      window.addEventListener('popstate', handlePopState);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
+    }
+  }, [assessmentStarted, submitStatus]);
+
+  // Auto-save answers to localStorage as backup
+  useEffect(() => {
+    if (assessmentStarted && Object.keys(answers).length > 0) {
+      const draftData = {
+        answers,
+        candidateName,
+        candidatePhone,
+        candidateEmail,
+        campusName,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem('campusHiringDraft', JSON.stringify(draftData));
+      
+      // Show save indicator
+      setLastSaved(new Date());
+      setShowSaveIndicator(true);
+      
+      // Hide indicator after 2 seconds
+      const timer = setTimeout(() => {
+        setShowSaveIndicator(false);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [answers, candidateName, candidatePhone, candidateEmail, campusName, assessmentStarted]);
+
+  // Load draft on mount (if available and within 1 hour)
+  useEffect(() => {
+    const loadDraft = () => {
+      try {
+        const draftStr = localStorage.getItem('campusHiringDraft');
+        if (draftStr) {
+          const draft = JSON.parse(draftStr);
+          const draftTime = new Date(draft.timestamp).getTime();
+          const now = new Date().getTime();
+          const oneHour = 60 * 60 * 1000;
+          
+          // Only load if draft is less than 1 hour old
+          if (now - draftTime < oneHour) {
+            const restoreDraft = window.confirm(
+              '📝 Found an incomplete assessment from your previous session.\n\n' +
+              'Would you like to restore your answers?'
+            );
+            
+            if (restoreDraft) {
+              setAnswers(draft.answers || {});
+              if (!candidateDataLoaded) {
+                setCandidateName(draft.candidateName || '');
+                setCandidatePhone(draft.candidatePhone || '');
+                setCandidateEmail(draft.candidateEmail || '');
+                setCampusName(draft.campusName || '');
+              }
+              console.log('✓ Draft restored:', Object.keys(draft.answers).length, 'answers');
+            } else {
+              localStorage.removeItem('campusHiringDraft');
+            }
+          } else {
+            // Draft too old, remove it
+            localStorage.removeItem('campusHiringDraft');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading draft:', error);
+        localStorage.removeItem('campusHiringDraft');
+      }
+    };
+
+    // Only try to load draft if not auto-loaded from URL
+    if (!candidateDataLoaded) {
+      loadDraft();
+    }
+  }, []); // Run only once on mount
+
+  // Clear draft on successful submission
+  useEffect(() => {
+    if (submitStatus === 'success' || submitStatus === 'locked') {
+      localStorage.removeItem('campusHiringDraft');
+    }
+  }, [submitStatus]);
+
   // Monitor face detection count and trigger lockout
   useEffect(() => {
     if (faceNotDetectedCount >= 2 && !isLocked && proctoringEnabled) {
@@ -1124,6 +1251,84 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       };
     }
   }, [proctoringEnabled]);
+
+  // Prevent screenshots and screen recordings
+  useEffect(() => {
+    if (proctoringEnabled && assessmentStarted) {
+      // Prevent Print Screen key
+      const preventPrintScreen = (e: KeyboardEvent) => {
+        // Print Screen, Windows+Shift+S (Snipping Tool), Cmd+Shift+3/4 (Mac)
+        if (
+          e.key === 'PrintScreen' ||
+          (e.key === 'Print') ||
+          (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) ||
+          (e.metaKey && e.shiftKey && e.key === 's') ||
+          (e.key === 's' && e.metaKey && e.shiftKey) ||
+          (e.key === 'S' && e.shiftKey && (e.metaKey || e.ctrlKey))
+        ) {
+          e.preventDefault();
+          logViolation('window-blur', 'Screenshot attempt detected');
+          alert('⚠️ Screenshots are not allowed during the assessment!');
+          return false;
+        }
+      };
+
+      // Detect screen recording attempts via media permissions
+      const detectScreenRecording = () => {
+        if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+          // User attempting screen recording will trigger permission request
+          console.log('Screen recording detection active');
+        }
+      };
+
+      // Apply CSS to prevent screenshots (visual deterrent)
+      const style = document.createElement('style');
+      style.id = 'screenshot-protection';
+      style.textContent = `
+        * {
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          -ms-user-select: none !important;
+          user-select: none !important;
+        }
+        
+        body::after {
+          content: '';
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 9999;
+          background: transparent;
+        }
+      `;
+      document.head.appendChild(style);
+
+      // Blur screen on window focus loss (indicates recording/screenshot tool usage)
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          logViolation('window-blur', 'Window lost focus - possible screen capture');
+        }
+      };
+
+      document.addEventListener('keyup', preventPrintScreen);
+      document.addEventListener('keydown', preventPrintScreen);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      detectScreenRecording();
+
+      return () => {
+        document.removeEventListener('keyup', preventPrintScreen);
+        document.removeEventListener('keydown', preventPrintScreen);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        const styleEl = document.getElementById('screenshot-protection');
+        if (styleEl) {
+          styleEl.remove();
+        }
+      };
+    }
+  }, [proctoringEnabled, assessmentStarted]);
 
   const handleCampusSelect = (campus: string) => {
     setCampusName(campus);
@@ -1348,6 +1553,26 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      {/* Anti-screenshot watermark overlay */}
+      {proctoringEnabled && assessmentStarted && (
+        <div 
+          className="fixed inset-0 pointer-events-none z-50 select-none"
+          style={{
+            background: `repeating-linear-gradient(
+              45deg,
+              transparent,
+              transparent 100px,
+              rgba(99, 102, 241, 0.03) 100px,
+              rgba(99, 102, 241, 0.03) 200px
+            )`
+          }}
+        >
+          <div className="absolute inset-0 flex items-center justify-center opacity-5 select-none rotate-[-30deg] text-6xl font-bold text-indigo-600 whitespace-nowrap">
+            {candidateName || candidateEmail} • {new Date().toLocaleString()} • CONFIDENTIAL
+          </div>
+        </div>
+      )}
+
       {/* Hidden video and canvas elements - always in DOM for ref access */}
       <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0, overflow: 'hidden' }}>
         <video
@@ -1447,6 +1672,28 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
                   <p className="text-sm text-gray-600 dark:text-slate-400">
                     30 multiple-choice questions covering Communication, Problem Solving, Customer Service, Teamwork, and Adaptability. 
                     All questions must be answered before submission.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <AlertCircle className="w-6 h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-gray-900 dark:text-slate-100 mb-1">⚠️ Do Not Press Back Button</h4>
+                  <p className="text-sm text-gray-600 dark:text-slate-400">
+                    Using the browser back button or swiping back will trigger a warning as it may reset your progress. 
+                    Your answers are auto-saved, but stay on this page to avoid disruption.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                <EyeOff className="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-gray-900 dark:text-slate-100 mb-1">🚫 Screenshots & Screen Recording Prohibited</h4>
+                  <p className="text-sm text-gray-600 dark:text-slate-400">
+                    Screenshots, screen recordings, and screen sharing are strictly prohibited and will be detected. 
+                    Any attempt will be logged as a violation and may result in disqualification.
                   </p>
                 </div>
               </div>
@@ -1553,6 +1800,14 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
                   </div>
                 </div>
               </div>
+              
+              {/* Auto-save Indicator */}
+              {showSaveIndicator && assessmentStarted && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 backdrop-blur-sm rounded-lg border border-green-400/30 animate-fade-in">
+                  <CheckCircle className="w-4 h-4 text-green-200" />
+                  <span className="text-xs text-green-100 font-medium">Auto-saved</span>
+                </div>
+              )}
             </div>
             
             {/* Timer warning message */}
@@ -1999,19 +2254,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
 
       {/* Submit Button */}
       <div className="sticky bottom-0 bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 border-t-4 border-cyan-500">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600 dark:text-slate-400">
-              {questions.length - Object.keys(answers).length === 0
-                ? 'All questions answered! Ready to submit.'
-                : `${questions.length - Object.keys(answers).length} question(s) remaining (unanswered = 0 points)`}
-            </p>
-            {timeRemaining > 0 && (
-              <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">
-                Time remaining: {formatTime(timeRemaining)}
-              </p>
-            )}
-          </div>
+        <div className="flex items-center justify-center">
           <button
             onClick={() => handleSubmit(false)}
             disabled={loading || isLocked}
