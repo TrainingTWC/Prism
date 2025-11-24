@@ -198,12 +198,50 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
     if (metaLine.length) doc.text(metaLine.join('   |   '), 14, metaY);
     y = metaY + 12;
 
-    // Overall performance summary
-    const overallScore = parseFloat(submission['Score Percentage'] || '0');
-    
-    // Calculate total possible score (assuming 30 questions × 3 points each = 90)
-    const maxScore = 90;
-    const actualScore = Math.round((overallScore / 100) * maxScore);
+    // Calculate actual scores for each category by processing the questions
+    const categoryActualScores = CATEGORIES.map(category => {
+      const categoryIndex = CATEGORIES.findIndex(c => c.key === category.key);
+      const startQ = categoryIndex * 5 + 1;
+      const endQ = startQ + 5;
+      
+      const isPsychometric = category.name === 'Psychometric';
+      const maxScorePerQuestion = isPsychometric ? 3 : 1;
+      
+      let categoryScore = 0;
+      let categoryMaxScore = 0;
+      
+      for (let qNum = startQ; qNum < endQ; qNum++) {
+        const question = CAMPUS_HIRING_QUESTIONS.find(q => q.id === `Q${qNum}`);
+        if (!question) continue;
+        
+        const qHeader = Object.keys(submission).find(key => 
+          key.startsWith(`Q${qNum}:`) || key === `Q${qNum}`
+        );
+        const weight = submission[`Q${qNum} Weight`] || '0';
+        
+        // Normalize score based on category
+        let actualScore = parseFloat(weight);
+        if (!isPsychometric && actualScore > 0) {
+          // Non-psychometric: weight 3 means correct (1 mark), anything else is 0
+          actualScore = actualScore === 3 ? 1 : 0;
+        }
+        
+        categoryScore += actualScore;
+        categoryMaxScore += maxScorePerQuestion;
+      }
+      
+      return {
+        name: category.name,
+        score: categoryScore,
+        maxScore: categoryMaxScore,
+        percentage: categoryMaxScore > 0 ? (categoryScore / categoryMaxScore) * 100 : 0
+      };
+    });
+
+    // Calculate total score from all categories
+    const totalScore = categoryActualScores.reduce((sum, cat) => sum + cat.score, 0);
+    const totalMaxScore = categoryActualScores.reduce((sum, cat) => sum + cat.maxScore, 0);
+    const overallPercentage = totalMaxScore > 0 ? (totalScore / totalMaxScore) * 100 : 0;
 
     // Draw summary cards (matching QA style)
     const cardHeight = 42;
@@ -221,7 +259,7 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
     doc.setFontSize(20);
     doc.setTextColor(17, 24, 39);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${actualScore} / ${maxScore}`, leftX + 8, y + 30);
+    doc.text(`${totalScore} / ${totalMaxScore}`, leftX + 8, y + 30);
 
     // Right card: Percentage with progress bar
     doc.setFillColor(247, 249, 255);
@@ -233,9 +271,9 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
     doc.text('Percentage', rightX + 8, y + 10);
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    const pctColor = overallScore >= 80 ? [16, 185, 129] : overallScore >= 60 ? [245, 158, 11] : [239, 68, 68];
+    const pctColor = overallPercentage >= 80 ? [16, 185, 129] : overallPercentage >= 60 ? [245, 158, 11] : [239, 68, 68];
     doc.setTextColor(pctColor[0], pctColor[1], pctColor[2]);
-    doc.text(`${overallScore.toFixed(1)}%`, rightX + 8, y + 30);
+    doc.text(`${overallPercentage.toFixed(1)}%`, rightX + 8, y + 30);
     
     // Draw progress bar
     const barX = rightX + 8;
@@ -245,7 +283,7 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
     doc.setFillColor(226, 232, 240);
     doc.roundedRect(barX, barY, barWidth, barHeight, 2, 2, 'F');
     doc.setFillColor(pctColor[0], pctColor[1], pctColor[2]);
-    doc.roundedRect(barX, barY, Math.max(4, Math.min(barWidth, Math.round((overallScore / 100) * barWidth))), barHeight, 2, 2, 'F');
+    doc.roundedRect(barX, barY, Math.max(4, Math.min(barWidth, Math.round((overallPercentage / 100) * barWidth))), barHeight, 2, 2, 'F');
 
     y += cardHeight + 12;
 
@@ -256,15 +294,12 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
     doc.text('Category-wise Performance Summary', 14, y);
     y += 8;
 
-    // Build summary table data with percentages for progress bars
-    const summaryData = CATEGORIES.map(category => {
-      const score = parseFloat(submission[category.key] || '0');
-      return {
-        title: category.name,
-        percentageText: `${score.toFixed(1)}%`,
-        percentage: score
-      };
-    });
+    // Build summary table data using calculated scores
+    const summaryData = categoryActualScores.map(cat => ({
+      title: cat.name,
+      percentageText: `${cat.percentage.toFixed(1)}%`,
+      percentage: cat.percentage
+    }));
 
     const summaryRows = summaryData.map(d => [
       d.title,
@@ -344,11 +379,13 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
     doc.text('Performance Insights', 14, y);
     y += 10;
 
-    // Find top 3 and bottom 3 categories
-    const sortedCategories = CATEGORIES.map(category => ({
-      name: category.name,
-      score: parseFloat(submission[category.key] || '0')
-    })).sort((a, b) => b.score - a.score);
+    // Find top 3 and bottom 3 categories using calculated scores
+    const sortedCategories = categoryActualScores
+      .map(cat => ({
+        name: cat.name,
+        score: cat.percentage
+      }))
+      .sort((a, b) => b.score - a.score);
 
     const topThree = sortedCategories.slice(0, 3);
     const bottomThree = sortedCategories.slice(-3).reverse();
@@ -411,19 +448,27 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
     doc.text('Detailed Question-wise Performance', 14, y);
     y += 10;
 
-    // Build question details table - group by category with full question text and actual responses
-    const questionDetails: any[] = [];
-    
+    // Build question details grouped by category (similar to Training Report sections)
     CATEGORIES.forEach(category => {
-      // Add category header row
-      questionDetails.push([
-        { content: category.name, colSpan: 3, styles: { fillColor: [99, 102, 241], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 11 } }
-      ]);
+      // Check if we need a new page for this category
+      if (y > 240) {
+        doc.addPage();
+        y = 20;
+      }
       
       // Get questions for this category (5 questions per category)
       const categoryIndex = CATEGORIES.findIndex(c => c.key === category.key);
       const startQ = categoryIndex * 5 + 1;
       const endQ = startQ + 5;
+      
+      // Determine max score per question based on category
+      const isPsychometric = category.name === 'Psychometric';
+      const maxScorePerQuestion = isPsychometric ? 3 : 1;
+      
+      // Calculate category score and max score
+      let categoryScore = 0;
+      let categoryMaxScore = 0;
+      const questionRows: any[] = [];
       
       for (let qNum = startQ; qNum < endQ; qNum++) {
         // Find the question from our question bank
@@ -431,67 +476,97 @@ export const buildCampusHiringPDF = async (submission: CampusHiringSubmission): 
         if (!question) continue;
         
         // The Google Sheet headers include category suffix like "Q1: Psychometric"
-        // Try both formats to find the answer
         const qHeader = Object.keys(submission).find(key => 
           key.startsWith(`Q${qNum}:`) || key === `Q${qNum}`
         );
         const answerKey = (qHeader ? submission[qHeader] : '') || '-';
         const weight = submission[`Q${qNum} Weight`] || '0';
-        const maxWeight = 3; // Most questions have max 3 points
         
         // Get the actual response text
         const responseText = answerKey !== '-' && answerKey !== '' && question.options[answerKey as 'A' | 'B' | 'C' | 'D']
           ? question.options[answerKey as 'A' | 'B' | 'C' | 'D'].text
           : 'Not answered';
         
-        // Determine assessment based on weight
-        let assessment = 'N/A';
-        let assessmentColor: [number, number, number] = [120, 130, 145];
-        if (weight === '3') {
-          assessment = 'Excellent';
-          assessmentColor = [34, 197, 94]; // Green
-        } else if (weight === '2') {
-          assessment = 'Good';
-          assessmentColor = [245, 158, 11]; // Orange
-        } else if (weight === '1') {
-          assessment = 'Fair';
-          assessmentColor = [239, 68, 68]; // Red
+        // Normalize score based on category
+        let actualScore = parseFloat(weight);
+        if (!isPsychometric && actualScore > 0) {
+          // Non-psychometric: weight 3 means correct (1 mark), anything else is 0
+          actualScore = actualScore === 3 ? 1 : 0;
         }
         
-        questionDetails.push([
-          { content: `Q${qNum}: ${question.text}`, styles: { fontStyle: 'bold', fontSize: 9 } },
-          { content: responseText, styles: { fontSize: 9 } },
-          { content: assessment, styles: { fontSize: 9, fontStyle: 'bold', textColor: assessmentColor, halign: 'center' } }
+        categoryScore += actualScore;
+        categoryMaxScore += maxScorePerQuestion;
+        
+        questionRows.push([
+          `Q${qNum}: ${question.text}`,
+          responseText,
+          actualScore.toString(),
+          maxScorePerQuestion.toString()
         ]);
       }
-    });
+      
+      // Category header with score (matching Training Report style)
+      const categoryPercentage = categoryMaxScore > 0 ? Math.round((categoryScore / categoryMaxScore) * 100) : 0;
+      
+      doc.setFillColor(99, 102, 241); // Indigo background
+      doc.roundedRect(14, y, 182, 12, 2, 2, 'F');
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255); // White text
+      doc.text(category.name, 18, y + 8);
+      
+      // Right-align score
+      const scoreLabel = `Score: ${categoryScore}/${categoryMaxScore} (${categoryPercentage}%)`;
+      const scoreWidth = (doc as any).getTextWidth(scoreLabel) || scoreLabel.length * 3.5;
+      const scoreX = Math.min(182, 182 - scoreWidth);
+      doc.text(scoreLabel, scoreX, y + 8);
+      y += 18;
 
-    autoTable(doc as any, {
-      startY: y,
-      head: [['Question', 'Response', 'Assessment']],
-      body: questionDetails,
-      styles: {
-        fontSize: 9,
-        cellPadding: 4,
-        overflow: 'linebreak',
-        cellWidth: 'wrap'
-      },
-      headStyles: {
-        fillColor: [59, 130, 246],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        halign: 'center',
-        fontSize: 10
-      },
-      columnStyles: {
-        0: { cellWidth: 95, halign: 'left', fontStyle: 'normal' },
-        1: { cellWidth: 70, halign: 'left' },
-        2: { cellWidth: 25, halign: 'center' }
-      },
-      margin: { top: 20, bottom: 40 },
-      didDrawPage: (data: any) => {
-        // Page footer will be added later for all pages
-      }
+      // Questions table (matching Training Report format)
+      autoTable(doc as any, {
+        startY: y,
+        head: [['Question', 'Response', 'Score', 'Max']],
+        body: questionRows,
+        styles: {
+          fontSize: 9,
+          cellPadding: 3,
+          overflow: 'linebreak',
+          cellWidth: 'wrap'
+        },
+        headStyles: {
+          fillColor: [248, 250, 252],
+          textColor: [51, 65, 85],
+          fontStyle: 'bold',
+          halign: 'center',
+          fontSize: 9
+        },
+        columnStyles: {
+          0: { cellWidth: 100, halign: 'left' },
+          1: { cellWidth: 50, halign: 'left' },
+          2: { cellWidth: 15, halign: 'center', fontStyle: 'bold' },
+          3: { cellWidth: 15, halign: 'center' }
+        },
+        didParseCell: (data: any) => {
+          if (data.section === 'body' && data.column.index === 2) {
+            // Color the score column
+            const scoreNum = parseFloat(data.cell.raw);
+            const maxNum = parseFloat(questionRows[data.row.index][3]);
+            
+            if (!isNaN(scoreNum)) {
+              if (scoreNum === maxNum) {
+                data.cell.styles.textColor = [34, 197, 94]; // Green for perfect score
+              } else if (scoreNum > 0) {
+                data.cell.styles.textColor = [245, 158, 11]; // Orange for partial score
+              } else {
+                data.cell.styles.textColor = [239, 68, 68]; // Red for zero score
+              }
+            }
+          }
+        },
+        margin: { bottom: 40 }
+      });
+
+      y = (doc as any).lastAutoTable.finalY + 8;
     });
 
     // Footer for all pages

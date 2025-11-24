@@ -76,6 +76,15 @@ const CampusHiringStats: React.FC<CampusHiringStatsProps> = ({ submissions }) =>
     }))
     .sort((a, b) => b.score - a.score);
 
+  // Calculate submission counts per candidate (by phone or email)
+  const submissionCounts = filteredSubmissions.reduce((acc, s) => {
+    const identifier = s['Candidate Phone'] || s['Phone Number'] || s['Candidate Email'] || s['Email'];
+    if (identifier) {
+      acc[identifier] = (acc[identifier] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
   // Top candidate for overview card
   const topCandidate = allCandidates[0];
 
@@ -516,37 +525,94 @@ const CampusHiringStats: React.FC<CampusHiringStatsProps> = ({ submissions }) =>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-slate-300">Rank</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-slate-300">Candidate Name</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-slate-300">Campus</th>
+                <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700 dark:text-slate-300">Attempts</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-slate-300">Violations</th>
                 <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700 dark:text-slate-300">Score</th>
                 <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700 dark:text-slate-300">Report</th>
               </tr>
             </thead>
             <tbody>
-              {allCandidates.map((candidate, index) => (
-                <tr key={index} className="border-b border-gray-100 dark:border-slate-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-slate-700/30">
-                  <td className="py-3 px-4">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-white font-bold text-sm">
-                      {index + 1}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-gray-900 dark:text-slate-100 font-medium">{candidate.name}</td>
-                  <td className="py-3 px-4 text-gray-600 dark:text-slate-400">{candidate.campus}</td>
-                  <td className="py-3 px-4 text-right">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400">
-                      {candidate.score.toFixed(1)}%
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <button
-                      onClick={() => generateCandidatePDF(candidate)}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
-                      title={`Download detailed report for ${candidate.name}`}
-                    >
-                      <FileText className="w-4 h-4" />
-                      <span className="hidden sm:inline">PDF</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {allCandidates.map((candidate, index) => {
+                // Get total submission count for this candidate
+                const identifier = candidate.submission['Candidate Phone'] || candidate.phone || candidate.submission['Candidate Email'] || candidate.email;
+                const submissionCount = submissionCounts[identifier] || 1;
+                
+                // Get violation counts by type (using exact Google Sheets column names)
+                const tabSwitchViolations = parseInt(candidate.submission['Tab Switch Violations'] || '0');
+                const faceViolations = parseInt(candidate.submission['Face Not Detected Violations'] || '0') + 
+                                      parseInt(candidate.submission['Multiple Faces Violations'] || '0');
+                const voiceViolations = parseInt(candidate.submission['Excessive Noise Violations'] || '0');
+                const totalViolations = tabSwitchViolations + faceViolations + voiceViolations;
+                
+                return (
+                  <tr key={index} className="border-b border-gray-100 dark:border-slate-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-slate-700/30">
+                    <td className="py-3 px-4">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-white font-bold text-sm">
+                        {index + 1}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-gray-900 dark:text-slate-100 font-medium">{candidate.name}</td>
+                    <td className="py-3 px-4 text-gray-600 dark:text-slate-400">{candidate.campus}</td>
+                    <td className="py-3 px-4 text-center">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium ${
+                        submissionCount === 1
+                          ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                          : submissionCount === 2
+                          ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400'
+                          : 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400'
+                      }`}>
+                        {submissionCount}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      {totalViolations === 0 ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400">
+                          Clean ✓
+                        </span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {tabSwitchViolations > 0 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400" title="Tab Switch Violations">
+                              Tab: {tabSwitchViolations}
+                            </span>
+                          )}
+                          {faceViolations > 0 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400" title="Face Detection Violations">
+                              Face: {faceViolations}
+                            </span>
+                          )}
+                          {voiceViolations > 0 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400" title="Noise Violations">
+                              Voice: {voiceViolations}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
+                        candidate.score >= 75
+                          ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                          : candidate.score >= 50
+                          ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400'
+                          : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+                      }`}>
+                        {candidate.score.toFixed(1)}%
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => generateCandidatePDF(candidate)}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        title={`Download detailed report for ${candidate.name}`}
+                      >
+                        <FileText className="w-4 h-4" />
+                        <span className="hidden sm:inline">PDF</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

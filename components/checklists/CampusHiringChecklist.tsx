@@ -1661,7 +1661,22 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
         if (answer) {
           const option = question.options[answer as 'A' | 'B' | 'C'];
           formData.append(`${question.id}`, answer);
-          formData.append(`${question.id}_weight`, option.weight.toString());
+          
+          // Normalize weights:
+          // - Psychometric (Q1-Q5): Keep original weights (1, 2, 3)
+          // - All other categories (Q6-Q30): Convert to 1 or 0
+          //   Weight 3 = correct = 1 mark
+          //   Weight 1 or 2 = incorrect = 0 marks
+          const questionNum = parseInt(question.id.replace('Q', ''));
+          let normalizedWeight = option.weight;
+          
+          if (questionNum > 5) { // Non-psychometric questions
+            // If weight is 3, it's the correct answer = 1 mark
+            // Otherwise it's incorrect = 0 marks
+            normalizedWeight = option.weight === 3 ? 1 : 0;
+          }
+          
+          formData.append(`${question.id}_weight`, normalizedWeight.toString());
           formData.append(`${question.id}_category`, question.category);
         }
       });
