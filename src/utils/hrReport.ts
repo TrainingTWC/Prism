@@ -279,7 +279,8 @@ export const buildHRPDF = async (
   // Score Summary
   if (submissions.length === 1) {
     const overall = computeOverall(first);
-    const pct = overall.pct;
+    const score = (overall.total / overall.max * 5).toFixed(1); // Convert to 1-5 scale
+    const pct = overall.pct; // Keep percentage for bar fill calculation
     
     // Score bar
     doc.setFontSize(12);
@@ -297,7 +298,7 @@ export const buildHRPDF = async (
     doc.setFillColor(229, 231, 235);
     doc.roundedRect(barX, barY, barW, barH, 2, 2, 'F');
     
-    // Filled portion
+    // Filled portion (still based on percentage for visual consistency)
     const fillW = (pct / 100) * barW;
     let fillColor = [239, 68, 68]; // red
     if (pct >= 80) fillColor = [34, 197, 94]; // green
@@ -305,11 +306,11 @@ export const buildHRPDF = async (
     doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
     doc.roundedRect(barX, barY, fillW, barH, 2, 2, 'F');
     
-    // Percentage text
+    // Score text (show as X/5)
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(17, 24, 39);
-    doc.text(`${pct}%`, barX + barW + 5, barY + 6);
+    doc.text(`${score}/5`, barX + barW + 5, barY + 6);
     
     y += 12;
   } else {
@@ -319,6 +320,7 @@ export const buildHRPDF = async (
       return sum + overall.pct;
     }, 0);
     const avgPct = Math.round(totalPct / submissions.length);
+    const avgScore = ((avgPct / 100) * 5).toFixed(1); // Convert to 1-5 scale
     
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
@@ -335,7 +337,7 @@ export const buildHRPDF = async (
     doc.setFillColor(229, 231, 235);
     doc.roundedRect(barX, barY, barW, barH, 2, 2, 'F');
     
-    // Filled portion
+    // Filled portion (still based on percentage for visual consistency)
     const fillW = (avgPct / 100) * barW;
     let fillColor = [239, 68, 68]; // red
     if (avgPct >= 80) fillColor = [34, 197, 94]; // green
@@ -343,11 +345,11 @@ export const buildHRPDF = async (
     doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
     doc.roundedRect(barX, barY, fillW, barH, 2, 2, 'F');
     
-    // Percentage text
+    // Score text (show as X/5)
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(17, 24, 39);
-    doc.text(`Average: ${avgPct}%`, barX + barW + 5, barY + 6);
+    doc.text(`Average: ${avgScore}/5`, barX + barW + 5, barY + 6);
     
     y += 15;
 

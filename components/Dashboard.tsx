@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import { buildTrainingPDF } from '../src/utils/trainingReport';
 import { buildOperationsPDF } from '../src/utils/operationsReport';
 import { buildQAPDF } from '../src/utils/qaReport';
@@ -1413,31 +1414,39 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health);
       if (hasFilters) {
         if (!stats) return '—';
-        const prevPart = stats.previousScore !== null && stats.previousScore !== undefined ? ` (Prev ${stats.previousScore}%)` : '';
-        return `${stats.latestScore}%${prevPart}`;
+        const latestScore = ((stats.latestScore / 100) * 5).toFixed(1);
+        const prevScore = stats.previousScore !== null && stats.previousScore !== undefined 
+          ? ((stats.previousScore / 100) * 5).toFixed(1) 
+          : null;
+        const prevPart = prevScore !== null ? ` (Prev ${prevScore}/5)` : '';
+        return `${latestScore}/5${prevPart}`;
       }
 
       // No filters: prefer trendsData aggregated average
       // Prefer monthly latest/previous values when available (computed in stats)
       if (stats && (stats.latestScore !== null && stats.latestScore !== undefined)) {
-        const prevPart = stats.previousScore !== null && stats.previousScore !== undefined ? ` (Prev ${stats.previousScore}%)` : '';
-        return `${stats.latestScore}%${prevPart}`;
+        const latestScore = ((stats.latestScore / 100) * 5).toFixed(1);
+        const prevScore = stats.previousScore !== null && stats.previousScore !== undefined 
+          ? ((stats.previousScore / 100) * 5).toFixed(1) 
+          : null;
+        const prevPart = prevScore !== null ? ` (Prev ${prevScore}/5)` : '';
+        return `${latestScore}/5${prevPart}`;
       }
 
       // Fallback to aggregated average if monthly breakdown not present
-      if (stats && stats.avgScore != null) return `${stats.avgScore}%`;
+      if (stats && stats.avgScore != null) return `${((stats.avgScore / 100) * 5).toFixed(1)}/5`;
       if (!trendsLoading && trendsData) {
         const percentageRows = trendsData.filter((r: any) => (r.metric_name || '').toLowerCase() === 'percentage');
         if (percentageRows.length > 0) {
           const avg = percentageRows.reduce((acc: number, r: any) => acc + (parseFloat(r.metric_value) || 0), 0) / percentageRows.length;
-          return `${Math.round(avg)}%`;
+          return `${((avg / 100) * 5).toFixed(1)}/5`;
         }
       }
       return '—';
     }
 
-    // Default: use stats.avgScore when available
-    return `${stats?.avgScore ?? '—'}%`;
+    // Default: use stats.avgScore when available, convert to 1-5 scale
+    return stats?.avgScore != null ? `${((stats.avgScore / 100) * 5).toFixed(1)}/5` : '—';
   };
 
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
@@ -2675,6 +2684,135 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     }
   };
 
+  const generateExcelReport = () => {
+    try {
+      console.log('Starting Excel generation...');
+      hapticFeedback.confirm();
+
+      // Only support Excel export for HR dashboard
+      if (dashboardType !== 'hr') {
+        alert('Excel export is only available for HR Connect dashboard');
+        hapticFeedback.error();
+        return;
+      }
+
+      if (!filteredSubmissions || filteredSubmissions.length === 0) {
+        alert('No HR survey data available to export');
+        hapticFeedback.error();
+        return;
+      }
+
+      // Prepare data in Google Sheet format
+      const excelData = filteredSubmissions.map(submission => {
+        // Parse submission time - handle both ISO and DD/MM/YYYY formats
+        let submissionDate = '';
+        if (submission.submissionTime) {
+          try {
+            const date = new Date(submission.submissionTime);
+            if (!isNaN(date.getTime())) {
+              submissionDate = submission.submissionTime;
+            }
+          } catch (e) {
+            submissionDate = submission.submissionTime;
+          }
+        }
+
+        return {
+          'Server Timestamp': new Date().toISOString(),
+          'Submission Time': submissionDate,
+          'HR Name': submission.hrName || '',
+          'HR ID': submission.hrId || '',
+          'AM Name': submission.amName || '',
+          'AM ID': submission.amId || '',
+          'Emp Name': submission.empName || '',
+          'Emp ID': submission.empId || '',
+          'Store Name': submission.storeName || '',
+          'Store ID': submission.storeID || '',
+          'Region': submission.region || '',
+          'Q1 - Work Pressure in Café': submission.q1 || '',
+          'Q1 Remarks': submission.q1_remarks || '',
+          'Q2 - Decision Making & Customer Problem Solving': submission.q2 || '',
+          'Q2 Remarks': submission.q2_remarks || '',
+          'Q3 - Performance Reviews & SM/AM Feedback': submission.q3 || '',
+          'Q3 Remarks': submission.q3_remarks || '',
+          'Q4 - Team Treatment & Partiality': submission.q4 || '',
+          'Q4 Remarks': submission.q4_remarks || '',
+          'Q5 - Wings Program Training': submission.q5 || '',
+          'Q5 Remarks': submission.q5_remarks || '',
+          'Q6 - Operational Apps & Benefits Issues': submission.q6 || '',
+          'Q6 Remarks': submission.q6_remarks || '',
+          'Q7 - HR Handbook & Policies': submission.q7 || '',
+          'Q7 Remarks': submission.q7_remarks || '',
+          'Q8 - Work Schedule Satisfaction': submission.q8 || '',
+          'Q8 Remarks': submission.q8_remarks || '',
+          'Q9 - Team Collaboration': submission.q9 || '',
+          'Q9 Remarks': submission.q9_remarks || '',
+          'Q10 - Helpful Colleague': submission.q10 || '',
+          'Q10 Remarks': submission.q10_remarks || '',
+          'Q11 - Suggestions for Organization': submission.q11 || '',
+          'Q11 Remarks': submission.q11_remarks || '',
+          'Q12 - TWC Experience Rating': submission.q12 || '',
+          'Q12 Remarks': submission.q12_remarks || '',
+          'Total Score': submission.totalScore || 0,
+          'Max Score': submission.maxScore || 0,
+          'Percent': submission.percent || 0
+        };
+      });
+
+      // Create workbook and worksheet
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'HR Connect');
+
+      // Auto-size columns
+      const maxWidths: { [key: number]: number } = {};
+      const headers = Object.keys(excelData[0] || {});
+      
+      headers.forEach((header, colIndex) => {
+        maxWidths[colIndex] = header.length;
+      });
+
+      excelData.forEach(row => {
+        headers.forEach((header, colIndex) => {
+          const cellValue = String(row[header as keyof typeof row] || '');
+          maxWidths[colIndex] = Math.max(maxWidths[colIndex] || 0, cellValue.length);
+        });
+      });
+
+      worksheet['!cols'] = headers.map((_, i) => ({ 
+        wch: Math.min(maxWidths[i] + 2, 50) // Max width of 50 characters
+      }));
+
+      // Generate filename with date and filter info
+      let filenamePart = 'All';
+      if (filters.region) filenamePart = filters.region;
+      else if (filters.store) {
+        const store = allStores.find(s => s.id === filters.store);
+        filenamePart = store?.name || filters.store;
+      } else if (filters.am) {
+        const am = AREA_MANAGERS.find(a => a.id === filters.am);
+        filenamePart = am?.name || filters.am;
+      } else if (filters.hrPerson) {
+        const hr = HR_PERSONNEL.find(h => h.id === filters.hrPerson);
+        filenamePart = hr?.name || filters.hrPerson;
+      }
+
+      const fileName = `HR_Connect_${filenamePart}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Download file
+      XLSX.writeFile(workbook, fileName);
+
+      console.log('Excel generated successfully');
+      hapticFeedback.ultraStrong();
+      showNotificationMessage('Excel Downloaded', 'success');
+    } catch (error) {
+      console.error('Error generating Excel:', error);
+      alert('Error generating Excel report. Please try again.');
+      hapticFeedback.error();
+      showNotificationMessage('Error generating Excel', 'error');
+    }
+  };
+
   // For training dashboard, also wait for trendsData to load (needed for stats calculation)
   const isTrainingLoading = dashboardType === 'training' && !Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health) && trendsLoading;
   
@@ -2822,6 +2960,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               onFilterChange={handleFilterChange}
               onReset={resetFilters}
               onDownload={generatePDFReport}
+              onDownloadExcel={generateExcelReport}
               isGenerating={isGenerating}
               dashboardType={dashboardType}
             />

@@ -26,8 +26,8 @@ const AverageScoreByManagerChart: React.FC<AverageScoreByManagerChartProps> = ({
 
     return Object.entries(scoresByManager)
       .map(([name, { totalPercent, count }]) => ({
-        name: name.split(' ')[0], // Use first name for brevity
-        averageScore: Math.round(totalPercent / count),
+        name: name, // Use full name for better visibility
+        averageScore: parseFloat(((totalPercent / count / 100) * 5).toFixed(1)), // Convert to 1-5 scale
       }))
       .sort((a, b) => b.averageScore - a.averageScore);
   }, [submissions]);
@@ -47,8 +47,8 @@ const AverageScoreByManagerChart: React.FC<AverageScoreByManagerChartProps> = ({
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={chartStyles.gridStroke} />
-          <XAxis type="number" domain={[0, 100]} tick={{ fill: chartStyles.tickFill }} />
-          <YAxis dataKey="name" type="category" width={80} tick={{ fill: chartStyles.tickFill }} />
+          <XAxis type="number" domain={[0, 5]} tick={{ fill: chartStyles.tickFill }} />
+          <YAxis dataKey="name" type="category" width={100} tick={{ fill: chartStyles.tickFill, fontSize: 12 }} />
           <Tooltip 
             cursor={{fill: chartStyles.cursorFill}}
             contentStyle={{ 
@@ -57,7 +57,7 @@ const AverageScoreByManagerChart: React.FC<AverageScoreByManagerChartProps> = ({
               color: chartStyles.tooltipColor,
               borderRadius: '8px'
             }}
-            formatter={(value) => `${value}%`}
+            formatter={(value) => `${value}/5`}
           />
           <Bar dataKey="averageScore" fill={getChartPaletteWithAlpha(1)[3]} />
         </BarChart>

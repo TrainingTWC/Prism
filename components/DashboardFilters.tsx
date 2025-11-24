@@ -22,6 +22,7 @@ interface DashboardFiltersProps {
   onFilterChange: (filterName: 'region' | 'store' | 'am' | 'trainer' | 'hrPerson' | 'health', value: string) => void;
   onReset: () => void;
   onDownload?: () => void;
+  onDownloadExcel?: () => void;
   isGenerating?: boolean;
   dashboardType?: string; // Add dashboard type to customize labels
 }
@@ -233,6 +234,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   onFilterChange,
   onReset,
   onDownload,
+  onDownloadExcel,
   isGenerating = false,
   dashboardType = 'training', // Default to training for backward compatibility
 }) => {
@@ -484,12 +486,12 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             Refresh
           </button>
           
-          {/* Download Report Button */}
+          {/* Download PDF Report Button */}
           <button
             onClick={() => { if (typeof onDownload === 'function') onDownload(); }}
             disabled={isGenerating}
             className={`${isGenerating ? 'opacity-80 pointer-events-none' : ''} btn-primary-gradient text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-all duration-200 text-sm sm:text-base hover:shadow-lg flex items-center justify-center gap-2`}
-            aria-label="Download report"
+            aria-label="Download PDF report"
           >
             {isGenerating ? (
               <>
@@ -504,10 +506,24 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
                   <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
-                Download Report
+                Download PDF
               </>
             )}
           </button>
+
+          {/* Download Excel Button - Only show for HR dashboard */}
+          {dashboardType === 'hr' && onDownloadExcel && (
+            <button
+              onClick={() => { if (typeof onDownloadExcel === 'function') onDownloadExcel(); }}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-all duration-200 text-sm sm:text-base hover:shadow-lg flex items-center justify-center gap-2"
+              aria-label="Download Excel report"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+              Download Excel
+            </button>
+          )}
         </div>
       </div>
 
@@ -529,7 +545,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
           onClick={() => { if (typeof onDownload === 'function') onDownload(); }}
           disabled={isGenerating}
           className={`flex-1 inline-flex items-center justify-center gap-2 py-3 px-3 ${isGenerating ? 'opacity-80 pointer-events-none disabled:opacity-60' : ''} btn-primary-gradient text-white rounded-lg shadow-sm transition-transform duration-150 transform hover:scale-105`}
-          aria-label="Download report"
+          aria-label="Download PDF report"
         >
           {isGenerating ? (
             <>
@@ -544,10 +560,24 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
                 <path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V3zM3 9a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" />
               </svg>
-              <span className="text-sm">Download</span>
+              <span className="text-sm">PDF</span>
             </>
           )}
         </button>
+
+        {/* Excel Download Button for Mobile - Only show for HR dashboard */}
+        {dashboardType === 'hr' && onDownloadExcel && (
+          <button
+            onClick={() => { if (typeof onDownloadExcel === 'function') onDownloadExcel(); }}
+            className="flex-1 inline-flex items-center justify-center gap-2 py-3 px-3 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-transform duration-150 transform hover:scale-105"
+            aria-label="Download Excel report"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+              <path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V3zM3 9a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" />
+            </svg>
+            <span className="text-sm">Excel</span>
+          </button>
+        )}
 
         <button
           onClick={(e) => handleRefresh(e as any)}

@@ -17,18 +17,20 @@ const ScoreDistributionChart: React.FC<ScoreDistributionChartProps> = ({ submiss
   
   const data = useMemo(() => {
     const distribution = [
-      { name: '0-20%', count: 0 },
-      { name: '21-40%', count: 0 },
-      { name: '41-60%', count: 0 },
-      { name: '61-80%', count: 0 },
-      { name: '81-100%', count: 0 },
+      { name: '0-1', count: 0 },
+      { name: '1-2', count: 0 },
+      { name: '2-3', count: 0 },
+      { name: '3-4', count: 0 },
+      { name: '4-5', count: 0 },
     ];
 
     submissions.forEach(s => {
-      if (s.percent <= 20) distribution[0].count++;
-      else if (s.percent <= 40) distribution[1].count++;
-      else if (s.percent <= 60) distribution[2].count++;
-      else if (s.percent <= 80) distribution[3].count++;
+      // Convert percentage to 1-5 scale
+      const score = (s.percent / 100) * 5;
+      if (score <= 1) distribution[0].count++;
+      else if (score <= 2) distribution[1].count++;
+      else if (score <= 3) distribution[2].count++;
+      else if (score <= 4) distribution[3].count++;
       else distribution[4].count++;
     });
 

@@ -85,6 +85,7 @@ const HRDetailModal: React.FC<HRDetailModalProps> = ({
           comparison = new Date(b.submissionTime).getTime() - new Date(a.submissionTime).getTime();
           break;
         case 'score':
+          // Compare using the raw percent value (will be converted to /5 for display)
           comparison = b.percent - a.percent;
           break;
         case 'store':
@@ -110,7 +111,8 @@ const HRDetailModal: React.FC<HRDetailModalProps> = ({
       };
     }
 
-    const scores = filteredSubmissions.map(s => s.percent);
+    // Convert percentage to 1-5 scale (percent / 100 * 5)
+    const scores = filteredSubmissions.map(s => (s.percent / 100) * 5);
     const total = filteredSubmissions.length;
     const average = scores.reduce((sum, score) => sum + score, 0) / total;
     const highest = Math.max(...scores);
@@ -120,9 +122,9 @@ const HRDetailModal: React.FC<HRDetailModalProps> = ({
     const employeeCount = new Set(filteredSubmissions.map(s => s.empId)).size;
 
     return {
-      average: Math.round(average),
-      highest: Math.round(highest),
-      lowest: Math.round(lowest),
+      average: average.toFixed(1),
+      highest: highest.toFixed(1),
+      lowest: lowest.toFixed(1),
       total,
       employeeCount,
     };
@@ -215,7 +217,7 @@ const HRDetailModal: React.FC<HRDetailModalProps> = ({
                 : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
             }`}
           >
-            {Math.round(submission.percent)}%
+            {((submission.percent / 100) * 5).toFixed(1)}/5
           </span>
         </td>
       </tr>
@@ -273,15 +275,15 @@ const HRDetailModal: React.FC<HRDetailModalProps> = ({
           </div>
           <div className="text-center">
             <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400">Avg</p>
-            <p className="text-lg sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400">{stats.average}%</p>
+            <p className="text-lg sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400">{stats.average}/5</p>
           </div>
           <div className="text-center">
             <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400">Highest</p>
-            <p className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">{stats.highest}%</p>
+            <p className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">{stats.highest}/5</p>
           </div>
           <div className="text-center">
             <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400">Lowest</p>
-            <p className="text-lg sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.lowest}%</p>
+            <p className="text-lg sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.lowest}/5</p>
           </div>
         </div>
 
@@ -364,7 +366,7 @@ const HRDetailModal: React.FC<HRDetailModalProps> = ({
                               : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                           }`}
                         >
-                          {Math.round(submission.percent)}%
+                          {((submission.percent / 100) * 5).toFixed(1)}/5
                         </span>
                       </div>
                       
