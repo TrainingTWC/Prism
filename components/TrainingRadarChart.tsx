@@ -54,19 +54,22 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
       return null;
     }
 
-    // Group submissions by Trainer
-    const groupedByTrainer: { [trainerId: string]: TrainingAuditSubmission[] } = {};
+    // Group submissions by Trainer (normalize trainer name to avoid duplicates)
+    const groupedByTrainer: { [trainerName: string]: TrainingAuditSubmission[] } = {};
     
     submissions.forEach(submission => {
-      const trainerId = submission.trainerId || submission.trainerName || 'Unknown';
-      if (!groupedByTrainer[trainerId]) {
-        groupedByTrainer[trainerId] = [];
+      // Use trainerName as the primary key, normalize it to avoid duplicates
+      const trainerName = (submission.trainerName || submission.trainerId || 'Unknown').trim();
+      const normalizedName = trainerName.toLowerCase();
+      
+      if (!groupedByTrainer[normalizedName]) {
+        groupedByTrainer[normalizedName] = [];
       }
-      groupedByTrainer[trainerId].push(submission);
+      groupedByTrainer[normalizedName].push(submission);
     });
 
     // Calculate section averages for each trainer
-    const trainerData = Object.entries(groupedByTrainer).map(([trainerId, trainerSubmissions]) => {
+    const trainerData = Object.entries(groupedByTrainer).map(([normalizedName, trainerSubmissions]) => {
       const sectionAverages = (runtimeSections || DEFAULT_TRAINING_SECTIONS).map((section: any) => {
         const sectionScores: number[] = [];
         
@@ -204,7 +207,8 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
         return sectionScores.length > 0 ? sectionScores.reduce((a, b) => a + b) / sectionScores.length : 0;
       });
       
-      const trainerName = trainerSubmissions[0]?.trainerName || `Trainer ${trainerId}`;
+      // Get the original trainer name from the first submission
+      const trainerName = trainerSubmissions[0]?.trainerName || 'Unknown Trainer';
       
       // ✅ Debug logging to see what data is being calculated
       console.log(`Training Radar - ${trainerName}:`, {
@@ -216,7 +220,7 @@ const TrainingRadarChart: React.FC<TrainingRadarChartProps> = ({ submissions }) 
       });
       
       return {
-        trainerId,
+        normalizedName,
         trainerName: trainerName.split(' ')[0], // Use first name for brevity
         data: sectionAverages
       };

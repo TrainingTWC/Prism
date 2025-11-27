@@ -1,0 +1,290 @@
+/**
+ * AM OPERATIONS CHECKLIST - GOOGLE APPS SCRIPT (CLEAN VERSION)
+ * Fixed: Removed duplicate variable declarations
+ * Updated to follow the same structure as training audit checklist
+ * with comprehensive store mapping and auto-population
+ */
+
+// Global cache variables - declared once at the top
+var storeMappingCache = null;
+var cacheExpiry = null;
+var CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+
+function doPost(e) {
+  try {
+    // Try multiple ways to get parameters
+    var params = {};
+    
+    // Method 1: Standard parameter object (works for URL-encoded form data)
+    if (e && e.parameter) {
+      params = e.parameter;
+      console.log('Using e.parameter');
+    }
+    
+    // Method 2: Parse postData if parameter is empty (fallback)
+    if (Object.keys(params).length === 0 && e && e.postData && e.postData.contents) {
+      console.log('Parsing from e.postData.contents');
+      var contents = e.postData.contents;
+      var pairs = contents.split('&');
+      for (var i = 0; i < pairs.length; i++) {
+        var pair = pairs[i].split('=');
+        if (pair.length === 2) {
+          params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+        }
+      }
+    }
+    
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // Log all incoming parameters for debugging
+    console.log('=== ALL INCOMING PARAMETERS ===');
+    console.log('Total parameter keys: ' + Object.keys(params).length);
+    for (var key in params) {
+      console.log(key + ': ' + params[key]);
+    }
+    
+    // Try to find existing AM Operations sheet or create new one
+    var possibleSheetNames = ['AM Ops Checklist', 'AM Operations', 'AMOpsChecklist', 'AM_Operations'];
+    var sheet = null;
+    
+    for (var i = 0; i < possibleSheetNames.length; i++) {
+      sheet = ss.getSheetByName(possibleSheetNames[i]);
+      if (sheet) {
+        console.log('Using existing sheet: ' + possibleSheetNames[i]);
+        break;
+      }
+    }
+    
+    if (!sheet) {
+      sheet = ss.insertSheet('AM Ops Checklist');
+      console.log('Created new sheet: AM Ops Checklist');
+    }
+
+    // Get store info from mapping
+    var storeInfo = getStoreInfo(params.storeId || '');
+    
+    // Log all incoming parameters for debugging
+    console.log('=== INCOMING PARAMETERS ===');
+    console.log('Store ID: ' + (params.storeId || 'not provided'));
+    console.log('Region from form: ' + (params.region || 'not provided'));
+    console.log('HR Name from form: ' + (params.hrName || 'not provided'));
+    console.log('HR ID from form: ' + (params.hrId || 'not provided'));
+    console.log('AM Name from form: ' + (params.amName || 'not provided'));
+    console.log('AM ID from form: ' + (params.amId || 'not provided'));
+    console.log('Trainer Name from form: ' + (params.trainerName || 'not provided'));
+    console.log('Trainer ID from form: ' + (params.trainerId || 'not provided'));
+    
+    // Log store mapping info
+    console.log('=== STORE MAPPING INFO ===');
+    console.log('Store Info Found: ' + JSON.stringify(storeInfo));
+    
+    // Auto-populate region from store mapping
+    if (storeInfo.region) {
+      params.region = storeInfo.region;
+      console.log('Region set from store mapping: ' + params.region);
+    } else {
+      console.log('No region found in store mapping, keeping form value: ' + (params.region || 'empty'));
+    }
+    
+    // Auto-populate other store-related fields from mapping
+    params.storeName = storeInfo.storeName || params.storeName || '';
+    params.amId = storeInfo.amId || params.amId || '';
+    params.amName = storeInfo.amName || params.amName || '';
+    params.hrbpId = storeInfo.hrbpId || params.hrbpId || '';
+    params.regionalHrId = storeInfo.regionalHrId || params.regionalHrId || '';
+    params.hrHeadId = storeInfo.hrHeadId || params.hrHeadId || '';
+    params.lmsHeadId = storeInfo.lmsHeadId || params.lmsHeadId || '';
+    params.regionalTrainingManager = storeInfo.regionalTrainingManager || params.regionalTrainingManager || '';
+    
+    // Auto-populate trainer info from mapping if not provided by form
+    if (!params.trainerName && storeInfo.trainer) {
+      params.trainerName = storeInfo.trainer;
+      console.log('Trainer name set from store mapping: ' + params.trainerName);
+    }
+    if (!params.trainerId && storeInfo.trainerId) {
+      params.trainerId = storeInfo.trainerId;
+      console.log('Trainer ID set from store mapping: ' + params.trainerId);
+    }
+    
+    // Final logging
+    console.log('=== FINAL VALUES ===');
+    console.log('Final Region: ' + (params.region || 'not set'));
+    console.log('Final AM Name: ' + (params.amName || 'not set'));
+    console.log('Final AM ID: ' + (params.amId || 'not set'));
+    console.log('Final Trainer Name: ' + (params.trainerName || 'not set'));
+    console.log('Final Trainer ID: ' + (params.trainerId || 'not set'));
+    console.log('Final Regional Training Manager: ' + (params.regionalTrainingManager || 'not set'));
+
+    var header = [
+      'Server Timestamp', 'Submission Time', 
+      'HR Name', 'HR ID',
+      'AM Name', 'AM ID',
+      'Trainer Name', 'Trainer ID',
+      'Store Name', 'Store ID', 'Region',
+      'BSC Achievement', 'No. of people on shift', 'Man power fulfilment', 'Café Type', 'Store Type', 'Concept',
+      
+      // Customer Greeting (CG) - Questions 1-13
+      'CG_1', 'CG_2', 'CG_3', 'CG_4', 'CG_5', 'CG_6', 'CG_7', 'CG_8', 'CG_9', 'CG_10', 'CG_11', 'CG_12', 'CG_13',
+      
+      // On-Time Arrival (OTA) - Questions 101-111
+      'OTA_101', 'OTA_102', 'OTA_103', 'OTA_104', 'OTA_105', 'OTA_106', 'OTA_107', 'OTA_108', 'OTA_109', 'OTA_110', 'OTA_111',
+      
+      // Food and Safety (FAS) - Questions 201-213
+      'FAS_201', 'FAS_202', 'FAS_203', 'FAS_204', 'FAS_205', 'FAS_206', 'FAS_207', 'FAS_208', 'FAS_209', 'FAS_210', 'FAS_211', 'FAS_212', 'FAS_213',
+      
+      // Formal Work Standards (FWS) - Questions 301-313
+      'FWS_301', 'FWS_302', 'FWS_303', 'FWS_304', 'FWS_305', 'FWS_306', 'FWS_307', 'FWS_308', 'FWS_309', 'FWS_310', 'FWS_311', 'FWS_312', 'FWS_313',
+      
+      // Engagement (ENJ) - Questions 401-407
+      'ENJ_401', 'ENJ_402', 'ENJ_403', 'ENJ_404', 'ENJ_405', 'ENJ_406', 'ENJ_407',
+      
+      // Excellence (EX) - Questions 501-506
+      'EX_501', 'EX_502', 'EX_503', 'EX_504', 'EX_505', 'EX_506',
+      
+      // Section Remarks
+      'CG_remarks', 'OTA_remarks', 'FAS_remarks', 'FWS_remarks', 'ENJ_remarks', 'EX_remarks',
+      
+      // Additional Fields
+      'Remarks',
+      'Image Upload',
+      
+      // Scoring
+      'Total Score', 'Max Score', 'Percentage',
+      'CG_Score', 'OTA_Score', 'FAS_Score', 'FWS_Score', 'ENJ_Score', 'EX_Score'
+    ];
+
+    // Ensure header row exists
+    var needHeader = false;
+    if (sheet.getLastRow() === 0) {
+      needHeader = true;
+    } else {
+      var firstRow = sheet.getRange(1, 1, 1, header.length).getValues()[0] || [];
+      if (firstRow.length !== header.length) {
+        needHeader = true;
+      }
+    }
+    if (needHeader) {
+      if (sheet.getLastRow() > 0) sheet.insertRowBefore(1);
+      sheet.getRange(1, 1, 1, header.length).setValues([header]);
+    }
+
+    var serverTimestamp = new Date();
+    var submissionTime = params.submissionTime || serverTimestamp.toISOString();
+    
+    var row = [
+      serverTimestamp, submissionTime,
+      params.hrName || '', params.hrId || '',
+      params.amName || '', params.amId || '',
+      params.trainerName || '', params.trainerId || '',
+      params.storeName || '', params.storeId || '',
+      params.region || '',
+      params.bscAchievement || '', params.peopleOnShift || '', 
+      params.manpowerFulfilment || '', params.cafeType || '',
+      params.storeType || '', params.concept || '',
+      
+      // Customer Greeting (CG) - Questions 1-13
+      params.CG_1 || '', params.CG_2 || '', params.CG_3 || '',
+      params.CG_4 || '', params.CG_5 || '', params.CG_6 || '',
+      params.CG_7 || '', params.CG_8 || '', params.CG_9 || '',
+      params.CG_10 || '', params.CG_11 || '', params.CG_12 || '', params.CG_13 || '',
+      
+      // On-Time Arrival (OTA) - Questions 101-111
+      params.OTA_101 || '', params.OTA_102 || '', params.OTA_103 || '',
+      params.OTA_104 || '', params.OTA_105 || '', params.OTA_106 || '',
+      params.OTA_107 || '', params.OTA_108 || '', params.OTA_109 || '',
+      params.OTA_110 || '', params.OTA_111 || '',
+      
+      // Food and Safety (FAS) - Questions 201-213
+      params.FAS_201 || '', params.FAS_202 || '', params.FAS_203 || '',
+      params.FAS_204 || '', params.FAS_205 || '', params.FAS_206 || '',
+      params.FAS_207 || '', params.FAS_208 || '', params.FAS_209 || '',
+      params.FAS_210 || '', params.FAS_211 || '', params.FAS_212 || '', params.FAS_213 || '',
+      
+      // Formal Work Standards (FWS) - Questions 301-313
+      params.FWS_301 || '', params.FWS_302 || '', params.FWS_303 || '',
+      params.FWS_304 || '', params.FWS_305 || '', params.FWS_306 || '',
+      params.FWS_307 || '', params.FWS_308 || '', params.FWS_309 || '',
+      params.FWS_310 || '', params.FWS_311 || '', params.FWS_312 || '', params.FWS_313 || '',
+      
+      // Engagement (ENJ) - Questions 401-407
+      params.ENJ_401 || '', params.ENJ_402 || '', params.ENJ_403 || '',
+      params.ENJ_404 || '', params.ENJ_405 || '', params.ENJ_406 || '', params.ENJ_407 || '',
+      
+      // Excellence (EX) - Questions 501-506
+      params.EX_501 || '', params.EX_502 || '', params.EX_503 || '',
+      params.EX_504 || '', params.EX_505 || '', params.EX_506 || '',
+      
+      // Section remarks
+      params.CG_remarks || '', params.OTA_remarks || '',
+      params.FAS_remarks || '', params.FWS_remarks || '',
+      params.ENJ_remarks || '', params.EX_remarks || '',
+      
+      // Additional Fields
+      params.remarks || '',
+      params.imageUpload || '',
+      
+      // Scoring
+      params.totalScore || '', params.maxScore || '', params.percentage || '',
+      params.cgScore || '', params.otaScore || '', params.fasScore || '',
+      params.fwsScore || '', params.enjScore || '', params.exScore || ''
+    ];
+
+    sheet.appendRow(row);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: 'OK' }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: 'ERROR', message: String(err) }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  try {
+    var params = (e && e.parameter) ? e.parameter : {};
+    if (params.action === 'getData') {
+      return getAMOperationsData();
+    } else if (params.action === 'getStoreInfo' && params.storeId) {
+      // Provide store info to frontend for auto-population
+      var storeInfo = getStoreInfo(params.storeId);
+      console.log('Providing store info for ' + params.storeId + ': ' + JSON.stringify(storeInfo));
+      return ContentService
+        .createTextOutput(JSON.stringify(storeInfo))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    return ContentService
+      .createTextOutput(JSON.stringify([]))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: 'ERROR', message: String(err) }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function getAMOperationsData() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // Try multiple possible sheet names
+    var possibleSheetNames = ['AM Ops Checklist', 'AM Operations', 'AMOpsChecklist', 'AM_Operations'];
+    var sheet = null;
+    
+    for (var i = 0; i < possibleSheetNames.length; i++) {
+      sheet = ss.getSheetByName(possibleSheetNames[i]);
+      if (sheet) {
+        console.log('Found sheet: ' + possibleSheetNames[i]);
+        break;
+      }
+    }
+    
+    if (!sheet) {
+      console.log('No AM Operations sheet found. Available sheets: ' + ss.getSheets().map(function(s) { return s.getName(); }).join(', '));
+      return ContentService
+        .createTextOutput(JSON.stringify([]))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    

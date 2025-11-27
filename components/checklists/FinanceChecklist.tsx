@@ -1,19 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { UserRole, canAccessStore, canAccessAM } from '../../roleMapping';
-import { AREA_MANAGERS } from '../../constants';
 import { hapticFeedback } from '../../utils/haptics';
 import LoadingOverlay from '../LoadingOverlay';
-import hrMappingData from '../../src/hr_mapping.json';
+import { useComprehensiveMapping, useAreaManagers } from '../../hooks/useComprehensiveMapping';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
 
-// Google Sheets endpoint for logging data
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKMVh-lnNBnINskIqD10CnQHvGsW_R2SLASGSdBDN9lTGj1gznlNbHORQ/exec';
+// Google Sheets endpoint for Finance Audit (QA Pattern)
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx1WaaEoUTttanmWGS8me3HZNhuqaxVHoPdWN3AdI0i4bLQmHFRztj133Vh8SaoVb2iwg/exec';
 
 interface SurveyResponse {
   [key: string]: string;
 }
-
 interface SurveyMeta {
   financeAuditorName: string;
   financeAuditorId: string;
@@ -127,9 +125,22 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
   const { employeeData, userRole: authUserRole } = useAuth();
 
+  // Load comprehensive mapping data
+  const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
+  const areaManagers = useAreaManagers();
+
+  // Convert comprehensive mapping to store format
+  const allStores = useMemo(() => {
+    return comprehensiveMapping.map(store => ({
+      name: store['Store Name'],
+      id: store['Store ID'],
+      region: store['Region'],
+      amId: store['AM']
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [comprehensiveMapping]);
+
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [allStores, setAllStores] = useState<Store[]>([]);
   
   const [amSearchTerm, setAmSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
@@ -137,6 +148,20 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   const [selectedAmIndex, setSelectedAmIndex] = useState(-1);
   const [selectedStoreIndex, setSelectedStoreIndex] = useState(-1);
+  
+  // Signature state
+  const [signatures, setSignatures] = useState<{ auditor: string; sm: string }>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('finance_signatures') || '{"auditor":"","sm":""}');
+    } catch (e) {
+      return { auditor: '', sm: '' };
+    }
+  });
+
+  // Signature canvas refs
+  const auditorCanvasRef = React.useRef<HTMLCanvasElement>(null);
+  const smCanvasRef = React.useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState({ auditor: false, sm: false });
 
   // Autofill Finance fields when user role is finance
   useEffect(() => {
@@ -149,37 +174,33 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
     }
   }, [authUserRole, employeeData]);
 
-  // Load stores from hr_mapping.json
+  // Auto-fill AM when store is selected from comprehensive mapping
   useEffect(() => {
-    const loadStores = () => {
-      try {
-        const storeMap = new Map();
+    if (meta.storeId && comprehensiveMapping.length > 0) {
+      const store = comprehensiveMapping.find(s => s['Store ID'] === meta.storeId);
+      console.log('🔍 Finance: Looking for store mapping for:', meta.storeId);
+      console.log('🔍 Finance: Found store mapping:', store);
+      
+      if (store && store.AM) {
+        console.log('🔍 Finance: Store has AM ID:', store.AM);
+        const am = areaManagers.areaManagers.find(am => am.id === store.AM);
+        console.log('🔍 Finance: Found AM in list:', am);
         
-        hrMappingData.forEach((item: any) => {
-          if (!storeMap.has(item.storeId)) {
-            storeMap.set(item.storeId, {
-              name: item.locationName,
-              id: item.storeId,
-              region: item.region
-            });
-          }
-        });
-        
-        const stores = Array.from(storeMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
-        setAllStores(stores);
-      } catch (error) {
-        console.warn('Could not load stores from mapping data:', error);
-        setAllStores([
-          { name: 'Defence Colony', id: 'S027' },
-          { name: 'Khan Market', id: 'S037' },
-          { name: 'UB City', id: 'S007' },
-          { name: 'Koramangala 1', id: 'S001' }
-        ]);
+        if (am && (!meta.amId || meta.amId !== am.id)) {
+          setMeta(prev => ({
+            ...prev,
+            amId: am.id,
+            amName: am.name
+          }));
+          console.log('✅ Auto-filled AM from comprehensive mapping:', am.name, '('+am.id+') for store:', meta.storeId);
+        } else if (!am) {
+          console.warn('❌ AM not found in areaManagers list for ID:', store.AM);
+        }
+      } else {
+        console.warn('❌ Store not found in comprehensive mapping or has no AM:', meta.storeId);
       }
-    };
-    
-    loadStores();
-  }, []);
+    }
+  }, [meta.storeId, comprehensiveMapping, areaManagers, meta.amId]);
 
   // Save responses to localStorage whenever they change
   useEffect(() => {
@@ -190,6 +211,37 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   useEffect(() => {
     localStorage.setItem('finance_meta', JSON.stringify(meta));
   }, [meta]);
+
+  // Save signatures to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('finance_signatures', JSON.stringify(signatures));
+  }, [signatures]);
+
+  // Initialize canvas when signatures are loaded from localStorage
+  useEffect(() => {
+    if (signatures.auditor && auditorCanvasRef.current) {
+      const canvas = auditorCanvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0);
+        };
+        img.src = signatures.auditor;
+      }
+    }
+    if (signatures.sm && smCanvasRef.current) {
+      const canvas = smCanvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0);
+        };
+        img.src = signatures.sm;
+      }
+    }
+  }, [signatures.auditor, signatures.sm]);
 
   // Update stats whenever responses change
   useEffect(() => {
@@ -222,12 +274,12 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   }, [responses, onStatsUpdate]);
 
   const filteredAreaManagers = useMemo(() => {
-    if (!amSearchTerm) return AREA_MANAGERS;
-    return AREA_MANAGERS.filter(am => 
+    if (!amSearchTerm) return areaManagers.areaManagers;
+    return areaManagers.areaManagers.filter(am => 
       am.name.toLowerCase().includes(amSearchTerm.toLowerCase()) ||
       am.id.toLowerCase().includes(amSearchTerm.toLowerCase())
     );
-  }, [amSearchTerm]);
+  }, [amSearchTerm, areaManagers]);
 
   const filteredStores = useMemo(() => {
     if (!storeSearchTerm) return allStores;
@@ -239,6 +291,99 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
   const handleMetaChange = (field: keyof SurveyMeta, value: string) => {
     setMeta(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Signature drawing functions
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, type: 'auditor' | 'sm') => {
+    const canvas = type === 'auditor' ? auditorCanvasRef.current : smCanvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return;
+
+    // Enable smoothing for better quality
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    setIsDrawing(prev => ({ ...prev, [type]: true }));
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    let x, y;
+    if ('touches' in e) {
+      x = (e.touches[0].clientX - rect.left) * scaleX;
+      y = (e.touches[0].clientY - rect.top) * scaleY;
+    } else {
+      x = (e.clientX - rect.left) * scaleX;
+      y = (e.clientY - rect.top) * scaleY;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, type: 'auditor' | 'sm') => {
+    if (!isDrawing[type]) return;
+
+    const canvas = type === 'auditor' ? auditorCanvasRef.current : smCanvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return;
+
+    // Enable smoothing
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    let x, y;
+    if ('touches' in e) {
+      x = (e.touches[0].clientX - rect.left) * scaleX;
+      y = (e.touches[0].clientY - rect.top) * scaleY;
+    } else {
+      x = (e.clientX - rect.left) * scaleX;
+      y = (e.clientY - rect.top) * scaleY;
+    }
+
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#000';
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = (type: 'auditor' | 'sm') => {
+    setIsDrawing(prev => ({ ...prev, [type]: false }));
+    
+    const canvas = type === 'auditor' ? auditorCanvasRef.current : smCanvasRef.current;
+    if (!canvas) return;
+
+    // Save signature as base64
+    const signatureData = canvas.toDataURL('image/png');
+    setSignatures(prev => ({
+      ...prev,
+      [type]: signatureData
+    }));
+  };
+
+  const clearSignature = (type: 'auditor' | 'sm') => {
+    const canvas = type === 'auditor' ? auditorCanvasRef.current : smCanvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setSignatures(prev => ({
+      ...prev,
+      [type]: ''
+    }));
   };
 
   const handleResponse = (questionId: string, answer: string) => {
@@ -269,6 +414,12 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       return;
     }
 
+    // Validate signatures
+    if (!signatures.auditor || !signatures.sm) {
+      alert('Please provide both Auditor and Store Manager signatures before submitting.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -288,73 +439,88 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       
       const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
 
-      // Detect region and correct store ID
+      // Detect region and correct store ID from comprehensive mapping
       let detectedRegion = '';
       let correctedStoreId = meta.storeId;
       try {
-        if (meta.storeId) {
-          let storeMapping = hrMappingData.find((item: any) => item.storeId === meta.storeId);
+        if (meta.storeId && comprehensiveMapping.length > 0) {
+          let storeMapping = comprehensiveMapping.find(item => item['Store ID'] === meta.storeId);
           
-          const storeIdNum = Number(meta.storeId);
-          if (!storeMapping && !Number.isNaN(storeIdNum) && typeof meta.storeId === 'string' && !meta.storeId.startsWith('S')) {
+          // If not found and store ID doesn't start with S, try with S prefix
+          if (!storeMapping && !meta.storeId.startsWith('S')) {
             const sFormattedId = `S${meta.storeId.padStart(3, '0')}`;
-            storeMapping = hrMappingData.find((item: any) => item.storeId === sFormattedId);
+            storeMapping = comprehensiveMapping.find(item => item['Store ID'] === sFormattedId);
           }
           
+          // If still not found, try matching by store name
           if (!storeMapping && meta.storeName) {
-            storeMapping = hrMappingData.find((item: any) => 
-              item.locationName.toLowerCase().includes(meta.storeName.toLowerCase()) ||
-              meta.storeName.toLowerCase().includes(item.locationName.toLowerCase())
+            storeMapping = comprehensiveMapping.find(item => 
+              item['Store Name'].toLowerCase().includes(meta.storeName.toLowerCase()) ||
+              meta.storeName.toLowerCase().includes(item['Store Name'].toLowerCase())
             );
           }
           
           if (storeMapping) {
-            detectedRegion = storeMapping.region || '';
-            correctedStoreId = storeMapping.storeId;
+            detectedRegion = storeMapping.Region || '';
+            correctedStoreId = storeMapping['Store ID'];
+            console.log('✅ Mapped Finance store to region:', detectedRegion, 'Store ID:', correctedStoreId);
           }
         }
       } catch (error) {
-        console.warn('Could not load mapping data for region detection:', error);
+        console.warn('Could not load comprehensive mapping data for region detection:', error);
       }
 
-      // Prepare data for Google Sheets
-      const params = {
+      // Prepare data for Google Sheets (URL-encoded like QA checklist)
+      const params: Record<string, string> = {
         submissionTime: new Date().toLocaleString('en-GB', {hour12: false}),
         financeAuditorName: meta.financeAuditorName || '',
         financeAuditorId: meta.financeAuditorId || '',
         amName: meta.amName || '',
         amId: meta.amId || '',
         storeName: meta.storeName || '',
-        storeID: correctedStoreId,
+        storeId: correctedStoreId,
         region: detectedRegion || 'Unknown',
-        totalScore: totalScore,
-        maxScore: maxScore,
-        scorePercentage: scorePercentage,
-        ...responses
+        totalScore: totalScore.toString(),
+        maxScore: maxScore.toString(),
+        scorePercentage: scorePercentage.toString(),
+        auditorSignature: signatures.auditor || '',
+        smSignature: signatures.sm || ''
       };
 
+      // Add all question responses
+      sections.forEach(section => {
+        section.items.forEach(item => {
+          const questionKey = `${section.id}_${item.id}`;
+          params[questionKey] = responses[questionKey] || '';
+        });
+        // Add section remarks
+        params[`${section.id}_remarks`] = responses[`${section.id}_remarks`] || '';
+      });
+
       console.log('Finance Survey data being sent:', params);
+      console.log('Total parameters:', Object.keys(params).length);
 
-      // Ensure all values are strings for URLSearchParams
-      const stringParams: Record<string, string> = Object.fromEntries(
-        Object.entries(params).map(([k, v]) => [k, String(v)])
-      );
-
+      // Send as URL-encoded form data (like QA checklist)
       const response = await fetch(LOG_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams(stringParams).toString()
+        body: new URLSearchParams(params).toString()
       });
 
-      console.log('Finance Survey submitted successfully');
+      console.log('Finance Survey submitted successfully (no-cors mode - check Google Sheet to verify)');
+      alert('Finance audit submitted successfully! Please check your Google Sheet to verify the data was recorded.');
       setSubmitted(true);
       
     } catch (error) {
       console.error('Error submitting Finance survey:', error);
-      alert('Error submitting survey. Please try again.');
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+      
+      // Show detailed error to user
+      alert(`Error submitting survey: ${error.message}\n\nCheck browser console (F12) for details.`);
     } finally {
       setIsLoading(false);
     }
@@ -371,9 +537,21 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         storeName: '',
         storeId: ''
       });
+      setSignatures({ auditor: '', sm: '' });
       setSubmitted(false);
       localStorage.removeItem('finance_resp');
       localStorage.removeItem('finance_meta');
+      localStorage.removeItem('finance_signatures');
+      
+      // Clear canvases
+      if (auditorCanvasRef.current) {
+        const ctx = auditorCanvasRef.current.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, auditorCanvasRef.current.width, auditorCanvasRef.current.height);
+      }
+      if (smCanvasRef.current) {
+        const ctx = smCanvasRef.current.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, smCanvasRef.current.width, smCanvasRef.current.height);
+      }
     }
   };
 
@@ -562,6 +740,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
                         <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-3">
                           {item.q}
                         </p>
+                        
+                        {/* Response Options */}
                         <div className="flex gap-4">
                           {['yes', 'no', 'na'].map(option => (
                             <label key={option} className="flex items-center space-x-2 cursor-pointer">
@@ -598,6 +778,123 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Signatures Section - Mobile Optimized */}
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4 sm:mb-6">
+          Signatures
+        </h2>
+        
+        <div className="space-y-6 md:space-y-0 md:grid md:grid-cols-2 md:gap-6">
+          {/* Auditor Signature */}
+          <div className="space-y-3">
+            <label className="block text-base sm:text-sm font-medium text-gray-700 dark:text-slate-300">
+              Finance Auditor Signature *
+            </label>
+            <div className="border-3 border-gray-400 dark:border-slate-500 rounded-xl bg-white p-1 shadow-inner">
+              <canvas
+                ref={auditorCanvasRef}
+                width={1600}
+                height={600}
+                onMouseDown={(e) => startDrawing(e, 'auditor')}
+                onMouseMove={(e) => draw(e, 'auditor')}
+                onMouseUp={() => stopDrawing('auditor')}
+                onMouseLeave={() => stopDrawing('auditor')}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  startDrawing(e, 'auditor');
+                }}
+                onTouchMove={(e) => {
+                  e.preventDefault();
+                  draw(e, 'auditor');
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  stopDrawing('auditor');
+                }}
+                className="w-full h-auto touch-none rounded-lg"
+                style={{ 
+                  touchAction: 'none',
+                  cursor: 'crosshair',
+                  WebkitTouchCallout: 'none',
+                  WebkitUserSelect: 'none',
+                  userSelect: 'none',
+                  imageRendering: 'crisp-edges'
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => clearSignature('auditor')}
+              className="w-full px-4 py-3 sm:py-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 min-h-[48px] sm:min-h-0"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Clear Signature
+            </button>
+            <p className="text-sm text-gray-600 dark:text-slate-400 text-center font-medium">
+              {typeof window !== 'undefined' && 'ontouchstart' in window 
+                ? '✍️ Draw with your finger' 
+                : '🖱️ Draw with your mouse'}
+            </p>
+          </div>
+
+          {/* Store Manager Signature */}
+          <div className="space-y-3">
+            <label className="block text-base sm:text-sm font-medium text-gray-700 dark:text-slate-300">
+              Store Manager (SM) Signature *
+            </label>
+            <div className="border-3 border-gray-400 dark:border-slate-500 rounded-xl bg-white p-1 shadow-inner">
+              <canvas
+                ref={smCanvasRef}
+                width={1600}
+                height={600}
+                onMouseDown={(e) => startDrawing(e, 'sm')}
+                onMouseMove={(e) => draw(e, 'sm')}
+                onMouseUp={() => stopDrawing('sm')}
+                onMouseLeave={() => stopDrawing('sm')}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  startDrawing(e, 'sm');
+                }}
+                onTouchMove={(e) => {
+                  e.preventDefault();
+                  draw(e, 'sm');
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  stopDrawing('sm');
+                }}
+                className="w-full h-auto touch-none rounded-lg"
+                style={{ 
+                  touchAction: 'none',
+                  cursor: 'crosshair',
+                  WebkitTouchCallout: 'none',
+                  WebkitUserSelect: 'none',
+                  userSelect: 'none',
+                  imageRendering: 'crisp-edges'
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => clearSignature('sm')}
+              className="w-full px-4 py-3 sm:py-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 min-h-[48px] sm:min-h-0"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Clear Signature
+            </button>
+            <p className="text-sm text-gray-600 dark:text-slate-400 text-center font-medium">
+              {typeof window !== 'undefined' && 'ontouchstart' in window 
+                ? '✍️ Draw with your finger' 
+                : '🖱️ Draw with your mouse'}
+            </p>
+          </div>
         </div>
       </div>
 

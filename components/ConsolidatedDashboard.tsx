@@ -28,6 +28,18 @@ const ConsolidatedDashboard: React.FC<ConsolidatedDashboardProps> = ({
   financeData = []
 }) => {
   
+  // Debug logging
+  console.log('🔍 ConsolidatedDashboard data received:', {
+    hrData: hrData?.length || 0,
+    operationsData: operationsData?.length || 0,
+    trainingData: trainingData?.length || 0,
+    qaData: qaData?.length || 0,
+    hrSample: hrData?.[0],
+    opsSample: operationsData?.[0],
+    trainingSample: trainingData?.[0],
+    qaSample: qaData?.[0]
+  });
+  
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [modalData, setModalData] = useState<any[]>([]);

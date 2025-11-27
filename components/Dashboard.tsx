@@ -2,13 +2,14 @@ import React, { useEffect, useState, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { buildTrainingPDF } from '../src/utils/trainingReport';
 import { buildOperationsPDF } from '../src/utils/operationsReport';
 import { buildQAPDF } from '../src/utils/qaReport';
 import { buildHRPDF } from '../src/utils/hrReport';
 import { Users, Clipboard, GraduationCap, BarChart3, Brain } from 'lucide-react';
 import { Submission, Store } from '../types';
-import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchCampusHiringData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, CampusHiringSubmission } from '../services/dataService';
+import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission } from '../services/dataService';
 import { hapticFeedback } from '../utils/haptics';
 import StatCard from './StatCard';
 import Loader from './Loader';
@@ -80,7 +81,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const [amOperationsData, setAMOperationsData] = useState<AMOperationsSubmission[]>([]);
   const [trainingData, setTrainingData] = useState<TrainingAuditSubmission[]>([]);
   const [qaData, setQAData] = useState<QASubmission[]>([]);
+  const [financeData, setFinanceData] = useState<FinanceSubmission[]>([]);
   const [campusHiringData, setCampusHiringData] = useState<CampusHiringSubmission[]>([]);
+  const [expandedFinanceRow, setExpandedFinanceRow] = useState<number | null>(null);
+  const [auditCoverageFilters, setAuditCoverageFilters] = useState({
+    status: 'all', // all, overdue, due-soon, on-track
+    health: 'all', // all, needs-attention, brewing, perfect-shot
+    region: 'all',
+    am: 'all',
+    trainer: 'all'
+  });
+  const [auditCoverageView, setAuditCoverageView] = useState<'current' | 'history'>('current');
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +109,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     operations: false,
     training: false,
     qa: false,
+    finance: false,
     campusHiring: false
   });
   
@@ -631,6 +643,24 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         console.log('♻️ Using cached QA data');
       }
       
+      // Load Finance Audit data ONLY if currently viewing Finance dashboard OR consolidated view
+      if ((targetDashboard === 'finance' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.finance || isRefresh)) {
+        loadPromises.push(
+          fetchFinanceData().then(data => {
+            console.log('✅ Loaded Finance Audit data:', data.length, 'submissions');
+            if (data.length > 0) {
+              console.log('Finance data sample:', data[0]);
+            }
+            setFinanceData(data);
+            setDataLoadedFlags(prev => ({ ...prev, finance: true }));
+          }).catch(err => {
+            console.error('❌ Failed to load Finance data:', err);
+          })
+        );
+      } else if (targetDashboard === 'finance' && dataLoadedFlags.finance) {
+        console.log('♻️ Using cached Finance data');
+      }
+      
       // Load Campus Hiring data if viewing campus hiring dashboard or admin consolidated view
       if ((targetDashboard === 'campus-hiring' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.campusHiring || isRefresh)) {
         loadPromises.push(
@@ -855,6 +885,87 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   }, [submissions, filters, userRole, allStores, trainerFilterId, hrPersonFilterId]);
 
   const filteredSubmissions = filteredData || [];
+
+  // For consolidated dashboard: create role-restricted but NOT filter-restricted data
+  const consolidatedHRData = useMemo(() => {
+    if (dashboardType !== 'consolidated' || !submissions) return [];
+    
+    return submissions.filter((submission: Submission) => {
+      // Only apply role-based access, no other filters
+      if (userRole.role === 'store') {
+        return canAccessStore(userRole, submission.storeID);
+      } else if (userRole.role === 'area_manager') {
+        return canAccessAM(userRole, submission.amId);
+      } else if (userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') {
+        return canAccessHR(userRole, submission.hrId);
+      }
+      return true; // Admin sees all
+    });
+  }, [dashboardType, submissions, userRole]);
+
+  const consolidatedOperationsData = useMemo(() => {
+    if (dashboardType !== 'consolidated' || !amOperationsData) return [];
+    
+    return amOperationsData.filter((submission: AMOperationsSubmission) => {
+      // Only apply role-based access, no other filters
+      if (userRole.role === 'store') {
+        return canAccessStore(userRole, submission.storeId);
+      } else if (userRole.role === 'area_manager') {
+        return canAccessAM(userRole, submission.amId);
+      } else if (userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') {
+        return canAccessHR(userRole, submission.hrId);
+      }
+      return true; // Admin sees all
+    });
+  }, [dashboardType, amOperationsData, userRole]);
+
+  const consolidatedTrainingData = useMemo(() => {
+    if (dashboardType !== 'consolidated' || !trainingData) return [];
+    
+    return trainingData.filter((submission: TrainingAuditSubmission) => {
+      // Only apply role-based access, no other filters
+      if (userRole.role === 'store') {
+        return canAccessStore(userRole, submission.storeId);
+      } else if (userRole.role === 'area_manager') {
+        return canAccessAM(userRole, submission.amId);
+      } else if (userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') {
+        return canAccessHR(userRole, submission.amId);
+      }
+      return true; // Admin sees all
+    });
+  }, [dashboardType, trainingData, userRole]);
+
+  const consolidatedQAData = useMemo(() => {
+    if (dashboardType !== 'consolidated' || !qaData) return [];
+    
+    return qaData.filter((submission: QASubmission) => {
+      // Only apply role-based access, no other filters
+      if (userRole.role === 'store') {
+        return canAccessStore(userRole, submission.storeId);
+      } else if (userRole.role === 'area_manager') {
+        return canAccessAM(userRole, submission.amId);
+      } else if (userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') {
+        return canAccessHR(userRole, submission.amId);
+      }
+      return true; // Admin sees all
+    });
+  }, [dashboardType, qaData, userRole]);
+
+  const consolidatedFinanceData = useMemo(() => {
+    if (dashboardType !== 'consolidated' || !financeData) return [];
+    
+    return financeData.filter((submission: FinanceSubmission) => {
+      // Only apply role-based access, no other filters
+      if (userRole.role === 'store') {
+        return canAccessStore(userRole, submission.storeId);
+      } else if (userRole.role === 'area_manager') {
+        return canAccessAM(userRole, submission.amId);
+      } else if (userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') {
+        return canAccessHR(userRole, submission.amId);
+      }
+      return true; // Admin sees all
+    });
+  }, [dashboardType, financeData, userRole]);
 
   // Filter AM Operations data
   const filteredAMOperations = useMemo(() => {
@@ -1101,6 +1212,51 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     return filtered;
   }, [qaData, filters, userRole]);
 
+  const filteredFinanceData = useMemo(() => {
+    if (!financeData) {
+      return [];
+    }
+    
+    let filtered = financeData.filter((submission: FinanceSubmission) => {
+      // Role-based access control
+      if (userRole.role === 'store') {
+        if (!canAccessStore(userRole, submission.storeId)) {
+          return false;
+        }
+      } else if (userRole.role === 'area_manager') {
+        if (!canAccessAM(userRole, submission.amId)) {
+          return false;
+        }
+      } else if (userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') {
+        if (!canAccessHR(userRole, submission.amId)) {
+          return false;
+        }
+      }
+      
+      // Apply filters
+      if (filters.region && submission.region !== filters.region) {
+        return false;
+      }
+      
+      if (filters.store && submission.storeId !== filters.store) {
+        return false;
+      }
+      
+      if (filters.am && submission.amId !== filters.am) {
+        return false;
+      }
+      
+      // For Finance, hr filter can map to financeId
+      if (filters.trainer && submission.financeId !== filters.trainer) {
+        return false;
+      }
+      
+      return true;
+    });
+    
+    return filtered;
+  }, [financeData, filters, userRole]);
+
   const stats = useMemo(() => {
     // For QA dashboard, use QA Assessment data
     if (dashboardType === 'qa') {
@@ -1112,6 +1268,25 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         : 0;
       const uniqueAuditors = new Set(filteredQAData.map(s => s.qaId)).size;
       const uniqueStores = new Set(filteredQAData.map(s => s.storeId)).size;
+
+      return {
+        totalSubmissions,
+        avgScore: Math.round(avgScore * 100) / 100,
+        uniqueAuditors,
+        uniqueStores
+      };
+    }
+    
+    // For Finance dashboard, use Finance Audit data
+    if (dashboardType === 'finance') {
+      if (!filteredFinanceData) return null;
+
+      const totalSubmissions = filteredFinanceData.length;
+      const avgScore = totalSubmissions > 0 
+        ? filteredFinanceData.reduce((acc, s) => acc + parseFloat(s.scorePercentage || '0'), 0) / totalSubmissions 
+        : 0;
+      const uniqueAuditors = new Set(filteredFinanceData.map(s => s.financeId)).size;
+      const uniqueStores = new Set(filteredFinanceData.map(s => s.storeId)).size;
 
       return {
         totalSubmissions,
@@ -1374,21 +1549,41 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     
     // For Operations dashboard, use AM Operations data
     if (dashboardType === 'operations') {
+      console.log('📊 Operations stats calculation:', {
+        filteredAMOperations: filteredAMOperations?.length || 0,
+        sample: filteredAMOperations?.[0],
+        sampleScore: filteredAMOperations?.[0]?.percentageScore,
+        sampleScoreType: typeof filteredAMOperations?.[0]?.percentageScore,
+        parsedScore: parseFloat(filteredAMOperations?.[0]?.percentageScore || '0')
+      });
+      
       if (!filteredAMOperations) return null;
 
       const totalSubmissions = filteredAMOperations.length;
+      
+      // Debug each score calculation
+      const scores = filteredAMOperations.map((s, idx) => {
+        const rawScore = s.percentageScore || '0';
+        const parsed = parseFloat(rawScore);
+        console.log(`Score ${idx}:`, { raw: rawScore, type: typeof rawScore, parsed, isNaN: isNaN(parsed) });
+        return parsed;
+      });
+      
       const avgScore = totalSubmissions > 0 
-        ? filteredAMOperations.reduce((acc, s) => acc + parseFloat(s.percentageScore || '0'), 0) / totalSubmissions 
+        ? scores.reduce((acc, s) => acc + s, 0) / totalSubmissions 
         : 0;
   const uniqueTrainers = new Set(filteredAMOperations.map(s => normalizeId((s as any).trainerId) || normalizeId((s as any).trainer) || normalizeId((s as any).hrId))).size;
       const uniqueStores = new Set(filteredAMOperations.map(s => s.storeId)).size;
 
-      return {
+      const result = {
         totalSubmissions,
         avgScore: Math.round(avgScore),
         uniqueEmployees: uniqueTrainers, // Using trainers instead of employees for operations
         uniqueStores
       };
+      
+      console.log('📊 Operations stats result:', result);
+      return result;
     }
     
     // For HR and Consolidated dashboards, use HR survey data
@@ -1409,14 +1604,29 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   // Helper to compute the Average Score display string robustly
   const getAverageScoreDisplay = () => {
-    // Training dashboard special handling
+    // Operations dashboard - show as percentage
+    if (dashboardType === 'operations') {
+      return stats?.avgScore != null ? `${stats.avgScore}%` : '—';
+    }
+    
+    // QA dashboard - show as percentage
+    if (dashboardType === 'qa') {
+      return stats?.avgScore != null ? `${stats.avgScore}%` : '—';
+    }
+    
+    // HR dashboard - show as percentage
+    if (dashboardType === 'hr') {
+      return stats?.avgScore != null ? `${stats.avgScore}%` : '—';
+    }
+    
+    // Training dashboard special handling - show as 1-5 scale
     if (dashboardType === 'training') {
     const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health);
       if (hasFilters) {
         if (!stats) return '—';
-        const latestScore = ((stats.latestScore / 100) * 5).toFixed(1);
-        const prevScore = stats.previousScore !== null && stats.previousScore !== undefined 
-          ? ((stats.previousScore / 100) * 5).toFixed(1) 
+        const latestScore = (((stats as any).latestScore / 100) * 5).toFixed(1);
+        const prevScore = (stats as any).previousScore !== null && (stats as any).previousScore !== undefined 
+          ? (((stats as any).previousScore / 100) * 5).toFixed(1) 
           : null;
         const prevPart = prevScore !== null ? ` (Prev ${prevScore}/5)` : '';
         return `${latestScore}/5${prevPart}`;
@@ -1424,10 +1634,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
       // No filters: prefer trendsData aggregated average
       // Prefer monthly latest/previous values when available (computed in stats)
-      if (stats && (stats.latestScore !== null && stats.latestScore !== undefined)) {
-        const latestScore = ((stats.latestScore / 100) * 5).toFixed(1);
-        const prevScore = stats.previousScore !== null && stats.previousScore !== undefined 
-          ? ((stats.previousScore / 100) * 5).toFixed(1) 
+      if (stats && ((stats as any).latestScore !== null && (stats as any).latestScore !== undefined)) {
+        const latestScore = (((stats as any).latestScore / 100) * 5).toFixed(1);
+        const prevScore = (stats as any).previousScore !== null && (stats as any).previousScore !== undefined 
+          ? (((stats as any).previousScore / 100) * 5).toFixed(1) 
           : null;
         const prevPart = prevScore !== null ? ` (Prev ${prevScore}/5)` : '';
         return `${latestScore}/5${prevPart}`;
@@ -1445,8 +1655,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       return '—';
     }
 
-    // Default: use stats.avgScore when available, convert to 1-5 scale
-    return stats?.avgScore != null ? `${((stats.avgScore / 100) * 5).toFixed(1)}/5` : '—';
+    // Default fallback
+    return stats?.avgScore != null ? `${stats.avgScore}%` : '—';
   };
 
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
@@ -2994,16 +3204,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         (dashboardType === 'operations' && filteredAMOperations.length > 0) ||
         (dashboardType === 'training' && filteredTrainingData.length > 0) ||
         (dashboardType === 'qa' && filteredQAData.length > 0) ||
-        (dashboardType === 'consolidated' && (filteredSubmissions.length > 0 || filteredAMOperations.length > 0 || filteredTrainingData.length > 0 || filteredQAData.length > 0))) ? (
+        (dashboardType === 'finance' && filteredFinanceData.length > 0) ||
+        (dashboardType === 'consolidated' && (consolidatedHRData.length > 0 || consolidatedOperationsData.length > 0 || consolidatedTrainingData.length > 0 || consolidatedQAData.length > 0 || consolidatedFinanceData.length > 0))) ? (
         <>
           {/* Consolidated Dashboard - New 4Ps Framework */}
           {dashboardType === 'consolidated' ? (
             <ConsolidatedDashboard 
-              hrData={filteredSubmissions}
-              operationsData={filteredAMOperations}
-              trainingData={filteredTrainingData}
-              qaData={filteredQAData}
-              financeData={[]}
+              hrData={consolidatedHRData}
+              operationsData={consolidatedOperationsData}
+              trainingData={consolidatedTrainingData}
+              qaData={consolidatedQAData}
+              financeData={consolidatedFinanceData}
             />
           ) : (
             <>
@@ -3019,9 +3230,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                   <StatCard title="Stores Covered" value={stats?.uniqueStores} onClick={handleStoresCoveredClick} />
                   {/* For training dashboard, provide structured avg data so StatCard can render trend */}
                   <StatCard title="Audit Percentage" value={{
-                    latest: stats?.latestScore ?? (typeof stats?.avgScore === 'number' ? Math.round(stats.avgScore) : undefined),
-                    previous: stats?.previousScore ?? null,
-                    aggregate: (!stats?.latestScore && stats?.avgScore) ? Math.round(stats.avgScore) : undefined
+                    latest: (stats as any)?.latestScore ?? (typeof stats?.avgScore === 'number' ? Math.round(stats.avgScore) : undefined),
+                    previous: (stats as any)?.previousScore ?? null,
+                    aggregate: (!(stats as any)?.latestScore && stats?.avgScore) ? Math.round(stats.avgScore) : undefined
                   }} onClick={() => setShowAuditScoreDetails(true)} />
                   <div className="flex items-center">
                     <TrainingHealthPieChart
@@ -3051,7 +3262,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                 onClick={dashboardType === 'hr' ? handleHRTotalSubmissionsClick : handleTotalSubmissionsClick} 
               />
               <StatCard title="Average Score" value={String(getAverageScoreDisplay())} />
-              {dashboardType !== 'qa' && (
+              {dashboardType !== 'qa' && dashboardType !== 'finance' && (
                 <StatCard 
                   title={dashboardType === 'operations' ? "Trainers Involved" : "Employees Surveyed"} 
                   value={stats?.uniqueEmployees} 
@@ -3480,26 +3691,26 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                       value: (
                         <div className="flex items-center gap-3">
                           <span className={`text-4xl font-black ${
-                            (stats.latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) < 55 
+                            ((stats as any).latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) < 55 
                               ? 'text-red-600' 
-                              : (stats.latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) >= 55 && (stats.latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) < 81
+                              : ((stats as any).latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) >= 55 && ((stats as any).latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) < 81
                               ? 'text-amber-500'
                               : 'text-emerald-500'
                           }`}>
-                            {stats.latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)}%
+                            {(stats as any).latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)}%
                           </span>
-                          {stats.previousScore !== null && stats.previousScore !== undefined && stats.latestScore !== null && stats.latestScore !== undefined && (
+                          {(stats as any).previousScore !== null && (stats as any).previousScore !== undefined && (stats as any).latestScore !== null && (stats as any).latestScore !== undefined && (
                             <div className="flex flex-col items-center gap-0.5">
                               <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full ${
-                                (stats.latestScore - stats.previousScore) >= 0
+                                ((stats as any).latestScore - (stats as any).previousScore) >= 0
                                   ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600'
                                   : 'bg-rose-100 dark:bg-rose-900/30 text-rose-600'
                               }`}>
                                 <span className="text-xs font-bold">
-                                  {(stats.latestScore - stats.previousScore) >= 0 ? '↗' : '↘'}
+                                  {((stats as any).latestScore - (stats as any).previousScore) >= 0 ? '↗' : '↘'}
                                 </span>
                                 <span className="text-xs font-bold">
-                                  {Math.abs(Math.round(stats.latestScore - stats.previousScore))}%
+                                  {Math.abs(Math.round((stats as any).latestScore - (stats as any).previousScore))}%
                                 </span>
                               </div>
                               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">vs prev</span>
@@ -3548,13 +3759,842 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               <div className="grid grid-cols-1 gap-6">
                 <TrainingRadarChart submissions={filteredTrainingData} />
               </div>
-            </>
-          )}
 
-          {/* Operations Dashboard Content */}
-          {dashboardType === 'operations' && (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {/* Audit Coverage & History Section */}
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 mt-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">Audit Coverage & Compliance</h3>
+                      <p className="text-sm text-gray-500 dark:text-slate-400">Track audit schedules, compliance, and monthly history</p>
+                    </div>
+                  </div>
+
+                  {/* View Toggle */}
+                  <div className="flex items-center bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
+                    <button
+                      onClick={() => setAuditCoverageView('current')}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        auditCoverageView === 'current'
+                          ? 'bg-white dark:bg-slate-600 text-purple-600 dark:text-purple-400 shadow-sm'
+                          : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Current Status</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setAuditCoverageView('history')}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        auditCoverageView === 'history'
+                          ? 'bg-white dark:bg-slate-600 text-purple-600 dark:text-purple-400 shadow-sm'
+                          : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>Monthly History</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Current Status View */}
+                {auditCoverageView === 'current' && (
+                  <>
+                    {/* Filters */}
+                    <div className="mb-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                      {/* Status Filter */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                          Status
+                        </label>
+                        <select
+                          value={auditCoverageFilters.status}
+                          onChange={(e) => setAuditCoverageFilters({...auditCoverageFilters, status: e.target.value})}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="all">All Status</option>
+                          <option value="overdue">Overdue</option>
+                          <option value="due-soon">Due Soon</option>
+                          <option value="on-track">On Track</option>
+                        </select>
+                      </div>
+
+                      {/* Health Filter */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                          Health
+                        </label>
+                        <select
+                          value={auditCoverageFilters.health}
+                          onChange={(e) => setAuditCoverageFilters({...auditCoverageFilters, health: e.target.value})}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="all">All Health</option>
+                          <option value="needs-attention">Needs Attention</option>
+                          <option value="brewing">Brewing</option>
+                          <option value="perfect-shot">Perfect Shot</option>
+                        </select>
+                      </div>
+
+                      {/* Region Filter */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                          Region
+                        </label>
+                        <select
+                          value={auditCoverageFilters.region}
+                          onChange={(e) => setAuditCoverageFilters({...auditCoverageFilters, region: e.target.value})}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="all">All Regions</option>
+                          {Array.from(new Set(filteredTrainingData.map(s => s.region).filter(Boolean))).sort().map(region => (
+                            <option key={region} value={region}>{region}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* AM Filter */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                          Area Manager
+                        </label>
+                        <select
+                          value={auditCoverageFilters.am}
+                          onChange={(e) => setAuditCoverageFilters({...auditCoverageFilters, am: e.target.value})}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="all">All AMs</option>
+                          {Array.from(new Set(filteredTrainingData.map(s => s.amName).filter(Boolean))).sort().map(am => (
+                            <option key={am} value={am}>{am}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Trainer Filter */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                          Trainer
+                        </label>
+                        <select
+                          value={auditCoverageFilters.trainer}
+                          onChange={(e) => setAuditCoverageFilters({...auditCoverageFilters, trainer: e.target.value})}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="all">All Trainers</option>
+                          {Array.from(new Set(filteredTrainingData.map(s => s.trainerName).filter(Boolean))).sort().map(trainer => (
+                            <option key={trainer} value={trainer}>{trainer}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                        <thead>
+                          <tr className="bg-gray-50 dark:bg-slate-700/50">
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Store
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Region
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Area Manager
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Health Status
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Last Audit
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Next Due
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Days Remaining
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                          {(() => {
+                        // Calculate audit coverage for each store
+                        const storeAudits = new Map();
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+
+                        // Group submissions by store and get latest audit
+                        filteredTrainingData.forEach(submission => {
+                          const storeId = submission.storeId;
+                          if (!storeId) return;
+
+                          // Parse submission date and validate
+                          const submissionDateStr = submission.submissionTime || submission.timestamp;
+                          if (!submissionDateStr) return; // Skip if no date
+                          
+                          const submissionDate = new Date(submissionDateStr);
+                          
+                          // Check if date is valid
+                          if (isNaN(submissionDate.getTime())) {
+                            console.warn('Invalid date for submission:', submissionDateStr);
+                            return; // Skip invalid dates
+                          }
+
+                          const percentage = parseFloat(submission.percentageScore || '0');
+                          
+                          // Determine health status
+                          let healthStatus = 'Needs Attention';
+                          let auditInterval = 30; // days
+                          if (percentage >= 81) {
+                            healthStatus = 'Perfect Shot';
+                            auditInterval = 60;
+                          } else if (percentage >= 56) {
+                            healthStatus = 'Brewing';
+                            auditInterval = 45;
+                          }
+
+                          if (!storeAudits.has(storeId) || submissionDate > storeAudits.get(storeId).lastAuditDate) {
+                            storeAudits.set(storeId, {
+                              storeId,
+                              storeName: submission.storeName || storeId,
+                              region: submission.region || 'Unknown',
+                              amName: submission.amName || 'Unknown',
+                              trainerName: submission.trainerName || 'Unknown',
+                              lastAuditDate: submissionDate,
+                              healthStatus,
+                              auditInterval,
+                              percentage
+                            });
+                          }
+                        });
+
+                        // Calculate due dates and status
+                        let auditCoverage = Array.from(storeAudits.values()).map(store => {
+                          const lastAudit = store.lastAuditDate;
+                          const nextDue = new Date(lastAudit);
+                          nextDue.setDate(nextDue.getDate() + store.auditInterval);
+                          
+                          const diffTime = nextDue.getTime() - today.getTime();
+                          const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                          
+                          let status = 'On Track';
+                          let statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+                          
+                          if (daysRemaining < 0) {
+                            status = 'Overdue';
+                            statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+                          } else if (daysRemaining <= 7) {
+                            status = 'Due Soon';
+                            statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+                          }
+
+                          return {
+                            ...store,
+                            nextDue,
+                            daysRemaining,
+                            status,
+                            statusColor
+                          };
+                        });
+
+                        // Apply filters
+                        if (auditCoverageFilters.status !== 'all') {
+                          auditCoverage = auditCoverage.filter(audit => {
+                            if (auditCoverageFilters.status === 'overdue') return audit.status === 'Overdue';
+                            if (auditCoverageFilters.status === 'due-soon') return audit.status === 'Due Soon';
+                            if (auditCoverageFilters.status === 'on-track') return audit.status === 'On Track';
+                            return true;
+                          });
+                        }
+
+                        if (auditCoverageFilters.health !== 'all') {
+                          auditCoverage = auditCoverage.filter(audit => {
+                            if (auditCoverageFilters.health === 'needs-attention') return audit.healthStatus === 'Needs Attention';
+                            if (auditCoverageFilters.health === 'brewing') return audit.healthStatus === 'Brewing';
+                            if (auditCoverageFilters.health === 'perfect-shot') return audit.healthStatus === 'Perfect Shot';
+                            return true;
+                          });
+                        }
+
+                        if (auditCoverageFilters.region !== 'all') {
+                          auditCoverage = auditCoverage.filter(audit => audit.region === auditCoverageFilters.region);
+                        }
+
+                        if (auditCoverageFilters.am !== 'all') {
+                          auditCoverage = auditCoverage.filter(audit => audit.amName === auditCoverageFilters.am);
+                        }
+
+                        if (auditCoverageFilters.trainer !== 'all') {
+                          auditCoverage = auditCoverage.filter(audit => audit.trainerName === auditCoverageFilters.trainer);
+                        }
+
+                        // Sort by days remaining (overdue first, then ascending)
+                        auditCoverage.sort((a, b) => {
+                          if (a.daysRemaining < 0 && b.daysRemaining >= 0) return -1;
+                          if (a.daysRemaining >= 0 && b.daysRemaining < 0) return 1;
+                          return a.daysRemaining - b.daysRemaining;
+                        });
+
+                        if (auditCoverage.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={8} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                No audit data available for selected filters
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return auditCoverage.map((audit, index) => (
+                          <tr key={index} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                            <td className="px-4 py-3 text-sm">
+                              <div className="font-medium text-gray-900 dark:text-white">{audit.storeName}</div>
+                              <div className="text-xs text-gray-500 dark:text-slate-400">{audit.storeId}</div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                              {audit.region}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                              {audit.amName}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                                audit.healthStatus === 'Perfect Shot'
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                  : audit.healthStatus === 'Brewing'
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                                  : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                              }`}>
+                                {audit.healthStatus} ({audit.percentage}%)
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-white whitespace-nowrap">
+                              {audit.lastAuditDate.toLocaleDateString('en-GB', { 
+                                day: '2-digit', 
+                                month: 'short', 
+                                year: 'numeric' 
+                              })}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-white whitespace-nowrap">
+                              {audit.nextDue.toLocaleDateString('en-GB', { 
+                                day: '2-digit', 
+                                month: 'short', 
+                                year: 'numeric' 
+                              })}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${audit.statusColor}`}>
+                                {audit.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <span className={`font-semibold ${
+                                audit.daysRemaining < 0
+                                  ? 'text-red-600 dark:text-red-400'
+                                  : audit.daysRemaining <= 7
+                                  ? 'text-yellow-600 dark:text-yellow-400'
+                                  : 'text-green-600 dark:text-green-400'
+                              }`}>
+                                {audit.daysRemaining < 0 
+                                  ? `${Math.abs(audit.daysRemaining)} days overdue`
+                                  : `${audit.daysRemaining} days`
+                                }
+                              </span>
+                            </td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* Monthly History View */}
+            {auditCoverageView === 'history' && (
+              <>
+                {/* Filters for Monthly History */}
+                <div className="mb-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {/* Health Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Health Status
+                    </label>
+                    <select
+                      value={auditCoverageFilters.health}
+                      onChange={(e) => setAuditCoverageFilters({...auditCoverageFilters, health: e.target.value})}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="all">All Health</option>
+                      <option value="Perfect Shot">Perfect Shot</option>
+                      <option value="Brewing">Brewing</option>
+                      <option value="Needs Attention">Needs Attention</option>
+                    </select>
+                  </div>
+
+                  {/* Region Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Region
+                    </label>
+                    <select
+                      value={auditCoverageFilters.region}
+                      onChange={(e) => setAuditCoverageFilters({...auditCoverageFilters, region: e.target.value})}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="all">All Regions</option>
+                      {Array.from(new Set(filteredTrainingData.map(s => s.region).filter(Boolean))).sort().map(region => (
+                        <option key={region} value={region}>{region}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Area Manager Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Area Manager
+                    </label>
+                    <select
+                      value={auditCoverageFilters.am}
+                      onChange={(e) => setAuditCoverageFilters({...auditCoverageFilters, am: e.target.value})}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="all">All Area Managers</option>
+                      {Array.from(new Set(filteredTrainingData.map(s => s.areaManager).filter(Boolean))).sort().map(am => (
+                        <option key={am} value={am}>{am}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Trainer Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Trainer
+                    </label>
+                    <select
+                      value={auditCoverageFilters.trainer}
+                      onChange={(e) => setAuditCoverageFilters({...auditCoverageFilters, trainer: e.target.value})}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="all">All Trainers</option>
+                      {Array.from(new Set(filteredTrainingData.map(s => s.trainerName).filter(Boolean))).sort().map(trainer => (
+                        <option key={trainer} value={trainer}>{trainer}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                    <thead>
+                      <tr className="bg-gray-50 dark:bg-slate-700/50">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider sticky left-0 bg-gray-50 dark:bg-slate-700/50">
+                          Store
+                        </th>
+                        {(() => {
+                          // Generate months from July 2025 to current month
+                          const months: Date[] = [];
+                          const today = new Date();
+                          const startDate = new Date(2025, 6, 1); // July 2025 (month is 0-indexed)
+                          
+                          const current = new Date(startDate);
+                          const end = new Date(today.getFullYear(), today.getMonth(), 1);
+                          
+                          while (current <= end) {
+                            months.push(new Date(current));
+                            current.setMonth(current.getMonth() + 1);
+                          }
+
+                          return months.map(month => (
+                            <th key={month.toISOString()} className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                              {month.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
+                            </th>
+                          ));
+                        })()}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                      {(() => {
+                        // Combine data from trendsData (monthly trends sheet) and current training data
+                        const storeMonthlyAudits = new Map();
+                        const storeMetadata = new Map(); // Store AM, Trainer info per store
+                        const today = new Date();
+                        
+                        // First pass: Collect store metadata from current training data
+                        filteredTrainingData.forEach(submission => {
+                          const storeId = submission.storeId;
+                          if (!storeId) return;
+                          
+                          if (!storeMetadata.has(storeId)) {
+                            storeMetadata.set(storeId, {
+                              storeName: submission.storeName || storeId,
+                              region: submission.region || 'Unknown',
+                              areaManager: submission.areaManager || 'Unknown',
+                              trainer: submission.trainerName || 'Unknown'
+                            });
+                          }
+                        });
+                        
+                        // Process trendsData (historical monthly trends from Google Sheets)
+                        if (trendsData && trendsData.length > 0) {
+                          console.log('📊 Processing trendsData:', trendsData.length, 'rows');
+                          
+                          trendsData.forEach((row: any) => {
+                            const storeId = row.store_id;
+                            const storeName = row.store_name;
+                            const periodStr = row.observed_period; // Format: "2024-07", "2024-08", etc.
+                            const percentage = parseFloat(row.training_score || row.percentage_score || '0');
+                            
+                            if (!storeId || !periodStr) return;
+                            
+                            // Parse period to get month/year
+                            let monthKey = '';
+                            if (periodStr.includes('-')) {
+                              const parts = periodStr.split('-');
+                              if (parts.length >= 2) {
+                                monthKey = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+                              }
+                            }
+                            
+                            if (!monthKey) return;
+                            
+                            // Determine health status and interval
+                            let healthStatus = 'Needs Attention';
+                            let auditInterval = 30;
+                            if (percentage >= 81) {
+                              healthStatus = 'Perfect Shot';
+                              auditInterval = 60;
+                            } else if (percentage >= 56) {
+                              healthStatus = 'Brewing';
+                              auditInterval = 45;
+                            }
+
+                            if (!storeMonthlyAudits.has(storeId)) {
+                              const metadata = storeMetadata.get(storeId) || {
+                                storeName: storeName || storeId,
+                                region: row.region || 'Unknown',
+                                areaManager: 'Unknown',
+                                trainer: 'Unknown'
+                              };
+                              
+                              storeMonthlyAudits.set(storeId, {
+                                storeId,
+                                storeName: metadata.storeName,
+                                region: metadata.region,
+                                areaManager: metadata.areaManager,
+                                trainer: metadata.trainer,
+                                monthlyData: new Map()
+                              });
+                            }
+
+                            const store = storeMonthlyAudits.get(storeId);
+                            
+                            // Create a synthetic date for the month (use last day of month)
+                            const [year, month] = monthKey.split('-');
+                            const date = new Date(parseInt(year), parseInt(month), 0); // Last day of month
+                            
+                            // Store audit data for this month
+                            store.monthlyData.set(monthKey, {
+                              date,
+                              percentage,
+                              healthStatus,
+                              auditInterval,
+                              source: 'trends'
+                            });
+                          });
+                        }
+                        
+                        // Process current training data (filteredTrainingData)
+                        filteredTrainingData.forEach(submission => {
+                          const storeId = submission.storeId;
+                          if (!storeId) return;
+
+                          const dateStr = submission.submissionTime || submission.timestamp;
+                          if (!dateStr) return;
+                          
+                          const date = new Date(dateStr);
+                          if (isNaN(date.getTime())) return;
+
+                          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                          const percentage = parseFloat(submission.percentageScore || '0');
+                          
+                          // Determine health status and interval
+                          let healthStatus = 'Needs Attention';
+                          let auditInterval = 30;
+                          if (percentage >= 81) {
+                            healthStatus = 'Perfect Shot';
+                            auditInterval = 60;
+                          } else if (percentage >= 56) {
+                            healthStatus = 'Brewing';
+                            auditInterval = 45;
+                          }
+
+                          if (!storeMonthlyAudits.has(storeId)) {
+                            const metadata = storeMetadata.get(storeId) || {
+                              storeName: submission.storeName || storeId,
+                              region: submission.region || 'Unknown',
+                              areaManager: submission.areaManager || 'Unknown',
+                              trainer: submission.trainerName || 'Unknown'
+                            };
+                            
+                            storeMonthlyAudits.set(storeId, {
+                              storeId,
+                              storeName: metadata.storeName,
+                              region: metadata.region,
+                              areaManager: metadata.areaManager,
+                              trainer: metadata.trainer,
+                              monthlyData: new Map()
+                            });
+                          }
+
+                          const store = storeMonthlyAudits.get(storeId);
+                          
+                          // Keep only the latest audit for each month (prefer current data over trends data)
+                          const existing = store.monthlyData.get(monthKey);
+                          if (!existing || existing.source === 'trends' || date > existing.date) {
+                            store.monthlyData.set(monthKey, {
+                              date,
+                              percentage,
+                              healthStatus,
+                              auditInterval,
+                              source: 'current'
+                            });
+                          }
+                        });
+
+                        // Generate months from July 2025 to current
+                        const months: Date[] = [];
+                        const startDate = new Date(2025, 6, 1); // July 2025
+                        const current = new Date(startDate);
+                        const end = new Date(today.getFullYear(), today.getMonth(), 1);
+                        
+                        while (current <= end) {
+                          months.push(new Date(current));
+                          current.setMonth(current.getMonth() + 1);
+                        }
+
+                        // Calculate compliance for each store/month
+                        const storeRows = Array.from(storeMonthlyAudits.values()).map(store => {
+                          const monthlyStatus = new Map();
+                          let previousAudit: any = null;
+                          let latestHealthStatus = 'Unknown';
+
+                          months.forEach(month => {
+                            const monthKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
+                            const audit = store.monthlyData.get(monthKey);
+                            
+                            if (audit) {
+                              // Update latest health status
+                              latestHealthStatus = audit.healthStatus || 'Unknown';
+                              
+                              // Audit exists for this month
+                              if (previousAudit) {
+                                // Check if this audit was done within the required interval from previous
+                                const daysSincePrevious = Math.floor((audit.date.getTime() - previousAudit.date.getTime()) / (1000 * 60 * 60 * 24));
+                                
+                                if (daysSincePrevious <= previousAudit.auditInterval) {
+                                  monthlyStatus.set(monthKey, { status: 'on-time', audit, daysSincePrevious });
+                                } else {
+                                  monthlyStatus.set(monthKey, { status: 'overdue', audit, daysSincePrevious });
+                                }
+                              } else {
+                                // First audit
+                                monthlyStatus.set(monthKey, { status: 'first-audit', audit });
+                              }
+                              previousAudit = audit;
+                            } else {
+                              // No audit this month
+                              if (previousAudit) {
+                                const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
+                                const daysSincePrevious = Math.floor((monthStart.getTime() - previousAudit.date.getTime()) / (1000 * 60 * 60 * 24));
+                                
+                                // Only mark as missed if interval exceeded, otherwise don't show anything
+                                if (daysSincePrevious > previousAudit.auditInterval) {
+                                  monthlyStatus.set(monthKey, { status: 'missed', daysSincePrevious });
+                                }
+                                // If within schedule, don't add any status (will show as no data)
+                              }
+                              // If no previous audit, don't show anything (will show as no data)
+                            }
+                          });
+
+                          return { ...store, monthlyStatus, latestHealthStatus };
+                        });
+
+                        // Apply filters
+                        let filteredRows = storeRows;
+                        
+                        if (auditCoverageFilters.health !== 'all') {
+                          filteredRows = filteredRows.filter(row => row.latestHealthStatus === auditCoverageFilters.health);
+                        }
+                        
+                        if (auditCoverageFilters.region !== 'all') {
+                          filteredRows = filteredRows.filter(row => row.region === auditCoverageFilters.region);
+                        }
+                        
+                        if (auditCoverageFilters.am !== 'all') {
+                          filteredRows = filteredRows.filter(row => row.areaManager === auditCoverageFilters.am);
+                        }
+                        
+                        if (auditCoverageFilters.trainer !== 'all') {
+                          filteredRows = filteredRows.filter(row => row.trainer === auditCoverageFilters.trainer);
+                        }
+
+                        // Sort by store name
+                        filteredRows.sort((a, b) => a.storeName.localeCompare(b.storeName));
+
+                        if (filteredRows.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={months.length + 1} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                No audit data available
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filteredRows.map((store, rowIndex) => (
+                          <tr key={rowIndex} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                            <td className="px-4 py-3 text-sm sticky left-0 bg-white dark:bg-slate-800">
+                              <div className="font-medium text-gray-900 dark:text-white">{store.storeName}</div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-gray-500 dark:text-slate-400">{store.storeId}</span>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                  store.latestHealthStatus === 'Perfect Shot' 
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                    : store.latestHealthStatus === 'Brewing'
+                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                    : store.latestHealthStatus === 'Needs Attention'
+                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+                                }`}>
+                                  {store.latestHealthStatus}
+                                </span>
+                              </div>
+                            </td>
+                            {months.map(month => {
+                              const monthKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
+                              const status = store.monthlyStatus.get(monthKey);
+                              
+                              if (!status) {
+                                return (
+                                  <td key={monthKey} className="px-3 py-3">
+                                    <div className="flex items-center justify-center">
+                                      <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
+                                        <path d="M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 dark:text-slate-500"/>
+                                      </svg>
+                                    </div>
+                                  </td>
+                                );
+                              }
+
+                              let iconElement;
+                              let tooltip = '';
+
+                              if (status.status === 'on-time' || status.status === 'first-audit') {
+                                iconElement = (
+                                  <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
+                                    <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500 dark:text-emerald-400"/>
+                                  </svg>
+                                );
+                                tooltip = status.status === 'first-audit' 
+                                  ? `First audit: ${status.audit.percentage}%`
+                                  : `On time (${status.daysSincePrevious}d): ${status.audit.percentage}%`;
+                              } else if (status.status === 'overdue') {
+                                iconElement = (
+                                  <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 2L2 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" className="fill-orange-500 dark:fill-orange-400"/>
+                                    <path d="M12 8v4m0 4h.01" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                                  </svg>
+                                );
+                                tooltip = `Late (${status.daysSincePrevious}d): ${status.audit.percentage}%`;
+                              } else if (status.status === 'missed') {
+                                iconElement = (
+                                  <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
+                                    <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" className="text-red-600 dark:text-red-500"/>
+                                  </svg>
+                                );
+                                tooltip = `Missed (${status.daysSincePrevious}d overdue)`;
+                              } else {
+                                iconElement = (
+                                  <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
+                                    <path d="M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 dark:text-slate-500"/>
+                                  </svg>
+                                );
+                                tooltip = 'No coverage';
+                              }
+
+                              return (
+                                <td key={monthKey} className="px-3 py-3" title={tooltip}>
+                                  <div className="flex items-center justify-center">
+                                    {iconElement}
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Legend */}
+                <div className="mt-6 flex flex-wrap items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" className="fill-emerald-400 dark:fill-emerald-500"/>
+                      <path d="M9 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="text-gray-700 dark:text-slate-300">Audit Done (On Time)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2L2 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" className="fill-orange-400 dark:fill-orange-500"/>
+                      <path d="M12 8v4m0 4h.01" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                    <span className="text-gray-700 dark:text-slate-300">Audit Done (After Due Date)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" className="fill-red-500 dark:fill-red-600"/>
+                      <path d="M15 9l-6 6m0-6l6 6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                    <span className="text-gray-700 dark:text-slate-300">Audit Not Done (Missed)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                      <rect x="4" y="4" width="16" height="16" rx="2" className="fill-gray-300 dark:fill-slate-600"/>
+                      <path d="M8 12h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-gray-700 dark:text-slate-300"/>
+                    </svg>
+                    <span className="text-gray-700 dark:text-slate-300">No Coverage</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Operations Dashboard Content */}
+      {dashboardType === 'operations' && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 <OperationsRegionPerformanceInfographic submissions={filteredAMOperations} />
                 <OperationsAMPerformanceInfographic submissions={filteredAMOperations} />
                 <OperationsHRPerformanceInfographic submissions={filteredAMOperations} />
@@ -3686,6 +4726,280 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               )}
             </>
           )}
+
+          {/* Finance Dashboard Content */}
+          {dashboardType === 'finance' && (
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Finance Submissions List */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Recent Finance Audits ({filteredFinanceData.length})
+                  </h3>
+                  {filteredFinanceData && filteredFinanceData.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                        <thead>
+                          <tr>
+                            <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider w-8">
+                              
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Date
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Store
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Auditor
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Score
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                          {filteredFinanceData.slice(0, 10).map((submission, index) => (
+                            <React.Fragment key={index}>
+                              <tr 
+                                className="hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer"
+                                onClick={() => setExpandedFinanceRow(expandedFinanceRow === index ? null : index)}
+                              >
+                                <td className="px-2 py-3 text-sm text-gray-900 dark:text-slate-100">
+                                  {expandedFinanceRow === index ? (
+                                    <ChevronDown className="w-4 h-4" />
+                                  ) : (
+                                    <ChevronRight className="w-4 h-4" />
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100 whitespace-nowrap">
+                                  {submission.submissionTime}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
+                                  {submission.storeName} ({submission.storeId})
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
+                                  {submission.financeName}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    parseFloat(submission.scorePercentage) >= 80 
+                                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                      : parseFloat(submission.scorePercentage) >= 60
+                                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                  }`}>
+                                    {submission.scorePercentage}%
+                                  </span>
+                                </td>
+                              </tr>
+                              {/* Expanded Row with Question Details */}
+                              {expandedFinanceRow === index && (
+                                <tr>
+                                  <td colSpan={5} className="px-4 py-4 bg-gray-50 dark:bg-slate-700/50">
+                                    <div className="space-y-4">
+                                      {/* Cash Management Section */}
+                                      {Object.keys(submission).filter(key => key.startsWith('CashManagement_')).length > 0 && (
+                                        <div>
+                                          <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-2">Cash Management</h4>
+                                          <div className="grid grid-cols-1 gap-2">
+                                            {Object.keys(submission)
+                                              .filter(key => key.startsWith('CashManagement_CM_'))
+                                              .sort((a, b) => {
+                                                const numA = parseInt(a.split('_').pop() || '0');
+                                                const numB = parseInt(b.split('_').pop() || '0');
+                                                return numA - numB;
+                                              })
+                                              .map((key) => {
+                                                const value = submission[key];
+                                                if (!value || value === 'undefined') return null;
+                                                const questionNum = key.split('_').pop();
+                                                return (
+                                                  <div key={key} className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 p-2 rounded">
+                                                    <span className="text-gray-700 dark:text-slate-300">Question {questionNum}</span>
+                                                    <span className={`px-2 py-1 rounded-full font-medium ${
+                                                      value === 'yes' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                                      value === 'no' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                                                      'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                                    }`}>
+                                                      {value === 'yes' ? '✓ Yes' : value === 'no' ? '✗ No' : 'N/A'}
+                                                    </span>
+                                                  </div>
+                                                );
+                                              })}
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Sales & Revenue Section */}
+                                      {Object.keys(submission).filter(key => key.startsWith('SalesRevenue_')).length > 0 && (
+                                        <div>
+                                          <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-2">Sales & Revenue Tracking</h4>
+                                          <div className="grid grid-cols-1 gap-2">
+                                            {Object.keys(submission)
+                                              .filter(key => key.startsWith('SalesRevenue_SR_'))
+                                              .sort((a, b) => {
+                                                const numA = parseInt(a.split('_').pop() || '0');
+                                                const numB = parseInt(b.split('_').pop() || '0');
+                                                return numA - numB;
+                                              })
+                                              .map((key) => {
+                                                const value = submission[key];
+                                                if (!value || value === 'undefined') return null;
+                                                const questionNum = key.split('_').pop();
+                                                return (
+                                                  <div key={key} className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 p-2 rounded">
+                                                    <span className="text-gray-700 dark:text-slate-300">Question {questionNum}</span>
+                                                    <span className={`px-2 py-1 rounded-full font-medium ${
+                                                      value === 'yes' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                                      value === 'no' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                                                      'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                                    }`}>
+                                                      {value === 'yes' ? '✓ Yes' : value === 'no' ? '✗ No' : 'N/A'}
+                                                    </span>
+                                                  </div>
+                                                );
+                                              })}
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Inventory & Financial Controls Section */}
+                                      {Object.keys(submission).filter(key => key.startsWith('InventoryFinance_')).length > 0 && (
+                                        <div>
+                                          <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-2">Inventory & Financial Controls</h4>
+                                          <div className="grid grid-cols-1 gap-2">
+                                            {Object.keys(submission)
+                                              .filter(key => key.startsWith('InventoryFinance_IF_'))
+                                              .sort((a, b) => {
+                                                const numA = parseInt(a.split('_').pop() || '0');
+                                                const numB = parseInt(b.split('_').pop() || '0');
+                                                return numA - numB;
+                                              })
+                                              .map((key) => {
+                                                const value = submission[key];
+                                                if (!value || value === 'undefined') return null;
+                                                const questionNum = key.split('_').pop();
+                                                return (
+                                                  <div key={key} className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 p-2 rounded">
+                                                    <span className="text-gray-700 dark:text-slate-300">Question {questionNum}</span>
+                                                    <span className={`px-2 py-1 rounded-full font-medium ${
+                                                      value === 'yes' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                                      value === 'no' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                                                      'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                                    }`}>
+                                                      {value === 'yes' ? '✓ Yes' : value === 'no' ? '✗ No' : 'N/A'}
+                                                    </span>
+                                                  </div>
+                                                );
+                                              })}
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Compliance & Reporting Section */}
+                                      {Object.keys(submission).filter(key => key.startsWith('ComplianceReporting_')).length > 0 && (
+                                        <div>
+                                          <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-2">Compliance & Reporting</h4>
+                                          <div className="grid grid-cols-1 gap-2">
+                                            {Object.keys(submission)
+                                              .filter(key => key.startsWith('ComplianceReporting_CR_'))
+                                              .sort((a, b) => {
+                                                const numA = parseInt(a.split('_').pop() || '0');
+                                                const numB = parseInt(b.split('_').pop() || '0');
+                                                return numA - numB;
+                                              })
+                                              .map((key) => {
+                                                const value = submission[key];
+                                                if (!value || value === 'undefined') return null;
+                                                const questionNum = key.split('_').pop();
+                                                return (
+                                                  <div key={key} className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 p-2 rounded">
+                                                    <span className="text-gray-700 dark:text-slate-300">Question {questionNum}</span>
+                                                    <span className={`px-2 py-1 rounded-full font-medium ${
+                                                      value === 'yes' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                                      value === 'no' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                                                      'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                                    }`}>
+                                                      {value === 'yes' ? '✓ Yes' : value === 'no' ? '✗ No' : 'N/A'}
+                                                    </span>
+                                                  </div>
+                                                );
+                                              })}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 dark:text-slate-400 text-center py-8">
+                      No Finance audit submissions found.
+                    </p>
+                  )}
+                </div>
+
+                {/* Finance Score Distribution */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Score Distribution
+                  </h3>
+                  {filteredFinanceData && filteredFinanceData.length > 0 ? (
+                    <div className="space-y-4">
+                      {(() => {
+                        const excellent = filteredFinanceData.filter(s => parseFloat(s.scorePercentage) >= 80).length;
+                        const good = filteredFinanceData.filter(s => parseFloat(s.scorePercentage) >= 60 && parseFloat(s.scorePercentage) < 80).length;
+                        const needsImprovement = filteredFinanceData.filter(s => parseFloat(s.scorePercentage) < 60).length;
+                        const total = filteredFinanceData.length;
+                        
+                        return (
+                          <>
+                            <div>
+                              <div className="flex justify-between mb-1">
+                                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Excellent (80%+)</span>
+                                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">{excellent} ({Math.round(excellent/total*100)}%)</span>
+                              </div>
+                              <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
+                                <div className="bg-green-600 h-2 rounded-full" style={{ width: `${excellent/total*100}%` }}></div>
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between mb-1">
+                                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Good (60-79%)</span>
+                                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">{good} ({Math.round(good/total*100)}%)</span>
+                              </div>
+                              <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
+                                <div className="bg-yellow-600 h-2 rounded-full" style={{ width: `${good/total*100}%` }}></div>
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between mb-1">
+                                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Needs Improvement (&lt;60%)</span>
+                                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">{needsImprovement} ({Math.round(needsImprovement/total*100)}%)</span>
+                              </div>
+                              <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
+                                <div className="bg-red-600 h-2 rounded-full" style={{ width: `${needsImprovement/total*100}%` }}></div>
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 dark:text-slate-400 text-center py-8">
+                      No score data available.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
           </>
           )}
 
@@ -3709,6 +5023,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                 ? 'No Training Audit checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
                 : dashboardType === 'qa'
                 ? 'No QA checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
+                : dashboardType === 'finance'
+                ? 'No Finance Audit checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
                 : 'Try adjusting your filters to find data.'
               }
             </p>

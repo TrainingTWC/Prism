@@ -7,14 +7,17 @@ import { STATIC_AM_OPERATIONS_DATA } from './staticOperationsData';
 // Google Apps Script endpoint for fetching data - UPDATED with DD/MM/YYYY date formatting
 const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzjSz9tePMAh3bOVfx9-Cnkj8hgZpLhUZ4UPKteSuD40BsDi6PM1v8D3ZSsxQxXYDXgjg/exec';
 
-// AM Operations endpoint - UPDATED URL with comprehensive mapping support
-const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxGons1Zbb6_9CpkzuYnEDXuIXWs7-tI-Oe1HY4dijXCtkN8XzQg1bCVo19euGbh5Hk/exec';
+// AM Operations endpoint - UPDATED URL with FIXED dynamic column reading
+const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwa-49e0qKFJ1ldfTz9eYh4kZFRFNfK_0x0sHjj0cB4mWamg0eLtoJk67jqMwb-y0LXCw/exec';
 
 // Training Audit endpoint - UPDATED URL
 const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzSibBicC4B5_naPxgrbNP4xSK49de2R02rI9wnAKG3QOJvuwYrUOYLiBg_9XNqAhS5ig/exec';
 
 // QA Assessment endpoint - UPDATED URL (Data fetched from Google Sheets)
 const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbythMmyeF6TWRx1Q2Icy9XfB9z1UVYFwau02u7BEr3GgabMIomF1lkAyCx1xq0BAA1LIQ/exec';
+
+// Finance Audit endpoint - UPDATED URL (Data fetched from Google Sheets)
+const FINANCE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx1WaaEoUTttanmWGS8me3HZNhuqaxVHoPdWN3AdI0i4bLQmHFRztj133Vh8SaoVb2iwg/exec';
 
 // Campus Hiring endpoint - UPDATED URL
 const CAMPUS_HIRING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyalNdIb_BrBEGmMXfysS9Qp88SGMg5BXg7m9X41walQ2nhYZDgUy6vCTOCB4whsoJNrA/exec';
@@ -1291,6 +1294,175 @@ export const fetchQAData = async (): Promise<QASubmission[]> => {
     ];
     
     return STATIC_QA_DATA;
+  }
+};
+
+// Interface for Finance Audit submission
+export interface FinanceSubmission {
+  submissionTime: string;
+  financeName: string;
+  financeId: string;
+  amName: string;
+  amId: string;
+  storeName: string;
+  storeId: string;
+  region: string;
+  totalScore: string;
+  maxScore: string;
+  scorePercentage: string;
+  // Section remarks
+  generalCashManagementRemarks?: string;
+  inventoryAuditRemarks?: string;
+  complianceDocumentationRemarks?: string;
+  reportingSystemsRemarks?: string;
+  // All section responses - dynamic question keys like GeneralCashManagement_GCM_1, etc.
+  [key: string]: string | undefined;
+}
+
+// Fetch Finance Audit data
+export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
+  try {
+    console.log('Fetching Finance Audit data from Google Sheets...');
+    
+    let response;
+    let data;
+    
+    try {
+      console.log('Trying direct request to Finance Google Apps Script...');
+      const directUrl = FINANCE_ENDPOINT + '?action=getData';
+      
+      response = await fetch(directUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        redirect: 'follow',
+      });
+      
+      if (response.ok) {
+        data = await response.json();
+        console.log('Direct request successful, Finance data received:', data.length, 'submissions');
+        console.log('Sample Finance submission from Google Sheets:', data[0]);
+        if (data[0]) {
+          console.log('Google Sheets Finance field names:', Object.keys(data[0]));
+        }
+      } else {
+        throw new Error(`Direct request failed: ${response.status}`);
+      }
+    } catch (directError) {
+      console.log('Direct request failed for Finance, trying CORS proxy...', directError);
+      
+      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+      const targetUrl = FINANCE_ENDPOINT + '?action=getData';
+
+      response = await fetch(proxyUrl + targetUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        redirect: 'follow',
+      });
+      
+      if (response.ok) {
+        data = await response.json();
+        console.log('CORS proxy request successful, Finance data received:', data.length, 'submissions');
+        console.log('Sample Finance submission from Google Sheets (via proxy):', data[0]);
+        if (data[0]) {
+          console.log('Google Sheets Finance field names (via proxy):', Object.keys(data[0]));
+        }
+      } else {
+        throw new Error(`CORS proxy request failed: ${response.status}`);
+      }
+    }
+    
+    if (!data || !Array.isArray(data)) {
+      console.warn('Finance data is not in expected format:', data);
+      return [];
+    }
+    
+    // Process data to ensure region mapping AND complete AM/Store data from comprehensive mapping
+    const mappingData = await loadStoreMapping();
+    
+    const processedData = data.map((row: any) => {
+      let region = row.region || 'Unknown';
+      let amName = row.amName || '';
+      let amId = row.amId || '';
+      let storeName = row.storeName || '';
+      
+      // Try to map complete store data from comprehensive mapping
+      try {
+        let storeMapping = null;
+        const storeId = row.storeId || row.storeID;
+        
+        if (storeId) {
+          // Try exact match first
+          storeMapping = mappingData.find(mapping => 
+            mapping["Store ID"] === storeId || mapping.storeId === storeId
+          );
+          
+          // If not found and store ID doesn't start with S, try with S prefix
+          if (!storeMapping && !storeId.toString().startsWith('S')) {
+            const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
+            storeMapping = mappingData.find(mapping => 
+              mapping["Store ID"] === sFormattedId || mapping.storeId === sFormattedId
+            );
+          }
+          
+          // If not found, try finding with store name
+          if (!storeMapping && row.storeName) {
+            storeMapping = mappingData.find(mapping => 
+              (mapping["Store Name"] || mapping.locationName)?.toLowerCase() === row.storeName.toLowerCase() ||
+              (mapping["Store Name"] || mapping.locationName)?.toLowerCase().includes(row.storeName.toLowerCase()) ||
+              row.storeName.toLowerCase().includes((mapping["Store Name"] || mapping.locationName)?.toLowerCase() || '')
+            );
+          }
+          
+          if (storeMapping) {
+            // Map Region
+            if (storeMapping.Region || storeMapping.region) {
+              region = storeMapping.Region || storeMapping.region;
+            }
+            
+            // Map Area Manager data
+            if (storeMapping.AM || storeMapping.am) {
+              amId = storeMapping.AM || storeMapping.am;
+              // Try to get AM name from the mapping or keep existing
+              if (!amName || amName === 'Unknown') {
+                // You can optionally fetch AM name from a separate lookup if needed
+                amName = row.amName || amId; // Fallback to ID if name not available
+              }
+            }
+            
+            // Map Store Name if not present
+            if (!storeName && (storeMapping["Store Name"] || storeMapping.locationName)) {
+              storeName = storeMapping["Store Name"] || storeMapping.locationName;
+            }
+            
+            console.log(`✅ Mapped Finance store ${storeId} to region: ${region}, AM: ${amId}`);
+          } else {
+            console.warn(`❌ Could not find comprehensive mapping for Finance store ${storeId} (${row.storeName})`);
+          }
+        }
+      } catch (err) {
+        console.warn('Error mapping Finance store data:', err);
+      }
+      
+      return {
+        ...row,
+        region: region,
+        amName: amName,
+        amId: amId,
+        storeName: storeName
+      };
+    });
+    
+    console.log('Finance submissions processed with comprehensive mapping:', processedData.length);
+    return processedData as FinanceSubmission[];
+    
+  } catch (error) {
+    console.error('Error fetching Finance data from Google Sheets:', error);
+    console.log('Returning empty Finance data array as fallback...');
+    return [];
   }
 };
 

@@ -1,0 +1,1434 @@
+{
+  "meta": {
+    "project": "Unified Operations Assessment",
+    "version": "2.0_Complete",
+    "generated_at": "2025-11-25",
+    "categories": [
+      "People",
+      "Place",
+      "Product",
+      "Process",
+      "Finance",
+      "Equipment & Tools",
+      "Strategy & Performance"
+    ]
+  },
+  "data": [
+    {
+      "category": "People",
+      "source": "HR Connect",
+      "code": "Q1",
+      "question": "Is there any work pressure in the café?"
+    },
+    {
+      "category": "People",
+      "source": "HR Connect",
+      "code": "Q2",
+      "question": "Are you empowered to make decisions on the spot?"
+    },
+    {
+      "category": "People",
+      "source": "HR Connect",
+      "code": "Q3",
+      "question": "Do you receive regular performance reviews?"
+    },
+    {
+      "category": "People",
+      "source": "HR Connect",
+      "code": "Q4",
+      "question": "Do you think there is any partiality or unfair treatment?"
+    },
+    {
+      "category": "People",
+      "source": "HR Connect",
+      "code": "Q5",
+      "question": "Are you getting the training as per Wings program?"
+    },
+    {
+      "category": "People",
+      "source": "HR Connect",
+      "code": "Q6",
+      "question": "Issues with operational Apps or Payroll?"
+    },
+    {
+      "category": "People",
+      "source": "HR Connect",
+      "code": "Q7",
+      "question": "Accepted HR Handbook/Policies?"
+    },
+    {
+      "category": "People",
+      "source": "HR Connect",
+      "code": "Q8",
+      "question": "Satisfied with current work schedule?"
+    },
+    {
+      "category": "People",
+      "source": "HR Connect",
+      "code": "Q9",
+      "question": "How effectively does the team collaborate?"
+    },
+    {
+      "category": "People",
+      "source": "HR Connect",
+      "code": "Q10",
+      "question": "Colleague recognition (Text Input)"
+    },
+    {
+      "category": "People",
+      "source": "HR Connect",
+      "code": "Q11",
+      "question": "Suggestions for organization (Text Input)"
+    },
+    {
+      "category": "People",
+      "source": "HR Connect",
+      "code": "Q12",
+      "question": "Experience rating with TWC"
+    },
+    {
+      "category": "People",
+      "source": "AM Ops",
+      "code": "CG_11",
+      "question": "Is staff grooming (uniform, jewellery, hair and makeup) as per standards?"
+    },
+    {
+      "category": "People",
+      "source": "AM Ops",
+      "code": "FAS_6",
+      "question": "Are deployment roles clear, with coaching done by MOD?"
+    },
+    {
+      "category": "People",
+      "source": "AM Ops",
+      "code": "FWS_8",
+      "question": "Have new staff training and bench plans been reviewed?"
+    },
+    {
+      "category": "People",
+      "source": "AM Ops",
+      "code": "FWS_10",
+      "question": "Has duty roster been checked and attendance ensured?"
+    },
+    {
+      "category": "People",
+      "source": "AM Ops",
+      "code": "ENJ_1",
+      "question": "Have 2 new and 2 repeat customers been engaged?"
+    },
+    {
+      "category": "People",
+      "source": "AM Ops",
+      "code": "ENJ_3",
+      "question": "Is the team proactively assisting customers?"
+    },
+    {
+      "category": "People",
+      "source": "AM Ops",
+      "code": "EX_2",
+      "question": "Is the final interaction cheerful and courteous?"
+    },
+    {
+      "category": "People",
+      "source": "AM Ops",
+      "code": "EX_4",
+      "question": "Have top performers been recognized?"
+    },
+    {
+      "category": "People",
+      "source": "AM Ops",
+      "code": "EX_5",
+      "question": "Have wins been celebrated and improvement areas communicated?"
+    },
+    {
+      "category": "People",
+      "source": "AM Ops",
+      "code": "EX_6",
+      "question": "Has the team been motivated for ongoing improvement?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "LMS_1",
+      "question": "Orientation & Induction completed within 3 days?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "LMS_2",
+      "question": "All assessments & knowledge checks completed on LMS?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "LMS_3",
+      "question": "Team uses LMS for new info & comms?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "Buddy_1",
+      "question": "Café has at least 2 certified Buddy Trainers?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "Buddy_2",
+      "question": "Buddy Trainers completed Skill Check?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "Buddy_3",
+      "question": "Trainees rostered with Buddy Trainers?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "Buddy_4",
+      "question": "Buddy Trainers attended BT workshop?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "Buddy_5",
+      "question": "Buddy Trainers explain 4-step training process?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "Buddy_6",
+      "question": "Buddy Trainers navigate Zing LMS flawlessly?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "NJ_4",
+      "question": "Team members aware of post-barista training progressions?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "NJ_5",
+      "question": "Managers completed SHLP training?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "NJ_6",
+      "question": "At least 2 FOSTAC-certified managers in store?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "NJ_7",
+      "question": "ASM/SM training completed per calendar?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "PK_1",
+      "question": "Team members aware of current company communication?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "PK_6",
+      "question": "Partners following grooming standards?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "PK_7",
+      "question": "Knowledge Check: COFFEE, LEAST, ROAST, Values?"
+    },
+    {
+      "category": "People",
+      "source": "Training",
+      "code": "CX_7",
+      "question": "Knowledge Check: MA, CPI, Google, HD, QA Scores?"
+    },
+    {
+      "category": "People",
+      "source": "QA Checklist",
+      "code": "S_29",
+      "question": "Training records maintained for all staff?"
+    },
+    {
+      "category": "People",
+      "source": "QA Checklist",
+      "code": "HR_1",
+      "question": "Medical fitness records available?"
+    },
+    {
+      "category": "People",
+      "source": "QA Checklist",
+      "code": "HR_2",
+      "question": "Annual medical examination completed?"
+    },
+    {
+      "category": "Place",
+      "source": "AM Ops",
+      "code": "CG_1",
+      "question": "Store front area clean and maintained?"
+    },
+    {
+      "category": "Place",
+      "source": "AM Ops",
+      "code": "CG_2",
+      "question": "Signage clean and lights functioning?"
+    },
+    {
+      "category": "Place",
+      "source": "AM Ops",
+      "code": "CG_3",
+      "question": "Glass and doors smudge-free?"
+    },
+    {
+      "category": "Place",
+      "source": "AM Ops",
+      "code": "CG_7",
+      "question": "Welcoming environment (music, lighting, AC, aroma)?"
+    },
+    {
+      "category": "Place",
+      "source": "AM Ops",
+      "code": "CG_8",
+      "question": "Washrooms cleaned and checklist updated?"
+    },
+    {
+      "category": "Place",
+      "source": "AM Ops",
+      "code": "CG_12",
+      "question": "Seating, furniture, and stations tidy?"
+    },
+    {
+      "category": "Place",
+      "source": "AM Ops",
+      "code": "CG_13",
+      "question": "Engine area clean and ready?"
+    },
+    {
+      "category": "Place",
+      "source": "AM Ops",
+      "code": "FAS_8",
+      "question": "Garbage segregated properly (wet/dry)?"
+    },
+    {
+      "category": "Place",
+      "source": "AM Ops",
+      "code": "ENJ_2",
+      "question": "Seating and stations adjusted per customer requirements?"
+    },
+    {
+      "category": "Place",
+      "source": "AM Ops",
+      "code": "ENJ_7",
+      "question": "No personal items/clutter in guest areas?"
+    },
+    {
+      "category": "Place",
+      "source": "Training",
+      "code": "CX_1",
+      "question": "Appropriate background music?"
+    },
+    {
+      "category": "Place",
+      "source": "Training",
+      "code": "CX_2",
+      "question": "Store temperature comfortable?"
+    },
+    {
+      "category": "Place",
+      "source": "Training",
+      "code": "CX_3",
+      "question": "Washrooms clean and well-maintained?"
+    },
+    {
+      "category": "Place",
+      "source": "Training",
+      "code": "CX_4",
+      "question": "WiFi available and functioning?"
+    },
+    {
+      "category": "Place",
+      "source": "Training",
+      "code": "CX_6",
+      "question": "Store furniture clean and well-kept?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_1",
+      "question": "Café interior clean/maintained?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_2",
+      "question": "No water leakage/moisture?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_3",
+      "question": "Walls/ceilings clean?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_4",
+      "question": "Ceiling tiles intact?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_5",
+      "question": "Doors/windows clean and functional?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_7",
+      "question": "Counters/work surfaces clean?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_8",
+      "question": "Sinks clean/no clogs?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_9",
+      "question": "Waste bins proper/covered/emptied?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_10",
+      "question": "Washroom clean/stocked?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_11",
+      "question": "Staff areas clean?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_12",
+      "question": "Outdoor seating maintained?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_13",
+      "question": "Tables/chairs in good condition?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_14",
+      "question": "Menu boards clean/visible?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_15",
+      "question": "Signage clean/lit?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_16",
+      "question": "Floor clean, dry, debris-free?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "S_66",
+      "question": "Dry storage area clean/pest-free?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "M_1",
+      "question": "Window screens/mesh intact?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "M_2",
+      "question": "No structural damage?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "M_3",
+      "question": "No exposed electrical wiring?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "M_4",
+      "question": "Lighting adequate?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "M_5",
+      "question": "Fire extinguishers properly placed?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "M_6",
+      "question": "No gaps/holes for pests?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "M_9",
+      "question": "Plumbing fixtures functional?"
+    },
+    {
+      "category": "Place",
+      "source": "QA Checklist",
+      "code": "ZT_6",
+      "question": "Zero Tolerance: No pest activity."
+    },
+    {
+      "category": "Product",
+      "source": "AM Ops",
+      "code": "CG_4",
+      "question": "Promotional displays reflect current offers?"
+    },
+    {
+      "category": "Product",
+      "source": "AM Ops",
+      "code": "CG_5",
+      "question": "POS tent cards as per latest comms?"
+    },
+    {
+      "category": "Product",
+      "source": "AM Ops",
+      "code": "CG_6",
+      "question": "Menu boards/DMB updated?"
+    },
+    {
+      "category": "Product",
+      "source": "AM Ops",
+      "code": "CG_9",
+      "question": "FDU counter stocked/planogram?"
+    },
+    {
+      "category": "Product",
+      "source": "AM Ops",
+      "code": "CG_10",
+      "question": "Merch rack VM guidelines?"
+    },
+    {
+      "category": "Product",
+      "source": "AM Ops",
+      "code": "OTA_1",
+      "question": "Suggestive selling at POS?"
+    },
+    {
+      "category": "Product",
+      "source": "AM Ops",
+      "code": "OTA_2",
+      "question": "POS partner updated on promos/availability?"
+    },
+    {
+      "category": "Product",
+      "source": "AM Ops",
+      "code": "OTA_10",
+      "question": "Food and drinks served as per SOP?"
+    },
+    {
+      "category": "Product",
+      "source": "AM Ops",
+      "code": "FAS_4",
+      "question": "Fast-moving SKU availability checked?"
+    },
+    {
+      "category": "Product",
+      "source": "AM Ops",
+      "code": "FAS_9",
+      "question": "LTO products served as per standards?"
+    },
+    {
+      "category": "Product",
+      "source": "Training",
+      "code": "PK_2",
+      "question": "Coffee Tasting & Sampling conducted?"
+    },
+    {
+      "category": "Product",
+      "source": "Training",
+      "code": "PK_3",
+      "question": "Sampling conducted per guidelines?"
+    },
+    {
+      "category": "Product",
+      "source": "Training",
+      "code": "PK_4",
+      "question": "Coffee Tasting engaging/effective?"
+    },
+    {
+      "category": "Product",
+      "source": "Training",
+      "code": "TSA_1",
+      "question": "TSA Food Score"
+    },
+    {
+      "category": "Product",
+      "source": "Training",
+      "code": "TSA_2",
+      "question": "TSA Coffee Score"
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "S_19",
+      "question": "FIFO method followed?"
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "S_70",
+      "question": "Raw and cooked foods properly separated?"
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "S_71",
+      "question": "Allergen information available?"
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "S_72",
+      "question": "Allergen cross-contamination prevention?"
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "S_73",
+      "question": "Dietary requirement labels accurate?"
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "S_74",
+      "question": "Food samples handled hygienically?"
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "S_75",
+      "question": "Display cases clean and items protected?"
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "S_76",
+      "question": "Sneeze guards in place?"
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "S_77",
+      "question": "Self-service stations monitored?"
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "S_78",
+      "question": "Condiments properly stored/within expiry?"
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "ZT_1",
+      "question": "Zero Tolerance: No expired food."
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "ZT_2",
+      "question": "Zero Tolerance: Secondary shelf life compliance."
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "ZT_3",
+      "question": "Zero Tolerance: Storage conditions correct."
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "ZT_4",
+      "question": "Zero Tolerance: Water TDS compliance."
+    },
+    {
+      "category": "Product",
+      "source": "QA Checklist",
+      "code": "ZT_5",
+      "question": "Zero Tolerance: Temp sensitive transfer handling."
+    },
+    {
+      "category": "Process",
+      "source": "AM Ops",
+      "code": "OTA_3",
+      "question": "Order-taking time recorded for 5 customers?"
+    },
+    {
+      "category": "Process",
+      "source": "AM Ops",
+      "code": "OTA_5",
+      "question": "Valid licenses displayed & expiries checked?"
+    },
+    {
+      "category": "Process",
+      "source": "AM Ops",
+      "code": "OTA_9",
+      "question": "Swiggy/Zomato metrics & stock control managed?"
+    },
+    {
+      "category": "Process",
+      "source": "AM Ops",
+      "code": "FAS_2",
+      "question": "Temp checks with Therma Pen & logs?"
+    },
+    {
+      "category": "Process",
+      "source": "AM Ops",
+      "code": "FAS_3",
+      "question": "Documentation (GRN, RSTN, STN & TO) completed?"
+    },
+    {
+      "category": "Process",
+      "source": "AM Ops",
+      "code": "FAS_5",
+      "question": "Thawing chart validated against actual?"
+    },
+    {
+      "category": "Process",
+      "source": "AM Ops",
+      "code": "FAS_10",
+      "question": "Coffee and food dial-in process followed?"
+    },
+    {
+      "category": "Process",
+      "source": "AM Ops",
+      "code": "FAS_11",
+      "question": "R.O.A.S.T. and app orders executed accurately?"
+    },
+    {
+      "category": "Process",
+      "source": "AM Ops",
+      "code": "FAS_12",
+      "question": "5 order service times validated?"
+    },
+    {
+      "category": "Process",
+      "source": "AM Ops",
+      "code": "FWS_11",
+      "question": "Temp and thawing logs validated?"
+    },
+    {
+      "category": "Process",
+      "source": "AM Ops",
+      "code": "FWS_13",
+      "question": "Pest control layout updated?"
+    },
+    {
+      "category": "Process",
+      "source": "AM Ops",
+      "code": "ENJ_5",
+      "question": "CCTV backup (60 days) and black spots checked?"
+    },
+    {
+      "category": "Process",
+      "source": "AM Ops",
+      "code": "ENJ_6",
+      "question": "Opening/closing footage reviewed?"
+    },
+    {
+      "category": "Process",
+      "source": "AM Ops",
+      "code": "EX_1",
+      "question": "No unresolved issues at exits?"
+    },
+    {
+      "category": "Process",
+      "source": "Training",
+      "code": "TM_1",
+      "question": "FRM available?"
+    },
+    {
+      "category": "Process",
+      "source": "Training",
+      "code": "TM_2",
+      "question": "BRM available?"
+    },
+    {
+      "category": "Process",
+      "source": "Training",
+      "code": "TM_3",
+      "question": "One-pager (Hot) displayed?"
+    },
+    {
+      "category": "Process",
+      "source": "Training",
+      "code": "TM_4",
+      "question": "One-pager (Cold) displayed?"
+    },
+    {
+      "category": "Process",
+      "source": "Training",
+      "code": "TM_5",
+      "question": "Dial-in One-pager visible?"
+    },
+    {
+      "category": "Process",
+      "source": "Training",
+      "code": "NJ_1",
+      "question": "OJT book available?"
+    },
+    {
+      "category": "Process",
+      "source": "Training",
+      "code": "NJ_2",
+      "question": "Trainees referring to OJT book?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "S_20",
+      "question": "Temperature logs maintained?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "S_21",
+      "question": "Cleaning schedules displayed/followed?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "S_22",
+      "question": "Hand washing signs displayed?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "S_23",
+      "question": "Emergency exit routes marked?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "S_24",
+      "question": "First aid kit stocked?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "S_25",
+      "question": "MSDS available?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "S_26",
+      "question": "Pest control reports current?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "S_28",
+      "question": "Supplier documentation maintained?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "S_31",
+      "question": "Product specifications available?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "S_32",
+      "question": "Recipe cards available?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "S_88",
+      "question": "Complaint log maintained/reviewed?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "S_94",
+      "question": "Sustainability initiatives implemented?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "A_1",
+      "question": "Audit requirements met?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "A_2",
+      "question": "Documentation complete/accurate?"
+    },
+    {
+      "category": "Process",
+      "source": "QA Checklist",
+      "code": "A_3",
+      "question": "Compliance with regulatory standards?"
+    },
+    {
+      "category": "Finance",
+      "source": "AM Ops",
+      "code": "OTA_4",
+      "question": "Sufficient cash and change at POS?"
+    },
+    {
+      "category": "Finance",
+      "source": "AM Ops",
+      "code": "OTA_6",
+      "question": "Cash audits completed and verified?"
+    },
+    {
+      "category": "Finance",
+      "source": "AM Ops",
+      "code": "OTA_7",
+      "question": "Daily banking reports tallied?"
+    },
+    {
+      "category": "Finance",
+      "source": "AM Ops",
+      "code": "FWS_1",
+      "question": "COGS reviewed vs P&L?"
+    },
+    {
+      "category": "Finance",
+      "source": "AM Ops",
+      "code": "FWS_3",
+      "question": "People budget vs actuals reviewed?"
+    },
+    {
+      "category": "Finance",
+      "source": "AM Ops",
+      "code": "FWS_4",
+      "question": "Variance in stock (physical vs system) verified?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CM_1",
+      "question": "Daily cash reconciliation completed?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CM_2",
+      "question": "Cash drawer balancing performed?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CM_3",
+      "question": "Petty cash properly managed?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CM_4",
+      "question": "Cash security measures in place?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CM_5",
+      "question": "Daily cash deposit procedures followed?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CM_6",
+      "question": "Cash variances investigated/reported?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CM_7",
+      "question": "Adequate change fund maintained?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CM_8",
+      "question": "Counterfeit currency detection procedures?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "SR_1",
+      "question": "Daily sales reports generated/reviewed?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "SR_2",
+      "question": "POS data reconciled with physical cash?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "SR_3",
+      "question": "Promotional discounts tracked/authorized?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "SR_4",
+      "question": "Refund/void procedures followed?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "SR_5",
+      "question": "Revenue trend analysis conducted?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "SR_6",
+      "question": "Sales tax calculations verified?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "SR_7",
+      "question": "Credit card settlement reconciled daily?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "IF_1",
+      "question": "Inventory valuation methods applied?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "IF_2",
+      "question": "Physical inventory counts conducted?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "IF_3",
+      "question": "Stock movement recorded/authorized?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "IF_4",
+      "question": "Vendor payment procedures followed?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "IF_5",
+      "question": "Purchase orders authorized?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "IF_6",
+      "question": "Expense categorization accurate?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "IF_7",
+      "question": "COGS calculations verified?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "IF_8",
+      "question": "Wastage/shrinkage documented?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CR_1",
+      "question": "Monthly financial statements prepared?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CR_2",
+      "question": "Tax compliance met?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CR_3",
+      "question": "Audit trail maintained?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CR_4",
+      "question": "Internal controls testing performed?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CR_5",
+      "question": "Regulatory reporting filed?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CR_6",
+      "question": "Doc retention policies followed?"
+    },
+    {
+      "category": "Finance",
+      "source": "Finance",
+      "code": "CR_7",
+      "question": "Budget variance analysis reviewed?"
+    },
+    {
+      "category": "Finance",
+      "source": "QA Checklist",
+      "code": "S_89",
+      "question": "Sales records maintained?"
+    },
+    {
+      "category": "Finance",
+      "source": "QA Checklist",
+      "code": "S_90",
+      "question": "Inventory records accurate?"
+    },
+    {
+      "category": "Finance",
+      "source": "QA Checklist",
+      "code": "S_91",
+      "question": "Waste log maintained and analyzed?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "AM Ops",
+      "code": "FAS_7",
+      "question": "No broken/unused tools stored?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_6",
+      "question": "Equipment surfaces clean/sanitized?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_27",
+      "question": "Equipment maintenance logs up to date?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_33",
+      "question": "Portion control tools available/used?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_34",
+      "question": "Thermometers available and calibrated?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_35",
+      "question": "Weighing scales available/calibrated?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_36",
+      "question": "Timer devices available?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_37",
+      "question": "Probe thermometer available?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_39",
+      "question": "Refrigeration units clean/functioning?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_40",
+      "question": "Freezer units clean/correct temp?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_43",
+      "question": "Cooking equipment clean/functional?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_44",
+      "question": "Coffee machine clean/maintained?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_45",
+      "question": "Grinder clean/functional?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_46",
+      "question": "Ice machine clean/clear ice?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_48",
+      "question": "Dishwasher functioning?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_51",
+      "question": "Test strips available for sanitizer?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_53",
+      "question": "Utensils stored properly off floor?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_54",
+      "question": "Cutting boards color-coded?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_55",
+      "question": "Knives sharp/clean?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_57",
+      "question": "Pots and pans clean?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_60",
+      "question": "Plates and bowls clean?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_61",
+      "question": "Cups stored inverted?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_63",
+      "question": "Food containers clean/lids tight?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_65",
+      "question": "Storage shelves clean/organized?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "S_79",
+      "question": "Ice bins clean and scoops used?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "M_7",
+      "question": "Pest control devices maintained?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "M_8",
+      "question": "Equipment maintenance records available?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "M_10",
+      "question": "Freezers and chillers temp correct?"
+    },
+    {
+      "category": "Equipment & Tools",
+      "source": "QA Checklist",
+      "code": "M_11",
+      "question": "RO water system serviced?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "AM Ops",
+      "code": "OTA_8",
+      "question": "Has CPI been reviewed through FAME pilot?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "AM Ops",
+      "code": "OTA_11",
+      "question": "Food orders placed based on 4-week sales trend?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "AM Ops",
+      "code": "FAS_13",
+      "question": "Open maintenance-related points reviewed?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "AM Ops",
+      "code": "FWS_2",
+      "question": "BSC targets vs achievements reviewed?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "AM Ops",
+      "code": "FWS_5",
+      "question": "Top 10 wastage items reviewed?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "AM Ops",
+      "code": "FWS_6",
+      "question": "Store utilities (units, chemical use) reviewed?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "AM Ops",
+      "code": "FWS_7",
+      "question": "Shift targets, briefings, goal tracking conducted?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "AM Ops",
+      "code": "FWS_9",
+      "question": "Training and QA audits reviewed?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "AM Ops",
+      "code": "FWS_12",
+      "question": "Audit/data findings cross-checked with observations?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "AM Ops",
+      "code": "ENJ_4",
+      "question": "CCTV checked to monitor service during peak?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "AM Ops",
+      "code": "EX_3",
+      "question": "Consolidated action plan created with SM?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "Training",
+      "code": "NJ_3",
+      "question": "Training progression aligned with Calendar/Plan?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "Training",
+      "code": "TSA_3",
+      "question": "TSA CX Score"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "Training",
+      "code": "CX_8",
+      "question": "Latest Mystery Audit score knowledge?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "Training",
+      "code": "CX_9",
+      "question": "Top 2 opportunity areas in CX knowledge?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "Training",
+      "code": "AP_1",
+      "question": "SMART action plan created?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "Training",
+      "code": "AP_2",
+      "question": "Action plan discussed and agreed?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "Training",
+      "code": "AP_3",
+      "question": "Follow-up dates scheduled for action plan?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "QA Checklist",
+      "code": "S_30",
+      "question": "Action plans from previous audits reviewed?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "QA Checklist",
+      "code": "S_92",
+      "question": "Energy consumption monitored (Analysis)?"
+    },
+    {
+      "category": "Strategy & Performance",
+      "source": "QA Checklist",
+      "code": "S_93",
+      "question": "Water usage monitored (Analysis)?"
+    }
+  ]
+}

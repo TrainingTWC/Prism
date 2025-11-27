@@ -207,6 +207,18 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   let y = 15;
   const first = submissions[0] || {} as any;
+  
+  // Debug logging
+  console.log('🎯 PDF Generation - First submission data:', first);
+  console.log('🎯 PDF Generation - Submission keys:', Object.keys(first));
+  console.log('🎯 PDF Generation - totalScore:', first.totalScore);
+  console.log('🎯 PDF Generation - maxScore:', first.maxScore);
+  console.log('🎯 PDF Generation - percentageScore:', first.percentageScore);
+  console.log('🎯 PDF Generation - TSA scores:', {
+    food: first.TSA_Food_Score || first.tsaFoodScore,
+    coffee: first.TSA_Coffee_Score || first.tsaCoffeeScore,
+    cx: first.TSA_CX_Score || first.tsaCXScore
+  });
 
   const title = options.title || 'Training Audit';
   // Header: Title, Store, Metadata and Logo on the right
