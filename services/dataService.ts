@@ -419,7 +419,7 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
     }
 
     const submission: Submission = {
-      submissionTime: row['Submission Time'] || row.submissionTime || new Date().toISOString(),
+      submissionTime: row['Server Timestamp'] || row['Submission Time'] || row.submissionTime || new Date().toISOString(),
       hrName: hrName,
       hrId: hrId,
       amName: amName,
@@ -907,8 +907,6 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
       let region = row.region || 'Unknown';
       let storeId = row.storeId;
       
-      console.log(`Processing training store: ${storeId} (${row.storeName}) - Original region: ${region}`);
-      
       // If region is Unknown or empty, try to map from store ID
       if (!region || region === 'Unknown') {
         try {
@@ -962,8 +960,6 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
       const tsaFoodScore = row.tsaFoodScore || row['tsaFoodScore'] || row.TSA_Food_Score || row['TSA_Food_Score'] || row.TSA_TSA_2 || row['TSA_TSA_2'] || '';
       const tsaCoffeeScore = row.tsaCoffeeScore || row['tsaCoffeeScore'] || row.TSA_Coffee_Score || row['TSA_Coffee_Score'] || row.TSA_TSA_1 || row['TSA_TSA_1'] || '';
       const tsaCXScore = row.tsaCXScore || row['tsaCXScore'] || row.TSA_CX_Score || row['TSA_CX_Score'] || row.TSA_TSA_3 || row['TSA_TSA_3'] || '';
-      
-      console.log(`TSA Scores for ${storeId}: Food=${tsaFoodScore}, Coffee=${tsaCoffeeScore}, CX=${tsaCXScore}`);
       
       return {
         ...row,

@@ -141,30 +141,43 @@ const HRDetailModal: React.FC<HRDetailModalProps> = ({
 
   // Helper function to render a submission row
   const renderSubmissionRow = (submission: Submission, key: string | number) => {
-    // Parse date safely - handle DD/MM/YYYY, HH:MM:SS format from Google Sheets
+    // Parse date using same logic as HRBPCalendarModal and Dashboard filters
     let submissionDate: Date | null = null;
     
     if (submission.submissionTime) {
-      // Try parsing ISO format first
-      submissionDate = new Date(submission.submissionTime);
+      const dateStr = String(submission.submissionTime).trim();
       
-      // If invalid, try parsing DD/MM/YYYY format
-      if (isNaN(submissionDate.getTime())) {
-        // Format: "25/09/2025, 17:15:11" or "25/09/2025 17:15:11"
-        const dateStr = submission.submissionTime.replace(',', '').trim();
-        const parts = dateStr.split(' ');
-        if (parts.length >= 1) {
-          const dateParts = parts[0].split('/');
-          if (dateParts.length === 3) {
-            // DD/MM/YYYY -> convert to YYYY-MM-DD
-            const day = dateParts[0];
-            const month = dateParts[1];
-            const year = dateParts[2];
-            const time = parts[1] || '00:00:00';
-            const isoString = `${year}-${month}-${day}T${time}`;
-            submissionDate = new Date(isoString);
+      try {
+        // Handle ISO-like format that's actually DD-MM-YYYY (e.g., 2025-12-11T... should be 12th November 2025)
+        if (dateStr.includes('T') && dateStr.match(/^\d{4}-\d{2}-\d{2}T/)) {
+          const [datePart] = dateStr.split('T');
+          const [year, dayMonth, day] = datePart.split('-');
+          
+          // The format is actually YYYY-DD-MM, not YYYY-MM-DD
+          // So 2025-12-11 means 2025, day=12, month=11 (November)
+          const actualYear = parseInt(year, 10);
+          const actualDay = parseInt(dayMonth, 10);
+          const actualMonth = parseInt(day, 10) - 1; // JS months are 0-based (0=Jan, 10=Nov)
+          
+          submissionDate = new Date(actualYear, actualMonth, actualDay);
+        } else if (dateStr.includes('/')) {
+          // DD/MM/YYYY format
+          const parts = dateStr.split(',')[0].trim().split(' ')[0].split('/');
+          if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1; // JS months are 0-based (0=Jan, 11=Dec)
+            const year = parseInt(parts[2], 10);
+            
+            submissionDate = new Date(year, month, day);
+            
+            // Validation - ensure the parsed date makes sense
+            if (submissionDate.getFullYear() !== year || submissionDate.getMonth() !== month || submissionDate.getDate() !== day) {
+              submissionDate = null;
+            }
           }
         }
+      } catch (error) {
+        submissionDate = null;
       }
     }
     

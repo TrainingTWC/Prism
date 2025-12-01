@@ -18,8 +18,9 @@ interface DashboardFiltersProps {
     hrPerson: string; // Separate filter for HR personnel
     // store health filter - '', 'Needs Attention', 'Brewing', 'Perfect Shot'
     health?: string;
+    month?: string; // Month filter (YYYY-MM format)
   };
-  onFilterChange: (filterName: 'region' | 'store' | 'am' | 'trainer' | 'hrPerson' | 'health', value: string) => void;
+  onFilterChange: (filterName: 'region' | 'store' | 'am' | 'trainer' | 'hrPerson' | 'health' | 'month', value: string) => void;
   onReset: () => void;
   onDownload?: () => void;
   onDownloadExcel?: () => void;
@@ -363,6 +364,21 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
               disabled={effectiveHRPersonnel.length === 0}
             />
           )}
+
+          {/* Month Filter - Only show on HR dashboard */}
+          {dashboardType === 'hr' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                Month
+              </label>
+              <input
+                type="month"
+                value={filters.month || ''}
+                onChange={(e) => onFilterChange('month', e.target.value)}
+                className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -452,6 +468,21 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
                 placeholder="All HRs"
                 options={effectiveHRPersonnel.map(h => ({ value: h.id, label: h.name, id: h.id }))}
                 disabled={effectiveHRPersonnel.length === 0}
+              />
+            </div>
+          )}
+
+          {/* Month Filter - Only show on HR dashboard */}
+          {dashboardType === 'hr' && (
+            <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                Month
+              </label>
+              <input
+                type="month"
+                value={filters.month || ''}
+                onChange={(e) => onFilterChange('month', e.target.value)}
+                className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
               />
             </div>
           )}
