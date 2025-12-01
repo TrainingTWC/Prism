@@ -119,7 +119,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     am: '',
     trainer: '',
     hrPerson: '', // Separate filter for HR personnel
-    health: ''
+    health: '',
+    month: '' // Month filter for HR dashboard (YYYY-MM format)
   });
 
   // Leaderboard view toggle state
@@ -828,61 +829,95 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const filteredData = useMemo(() => {
     if (!submissions) return null;
 
-    console.log('Dashboard filtering - userRole:', userRole);
-    console.log('Dashboard filtering - raw submissions:', submissions.length);
-
     let filtered = [...submissions];
 
     // Apply role-based filtering
     if (userRole) {
-      const beforeRoleFilter = filtered.length;
       filtered = filtered.filter(submission => 
         canAccessStore(userRole, submission.storeID)
       );
-      console.log(`Role filtering: ${beforeRoleFilter} -> ${filtered.length} submissions`);
     }
 
     // Filter by region
     if (filters.region) {
-      const beforeRegionFilter = filtered.length;
       filtered = filtered.filter(submission => {
         const store = allStores.find(s => s.id === submission.storeID);
         return store && store.region === filters.region;
       });
-      console.log(`Region filter (${filters.region}): ${beforeRegionFilter} -> ${filtered.length} submissions`);
     }
 
     // Filter by store
     if (filters.store) {
-      const beforeStoreFilter = filtered.length;
       filtered = filtered.filter(submission => submission.storeID === filters.store);
-      console.log(`Store filter (${filters.store}): ${beforeStoreFilter} -> ${filtered.length} submissions`);
     }
 
     // Filter by area manager
     if (filters.am) {
-      const beforeAMFilter = filtered.length;
       filtered = filtered.filter(submission => submission.amId === filters.am);
-      console.log(`AM filter (${filters.am}): ${beforeAMFilter} -> ${filtered.length} submissions`);
     }
 
     // Filter by trainer (for Training/Operations/QA dashboards)
     if (trainerFilterId) {
-      const beforeTrainerFilter = filtered.length;
-  filtered = filtered.filter(submission => normalizeId(submission.hrId) === trainerFilterId || normalizeId((submission as any).trainerId) === trainerFilterId || normalizeId((submission as any).trainer) === trainerFilterId);
-      console.log(`Trainer filter (${filters.trainer} -> ${trainerFilterId}): ${beforeTrainerFilter} -> ${filtered.length} submissions`);
+      filtered = filtered.filter(submission => normalizeId(submission.hrId) === trainerFilterId || normalizeId((submission as any).trainerId) === trainerFilterId || normalizeId((submission as any).trainer) === trainerFilterId);
     }
 
     // Filter by HR person (for HR dashboard)
     if (hrPersonFilterId) {
-      const beforeHRFilter = filtered.length;
       filtered = filtered.filter(submission => normalizeId(submission.hrId) === hrPersonFilterId);
-      console.log(`HR filter (${filters.hrPerson} -> ${hrPersonFilterId}): ${beforeHRFilter} -> ${filtered.length} submissions`);
     }
 
-    console.log('Final filtered submissions:', filtered.length);
+    // Filter by month (for all dashboards)
+    if (filters.month) {
+      filtered = filtered.filter(submission => {
+        const submissionDate = submission.submissionTime || submission.timestamp || (submission as any).submittedAt;
+        if (!submissionDate) return false;
+        
+        // Parse date using same logic as HRBPCalendarModal
+        let date: Date | null = null;
+        const dateStr = String(submissionDate).trim();
+        
+        try {
+          // Handle ISO-like format that's actually DD-MM-YYYY (e.g., 2025-12-11T... should be 12th November 2025)
+          if (dateStr.includes('T') && dateStr.match(/^\d{4}-\d{2}-\d{2}T/)) {
+            const [datePart] = dateStr.split('T');
+            const [year, dayMonth, day] = datePart.split('-');
+            
+            // The format is actually YYYY-DD-MM, not YYYY-MM-DD
+            // So 2025-12-11 means 2025, day=12, month=11 (November)
+            const actualYear = parseInt(year, 10);
+            const actualDay = parseInt(dayMonth, 10);
+            const actualMonth = parseInt(day, 10) - 1; // JS months are 0-based (0=Jan, 10=Nov)
+            
+            date = new Date(actualYear, actualMonth, actualDay);
+          } else if (dateStr.includes('/')) {
+            // DD/MM/YYYY format
+            const parts = dateStr.split(',')[0].trim().split(' ')[0].split('/');
+            if (parts.length === 3) {
+              const day = parseInt(parts[0], 10);
+              const month = parseInt(parts[1], 10) - 1; // JS months are 0-based (0=Jan, 11=Dec)
+              const year = parseInt(parts[2], 10);
+              
+              date = new Date(year, month, day);
+              
+              // Validation - ensure the parsed date makes sense
+              if (date.getFullYear() !== year || date.getMonth() !== month || date.getDate() !== day) {
+                return false;
+              }
+            }
+          }
+          
+          if (!date || isNaN(date.getTime())) return false;
+          
+          const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          return submissionMonth === filters.month;
+        } catch (error) {
+          return false;
+        }
+      });
+    }
+
     return filtered;
-  }, [submissions, filters, userRole, allStores, trainerFilterId, hrPersonFilterId]);
+  }, [submissions, filters, userRole, allStores, trainerFilterId, hrPersonFilterId, dashboardType]);
 
   const filteredSubmissions = filteredData || [];
 
@@ -971,9 +1006,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const filteredAMOperations = useMemo(() => {
     if (!amOperationsData) return [];
     
-    console.log('Dashboard filtering AM Operations - userRole:', userRole);
-    console.log('Dashboard filtering AM Operations - raw data:', amOperationsData.length);
-    
     let filtered = amOperationsData.filter((submission: AMOperationsSubmission) => {
       // Role-based access control
       if (userRole.role === 'store') {
@@ -1006,20 +1038,46 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       if (filters.trainer && submission.hrId !== filters.trainer) {
         return false;
       }
+
+      // Apply month filter
+      if (filters.month) {
+        const submissionDate = submission.submissionTime || (submission as any).timestamp || (submission as any).submittedAt;
+        if (!submissionDate) return false;
+        
+        let date: Date;
+        const dateStr = String(submissionDate).trim();
+        if (dateStr.includes('T')) {
+          date = new Date(dateStr);
+        } else if (dateStr.includes('/')) {
+          const datePart = dateStr.split(',')[0].trim().split(' ')[0];
+          const parts = datePart.split('/');
+          if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            date = new Date(year, month, day);
+          } else {
+            return false;
+          }
+        } else {
+          date = new Date(dateStr);
+        }
+        
+        if (isNaN(date.getTime())) return false;
+        
+        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (submissionMonth !== filters.month) return false;
+      }
       
       return true;
     });
     
-    console.log('Dashboard filtering AM Operations - filtered:', filtered.length);
     return filtered;
   }, [amOperationsData, filters, userRole]);
 
   // Filter Training Audit data
   const filteredTrainingData = useMemo(() => {
     if (!trainingData) return [];
-    
-    console.log('Dashboard filtering Training Audit - userRole:', userRole);
-    console.log('Dashboard filtering Training Audit - raw data:', trainingData.length);
     
     let filtered = trainingData.filter((submission: TrainingAuditSubmission) => {
       // Role-based access control (same as AM Operations but with trainer focus)
@@ -1064,12 +1122,40 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         if (filters.health === 'Brewing' && (pct < 56 || pct >= 81)) return false;
         if (filters.health === 'Perfect Shot' && pct < 81) return false;
       }
+
+      // Apply month filter
+      if (filters.month) {
+        const submissionDate = submission.submissionTime || (submission as any).timestamp || (submission as any).submittedAt;
+        if (!submissionDate) return false;
+        
+        let date: Date;
+        const dateStr = String(submissionDate).trim();
+        if (dateStr.includes('T')) {
+          date = new Date(dateStr);
+        } else if (dateStr.includes('/')) {
+          const datePart = dateStr.split(',')[0].trim().split(' ')[0];
+          const parts = datePart.split('/');
+          if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            date = new Date(year, month, day);
+          } else {
+            return false;
+          }
+        } else {
+          date = new Date(dateStr);
+        }
+        
+        if (isNaN(date.getTime())) return false;
+        
+        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (submissionMonth !== filters.month) return false;
+      }
       
       return true;
     });
     
-    console.log('Dashboard filtering Training Audit - filtered:', filtered.length);
-
     // Deduplicate by storeId: keep only the latest submission per store
     const parseTime = (t: any) => {
       try {
@@ -1111,7 +1197,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     });
 
     const deduped = Array.from(latestByStore.values());
-    console.log('Dashboard filtering Training Audit - deduped by store:', deduped.length);
     return deduped;
   }, [trainingData, filters, userRole]);
 
@@ -1159,6 +1244,36 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         if (filters.health === 'Brewing' && (pct < 56 || pct >= 81)) return false;
         if (filters.health === 'Perfect Shot' && pct < 81) return false;
       }
+
+      // Apply month filter
+      if (filters.month) {
+        const submissionDate = submission.submissionTime || (submission as any).timestamp || (submission as any).submittedAt;
+        if (!submissionDate) return false;
+        
+        let date: Date;
+        const dateStr = String(submissionDate).trim();
+        if (dateStr.includes('T')) {
+          date = new Date(dateStr);
+        } else if (dateStr.includes('/')) {
+          const datePart = dateStr.split(',')[0].trim().split(' ')[0];
+          const parts = datePart.split('/');
+          if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            date = new Date(year, month, day);
+          } else {
+            return false;
+          }
+        } else {
+          date = new Date(dateStr);
+        }
+        
+        if (isNaN(date.getTime())) return false;
+        
+        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (submissionMonth !== filters.month) return false;
+      }
       
       return true;
     });
@@ -1205,6 +1320,36 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       if (filters.trainer && submission.qaId !== filters.trainer) {
         return false;
       }
+
+      // Apply month filter
+      if (filters.month) {
+        const submissionDate = submission.submissionTime || (submission as any).timestamp || (submission as any).submittedAt;
+        if (!submissionDate) return false;
+        
+        let date: Date;
+        const dateStr = String(submissionDate).trim();
+        if (dateStr.includes('T')) {
+          date = new Date(dateStr);
+        } else if (dateStr.includes('/')) {
+          const datePart = dateStr.split(',')[0].trim().split(' ')[0];
+          const parts = datePart.split('/');
+          if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            date = new Date(year, month, day);
+          } else {
+            return false;
+          }
+        } else {
+          date = new Date(dateStr);
+        }
+        
+        if (isNaN(date.getTime())) return false;
+        
+        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (submissionMonth !== filters.month) return false;
+      }
       
       return true;
     });
@@ -1249,6 +1394,36 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       // For Finance, hr filter can map to financeId
       if (filters.trainer && submission.financeId !== filters.trainer) {
         return false;
+      }
+
+      // Apply month filter
+      if (filters.month) {
+        const submissionDate = submission.submissionTime || (submission as any).timestamp || (submission as any).submittedAt;
+        if (!submissionDate) return false;
+        
+        let date: Date;
+        const dateStr = String(submissionDate).trim();
+        if (dateStr.includes('T')) {
+          date = new Date(dateStr);
+        } else if (dateStr.includes('/')) {
+          const datePart = dateStr.split(',')[0].trim().split(' ')[0];
+          const parts = datePart.split('/');
+          if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            date = new Date(year, month, day);
+          } else {
+            return false;
+          }
+        } else {
+          date = new Date(dateStr);
+        }
+        
+        if (isNaN(date.getTime())) return false;
+        
+        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (submissionMonth !== filters.month) return false;
       }
       
       return true;
@@ -1299,7 +1474,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     // For Training dashboard, prefer filtered Training Audit records when any filter is applied
     if (dashboardType === 'training') {
       // If a filter is active, use the deduped, filtered training data so the header cards change
-  const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health);
+  const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health || filters.month);
 
       if (hasFilters) {
         // If a specific store filter is applied, we must count ALL submissions for that store
@@ -1621,7 +1796,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     
     // Training dashboard special handling - show as 1-5 scale
     if (dashboardType === 'training') {
-    const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health);
+    const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health || filters.month);
       if (hasFilters) {
         if (!stats) return '—';
         const latestScore = (((stats as any).latestScore / 100) * 5).toFixed(1);
@@ -1676,7 +1851,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   };
 
   const resetFilters = () => {
-    setFilters({ region: '', store: '', am: '', trainer: '', hrPerson: '', health: '' });
+    setFilters({ region: '', store: '', am: '', trainer: '', hrPerson: '', health: '', month: '' });
   };
 
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -2789,71 +2964,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         }
       }
 
-      // Store Performance Section (for AM reports showing multiple stores)
-      if (filters.am && stats?.uniqueStores && stats.uniqueStores > 1) {
-        if (y > 220) {
-          doc.addPage();
-          y = 20;
-        }
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
-        doc.setTextColor(51, 51, 51);
-        doc.text('Store Performance Breakdown', 14, y);
-        y += 8;
-
-        const storePerformance: { [key: string]: Submission[] } = {};
-        filteredSubmissions.forEach(sub => {
-          if (!storePerformance[sub.storeName]) {
-            storePerformance[sub.storeName] = [];
-          }
-          storePerformance[sub.storeName].push(sub);
-        });
-
-        const storeData = Object.entries(storePerformance).map(([storeName, storeSubmissions]) => {
-          const storeScores = storeSubmissions.map(s => s.totalScore).filter(s => s !== undefined);
-          const avgStoreScore = storeScores.length > 0 
-            ? Math.round(storeScores.reduce((a, b) => a + b, 0) / storeScores.length)
-            : 0;
-
-          return [
-            storeName,
-            storeSubmissions.length.toString(),
-            `${avgStoreScore}%`,
-            storeSubmissions.map(s => s.empName).filter(Boolean).join(', ')
-          ];
-        });
-
-        autoTable(doc, {
-            startY: y,
-            head: [['Store Name', 'Submissions', 'Avg Score', 'Employees']],
-            body: storeData,
-            styles: { 
-              fontSize: 9, 
-              textColor: '#000000',
-              cellPadding: 2.5
-            },
-            headStyles: { 
-              fillColor: [245, 245, 245], 
-              textColor: '#000000', 
-              fontStyle: 'bold',
-              lineWidth: 0.5,
-              lineColor: [200, 200, 200]
-            },
-            bodyStyles: {
-              lineWidth: 0.3,
-              lineColor: [220, 220, 220]
-            },
-            columnStyles: {
-              0: { cellWidth: 50 },
-              1: { cellWidth: 25, halign: 'center' },
-              2: { cellWidth: 25, halign: 'center' },
-              3: { cellWidth: 80 }
-            },
-            margin: { left: 14, right: 14 }
-          });
-        }
-
       // Generate filename based on entity type
       let filename = 'HRConnect_Report';
       if (filters.store) {
@@ -2965,7 +3075,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           'Q12 Remarks': submission.q12_remarks || '',
           'Total Score': submission.totalScore || 0,
           'Max Score': submission.maxScore || 0,
-          'Percent': submission.percent || 0
+          'Score (1-5)': ((submission.percent || 0) / 100 * 5).toFixed(1)
         };
       });
 
@@ -3933,12 +4043,43 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                           {(() => {
-                        // Calculate audit coverage for each store
+                        // Calculate audit coverage for ALL stores (not just those with audits)
                         const storeAudits = new Map();
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
 
-                        // Group submissions by store and get latest audit
+                        console.log('🔍 Audit Coverage Debug:');
+                        console.log('  - filteredTrainingData entries:', filteredTrainingData.length);
+                        console.log('  - hrMappingData entries:', hrMappingData?.length || 0);
+
+                        // First, initialize ALL stores from hrMappingData (comprehensive mapping)
+                        if (hrMappingData && hrMappingData.length > 0) {
+                          hrMappingData.forEach((item: any) => {
+                            const storeId = item['Store ID'] || item.storeId;
+                            const storeName = item['Store Name'] || item.locationName;
+                            const region = item.Region || item.region;
+                            const amId = item.AM || item.areaManagerId;
+                            const amName = allAreaManagers?.find(am => am.code === amId)?.name || amId || 'Unknown';
+                            
+                            if (storeId && !storeAudits.has(storeId)) {
+                              // Initialize all stores with no audit data
+                              storeAudits.set(storeId, {
+                                storeId,
+                                storeName: storeName || storeId,
+                                region: region || 'Unknown',
+                                amName: amName,
+                                trainerName: 'Unknown',
+                                lastAuditDate: null, // No audit yet
+                                healthStatus: 'Never Audited',
+                                auditInterval: 30, // Default interval
+                                percentage: 0,
+                                hasAudit: false
+                              });
+                            }
+                          });
+                        }
+
+                        // Now update with actual audit data
                         filteredTrainingData.forEach(submission => {
                           const storeId = submission.storeId;
                           if (!storeId) return;
@@ -3968,7 +4109,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                             auditInterval = 45;
                           }
 
-                          if (!storeAudits.has(storeId) || submissionDate > storeAudits.get(storeId).lastAuditDate) {
+                          const existingStore = storeAudits.get(storeId);
+                          
+                          // Update if this is the first audit OR if this submission is newer
+                          if (!existingStore) {
+                            // Store not in mapping - add it
                             storeAudits.set(storeId, {
                               storeId,
                               storeName: submission.storeName || storeId,
@@ -3978,29 +4123,64 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                               lastAuditDate: submissionDate,
                               healthStatus,
                               auditInterval,
-                              percentage
+                              percentage,
+                              hasAudit: true
+                            });
+                          } else if (!existingStore.hasAudit || submissionDate > existingStore.lastAuditDate) {
+                            // Update existing store with audit data
+                            storeAudits.set(storeId, {
+                              ...existingStore, // Keep existing metadata
+                              storeName: submission.storeName || existingStore.storeName,
+                              region: submission.region || existingStore.region,
+                              amName: submission.amName || existingStore.amName,
+                              trainerName: submission.trainerName || existingStore.trainerName,
+                              lastAuditDate: submissionDate,
+                              healthStatus,
+                              auditInterval,
+                              percentage,
+                              hasAudit: true
                             });
                           }
                         });
+                        
+                        console.log('  - Stores initialized from mapping:', storeAudits.size);
+                        console.log('  - Audits processed (with updates):', Array.from(storeAudits.values()).filter(s => s.hasAudit).length);
+                        console.log('  - Sample store IDs from mapping:', hrMappingData?.slice(0, 3).map((item: any) => item['Store ID'] || item.storeId));
+                        console.log('  - Sample store IDs from audits:', filteredTrainingData.slice(0, 3).map(s => s.storeId));
 
-                        // Calculate due dates and status
+                        // Calculate due dates and status for ALL stores
                         let auditCoverage = Array.from(storeAudits.values()).map(store => {
-                          const lastAudit = store.lastAuditDate;
-                          const nextDue = new Date(lastAudit);
-                          nextDue.setDate(nextDue.getDate() + store.auditInterval);
+                          let nextDue: Date;
+                          let daysRemaining: number;
+                          let status: string;
+                          let statusColor: string;
                           
-                          const diffTime = nextDue.getTime() - today.getTime();
-                          const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                          
-                          let status = 'On Track';
-                          let statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-                          
-                          if (daysRemaining < 0) {
-                            status = 'Overdue';
+                          if (!store.hasAudit || !store.lastAuditDate) {
+                            // Store has NEVER been audited
+                            nextDue = new Date(today); // Should have been done already
+                            nextDue.setDate(nextDue.getDate() - 30); // Show as 30 days overdue minimum
+                            daysRemaining = -30;
+                            status = 'Never Audited';
                             statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-                          } else if (daysRemaining <= 7) {
-                            status = 'Due Soon';
-                            statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+                          } else {
+                            // Store has been audited - calculate next due date
+                            const lastAudit = store.lastAuditDate;
+                            nextDue = new Date(lastAudit);
+                            nextDue.setDate(nextDue.getDate() + store.auditInterval);
+                            
+                            const diffTime = nextDue.getTime() - today.getTime();
+                            daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            
+                            status = 'On Track';
+                            statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+                            
+                            if (daysRemaining < 0) {
+                              status = 'Overdue';
+                              statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+                            } else if (daysRemaining <= 7) {
+                              status = 'Due Soon';
+                              statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+                            }
                           }
 
                           return {
@@ -4015,7 +4195,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         // Apply filters
                         if (auditCoverageFilters.status !== 'all') {
                           auditCoverage = auditCoverage.filter(audit => {
-                            if (auditCoverageFilters.status === 'overdue') return audit.status === 'Overdue';
+                            if (auditCoverageFilters.status === 'overdue') return audit.status === 'Overdue' || audit.status === 'Never Audited';
                             if (auditCoverageFilters.status === 'due-soon') return audit.status === 'Due Soon';
                             if (auditCoverageFilters.status === 'on-track') return audit.status === 'On Track';
                             return true;
@@ -4043,8 +4223,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           auditCoverage = auditCoverage.filter(audit => audit.trainerName === auditCoverageFilters.trainer);
                         }
 
-                        // Sort by days remaining (overdue first, then ascending)
+                        // Sort by days remaining (never audited first, then overdue, then ascending)
                         auditCoverage.sort((a, b) => {
+                          if (a.status === 'Never Audited' && b.status !== 'Never Audited') return -1;
+                          if (a.status !== 'Never Audited' && b.status === 'Never Audited') return 1;
                           if (a.daysRemaining < 0 && b.daysRemaining >= 0) return -1;
                           if (a.daysRemaining >= 0 && b.daysRemaining < 0) return 1;
                           return a.daysRemaining - b.daysRemaining;
@@ -4078,24 +4260,32 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                   ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                                   : audit.healthStatus === 'Brewing'
                                   ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                                  : audit.healthStatus === 'Never Audited'
+                                  ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
                                   : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                               }`}>
-                                {audit.healthStatus} ({audit.percentage}%)
+                                {audit.healthStatus === 'Never Audited' ? 'Never Audited' : `${audit.healthStatus} (${audit.percentage}%)`}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {audit.lastAuditDate.toLocaleDateString('en-GB', { 
+                              {audit.lastAuditDate ? audit.lastAuditDate.toLocaleDateString('en-GB', { 
                                 day: '2-digit', 
                                 month: 'short', 
                                 year: 'numeric' 
-                              })}
+                              }) : (
+                                <span className="text-gray-400 dark:text-slate-500 italic">Never</span>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {audit.nextDue.toLocaleDateString('en-GB', { 
-                                day: '2-digit', 
-                                month: 'short', 
-                                year: 'numeric' 
-                              })}
+                              {audit.status === 'Never Audited' ? (
+                                <span className="text-red-600 dark:text-red-400 font-semibold">Immediate</span>
+                              ) : (
+                                audit.nextDue.toLocaleDateString('en-GB', { 
+                                  day: '2-digit', 
+                                  month: 'short', 
+                                  year: 'numeric' 
+                                })
+                              )}
                             </td>
                             <td className="px-4 py-3 text-sm">
                               <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${audit.statusColor}`}>
@@ -4104,13 +4294,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                             </td>
                             <td className="px-4 py-3 text-sm">
                               <span className={`font-semibold ${
-                                audit.daysRemaining < 0
+                                audit.status === 'Never Audited' || audit.daysRemaining < 0
                                   ? 'text-red-600 dark:text-red-400'
                                   : audit.daysRemaining <= 7
                                   ? 'text-yellow-600 dark:text-yellow-400'
                                   : 'text-green-600 dark:text-green-400'
                               }`}>
-                                {audit.daysRemaining < 0 
+                                {audit.status === 'Never Audited' 
+                                  ? 'Not Started'
+                                  : audit.daysRemaining < 0 
                                   ? `${Math.abs(audit.daysRemaining)} days overdue`
                                   : `${audit.daysRemaining} days`
                                 }
@@ -4235,7 +4427,41 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         const storeMetadata = new Map(); // Store AM, Trainer info per store
                         const today = new Date();
                         
-                        // First pass: Collect store metadata from current training data
+                        // First pass: Initialize ALL stores from hrMappingData (comprehensive mapping)
+                        if (hrMappingData && hrMappingData.length > 0) {
+                          hrMappingData.forEach((item: any) => {
+                            const storeId = item['Store ID'] || item.storeId;
+                            const storeName = item['Store Name'] || item.locationName;
+                            const region = item.Region || item.region;
+                            const amId = item.AM || item.areaManagerId;
+                            const amName = allAreaManagers?.find(am => am.code === amId)?.name || amId || 'Unknown';
+                            const trainerId = item['Trainer ID'] || item.trainerId;
+                            const trainerName = item.Trainer || item.trainer || trainerId || 'Unknown';
+                            
+                            if (storeId) {
+                              storeMetadata.set(storeId, {
+                                storeName: storeName || storeId,
+                                region: region || 'Unknown',
+                                areaManager: amName,
+                                trainer: trainerName
+                              });
+                              
+                              // Initialize store in monthly audits map
+                              if (!storeMonthlyAudits.has(storeId)) {
+                                storeMonthlyAudits.set(storeId, {
+                                  storeId,
+                                  storeName: storeName || storeId,
+                                  region: region || 'Unknown',
+                                  areaManager: amName,
+                                  trainer: trainerName,
+                                  monthlyData: new Map()
+                                });
+                              }
+                            }
+                          });
+                        }
+                        
+                        // Second pass: Collect store metadata from current training data (update if needed)
                         filteredTrainingData.forEach(submission => {
                           const storeId = submission.storeId;
                           if (!storeId) return;
@@ -4392,15 +4618,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         const storeRows = Array.from(storeMonthlyAudits.values()).map(store => {
                           const monthlyStatus = new Map();
                           let previousAudit: any = null;
-                          let latestHealthStatus = 'Unknown';
+                          let latestHealthStatus = 'Never Audited';
+                          let hasAnyAudit = false;
 
-                          months.forEach(month => {
+                          months.forEach((month, monthIndex) => {
                             const monthKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
                             const audit = store.monthlyData.get(monthKey);
+                            const isCurrentMonth = monthIndex === months.length - 1;
                             
                             if (audit) {
                               // Update latest health status
                               latestHealthStatus = audit.healthStatus || 'Unknown';
+                              hasAnyAudit = true;
                               
                               // Audit exists for this month
                               if (previousAudit) {
@@ -4410,7 +4639,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                 if (daysSincePrevious <= previousAudit.auditInterval) {
                                   monthlyStatus.set(monthKey, { status: 'on-time', audit, daysSincePrevious });
                                 } else {
-                                  monthlyStatus.set(monthKey, { status: 'overdue', audit, daysSincePrevious });
+                                  monthlyStatus.set(monthKey, { status: 'late', audit, daysSincePrevious });
                                 }
                               } else {
                                 // First audit
@@ -4420,18 +4649,37 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                             } else {
                               // No audit this month
                               if (previousAudit) {
-                                const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
-                                const daysSincePrevious = Math.floor((monthStart.getTime() - previousAudit.date.getTime()) / (1000 * 60 * 60 * 24));
+                                const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0); // Last day of month
+                                const daysSincePrevious = Math.floor((monthEnd.getTime() - previousAudit.date.getTime()) / (1000 * 60 * 60 * 24));
                                 
-                                // Only mark as missed if interval exceeded, otherwise don't show anything
+                                // Mark as missed if interval exceeded AND month has passed (or is current month)
                                 if (daysSincePrevious > previousAudit.auditInterval) {
-                                  monthlyStatus.set(monthKey, { status: 'missed', daysSincePrevious });
+                                  if (isCurrentMonth) {
+                                    // Current month - check if overdue based on today
+                                    const daysFromPreviousToToday = Math.floor((today.getTime() - previousAudit.date.getTime()) / (1000 * 60 * 60 * 24));
+                                    if (daysFromPreviousToToday > previousAudit.auditInterval) {
+                                      monthlyStatus.set(monthKey, { status: 'overdue-now', daysSincePrevious: daysFromPreviousToToday });
+                                    }
+                                  } else {
+                                    // Past month - was missed
+                                    monthlyStatus.set(monthKey, { status: 'missed', daysSincePrevious });
+                                  }
                                 }
                                 // If within schedule, don't add any status (will show as no data)
+                              } else {
+                                // No previous audit at all
+                                if (isCurrentMonth) {
+                                  // Current month and never audited - show as overdue
+                                  monthlyStatus.set(monthKey, { status: 'never-audited' });
+                                }
                               }
-                              // If no previous audit, don't show anything (will show as no data)
                             }
                           });
+                          
+                          // If no audits at all, set health status
+                          if (!hasAnyAudit) {
+                            latestHealthStatus = 'Never Audited';
+                          }
 
                           return { ...store, monthlyStatus, latestHealthStatus };
                         });
@@ -4515,7 +4763,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                 tooltip = status.status === 'first-audit' 
                                   ? `First audit: ${status.audit.percentage}%`
                                   : `On time (${status.daysSincePrevious}d): ${status.audit.percentage}%`;
-                              } else if (status.status === 'overdue') {
+                              } else if (status.status === 'late') {
                                 iconElement = (
                                   <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
                                     <path d="M12 2L2 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" className="fill-orange-500 dark:fill-orange-400"/>
@@ -4530,6 +4778,27 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                   </svg>
                                 );
                                 tooltip = `Missed (${status.daysSincePrevious}d overdue)`;
+                              } else if (status.status === 'overdue-now') {
+                                iconElement = (
+                                  <div className="relative">
+                                    <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
+                                      <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" className="text-red-600 dark:text-red-500"/>
+                                    </svg>
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
+                                  </div>
+                                );
+                                tooltip = `OVERDUE NOW (${status.daysSincePrevious}d)`;
+                              } else if (status.status === 'never-audited') {
+                                iconElement = (
+                                  <div className="relative">
+                                    <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
+                                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" className="text-red-600 dark:text-red-500"/>
+                                      <path d="M12 8v4m0 4h.01" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-red-600 dark:text-red-500"/>
+                                    </svg>
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
+                                  </div>
+                                );
+                                tooltip = 'NEVER AUDITED - Immediate action required';
                               } else {
                                 iconElement = (
                                   <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
@@ -4557,30 +4826,36 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                 {/* Legend */}
                 <div className="mt-6 flex flex-wrap items-center gap-4 text-sm">
                   <div className="flex items-center gap-2">
-                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" className="fill-emerald-400 dark:fill-emerald-500"/>
-                      <path d="M9 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500 dark:text-emerald-400"/>
                     </svg>
-                    <span className="text-gray-700 dark:text-slate-300">Audit Done (On Time)</span>
+                    <span className="text-gray-700 dark:text-slate-300">On Time</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2L2 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" className="fill-orange-400 dark:fill-orange-500"/>
+                    <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2L2 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" className="fill-orange-500 dark:fill-orange-400"/>
                       <path d="M12 8v4m0 4h.01" stroke="white" strokeWidth="2" strokeLinecap="round"/>
                     </svg>
-                    <span className="text-gray-700 dark:text-slate-300">Audit Done (After Due Date)</span>
+                    <span className="text-gray-700 dark:text-slate-300">Late (After Due)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" className="fill-red-500 dark:fill-red-600"/>
-                      <path d="M15 9l-6 6m0-6l6 6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                    <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
+                      <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" className="text-red-600 dark:text-red-500"/>
                     </svg>
-                    <span className="text-gray-700 dark:text-slate-300">Audit Not Done (Missed)</span>
+                    <span className="text-gray-700 dark:text-slate-300">Missed (Past Month)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
-                      <rect x="4" y="4" width="16" height="16" rx="2" className="fill-gray-300 dark:fill-slate-600"/>
-                      <path d="M8 12h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-gray-700 dark:text-slate-300"/>
+                    <div className="relative">
+                      <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" className="text-red-600 dark:text-red-500"/>
+                      </svg>
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full"></div>
+                    </div>
+                    <span className="text-gray-700 dark:text-slate-300">Overdue Now</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 dark:text-slate-500"/>
                     </svg>
                     <span className="text-gray-700 dark:text-slate-300">No Coverage</span>
                   </div>

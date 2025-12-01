@@ -399,9 +399,10 @@ export const buildHRPDF = async (
     Object.entries(questionScores).forEach(([qId, data]) => {
       if (data.count > 0) {
         const avgPct = Math.round(data.total / data.count);
+        const score = ((avgPct / 100) * 5).toFixed(1); // Convert to 1-5 scale
         questionTableData.push([
           data.title.substring(0, 80) + (data.title.length > 80 ? '...' : ''),
-          `${avgPct}%`
+          `${score}/5`
         ]);
       }
     });
@@ -461,10 +462,11 @@ export const buildHRPDF = async (
     const hrTableData: any[] = [];
     Object.entries(hrSummary).forEach(([hrId, data]) => {
       const avgPct = Math.round(data.total / data.count);
+      const score = ((avgPct / 100) * 5).toFixed(1); // Convert to 1-5 scale
       hrTableData.push([
         data.name,
         data.count,
-        `${avgPct}%`
+        `${score}/5`
       ]);
     });
 
@@ -524,10 +526,11 @@ export const buildHRPDF = async (
     const amTableData: any[] = [];
     Object.entries(amSummary).forEach(([amId, data]) => {
       const avgPct = Math.round(data.total / data.count);
+      const avgScore = ((avgPct / 100) * 5).toFixed(1); // Convert to 1-5 scale
       amTableData.push([
         data.name,
         data.count,
-        `${avgPct}%`
+        `${avgScore}/5`
       ]);
     });
 
@@ -586,10 +589,11 @@ export const buildHRPDF = async (
     const regionTableData: any[] = [];
     Object.entries(regionSummary).forEach(([region, data]) => {
       const avgPct = Math.round(data.total / data.count);
+      const avgScore = ((avgPct / 100) * 5).toFixed(1); // Convert to 1-5 scale
       regionTableData.push([
         region,
         data.count,
-        `${avgPct}%`
+        `${avgScore}/5`
       ]);
     });
 
@@ -619,122 +623,6 @@ export const buildHRPDF = async (
       
       y = (doc as any).lastAutoTable.finalY + 10;
     }
-  }
-
-  // Survey Details Section
-  if (y > 240) {
-    doc.addPage();
-    y = 15;
-  }
-
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(17, 24, 39);
-  doc.text('Detailed Survey Responses', 14, y);
-  y += 8;
-
-  // Create table data
-  if (submissions.length === 1) {
-    // Single submission - show all questions and answers
-    const tableData: any[] = [];
-    
-    QUESTIONS.forEach((q, idx) => {
-      const ans = first[q.id];
-      if (ans === undefined || ans === null || ans === '') return;
-      
-      tableData.push([
-        `Q${idx + 1}`,
-        q.title,
-        String(ans)
-      ]);
-    });
-
-    autoTable(doc, {
-      startY: y,
-      head: [['#', 'Question', 'Response']],
-      body: tableData,
-      theme: 'striped',
-      headStyles: {
-        fillColor: [99, 102, 241],
-        textColor: 255,
-        fontStyle: 'bold',
-        fontSize: 9
-      },
-      bodyStyles: {
-        fontSize: 8,
-        textColor: [31, 41, 55]
-      },
-      columnStyles: {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 100 },
-        2: { cellWidth: 72 }
-      },
-      margin: { left: 14, right: 14 },
-      didDrawPage: (data) => {
-        // Add footer
-        const pageCount = (doc as any).internal.getNumberOfPages();
-        doc.setFontSize(8);
-        doc.setTextColor(156, 163, 175);
-        doc.text(
-          `Page ${(doc as any).internal.getCurrentPageInfo().pageNumber} of ${pageCount}`,
-          doc.internal.pageSize.getWidth() / 2,
-          doc.internal.pageSize.getHeight() - 10,
-          { align: 'center' }
-        );
-      }
-    });
-  } else {
-    // Multiple submissions - show summary table
-    const tableData: any[] = [];
-    
-    submissions.forEach((sub, idx) => {
-      const overall = computeOverall(sub);
-      const store = sub.storeName || 'N/A';
-      const date = formatDate(sub.submissionTime || 'N/A');
-      
-      tableData.push([
-        idx + 1,
-        store,
-        date,
-        `${overall.pct}%`
-      ]);
-    });
-
-    autoTable(doc, {
-      startY: y,
-      head: [['#', 'Store', 'Date', 'Score']],
-      body: tableData,
-      theme: 'striped',
-      headStyles: {
-        fillColor: [99, 102, 241],
-        textColor: 255,
-        fontStyle: 'bold',
-        fontSize: 9
-      },
-      bodyStyles: {
-        fontSize: 8,
-        textColor: [31, 41, 55]
-      },
-      columnStyles: {
-        0: { cellWidth: 15 },
-        1: { cellWidth: 85 },
-        2: { cellWidth: 52 },
-        3: { cellWidth: 30, halign: 'center' }
-      },
-      margin: { left: 14, right: 14 },
-      didDrawPage: (data) => {
-        // Add footer
-        const pageCount = (doc as any).internal.getNumberOfPages();
-        doc.setFontSize(8);
-        doc.setTextColor(156, 163, 175);
-        doc.text(
-          `Page ${(doc as any).internal.getCurrentPageInfo().pageNumber} of ${pageCount}`,
-          doc.internal.pageSize.getWidth() / 2,
-          doc.internal.pageSize.getHeight() - 10,
-          { align: 'center' }
-        );
-      }
-    });
   }
 
   // Add page numbers to all pages
