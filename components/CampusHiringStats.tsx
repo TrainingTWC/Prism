@@ -111,6 +111,26 @@ const CampusHiringStats: React.FC<CampusHiringStatsProps> = ({ submissions }) =>
 
   // Download Excel function
   const downloadExcel = () => {
+    // Helper function to format ISO date to readable format
+    const formatDate = (isoDate: string): string => {
+      if (!isoDate) return '';
+      try {
+        const date = new Date(isoDate);
+        // Format as: MM/DD/YYYY HH:MM:SS AM/PM
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getFullYear();
+        let hours = date.getHours();
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+      } catch (e) {
+        return isoDate; // Return original if parsing fails
+      }
+    };
+
     // Create CSV content (Excel can open CSV files)
     const headers = [
       'Candidate Name',
@@ -118,43 +138,32 @@ const CampusHiringStats: React.FC<CampusHiringStatsProps> = ({ submissions }) =>
       'Email',
       'Campus Name',
       'Overall Score %',
-      'Communication %',
-      'Problem Solving %',
-      'Leadership %',
-      'Attention to Detail %',
-      'Customer Service %',
-      'Integrity %',
-      'Teamwork %',
-      'Time Management %',
-      'Planning %',
-      'Adaptability %',
-      'Analysis %',
-      'Growth Mindset %',
+      'Psychometric %',
+      'English Proficiency %',
+      'Numerical Aptitude %',
+      'Logical Reasoning %',
+      'Analytical Aptitude %',
+      'Course Curriculum %',
       'Submission Date'
     ];
 
     const csvRows = [headers.join(',')];
 
     filteredSubmissions.forEach(submission => {
+      const submissionDate = submission['Timestamp'] || submission['Submission Time'] || '';
       const row = [
         `"${submission['Candidate Name'] || ''}"`,
-        `"${submission['Phone Number'] || ''}"`,
-        `"${submission['Email'] || ''}"`,
+        `"${submission['Candidate Phone'] || ''}"`,
+        `"${submission['Candidate Email'] || ''}"`,
         `"${submission['Campus Name'] || ''}"`,
         submission['Score Percentage'] || '0',
-        submission['Communication Score %'] || '0',
-        submission['Problem Solving Score %'] || '0',
-        submission['Leadership Score %'] || '0',
-        submission['Attention to Detail Score %'] || '0',
-        submission['Customer Service Score %'] || '0',
-        submission['Integrity Score %'] || '0',
-        submission['Teamwork Score %'] || '0',
-        submission['Time Management Score %'] || '0',
-        submission['Planning Score %'] || '0',
-        submission['Adaptability Score %'] || '0',
-        submission['Analysis Score %'] || '0',
-        submission['Growth Mindset Score %'] || '0',
-        `"${submission['Timestamp'] || submission['Submission Time'] || ''}"`
+        submission['Psychometric Score %'] || '0',
+        submission['English Proficiency Score %'] || '0',
+        submission['Numerical Aptitude Score %'] || '0',
+        submission['Logical Reasoning Score %'] || '0',
+        submission['Analytical Aptitude Score %'] || '0',
+        submission['Course Curriculum Score %'] || '0',
+        `"${formatDate(submissionDate)}"`
       ];
       csvRows.push(row.join(','));
     });

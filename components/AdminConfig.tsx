@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useConfig } from '../contexts/ConfigContext';
 import { CONFIG } from '../contexts/config';
 import { Users, ClipboardList, FileJson, Plus, Trash2, Edit2, Save, X, Download } from 'lucide-react';
-import { fetchTrainingData } from '../services/dataService';
+import { AM_ID_TO_NAME } from '../utils/amNameMapping';
 
 type AdminTab = 'roles' | 'checklists' | 'raw' | 'audit-details' | 'store-health';
 
@@ -1552,162 +1552,231 @@ const RoleMappingEditor: React.FC<{ config: any; setJson: (s: string) => void; s
 const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; saving: boolean; onSave: () => void }> = ({ config }) => {
   const [loading, setLoading] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
-  const [downloadFormat, setDownloadFormat] = useState('csv');
+  const [downloadFormat, setDownloadFormat] = useState('xlsx');
   const [auditData, setAuditData] = useState<any[]>([]);
+  const [allStores, setAllStores] = useState<any[]>([]);
 
-  // Fetch audit data when component mounts or month changes
+  // Fetch monthly trends data from Google Sheets
+  const fetchMonthlyTrends = async () => {
+    try {
+      const url = 'https://script.google.com/macros/s/AKfycbytDw7gOZXNJdJ-oS_G347Xj9NiUxBRmPfmwRZgQ3SbKqZ2OQ2D0j5nNm91vxMOrlwRQg/exec';
+      console.log('📡 Fetching Monthly_Trends data...');
+      const response = await fetch(url);
+      const data = await response.json();
+      const rows = data.rows || [];
+      
+      // Process and normalize the data
+      const processed = rows.map((row: any) => {
+        let period = row.observed_period;
+        
+        // Convert date strings to YYYY-MM format
+        if (typeof period === 'string' && period.includes('/')) {
+          const match = period.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+          if (match) {
+            const month = match[1].padStart(2, '0');
+            const year = match[3];
+            period = `${year}-${month}`;
+          }
+        }
+        
+        return { ...row, observed_period: period };
+      });
+      
+      console.log('✅ Fetched monthly trends:', processed.length, 'entries');
+      return processed;
+    } catch (error) {
+      console.error('❌ Error fetching monthly trends:', error);
+      return [];
+    }
+  };
+
+  // Fetch comprehensive store mapping and audit data
   useEffect(() => {
-    const fetchAuditData = async () => {
+    const fetchAllData = async () => {
       console.log('🔄 StoreHealthExport: Starting data fetch for month:', selectedMonth);
       setLoading(true);
       try {
-        // Use the dataService's fetchTrainingData instead of direct API call
-        console.log('📡 StoreHealthExport: Calling fetchTrainingData()...');
-        const rawData = await fetchTrainingData();
+        // Helper function to normalize store IDs for comparison
+        const normalizeStoreId = (id: string): string => {
+          if (!id) return '';
+          const idStr = id.toString().toUpperCase();
+          // Remove 'S' prefix if exists and pad to 3 digits
+          const numericPart = idStr.replace(/^S/, '');
+          return numericPart.padStart(3, '0');
+        };
+
+        // Load comprehensive store mapping
+        console.log('📡 Loading comprehensive store mapping...');
+        const base = (import.meta as any).env?.BASE_URL || '/';
+        const mappingResponse = await fetch(`${base}comprehensive_store_mapping.json`);
+        const storeMapping = await mappingResponse.json();
+        console.log('✅ Loaded store mapping:', storeMapping.length, 'stores');
+        setAllStores(storeMapping);
+
+        // Fetch monthly trends data instead of raw training data
+        console.log('📡 StoreHealthExport: Calling fetchMonthlyTrends()...');
+        const trendsData = await fetchMonthlyTrends();
         
-        // Validate received data
-        if (!Array.isArray(rawData)) {
-          throw new Error('Received data is not an array');
-        }
-        
-        // Filter out any entries with missing required fields
-        const data = rawData.filter(entry => 
-          entry && 
-          entry.submissionTime && 
-          entry.storeId && 
-          entry.percentageScore !== undefined
-        );
-        
-        console.log('✅ StoreHealthExport: Raw training data received:', {
-          originalLength: rawData?.length || 0,
-          validEntries: data.length,
-          sample: data?.[0],
-          fields: data?.[0] ? Object.keys(data[0]) : []
+        console.log('✅ StoreHealthExport: Monthly trends data received:', {
+          totalEntries: trendsData.length
         });
         
-        // Process the audit data
+        // Build a map of latest audits by store for the selected month
+        // Use normalized store IDs as keys
         const latestAuditsByStore = new Map();
-        let processedCount = 0;
-        let skippedCount = 0;
         
-        data.forEach((entry: any) => {
-          if (!entry) {
-            console.log('⚠️ Skipping null/undefined entry');
-            return;
-          }
-
-          // Safely access properties with fallbacks
-          const storeId = entry.storeId || entry.storeID || entry.store_id;
-          const storeName = entry.storeName || entry.store_name || 'Unknown Store';
-          const region = entry.region || 'Unknown';
-          const amName = entry.amName || entry.am_name || 'Unknown';
-          const trainerName = entry.trainerName || entry.trainer_name || 'Unknown';
-          const percentageScore = entry.percentageScore || entry.percentage_score || entry.percent || '0';
+        trendsData.forEach((entry: any) => {
+          const storeId = entry.store_id;
+          if (!storeId) return;
           
-          if (!storeId || !entry.submissionTime) {
-            console.log('⚠️ Skipping entry missing required fields:', { storeId, submissionTime: entry.submissionTime });
-            return;
-          }
+          const normalizedId = normalizeStoreId(storeId);
+          const entryMonth = entry.observed_period;
           
-          console.log('🔍 Processing entry:', {
-            storeId,
-            submissionTime: entry.submissionTime,
-            percentageScore
-          });
-          
-          const entryDate = new Date(entry.submissionTime);
-          const entryMonth = entryDate.toISOString().slice(0, 7);
-          
-          // Only process entries for selected month or before
-          if (entryMonth <= selectedMonth) {
-            const storeId = entry.storeId;
-            console.log(`📅 Entry month ${entryMonth} <= selected month ${selectedMonth}, processing...`);
+          // Only use data for the selected month exactly
+          if (entryMonth === selectedMonth) {
+            console.log('🔍 Processing monthly trend entry:', {
+              originalStoreId: storeId,
+              normalizedStoreId: normalizedId,
+              percentage: entry.percentage_score,
+              month: entryMonth
+            });
             
-            if (!latestAuditsByStore.has(storeId) || 
-                new Date(latestAuditsByStore.get(storeId).submissionTime) < entryDate) {
-              latestAuditsByStore.set(storeId, {
-                storeID: entry.storeId,
-                storeName: entry.storeName,
-                region: entry.region,
-                amName: entry.amName,
-                mmName: entry.mod, // Using MOD as MM
-                trainerName: entry.trainerName,
-                percent: entry.percentageScore,
-                submissionTime: entry.submissionTime
-              });
-              processedCount++;
-              console.log(`✨ Added/Updated store ${storeId} with score ${entry.percentageScore}%`);
-            } else {
-              console.log(`⏭️ Skipping older entry for store ${storeId}`);
-              skippedCount++;
-            }
-          } else {
-            console.log(`⏭️ Skipping entry from month ${entryMonth} (after ${selectedMonth})`);
-            skippedCount++;
+            latestAuditsByStore.set(normalizedId, {
+              percent: entry.percentage_score,
+              auditMonth: entryMonth
+            });
           }
         });
 
-        // Convert to array and sort by submission time
-        const processedData = Array.from(latestAuditsByStore.values())
-          .sort((a, b) => new Date(b.submissionTime).getTime() - new Date(a.submissionTime).getTime());
-        
-        console.log('📊 StoreHealthExport: Data processing complete', {
-          totalEntries: data.length,
-          processedEntries: processedCount,
-          skippedEntries: skippedCount,
-          uniqueStores: latestAuditsByStore.size,
-          finalDataPoints: processedData.length
+        console.log('📋 Audit map contains', latestAuditsByStore.size, 'unique stores for month:', selectedMonth);
+
+        // Merge store mapping with audit data
+        const mergedData = storeMapping.map((store: any) => {
+          const normalizedStoreId = normalizeStoreId(store['Store ID']);
+          const audit = latestAuditsByStore.get(normalizedStoreId);
+          const amId = store.AM;
+          const amName = AM_ID_TO_NAME[amId] || amId;
+          
+          return {
+            storeID: store['Store ID'],
+            storeName: store['Store Name'],
+            region: store['Region'],
+            amName: amName,
+            trainerName: store['Trainer'] || 'N/A',
+            percent: audit ? audit.percent : null,
+            auditMonth: audit ? audit.auditMonth : 'No Audit'
+          };
         });
         
-        console.log('📋 StoreHealthExport: Sample of processed data:', processedData.slice(0, 2));
+        console.log('📊 StoreHealthExport: Merged data complete', {
+          totalStores: mergedData.length,
+          storesWithAudits: mergedData.filter(s => s.percent !== null).length,
+          storesWithoutAudits: mergedData.filter(s => s.percent === null).length
+        });
         
-        setAuditData(processedData);
+        setAuditData(mergedData);
       } catch (error) {
-        console.error('❌ StoreHealthExport: Error fetching training audit data:', error);
+        console.error('❌ StoreHealthExport: Error fetching data:', error);
       }
       setLoading(false);
     };
 
-    fetchAuditData();
+    fetchAllData();
   }, [selectedMonth]);
 
   const downloadStoreHealth = () => {
     setLoading(true);
     
-    // Prepare CSV data
-    const headers = ['Store ID', 'Store Name', 'Region', 'AM', 'MM', 'Trainer', 'Audit Percentage', 'Health'];
+    // Prepare data
+    const headers = ['Store ID', 'Store Name', 'Region', 'AM', 'Trainer', 'Audit Percentage', 'Health', 'Last Audit Date'];
     
     // Map audit data to required format
     const rows = auditData.map((store: any) => {
-      const auditScore = parseFloat(store.percent);
-      const health = auditScore >= 90 ? 'Excellent' : 
-                    auditScore >= 80 ? 'Good' :
-                    auditScore >= 70 ? 'Fair' : 'Needs Improvement';
+      const auditScore = store.percent !== null ? parseFloat(store.percent) : null;
+      // Store health logic from Training Audit Dashboard
+      let health = 'No Audit';
+      if (auditScore !== null) {
+        health = auditScore < 56 ? 'Needs Attention' : 
+                 auditScore < 81 ? 'Brewing' : 'Perfect Shot';
+      }
+
+      // Format last audit date (show month-year or 'No Audit')
+      let lastAuditDate = 'No Audit';
+      if (store.auditMonth && store.auditMonth !== 'No Audit') {
+        const [year, month] = store.auditMonth.split('-');
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        lastAuditDate = `${monthNames[parseInt(month) - 1]} ${year}`;
+      }
 
       return [
         store.storeID,
         store.storeName,
         store.region,
         store.amName,
-        store.mmName,
         store.trainerName,
-        auditScore.toFixed(1) + '%',
-        health
+        auditScore !== null ? auditScore.toFixed(1) : 'N/A',
+        health,
+        lastAuditDate
       ];
     });
 
-    // Convert to CSV
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell || ''}"`).join(','))
-    ].join('\\n');
+    if (downloadFormat === 'xlsx') {
+      // Excel format with proper formatting
+      import('xlsx').then((XLSX) => {
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        
+        // Set column widths
+        ws['!cols'] = [
+          { wch: 12 },  // Store ID
+          { wch: 25 },  // Store Name
+          { wch: 10 },  // Region
+          { wch: 15 },  // AM
+          { wch: 15 },  // Trainer
+          { wch: 15 },  // Audit Percentage
+          { wch: 18 },  // Health
+          { wch: 18 }   // Last Audit Date
+        ];
+        
+        // Create workbook and add worksheet
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Store Health');
+        
+        // Generate file
+        XLSX.writeFile(wb, `Store_Health_${selectedMonth}.xlsx`);
+        setLoading(false);
+      }).catch(err => {
+        console.error('Error loading xlsx library:', err);
+        // Fallback to CSV if xlsx fails to load
+        downloadAsCSV(headers, rows);
+      });
+    } else {
+      // CSV format
+      downloadAsCSV(headers, rows);
+    }
+  };
 
-    // Create and download file
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+  const downloadAsCSV = (headers: string[], rows: any[][]) => {
+    // Function to escape CSV cells
+    const escapeCsvCell = (cell: any) => {
+      const str = String(cell || '');
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const csvContent = [
+      headers.map(h => escapeCsvCell(h)).join(','),
+      ...rows.map(row => row.map(cell => escapeCsvCell(cell)).join(','))
+    ].join('\n');
+
+    // Add UTF-8 BOM for Excel compatibility
+    const csvWithBOM = '\uFEFF' + csvContent;
+    const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `store-health-${selectedMonth}.${downloadFormat}`;
+    a.download = `Store_Health_${selectedMonth}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     setLoading(false);
@@ -1736,6 +1805,9 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
             onChange={(e) => setSelectedMonth(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100"
           />
+          <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
+            {auditData.length} total stores ({auditData.filter(s => s.percent !== null).length} with audits)
+          </p>
         </div>
 
         {/* Format Selection */}
@@ -1748,9 +1820,12 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
             onChange={(e) => setDownloadFormat(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100"
           >
-            <option value="csv">CSV</option>
-            <option value="xlsx">Excel</option>
+            <option value="xlsx">Excel (.xlsx)</option>
+            <option value="csv">CSV (.csv)</option>
           </select>
+          <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
+            Includes all stores with latest audit scores
+          </p>
         </div>
       </div>
 
@@ -1763,10 +1838,10 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">Store Name</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">Region</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">AM</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">MM</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">Trainer</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">Audit %</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">Health</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">Last Audit</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
@@ -1774,47 +1849,67 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
             <tr>
               <td colSpan={8} className="px-4 py-8 text-center">
                 <div className="animate-spin w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-2"></div>
-                <p className="text-gray-500 dark:text-slate-400">Loading training audit data...</p>
+                <p className="text-gray-500 dark:text-slate-400">Loading store health data...</p>
               </td>
             </tr>
           ) : auditData.length === 0 ? (
             <tr>
               <td colSpan={8} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
-                No training audit data available for the selected month.
+                No store data available.
               </td>
             </tr>
           ) : (
-            auditData.slice(0, 5).map((store: any) => {
-              const auditScore = parseFloat(store.percent);
-              const health = auditScore >= 90 ? 'Excellent' : 
-                           auditScore >= 80 ? 'Good' :
-                           auditScore >= 70 ? 'Fair' : 'Needs Improvement';
+            auditData.slice(0, 10).map((store: any) => {
+              const auditScore = store.percent !== null ? parseFloat(store.percent) : null;
+              // Store health logic from Training Audit Dashboard
+              let health = 'No Audit';
+              let healthColor = 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+              
+              if (auditScore !== null) {
+                health = auditScore < 56 ? 'Needs Attention' : 
+                         auditScore < 81 ? 'Brewing' : 'Perfect Shot';
+                healthColor = health === 'Perfect Shot' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                             health === 'Brewing' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
+                             'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+              }
+
+              // Format last audit date
+              let lastAuditDate = 'No Audit';
+              if (store.auditMonth && store.auditMonth !== 'No Audit') {
+                const [year, month] = store.auditMonth.split('-');
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                lastAuditDate = `${monthNames[parseInt(month) - 1]} ${year}`;
+              }
               
               return (
                 <tr key={store.storeID} className="text-sm text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700/50">
-                  <td className="px-4 py-3">{store.storeID}</td>
+                  <td className="px-4 py-3 font-medium">{store.storeID}</td>
                   <td className="px-4 py-3">{store.storeName}</td>
-                  <td className="px-4 py-3">{store.region}</td>
-                  <td className="px-4 py-3">{store.amName}</td>
-                  <td className="px-4 py-3">{store.mmName}</td>
-                  <td className="px-4 py-3">{store.trainerName}</td>
-                  <td className="px-4 py-3">{auditScore.toFixed(1)}%</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      health === 'Excellent' ? 'bg-green-100 text-green-800' :
-                      health === 'Good' ? 'bg-blue-100 text-blue-800' :
-                      health === 'Fair' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                      {store.region}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">{store.amName}</td>
+                  <td className="px-4 py-3">{store.trainerName}</td>
+                  <td className="px-4 py-3 font-medium">{auditScore !== null ? auditScore.toFixed(1) + '%' : 'N/A'}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${healthColor}`}>
                       {health}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-xs">{lastAuditDate}</td>
                 </tr>
               );
             })
           )}
           </tbody>
         </table>
+        {auditData.length > 10 && (
+          <div className="px-4 py-3 bg-gray-50 dark:bg-slate-900 text-sm text-gray-500 dark:text-slate-400 border-t border-gray-200 dark:border-slate-700">
+            Showing 10 of {auditData.length} stores ({auditData.filter(s => s.percent !== null).length} with audits, {auditData.filter(s => s.percent === null).length} without audits). Download the report to see all data.
+          </div>
+        )}
       </div>
 
       {/* Download Button */}

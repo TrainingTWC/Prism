@@ -41,20 +41,22 @@ export const AREA_MANAGERS: AreaManager[] = [
       { name: 'Abhishek', id: 'H3386' },
       { name: 'Ajay  H', id: 'H546' },
       { name: 'Ajay Omnath Tiwari', id: 'H1815' },
-      { name: 'Amar', id: 'H535' },
+      { name: 'Amar', id: 'h535' },
       { name: 'Anil  Rawat', id: 'H2262' },
       { name: 'Umakanth', id: 'H3270' },
-      { name: 'Himanshu', id: 'H955' },
+      { name: 'Himanshu', id: 'h955' },
       { name: 'Jagruti', id: 'H2155' },
       { name: 'Karthick  G', id: 'H3362' },
       { name: 'Kiran', id: 'H2601' },
       { name: 'Shailesh', id: 'H2908' },
       { name: 'Suresh  A', id: 'H1355' },
       { name: 'Vishal Vishwanath Khatakalle', id: 'H3184' },
-      { name: 'Vishu', id: 'H1766' },
+      { name: 'Ajitabh', id: 'h1105' },
+      { name: 'Hemant', id: 'h777' },
+      { name: 'Bikesh', id: 'h2585' },
       { name: 'Vruchika', id: 'H1575' },
       { name: 'Nandish  M', id: 'H833' },
-      { name: 'Atul', id: 'H2396' },
+      { name: 'Atul', id: 'h2396' },
       { name: 'Sanjay', id: 'H2273' },
       { name: 'Rutuja', id: 'H2758' }
       // Monica (H2165) removed - she is an HRBP, not an Area Manager
@@ -102,7 +104,7 @@ export const SENIOR_HR_ROLES = ['H2081', 'H3237', 'H541']; // Sarit, Training He
 export const NORTH_REGION_HRBPS = ['H2165', 'H3578', 'H3728']; // Monica, Abhishek, Siddhant
 
 // North region Area Managers - all North HRBPs should see all of these AMs
-export const NORTH_REGION_AMS = ['H1766', 'H2396', 'H535', 'H955']; // Vishu, Atul, Amar, Himanshu
+export const NORTH_REGION_AMS = ['h535', 'h955', 'h1105', 'h777', 'h2585', 'h2396']; // Amar, Himanshu, Ajitabh, Hemant, Bikesh, Atul
 
 // AM Operations Questions - 53 questions across 6 sections (COFFEE framework)
 export const OPERATIONS_QUESTIONS: Question[] = [

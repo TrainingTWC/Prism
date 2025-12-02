@@ -178,8 +178,8 @@ function getDataFromSheet() {
       var obj = {};
       
       // Basic info from columns A-J (as seen in the screenshot)
-      // Format submission time to ensure DD/MM/YYYY format
-      var submissionTimeValue = row[1];
+      // Use Server Timestamp (Column A) instead of Submission Time (Column B) for accurate date
+      var submissionTimeValue = row[0];  // Column A - Server Timestamp
       if (submissionTimeValue instanceof Date) {
         // If it's a Date object, format it as DD/MM/YYYY, HH:MM:SS
         var day = Utilities.formatDate(submissionTimeValue, Session.getScriptTimeZone(), 'dd');
@@ -191,7 +191,6 @@ function getDataFromSheet() {
         // If it's already a string, use it as-is
         obj.submissionTime = submissionTimeValue || '';
       }
-      // obj.submissionTime = row[1] || '';    // Column B - Submission Time (OLD)
       obj.hrName = row[2] || '';            // Column C - HR Name
       obj.hrId = row[3] || '';              // Column D - HR ID
       obj.amName = row[4] || '';            // Column E - AM Name

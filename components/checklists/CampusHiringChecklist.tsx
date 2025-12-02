@@ -137,7 +137,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
 
   // Form state
   const [candidateName, setCandidateName] = useState('');
-  const [candidatePhone, setCandidatePhone] = useState('');
+  const [candidatePhone,Phone] = useState('');
   const [candidateEmail, setCandidateEmail] = useState('');
   const [campusName, setCampusName] = useState('');
   const [campusSearchOpen, setCampusSearchOpen] = useState(false);
@@ -151,7 +151,8 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     'IHM Bangalore',
     'IHM Chennai',
     'IHM Bhuwaneshwar',
-    'IHM Jaipur'
+    'IHM Jaipur',
+    'ITM'
   ];
   
   // Load candidate data from URL on mount

@@ -1473,19 +1473,13 @@ export interface CampusHiringSubmission {
   'Total Score': string;
   'Max Score': string;
   'Score Percentage': string;
-  // Category scores
-  'Communication Score %': string;
-  'Problem Solving Score %': string;
-  'Leadership Score %': string;
-  'Attention to Detail Score %': string;
-  'Customer Service Score %': string;
-  'Integrity Score %': string;
-  'Teamwork Score %': string;
-  'Time Management Score %': string;
-  'Planning Score %': string;
-  'Adaptability Score %': string;
-  'Analysis Score %': string;
-  'Growth Mindset Score %': string;
+  // Category scores (matching Google Sheets columns)
+  'Psychometric Score %': string;
+  'English Proficiency Score %': string;
+  'Numerical Aptitude Score %': string;
+  'Logical Reasoning Score %': string;
+  'Analytical Aptitude Score %': string;
+  'Course Curriculum Score %': string;
   // All question responses
   [key: string]: string; // For dynamic question keys like Q1, Q1_weight, Q2, etc.
 }
