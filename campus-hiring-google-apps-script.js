@@ -163,21 +163,20 @@ function doPost(e) {
       timestamp,                                    // A: Timestamp
       params.submissionTime || '',                  // B: Submission Time
       params.candidateName || '',                   // C: Candidate Name
-      params.candidatePhone || '',                  // D: Candidate Phone
-      params.candidateEmail || '',                  // E: Candidate Email
-      params.campusName || '',                      // F: Campus Name
+      params.candidateEmail || '',                  // D: Candidate Email
+      params.campusName || '',                      // E: Campus Name
       
       // Scoring Information
-      parseFloat(params.totalScore) || 0,           // G: Total Score
-      parseFloat(params.maxScore) || 0,             // H: Max Score
-      parseFloat(params.scorePercentage) || 0,      // I: Score Percentage
+      parseFloat(params.totalScore) || 0,           // F: Total Score
+      parseFloat(params.maxScore) || 0,             // G: Max Score
+      parseFloat(params.scorePercentage) || 0,      // H: Score Percentage
       
       // All 30 Questions (Q1 to Q30) - Answer + Weight
-      params.Q1 || '',                              // J: Q1 Answer
-      params.Q1_weight || '',                       // K: Q1 Weight
-      params.Q2 || '',                              // L: Q2 Answer
-      params.Q2_weight || '',                       // M: Q2 Weight
-      params.Q3 || '',                              // N: Q3 Answer
+      params.Q1 || '',                              // I: Q1 Answer
+      params.Q1_weight || '',                       // J: Q1 Weight
+      params.Q2 || '',                              // K: Q2 Answer
+      params.Q2_weight || '',                       // L: Q2 Weight
+      params.Q3 || '',                              // M: Q3 Answer
       params.Q3_weight || '',                       // O: Q3 Weight
       params.Q4 || '',                              // P: Q4 Answer
       params.Q4_weight || '',                       // Q: Q4 Weight
@@ -323,21 +322,20 @@ function setupCampusHiringHeaders(sheet) {
     'Timestamp',                                 // A
     'Submission Time',                           // B
     'Candidate Name',                            // C
-    'Candidate Phone',                           // D
-    'Candidate Email',                           // E
-    'Campus Name',                               // F
+    'Candidate Email',                           // D
+    'Campus Name',                               // E
     
     // Scoring Information (Confidential)
-    'Total Score',                               // G
-    'Max Score',                                 // H
-    'Score Percentage',                          // I
+    'Total Score',                               // F
+    'Max Score',                                 // G
+    'Score Percentage',                          // H
     
     // Questions 1-30 (Answer + Weight for each)
-    'Q1: Psychometric',                          // J
-    'Q1 Weight',                                 // K
-    'Q2: Psychometric',                          // L
-    'Q2 Weight',                                 // M
-    'Q3: Psychometric',                          // N
+    'Q1: Psychometric',                          // I
+    'Q1 Weight',                                 // J
+    'Q2: Psychometric',                          // K
+    'Q2 Weight',                                 // L
+    'Q3: Psychometric',                          // M
     'Q3 Weight',                                 // O
     'Q4: Psychometric',                          // P
     'Q4 Weight',                                 // Q

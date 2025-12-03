@@ -137,7 +137,6 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
 
   // Form state
   const [candidateName, setCandidateName] = useState('');
-  const [candidatePhone,Phone] = useState('');
   const [candidateEmail, setCandidateEmail] = useState('');
   const [campusName, setCampusName] = useState('');
   const [campusSearchOpen, setCampusSearchOpen] = useState(false);
@@ -152,6 +151,8 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     'IHM Chennai',
     'IHM Bhuwaneshwar',
     'IHM Jaipur',
+    'IHM Lucknow',
+    'AIHM Bangalore',
     'ITM'
   ];
   
@@ -160,7 +161,6 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     const loadCandidateFromURL = async () => {
       // Always clear previous data first
       setCandidateName('');
-      setCandidatePhone('');
       setCandidateEmail('');
       setCampusName('');
       setCandidateDataLoaded(false);
@@ -223,7 +223,6 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
           
           // Auto-populate the form fields
           setCandidateName(candidate.name);
-          setCandidatePhone(candidate.phone);
           setCandidateEmail(candidate.email);
           setCampusName(candidate.institution);
           setCandidateDataLoaded(true);
@@ -1148,7 +1147,6 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
           
           // Add all form data
           formData.append('candidateName', candidateName);
-          formData.append('candidatePhone', candidatePhone);
           formData.append('candidateEmail', candidateEmail);
           formData.append('campusName', campusName);
           formData.append('answers', JSON.stringify(answers));
@@ -1203,7 +1201,6 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
           const formData = new FormData();
           
           formData.append('candidateName', candidateName);
-          formData.append('candidatePhone', candidatePhone);
           formData.append('candidateEmail', candidateEmail);
           formData.append('campusName', campusName);
           formData.append('answers', JSON.stringify(answers));
@@ -1249,7 +1246,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
         window.removeEventListener('pagehide', handlePageHide);
       };
     }
-  }, [assessmentStarted, submitStatus, answers, candidateName, candidatePhone, candidateEmail, campusName, violations, config.googleAppsScriptUrl]);
+  }, [assessmentStarted, submitStatus, answers, candidateName, candidateEmail, campusName, violations, config.googleAppsScriptUrl]);
 
   // Auto-save answers to localStorage as backup
   useEffect(() => {
@@ -1257,7 +1254,6 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       const draftData = {
         answers,
         candidateName,
-        candidatePhone,
         candidateEmail,
         campusName,
         timestamp: new Date().toISOString()
@@ -1275,7 +1271,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       
       return () => clearTimeout(timer);
     }
-  }, [answers, candidateName, candidatePhone, candidateEmail, campusName, assessmentStarted]);
+  }, [answers, candidateName, candidateEmail, campusName, assessmentStarted]);
 
   // Load draft on mount (if available and within 1 hour)
   useEffect(() => {
@@ -1299,7 +1295,6 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
               setAnswers(draft.answers || {});
               if (!candidateDataLoaded) {
                 setCandidateName(draft.candidateName || '');
-                setCandidatePhone(draft.candidatePhone || '');
                 setCandidateEmail(draft.candidateEmail || '');
                 setCampusName(draft.campusName || '');
               }
@@ -1594,12 +1589,6 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
         return;
       }
 
-      if (!candidatePhone.trim()) {
-        setErrorMessage('Please enter phone number');
-        setSubmitStatus('error');
-        return;
-      }
-
       if (!candidateEmail.trim()) {
         setErrorMessage('Please enter candidate email');
         setSubmitStatus('error');
@@ -1620,7 +1609,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       }
     } else {
       // For auto-submit, check if basic info is filled
-      if (!candidateName.trim() || !candidatePhone.trim() || !candidateEmail.trim() || !campusName.trim()) {
+      if (!candidateName.trim() || !candidateEmail.trim() || !campusName.trim()) {
         setErrorMessage('Time expired! Please ensure all candidate information is filled.');
         setSubmitStatus('error');
         return;
@@ -1649,7 +1638,6 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       const formData = new URLSearchParams();
       formData.append('submissionTime', timestamp);
       formData.append('candidateName', candidateName);
-      formData.append('candidatePhone', candidatePhone);
       formData.append('candidateEmail', candidateEmail);
       formData.append('campusName', campusName);
       formData.append('totalScore', results.totalScore.toString());
@@ -2264,36 +2252,9 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
               type="text"
               value={candidateName}
               onChange={(e) => setCandidateName(e.target.value)}
-              disabled={isLocked || candidateDataLoaded}
+              disabled={isLocked}
               className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="Enter candidate name"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-              Phone Number *
-            </label>
-            <input
-              type="tel"
-              value={candidatePhone}
-              onChange={(e) => {
-                const value = e.target.value;
-                // Allow only numbers, +, -, (, ), and spaces
-                const sanitized = value.replace(/[^0-9+\-() ]/g, '');
-                setCandidatePhone(sanitized);
-              }}
-              onKeyPress={(e) => {
-                // Allow only numbers, +, -, (, ), space, and backspace
-                const char = e.key;
-                if (!/[0-9+\-() ]/.test(char) && char !== 'Backspace') {
-                  e.preventDefault();
-                }
-              }}
-              disabled={isLocked || candidateDataLoaded}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-              placeholder="+91 XXXXX XXXXX"
-              maxLength={15}
             />
           </div>
 
@@ -2305,7 +2266,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
               type="email"
               value={candidateEmail}
               onChange={(e) => setCandidateEmail(e.target.value)}
-              disabled={isLocked || candidateDataLoaded}
+              disabled={isLocked}
               className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="candidate@example.com"
             />
@@ -2318,14 +2279,14 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
             <div className="relative" ref={campusDropdownRef}>
               <div
                 className={`w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 flex items-center justify-between ${
-                  isLocked || candidateDataLoaded ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 }`}
-                onClick={() => !isLocked && !candidateDataLoaded && setCampusSearchOpen(!campusSearchOpen)}
+                onClick={() => !isLocked && setCampusSearchOpen(!campusSearchOpen)}
               >
                 <span className={campusName ? '' : 'text-gray-400 dark:text-slate-500'}>
                   {campusName || 'Select campus'}
                 </span>
-                {!candidateDataLoaded && (
+                {!isLocked && (
                   <ChevronDown className={`w-4 h-4 transition-transform ${campusSearchOpen ? 'rotate-180' : ''}`} />
                 )}
               </div>
