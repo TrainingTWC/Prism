@@ -26,7 +26,7 @@
  */
 function doGet(e) {
   try {
-    Logger.log('=== Finance Data GET Request Started ===')\;
+    Logger.log('=== Finance Data GET Request Started ===');
     Logger.log('Request timestamp: ' + new Date().toISOString());
     console.log('Finance Data request received');
     

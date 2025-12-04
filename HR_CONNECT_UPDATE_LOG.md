@@ -195,6 +195,12 @@ Dashboard.tsx
 - [ ] Bulk export functionality
 - [ ] Custom date range filtering
 - [ ] Advanced analytics dashboard
+- [ ] Actual vs covered AM wise
+- [ ]  
+ 
+
+If we can correlate Attrition with the Pulse Connect scores - specifically to understand whether stores with higher attrition show lower pulse scores. This correlation should be visible at both the store level and the Area Manager level.
+ 
 
 ---
 
