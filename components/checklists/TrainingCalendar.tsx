@@ -350,7 +350,7 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
                         aspect-square p-1 sm:p-2 rounded-xl cursor-pointer 
                         transition-all duration-200 border-2
                         ${isToday ? 'border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent'}
-                        ${isSelected ? 'ring-2 ring-purple-400 dark:ring-purple-500' : ''}
+                        ${isSelected ? 'ring-2 ring-purple-500 dark:ring-purple-400 ring-offset-0' : ''}
                         hover:bg-gray-100 dark:hover:bg-slate-700/50
                     `}
                 >
@@ -447,7 +447,7 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
 
                 {/* Calendar Grid */}
                 <div className="flex-1 overflow-y-auto">
-                    <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                    <div className="grid grid-cols-7 gap-1 sm:gap-2 p-1">
                         {renderCalendarDays()}
                     </div>
                 </div>
