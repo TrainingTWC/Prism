@@ -1,5 +1,7 @@
-// Google Apps Script for Trainer Calendar Dashboard
-// This script handles both POST (submit) and GET (fetch) requests
+// Google Apps Script for Trainer Calendar
+// Unified script that handles both:
+// 1. POST requests - Submit calendar entries from Training Calendar form
+// 2. GET requests - Fetch calendar data for Trainer Calendar Dashboard
 
 const SHEET_NAME = 'Trainer Calendar';
 
@@ -9,17 +11,28 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     
     const timestamp = new Date().toISOString();
-    const trainerId = data.trainerId;
-    const trainerName = data.trainerName;
-    const month = data.month;
+    const trainerId = data.trainerId || '';
+    const trainerName = data.trainerName || '';
+    const month = data.month || '';
     
-    // Get store region mapping
-    const storeRegions = getStoreRegions();
+    // Get store region and name mapping from comprehensive_store_mapping
+    const storeMapping = getStoreMapping();
     
     // Process each event
     data.events.forEach(event => {
-      const region = event.location && storeRegions[event.location] ? storeRegions[event.location] : '';
-      const storeName = event.type === 'store' ? event.location : '';
+      let region = '';
+      let storeName = '';
+      
+      // For store events, get region and store name from mapping
+      if (event.type === 'store' && event.location) {
+        const storeInfo = storeMapping[event.location];
+        if (storeInfo) {
+          region = storeInfo.region || '';
+          storeName = storeInfo.storeName || event.location;
+        } else {
+          storeName = event.location;
+        }
+      }
       
       sheet.appendRow([
         timestamp,
@@ -28,7 +41,7 @@ function doPost(e) {
         month,
         event.date,
         event.type,
-        event.location,
+        event.location || '',
         event.task || '',
         event.details || '',
         region,
@@ -38,10 +51,12 @@ function doPost(e) {
     
     return ContentService.createTextOutput(JSON.stringify({
       status: 'success',
-      message: 'Calendar submitted successfully'
+      message: 'Calendar submitted successfully',
+      entriesAdded: data.events.length
     })).setMimeType(ContentService.MimeType.JSON);
     
   } catch (error) {
+    Logger.log('Error in doPost: ' + error.toString());
     return ContentService.createTextOutput(JSON.stringify({
       status: 'error',
       message: error.toString()
@@ -128,26 +143,51 @@ function getOrCreateSheet() {
   return sheet;
 }
 
-function getStoreRegions() {
-  // This should match your comprehensive store mapping
-  // For now, returning empty object - you can populate this from your store mapping sheet
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const storeSheet = ss.getSheetByName('Store Mapping');
+function getStoreMapping() {
+  // Try to find store mapping from a separate sheet or use stored properties
+  // This function should match your comprehensive_store_mapping.json structure
   
-  if (!storeSheet) {
-    return {};
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // Option 1: Try to get from "Store Mapping" sheet
+  const storeMappingSheet = ss.getSheetByName('Store Mapping');
+  
+  if (storeMappingSheet) {
+    const data = storeMappingSheet.getDataRange().getValues();
+    const mapping = {};
+    
+    // Assuming format: Store ID | Store Name | Region | ...
+    // Adjust column indices based on your sheet structure
+    for (let i = 1; i < data.length; i++) {
+      const storeId = data[i][0]?.toString().trim();
+      const storeName = data[i][1]?.toString().trim();
+      const region = data[i][2]?.toString().trim();
+      
+      if (storeId) {
+        mapping[storeId] = {
+          storeName: storeName || storeId,
+          region: region || ''
+        };
+      }
+    }
+    
+    return mapping;
   }
   
-  const storeData = storeSheet.getDataRange().getValues();
+  // Option 2: Return empty mapping if sheet doesn't exist
+  // The script will still work, just without region data
+  Logger.log('Store Mapping sheet not found. Calendar will be stored without region data.');
+  return {};
+}
+
+// Legacy function name for backward compatibility
+function getStoreRegions() {
+  const mapping = getStoreMapping();
   const regions = {};
   
-  // Assuming first row is header
-  // Store Name in column 2 (index 1), Region in column 3 (index 2)
-  for (let i = 1; i < storeData.length; i++) {
-    const storeName = storeData[i][1];
-    const region = storeData[i][2];
-    if (storeName && region) {
-      regions[storeName] = region;
+  for (let storeId in mapping) {
+    if (mapping[storeId].storeName) {
+      regions[mapping[storeId].storeName] = mapping[storeId].region;
     }
   }
   

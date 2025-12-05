@@ -1,4 +1,16 @@
 /**
+ * ⚠️ DEPRECATED - USE google-apps-script-trainer-calendar-dashboard.js INSTEAD
+ * 
+ * This script has been replaced by a unified version that handles BOTH:
+ * 1. Calendar submissions (POST requests)
+ * 2. Dashboard data fetching (GET requests)
+ * 
+ * NEW SCRIPT: google-apps-script-trainer-calendar-dashboard.js
+ * 
+ * The new script includes all functionality from this file PLUS dashboard support.
+ * Please migrate to the new script for complete functionality.
+ * 
+ * ORIGINAL DESCRIPTION:
  * TRAINER CALENDAR - GOOGLE APPS SCRIPT
  * 
  * This script manages trainer calendar data in Google Sheets
@@ -7,7 +19,7 @@
  * SETUP INSTRUCTIONS:
  * 1. Create a new Google Sheet named "Trainer Calendar"
  * 2. Go to Extensions > Apps Script
- * 3. Replace all code with this script
+ * 3. Replace all code with google-apps-script-trainer-calendar-dashboard.js
  * 4. Deploy as Web App (Execute as: Me, Access: Anyone)
  * 5. Copy the deployment URL
  * 6. Add to .env: VITE_TRAINER_CALENDAR_SCRIPT_URL=your_deployment_url

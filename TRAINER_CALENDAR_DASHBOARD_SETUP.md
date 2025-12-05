@@ -3,34 +3,54 @@
 ## Overview
 The Trainer Calendar Dashboard allows viewing and filtering all trainer calendar submissions with support for filtering by trainer name, store name, region, month, and year.
 
+**IMPORTANT**: This is a **UNIFIED SCRIPT** that handles BOTH:
+1. ✅ Collecting calendar submissions from the Training Calendar form
+2. ✅ Sending data to the Trainer Calendar Dashboard
+
+You only need ONE Google Apps Script deployment for both features.
+
 ## Google Apps Script Setup
 
-### 1. Update Existing Script
-You need to update your existing Google Apps Script (the one already deployed for trainer calendar submissions) to support both POST (submit) and GET (fetch) requests.
+### 1. Single Script for Both Features
+The script `google-apps-script-trainer-calendar-dashboard.js` is a unified solution that:
+- **Receives** calendar submissions via POST requests (from Training Calendar form)
+- **Provides** calendar data via GET requests (to Trainer Calendar Dashboard)
+- **Stores** all data in a single "Trainer Calendar" sheet
+- **Maps** store IDs to regions automatically (if Store Mapping sheet exists)
 
-### 2. Script Code
-Replace your existing `google-apps-script-trainer-calendar.js` code with the contents of:
+### 2. Replace Existing Script
+If you previously had `google-apps-script-trainer-calendar.js`, **REPLACE** it with:
 ```
 google-apps-script-trainer-calendar-dashboard.js
 ```
 
-### 3. Key Features Added
-The updated script now includes:
-- **doPost()** - Handles calendar submissions (existing functionality)
-- **doGet()** - NEW: Handles data fetching for the dashboard
-- **getStoreRegions()** - Maps stores to regions for filtering
+This new script does everything the old one did PLUS adds dashboard fetching capabilities.
 
-### 4. Deployment Steps
+### 3. Deployment Steps (ONE SCRIPT, ONE DEPLOYMENT)
 1. Open your Google Apps Script project: https://script.google.com
-2. Replace the existing code with the new version from `google-apps-script-trainer-calendar-dashboard.js`
-3. Click "Deploy" > "New deployment"
-4. Select "Web app" as deployment type
-5. Settings:
+2. **IMPORTANT**: If you have an existing deployment for trainer calendar, you can update it OR create a new one
+3. Copy ALL the code from `google-apps-script-trainer-calendar-dashboard.js`
+4. Paste it into your Google Apps Script editor (replace existing code if any)
+5. Click "Deploy" > "New deployment" (or "Manage deployments" to update existing)
+6. Select "Web app" as deployment type
+7. Settings:
    - **Execute as**: Me (your Google account)
    - **Who has access**: Anyone
-6. Click "Deploy"
-7. Copy the deployment URL
-8. The URL is already configured in `.env` as `VITE_TRAINER_CALENDAR_SCRIPT_URL`
+8. Click "Deploy"
+9. Copy the deployment URL
+10. **IMPORTANT**: Use this SAME URL for BOTH:
+    - The Training Calendar form (submitting events)
+    - The Trainer Calendar Dashboard (fetching events)
+11. Ensure the URL is configured in `.env` as `VITE_TRAINER_CALENDAR_SCRIPT_URL`
+
+### 4. How It Works
+**Same URL, Different Actions:**
+- When Training Calendar form submits → POST request → Script stores data
+- When Dashboard loads → GET request with `?action=fetch` → Script returns all data
+
+**Example:**
+- Submit: `POST https://script.google.com/macros/s/YOUR_ID/exec`
+- Fetch: `GET https://script.google.com/macros/s/YOUR_ID/exec?action=fetch`
 
 ### 5. Sheet Structure
 The script creates/uses a sheet named "Trainer Calendar" with these columns:
