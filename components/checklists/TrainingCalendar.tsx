@@ -23,7 +23,6 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
     const [currentDate, setCurrentDate] = useState(new Date());
     const [events, setEvents] = useState<Record<string, CalendarEvent[]>>({});
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
 
     // Form State
@@ -97,7 +96,6 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
         if (!trainerId) return trainerName || 'Trainer';
         const normalizedId = trainerId.toLowerCase();
         
-        // Search for the ID in multiple fields
         const trainerEntry = (trainerMapping as any[]).find((entry: any) => 
             entry['Trainer ID']?.toLowerCase() === normalizedId ||
             entry['LMS Head ID']?.toLowerCase() === normalizedId ||
@@ -105,16 +103,15 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
             entry['HRBP ID']?.toLowerCase() === normalizedId
         );
         
-        // Return the appropriate name based on which field matched
         if (trainerEntry) {
             if (trainerEntry['Trainer ID']?.toLowerCase() === normalizedId) {
                 return trainerEntry['Trainer'];
             } else if (trainerEntry['LMS Head ID']?.toLowerCase() === normalizedId) {
-                return 'LMS Head'; // Or you could add a field for LMS Head name
+                return 'LMS Head';
             } else if (trainerEntry['Area Manager ID']?.toLowerCase() === normalizedId) {
                 return trainerEntry['Area Manager'] || 'Area Manager';
             } else if (trainerEntry['HRBP ID']?.toLowerCase() === normalizedId) {
-                return 'HRBP'; // Or you could add a field for HRBP name
+                return 'HRBP';
             }
         }
         
@@ -176,8 +173,11 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
 
     const handleDateClick = (date: Date) => {
         setSelectedDate(date);
-        setIsModalOpen(true);
         setEditingEvent(null);
+        resetForm();
+    };
+
+    const resetForm = () => {
         setEventType('store');
         setSelectedStore('');
         setSelectedCampus('');
@@ -195,527 +195,455 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
         setSelectedStore(event.storeId || '');
         setSelectedCampus(event.campusName || '');
         
-        // Use the task field if available, otherwise try to extract from details
         if (event.task) {
             setSelectedTask(event.task);
-            // Remove task from details if it was stored there
-            const detailLines = event.details.split('\n');
-            if (detailLines[0] === event.task) {
-                setEventDetails(detailLines.slice(1).join('\n').trim());
-            } else {
-                setEventDetails(event.details);
-            }
-        } else {
-            // Legacy: Try to extract task from details if it matches predefined tasks
-            const detailLines = event.details.split('\n');
-            const firstLine = detailLines[0];
-            if (TASK_TYPES.includes(firstLine)) {
-                setSelectedTask(firstLine);
-                setEventDetails(detailLines.slice(1).join('\n').trim());
-            } else {
-                setSelectedTask('');
-                setEventDetails(event.details);
+        } else if (event.details) {
+            const taskMatch = event.details.match(/Task: (.+?)(?:,|$)/);
+            if (taskMatch) {
+                setSelectedTask(taskMatch[1]);
             }
         }
         
-        setIsModalOpen(true);
+        setEventDetails(event.details || '');
     };
 
-    const handleDeleteEvent = (eventId: string) => {
-        if (window.confirm('Are you sure you want to delete this event?')) {
-            const updatedEvents = { ...events };
-            // Find and remove the event from all dates
-            Object.keys(updatedEvents).forEach(dateKey => {
-                updatedEvents[dateKey] = updatedEvents[dateKey].filter(ev => ev.id !== eventId);
-                if (updatedEvents[dateKey].length === 0) {
-                    delete updatedEvents[dateKey];
-                }
-            });
-            saveEvents(updatedEvents);
+    const handleDeleteEvent = (eventId: string, date: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const dateEvents = events[date] || [];
+        const updated = { ...events };
+        updated[date] = dateEvents.filter(e => e.id !== eventId);
+        if (updated[date].length === 0) {
+            delete updated[date];
         }
+        saveEvents(updated);
     };
 
     const handleSaveEvent = () => {
         if (!selectedDate) return;
         
-        // Validation: Store visits require a selected store
         if (eventType === 'store' && !selectedStore) {
-            alert('Please select a store for the visit');
+            alert('Please select a store');
             return;
         }
-        
-        // Validation: Campus events require a selected campus
         if (eventType === 'campus' && !selectedCampus) {
-            alert('Please select a campus for the event');
+            alert('Please select a campus');
             return;
         }
-
-        const dateKey = formatDateKey(selectedDate);
-
-        let storeName = '';
-        if (eventType === 'store' && selectedStore) {
-            const store = (compStoreMapping as any[]).find((s: any) => s['Store ID'] === selectedStore);
-            storeName = store ? store['Store Name'] : '';
-        }
         
-        // Combine selected task with additional details
-        let finalDetails = eventDetails.trim();
-        if (selectedTask) {
-            finalDetails = selectedTask + (finalDetails ? '\n' + finalDetails : '');
-        }
-
+        const dateKey = formatDateKey(selectedDate);
+        const storeObj = eventType === 'store' ? compStoreMapping[selectedStore as keyof typeof compStoreMapping] : null;
+        const storeName = storeObj && typeof storeObj === 'object' && 'Store Name' in storeObj ? storeObj['Store Name'] : '';
+        
         const newEvent: CalendarEvent = {
-            id: editingEvent ? editingEvent.id : Date.now().toString(),
+            id: editingEvent?.id || Date.now().toString(),
             date: dateKey,
             type: eventType,
             storeId: eventType === 'store' ? selectedStore : undefined,
             storeName: eventType === 'store' ? storeName : undefined,
             campusName: eventType === 'campus' ? selectedCampus : undefined,
-            task: selectedTask || undefined,
-            details: finalDetails
+            task: selectedTask,
+            details: eventDetails
         };
 
-        const updatedEvents = { ...events };
-        if (!updatedEvents[dateKey]) {
-            updatedEvents[dateKey] = [];
-        }
-
+        const updated = { ...events };
+        const dateEvents = updated[dateKey] || [];
+        
         if (editingEvent) {
-            updatedEvents[dateKey] = updatedEvents[dateKey].map(ev => ev.id === editingEvent.id ? newEvent : ev);
+            const index = dateEvents.findIndex(e => e.id === editingEvent.id);
+            if (index !== -1) {
+                dateEvents[index] = newEvent;
+            }
         } else {
-            updatedEvents[dateKey].push(newEvent);
+            dateEvents.push(newEvent);
         }
-
-        saveEvents(updatedEvents);
-        setIsModalOpen(false);
+        
+        updated[dateKey] = dateEvents;
+        saveEvents(updated);
+        
+        setEditingEvent(null);
+        resetForm();
     };
 
-    // Store List for Dropdown
-    const uniqueStores = (() => {
-        const stores = (compStoreMapping as any[]).map((row: any) => ({
-            name: row['Store Name'],
-            id: row['Store ID']
-        }));
-        return stores
-            .filter(store => store.name && store.id)
-            .sort((a, b) => a.name.localeCompare(b.name));
-    })();
+    const handleCancelEdit = () => {
+        setSelectedDate(null);
+        setEditingEvent(null);
+        resetForm();
+    };
 
-    const filteredStores = uniqueStores.filter(store =>
-        store.name.toLowerCase().includes(storeSearch.toLowerCase()) ||
-        store.id.toLowerCase().includes(storeSearch.toLowerCase())
-    );
-
-    // Submit calendar to Google Sheets
+    // Submit to Google Sheets
     const handleSubmitCalendar = async () => {
+        const allEvents = Object.values(events).flat();
+        if (allEvents.length === 0) {
+            alert('No events to submit');
+            return;
+        }
+
         setIsSubmitting(true);
         setSubmitMessage(null);
 
         try {
-            // Prepare data for submission
-            const calendarData = Object.entries(events).flatMap(([date, dayEvents]) =>
-                dayEvents.map(event => ({
-                    trainerId,
-                    trainerName: actualTrainerName,
-                    date,
-                    eventType: event.type,
-                    storeId: event.storeId || '',
-                    storeName: event.storeName || '',
-                    taskType: event.details.split('\n')[0] || '',
-                    additionalNotes: event.details.split('\n').slice(1).join('\n') || '',
-                    timestamp: new Date().toISOString()
-                }))
-            );
+            const scriptUrl = import.meta.env.VITE_TRAINER_CALENDAR_SCRIPT_URL;
+            if (!scriptUrl) {
+                throw new Error('Google Apps Script URL not configured');
+            }
 
-            // Get the Google Apps Script URL from environment or config
-            const scriptUrl = import.meta.env.VITE_TRAINER_CALENDAR_SCRIPT_URL || 
-                             'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+            const payload = {
+                trainerId,
+                trainerName: actualTrainerName,
+                month: currentDate.toLocaleString('default', { month: 'long', year: 'numeric' }),
+                events: allEvents.map(event => ({
+                    date: event.date,
+                    type: event.type,
+                    location: event.type === 'store' ? event.storeName : 
+                             event.type === 'campus' ? event.campusName : 'Outdoor',
+                    task: event.task || '',
+                    details: event.details
+                }))
+            };
 
             const response = await fetch(scriptUrl, {
                 method: 'POST',
                 mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'submitCalendar',
-                    data: calendarData
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
 
-            setSubmitMessage({ type: 'success', text: 'Calendar submitted successfully!' });
-            
-            // Clear message after 3 seconds
+            setSubmitMessage({
+                type: 'success',
+                text: 'Calendar submitted successfully!'
+            });
+
             setTimeout(() => setSubmitMessage(null), 3000);
         } catch (error) {
-            console.error('Failed to submit calendar:', error);
-            setSubmitMessage({ type: 'error', text: 'Failed to submit calendar. Please try again.' });
+            console.error('Submission error:', error);
+            setSubmitMessage({
+                type: 'error',
+                text: 'Failed to submit calendar. Please try again.'
+            });
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    // Render calendar grid
     const renderCalendarDays = () => {
-        const daysInMonth = getDaysInMonth(currentDate);
+        const days = getDaysInMonth(currentDate);
         const firstDay = getFirstDayOfMonth(currentDate);
-        // Adjust for Monday start (0 = Monday, 6 = Sunday)
-        const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
-        const blanks = Array.from({ length: adjustedFirstDay }, (_, i) => i);
+        const blanks = Array(firstDay).fill(null);
+        const allDays = [...blanks, ...days];
 
-        return (
-            <>
-                {blanks.map(blank => (
-                    <div key={`blank-${blank}`} className="aspect-square rounded-2xl bg-gray-50 dark:bg-slate-800/30"></div>
-                ))}  
-                {daysInMonth.map(date => {
-                    const dateKey = formatDateKey(date);
-                    const dayEvents = events[dateKey] || [];
-                    const isToday = formatDateKey(new Date()) === dateKey;
-                    const isSelected = selectedDate && formatDateKey(selectedDate) === dateKey;
+        return allDays.map((day, index) => {
+            if (!day) {
+                return <div key={`blank-${index}`} className="aspect-square" />;
+            }
 
-                    return (
-                        <div
-                            key={dateKey}
-                            onClick={() => handleDateClick(date)}
-                            className={`aspect-square rounded-2xl cursor-pointer transition-all group relative ${
-                                isToday 
-                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 dark:bg-indigo-600/30 dark:border-2 dark:border-indigo-500 dark:text-white' 
-                                    : isSelected
-                                    ? 'bg-gray-200 border-2 border-gray-300 dark:bg-slate-700/50 dark:border-2 dark:border-slate-600'
-                                    : dayEvents.length > 0
-                                    ? 'bg-gray-50 hover:bg-gray-100 border border-gray-200 dark:bg-slate-700/40 dark:hover:bg-slate-700/60 dark:border dark:border-slate-600/30'
-                                    : 'bg-white hover:bg-gray-50 border border-gray-200 dark:bg-slate-800/40 dark:hover:bg-slate-700/50 dark:border dark:border-slate-700/30'
-                            }`}
-                        >
-                            <div className="p-2 h-full flex flex-col">
-                                <div className={`text-sm font-semibold mb-1 ${
-                                    isToday ? 'text-white' : 'text-gray-900 dark:text-slate-300'
-                                }`}>
-                                    {date.getDate()}
-                                </div>
-                                
-                                {/* Event indicators */}
-                                <div className="flex-1 flex flex-col gap-1.5 overflow-hidden mt-1">
-                                    {dayEvents.slice(0, 2).map(event => (
-                                        <div
-                                            key={event.id}
-                                            onClick={(e) => { e.stopPropagation(); }}
-                                            className={`group/pill flex items-center justify-between gap-1 text-[10px] px-2 py-1 rounded-full font-medium transition-all ${
-                                                event.type === 'store'
-                                                    ? 'bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200 hover:border-purple-300 dark:bg-purple-500/30 dark:text-purple-200 dark:border-purple-500/40 dark:hover:bg-purple-500/40'
-                                                    : event.type === 'campus'
-                                                    ? 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 hover:border-green-300 dark:bg-green-500/30 dark:text-green-200 dark:border-green-500/40 dark:hover:bg-green-500/40'
-                                                    : 'bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200 hover:border-orange-300 dark:bg-orange-500/30 dark:text-orange-200 dark:border-orange-500/40 dark:hover:bg-orange-500/40'
-                                            }`}
-                                        >
-                                            <span className="truncate flex-1 font-semibold uppercase tracking-wide">
-                                                {event.task || (event.type === 'store' ? 'Store' : event.type === 'campus' ? 'Campus' : 'Outdoor')}
-                                            </span>
-                                            <div className="flex items-center gap-0.5 opacity-0 group-hover/pill:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setEditingEvent(event); setSelectedDate(date); setIsModalOpen(true); }}
-                                                    className="w-4 h-4 rounded-full bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 flex items-center justify-center shadow-sm"
-                                                >
-                                                    <Edit2 size={8} />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleDeleteEvent(event.id); }}
-                                                    className="w-4 h-4 rounded-full bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 flex items-center justify-center shadow-sm"
-                                                >
-                                                    <Trash2 size={8} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {dayEvents.length > 2 && (
-                                        <div className="text-[9px] text-gray-600 dark:text-slate-400 font-medium px-2">
-                                            +{dayEvents.length - 2} more
-                                        </div>
-                                    )}
-                                </div>
-                                
-                                {/* Hover actions */}
-                                <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); handleDateClick(date); }}
-                                        className="w-6 h-6 rounded-lg bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center shadow-lg"
+            const dateKey = formatDateKey(day);
+            const dayEvents = events[dateKey] || [];
+            const isToday = formatDateKey(new Date()) === dateKey;
+            const isSelected = selectedDate && formatDateKey(selectedDate) === dateKey;
+
+            return (
+                <div
+                    key={dateKey}
+                    onClick={() => handleDateClick(day)}
+                    className={`
+                        aspect-square p-1 sm:p-2 rounded-xl cursor-pointer 
+                        transition-all duration-200 border-2
+                        ${isToday ? 'border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent'}
+                        ${isSelected ? 'ring-2 ring-purple-400 dark:ring-purple-500' : ''}
+                        hover:bg-gray-100 dark:hover:bg-slate-700/50
+                    `}
+                >
+                    <div className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                        {day.getDate()}
+                    </div>
+                    <div className="space-y-1 overflow-y-auto max-h-16 sm:max-h-20">
+                        {dayEvents.map((event) => (
+                            <div
+                                key={event.id}
+                                className={`
+                                    text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg
+                                    flex items-center justify-between gap-1 group
+                                    ${event.type === 'store' 
+                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' 
+                                        : event.type === 'campus'
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                                    }
+                                `}
+                            >
+                                <span className="truncate flex-1 font-medium">
+                                    {event.task || (event.type === 'store' ? event.storeName : event.type === 'campus' ? event.campusName : 'Outdoor')}
+                                </span>
+                                <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        onClick={(e) => handleEditEvent(event, e)}
+                                        className="p-0.5 hover:bg-white/50 dark:hover:bg-black/20 rounded"
                                     >
-                                        <Plus size={12} className="text-white" />
+                                        <Edit2 size={10} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => handleDeleteEvent(event.id, dateKey, e)}
+                                        className="p-0.5 hover:bg-white/50 dark:hover:bg-black/20 rounded"
+                                    >
+                                        <Trash2 size={10} />
                                     </button>
                                 </div>
                             </div>
-                        </div>
-                    );
-                })}
-            </>
-        );
-    };
-
-    return (
-        <div className="bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 rounded-3xl shadow-xl dark:shadow-2xl flex flex-col p-4 sm:p-6 border border-gray-200 dark:border-transparent max-h-[calc(100vh-8rem)] overflow-hidden">
-            {/* Header */}
-            <div className="mb-3 sm:mb-4">
-                <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <div className="flex items-center gap-4">
-                        <button 
-                            onClick={handlePrevMonth} 
-                            className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-slate-800/50 dark:hover:bg-slate-700/50 flex items-center justify-center transition-all border border-gray-200 dark:border-slate-700/50"
-                        >
-                            <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-slate-300" />
-                        </button>
-                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                            {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                        </h2>
-                        <button 
-                            onClick={handleNextMonth} 
-                            className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-slate-800/50 dark:hover:bg-slate-700/50 flex items-center justify-center transition-all border border-gray-200 dark:border-slate-700/50"
-                        >
-                            <ChevronRight className="w-5 h-5 text-gray-700 dark:text-slate-300" />
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="text-sm text-gray-600 dark:text-slate-400 hidden sm:block">
-                            Trainer: <span className="font-medium text-gray-900 dark:text-slate-200">{actualTrainerName}</span>
-                        </div>
-                        <button
-                            onClick={handleSubmitCalendar}
-                            disabled={isSubmitting || Object.keys(events).length === 0}
-                            className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium text-sm transition-all shadow-lg hover:shadow-xl"
-                        >
-                            {isSubmitting ? 'Submitting...' : 'Submit Calendar'}
-                        </button>
+                        ))}
                     </div>
                 </div>
-                
-                {/* Success/Error Message */}
-                {submitMessage && (
-                    <div className={`p-3 rounded-xl text-sm ${
-                        submitMessage.type === 'success' 
-                            ? 'bg-green-100 text-green-800 border border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30'
-                            : 'bg-red-100 text-red-800 border border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30'
-                    }`}>
-                        {submitMessage.text}
-                    </div>
-                )}
-            </div>
+            );
+        });
+    };
 
-            {/* Weekday Headers */}
-            <div className="grid grid-cols-7 gap-2 mb-2">
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                    <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 dark:text-slate-400">
-                        {day}
-                    </div>
-                ))}
-            </div>
+    const filteredStores = Object.entries(compStoreMapping)
+        .filter(([id, store]) => {
+            const storeName = typeof store === 'object' && store && 'Store Name' in store ? store['Store Name'] : '';
+            return storeName.toLowerCase().includes(storeSearch.toLowerCase()) ||
+                   id.toLowerCase().includes(storeSearch.toLowerCase());
+        })
+        .slice(0, 10);
 
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-2 flex-1 min-h-0 overflow-auto">
-                {renderCalendarDays()}
-            </div>
+    const filteredCampuses = CAMPUS_LIST.filter(campus =>
+        campus.toLowerCase().includes(campusSearch.toLowerCase())
+    );
 
-            {/* Event Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-6 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-slate-900/50 dark:to-slate-800/50">
-                            <div>
-                                <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2">
-                                    <CalendarIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                                    {editingEvent ? 'Edit Event' : 'Add Event'}
-                                </h3>
-                                <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
-                                    {selectedDate?.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                                </p>
-                            </div>
-                            <button 
-                                onClick={() => setIsModalOpen(false)} 
-                                className="w-10 h-10 rounded-xl bg-white/50 dark:bg-slate-700/50 hover:bg-white dark:hover:bg-slate-700 flex items-center justify-center transition-all"
+    return (
+        <div className="flex gap-4 h-[calc(100vh-8rem)] overflow-hidden">
+            {/* Left Side - Calendar */}
+            <div className="flex-1 bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 rounded-3xl shadow-xl dark:shadow-2xl flex flex-col p-4 sm:p-6 border border-gray-200 dark:border-transparent overflow-hidden">
+                {/* Header */}
+                <div className="mb-3 sm:mb-4">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={handlePrevMonth}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-colors"
                             >
-                                <X size={20} className="text-gray-600 dark:text-slate-300" />
+                                <ChevronLeft className="text-gray-600 dark:text-slate-300" size={20} />
+                            </button>
+                            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">
+                                {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                            </h2>
+                            <button
+                                onClick={handleNextMonth}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-colors"
+                            >
+                                <ChevronRight className="text-gray-600 dark:text-slate-300" size={20} />
                             </button>
                         </div>
+                    </div>
 
-                        <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
-                            {/* Event Type */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-900 dark:text-slate-200 mb-3">Event Type</label>
-                                <div className="grid grid-cols-3 gap-3">
-                                    <button
-                                        onClick={() => setEventType('store')}
-                                        className={`py-3 px-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${eventType === 'store'
-                                                ? 'bg-purple-100 border-purple-500 text-purple-700 dark:bg-purple-900/30 dark:border-purple-500 dark:text-purple-300 shadow-lg'
-                                                : 'border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:border-purple-300 dark:hover:border-purple-700 hover:bg-gray-50 dark:hover:bg-slate-700'
-                                            }`}
-                                    >
-                                        <Store size={20} />
-                                        <span className="text-xs font-medium">Store</span>
-                                    </button>
-                                    <button
-                                        onClick={() => { setEventType('campus'); setSelectedTask('Campus placement'); }}
-                                        className={`py-3 px-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${eventType === 'campus'
-                                                ? 'bg-green-100 border-green-500 text-green-700 dark:bg-green-900/30 dark:border-green-500 dark:text-green-300 shadow-lg'
-                                                : 'border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:border-green-300 dark:hover:border-green-700 hover:bg-gray-50 dark:hover:bg-slate-700'
-                                            }`}
-                                    >
-                                        <CalendarIcon size={20} />
-                                        <span className="text-xs font-medium">Campus</span>
-                                    </button>
-                                    <button
-                                        onClick={() => setEventType('outdoor')}
-                                        className={`py-3 px-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${eventType === 'outdoor'
-                                                ? 'bg-orange-100 border-orange-500 text-orange-700 dark:bg-orange-900/30 dark:border-orange-500 dark:text-orange-300 shadow-lg'
-                                                : 'border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:border-orange-300 dark:hover:border-orange-700 hover:bg-gray-50 dark:hover:bg-slate-700'
-                                            }`}
-                                    >
-                                        <MapPin size={20} />
-                                        <span className="text-xs font-medium">Outdoor</span>
-                                    </button>
-                                </div>
+                    {/* Day Headers */}
+                    <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                            <div key={day} className="text-center text-xs sm:text-sm font-semibold text-gray-600 dark:text-slate-400 py-2">
+                                {day}
                             </div>
+                        ))}
+                    </div>
+                </div>
 
-                            {/* Store Selection (if Store Visit) */}
-                            {eventType === 'store' && (
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-900 dark:text-slate-200 mb-3">Select Store</label>
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            placeholder="Search and select store..."
-                                            value={storeSearch}
-                                            onChange={(e) => setStoreSearch(e.target.value)}
-                                            onFocus={() => document.getElementById('store-dropdown')?.classList.remove('hidden')}
-                                            className="w-full p-3 border-2 border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none text-sm"
-                                        />
-                                        <div 
-                                            id="store-dropdown"
-                                            className="hidden absolute z-10 w-full mt-2 border-2 border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 max-h-48 overflow-y-auto shadow-lg"
-                                        >
-                                            {filteredStores.length === 0 ? (
-                                                <div className="p-4 text-sm text-gray-500 dark:text-slate-400 text-center">
-                                                    No stores found
-                                                </div>
-                                            ) : (
-                                                filteredStores.map(store => (
-                                                    <div
-                                                        key={store.id}
-                                                        onClick={() => {
-                                                            setSelectedStore(store.id);
-                                                            setStoreSearch(store.name);
-                                                            document.getElementById('store-dropdown')?.classList.add('hidden');
-                                                        }}
-                                                        className={`p-3 cursor-pointer hover:bg-purple-50 dark:hover:bg-slate-600 transition-colors text-sm border-b border-gray-100 dark:border-slate-600 last:border-0 ${
-                                                            selectedStore === store.id
-                                                                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-900 dark:text-purple-300 font-semibold'
-                                                                : 'text-gray-900 dark:text-slate-100'
-                                                        }`}
-                                                    >
-                                                        {store.name} ({store.id})
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                {/* Calendar Grid */}
+                <div className="flex-1 overflow-y-auto">
+                    <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                        {renderCalendarDays()}
+                    </div>
+                </div>
+            </div>
 
-                            {/* Campus Selection (if Campus Event) */}
-                            {eventType === 'campus' && (
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-900 dark:text-slate-200 mb-3">Select Campus</label>
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            placeholder="Search and select campus..."
-                                            value={campusSearch}
-                                            onChange={(e) => setCampusSearch(e.target.value)}
-                                            onFocus={() => document.getElementById('campus-dropdown')?.classList.remove('hidden')}
-                                            className="w-full p-3 border-2 border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm"
-                                        />
-                                        <div 
-                                            id="campus-dropdown"
-                                            className="hidden absolute z-10 w-full mt-2 border-2 border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 max-h-48 overflow-y-auto shadow-lg"
-                                        >
-                                            {CAMPUS_LIST.filter(campus => 
-                                                campus.toLowerCase().includes(campusSearch.toLowerCase())
-                                            ).length === 0 ? (
-                                                <div className="p-4 text-sm text-gray-500 dark:text-slate-400 text-center">
-                                                    No campuses found
-                                                </div>
-                                            ) : (
-                                                CAMPUS_LIST.filter(campus => 
-                                                    campus.toLowerCase().includes(campusSearch.toLowerCase())
-                                                ).map(campus => (
-                                                    <div
-                                                        key={campus}
-                                                        onClick={() => {
-                                                            setSelectedCampus(campus);
-                                                            setCampusSearch(campus);
-                                                            document.getElementById('campus-dropdown')?.classList.add('hidden');
-                                                        }}
-                                                        className={`p-3 cursor-pointer hover:bg-green-50 dark:hover:bg-slate-600 transition-colors text-sm border-b border-gray-100 dark:border-slate-600 last:border-0 ${
-                                                            selectedCampus === campus
-                                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-900 dark:text-green-300 font-semibold'
-                                                                : 'text-gray-900 dark:text-slate-100'
-                                                        }`}
-                                                    >
-                                                        {campus}
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+            {/* Right Side - Event Form */}
+            <div className="w-96 bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 rounded-3xl shadow-xl dark:shadow-2xl flex flex-col p-6 border border-gray-200 dark:border-transparent overflow-y-auto">
+                {selectedDate ? (
+                    <>
+                        {/* Form Header */}
+                        <div className="flex items-center gap-3 mb-6">
+                            <CalendarIcon className="text-purple-500 dark:text-purple-400" size={24} />
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+                                {editingEvent ? 'Edit Event' : 'Add Event'}
+                            </h3>
+                        </div>
 
-                            {/* Task Type Selection */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-900 dark:text-slate-200 mb-3">Task Type</label>
-                                <select
-                                    value={selectedTask}
-                                    onChange={(e) => setSelectedTask(e.target.value)}
-                                    className="w-full p-3 border-2 border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm font-medium"
+                        <div className="text-sm text-gray-600 dark:text-slate-400 mb-6">
+                            {selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
+
+                        {/* Event Type Selection */}
+                        <div className="mb-6">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3">
+                                Event Type
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                                <button
+                                    onClick={() => { setEventType('store'); setSelectedTask(''); }}
+                                    className={`py-3 px-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
+                                        eventType === 'store'
+                                            ? 'bg-blue-100 border-blue-500 text-blue-700 dark:bg-blue-900/30 dark:border-blue-500 dark:text-blue-300 shadow-lg'
+                                            : 'border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                    }`}
                                 >
-                                    <option value="">-- Select Task Type --</option>
-                                    {(eventType === 'campus' ? CAMPUS_TASK_TYPES : TASK_TYPES).map(task => (
-                                        <option key={task} value={task}>
-                                            {task}
-                                        </option>
+                                    <Store size={20} />
+                                    <span className="text-xs font-medium">Store</span>
+                                </button>
+                                <button
+                                    onClick={() => { setEventType('campus'); setSelectedTask('Campus placement'); }}
+                                    className={`py-3 px-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
+                                        eventType === 'campus'
+                                            ? 'bg-green-100 border-green-500 text-green-700 dark:bg-green-900/30 dark:border-green-500 dark:text-green-300 shadow-lg'
+                                            : 'border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:border-green-300 dark:hover:border-green-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                    }`}
+                                >
+                                    <CalendarIcon size={20} />
+                                    <span className="text-xs font-medium">Campus</span>
+                                </button>
+                                <button
+                                    onClick={() => { setEventType('outdoor'); setSelectedTask(''); }}
+                                    className={`py-3 px-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
+                                        eventType === 'outdoor'
+                                            ? 'bg-amber-100 border-amber-500 text-amber-700 dark:bg-amber-900/30 dark:border-amber-500 dark:text-amber-300 shadow-lg'
+                                            : 'border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:border-amber-300 dark:hover:border-amber-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                    }`}
+                                >
+                                    <MapPin size={20} />
+                                    <span className="text-xs font-medium">Outdoor</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Store Selection */}
+                        {eventType === 'store' && (
+                            <div className="mb-4">
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                                    Select Store
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Search stores..."
+                                    value={storeSearch}
+                                    onChange={(e) => setStoreSearch(e.target.value)}
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-white mb-2"
+                                />
+                                <select
+                                    value={selectedStore}
+                                    onChange={(e) => setSelectedStore(e.target.value)}
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-white"
+                                >
+                                    <option value="">Choose a store</option>
+                                    {filteredStores.map(([id, store]) => {
+                                        const storeName = typeof store === 'object' && store && 'Store Name' in store ? store['Store Name'] : id;
+                                        return <option key={id} value={id}>{storeName} ({id})</option>;
+                                    })}
+                                </select>
+                            </div>
+                        )}
+
+                        {/* Campus Selection */}
+                        {eventType === 'campus' && (
+                            <div className="mb-4">
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                                    Select Campus
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Search campuses..."
+                                    value={campusSearch}
+                                    onChange={(e) => setCampusSearch(e.target.value)}
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-white mb-2"
+                                />
+                                <select
+                                    value={selectedCampus}
+                                    onChange={(e) => setSelectedCampus(e.target.value)}
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-white"
+                                >
+                                    <option value="">Choose a campus</option>
+                                    {filteredCampuses.map((campus) => (
+                                        <option key={campus} value={campus}>{campus}</option>
                                     ))}
                                 </select>
                             </div>
+                        )}
 
-                            {/* Details */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-900 dark:text-slate-200 mb-3">
-                                    Additional Notes {selectedTask && <span className="text-xs text-gray-500 font-normal">(Optional)</span>}
-                                </label>
-                                <textarea
-                                    value={eventDetails}
-                                    onChange={(e) => setEventDetails(e.target.value)}
-                                    placeholder={selectedTask ? "Add any additional notes or details..." : "Enter task details, agenda, or notes..."}
-                                    className="w-full p-4 border-2 border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-h-[120px] resize-none"
-                                />
-                            </div>
+                        {/* Task Type Selection */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                                Task Type
+                            </label>
+                            <select
+                                value={selectedTask}
+                                onChange={(e) => setSelectedTask(e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-white"
+                                disabled={eventType === 'campus'}
+                            >
+                                <option value="">Select task</option>
+                                {(eventType === 'campus' ? CAMPUS_TASK_TYPES : TASK_TYPES).map((task) => (
+                                    <option key={task} value={task}>{task}</option>
+                                ))}
+                            </select>
                         </div>
 
-                        <div className="p-6 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 flex justify-end gap-3">
+                        {/* Additional Details */}
+                        <div className="mb-6">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                                Additional Notes
+                            </label>
+                            <textarea
+                                value={eventDetails}
+                                onChange={(e) => setEventDetails(e.target.value)}
+                                placeholder="Add any additional details..."
+                                rows={3}
+                                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-white resize-none"
+                            />
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3 mb-6">
                             <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="px-6 py-2.5 text-sm font-semibold text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-xl transition-all border-2 border-gray-200 dark:border-slate-600"
+                                onClick={handleSaveEvent}
+                                className="flex-1 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all shadow-lg"
+                            >
+                                {editingEvent ? 'Update' : 'Add Event'}
+                            </button>
+                            <button
+                                onClick={handleCancelEdit}
+                                className="px-6 py-3 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
                             >
                                 Cancel
                             </button>
-                            <button
-                                onClick={handleSaveEvent}
-                                disabled={(eventType === 'store' && !selectedStore) || (eventType === 'campus' && !selectedCampus)}
-                                className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {editingEvent ? 'Update Event' : 'Save Event'}
-                            </button>
                         </div>
+
+                        {/* Submit Calendar Button */}
+                        <div className="pt-6 border-t border-gray-200 dark:border-slate-700">
+                            <button
+                                onClick={handleSubmitCalendar}
+                                disabled={isSubmitting || Object.keys(events).length === 0}
+                                className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-xl transition-all shadow-lg disabled:cursor-not-allowed"
+                            >
+                                {isSubmitting ? 'Submitting...' : `Submit Calendar (${Object.values(events).flat().length} events)`}
+                            </button>
+                            {submitMessage && (
+                                <div className={`mt-3 p-3 rounded-lg text-sm ${
+                                    submitMessage.type === 'success' 
+                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                }`}>
+                                    {submitMessage.text}
+                                </div>
+                            )}
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center">
+                        <CalendarIcon size={64} className="text-gray-300 dark:text-slate-600 mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-600 dark:text-slate-400 mb-2">
+                            Select a Date
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-slate-500">
+                            Click on any date in the calendar to add or view events
+                        </p>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 };
