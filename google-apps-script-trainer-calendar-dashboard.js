@@ -56,6 +56,10 @@ function doPost(e) {
       const eventTrainerName = event.trainerName || trainerName;
       Logger.log('  Trainer name for this event: ' + eventTrainerName);
       
+      // Use month from the event if available, otherwise fall back to payload month
+      const eventMonth = event.month || month;
+      Logger.log('  Month for this event: ' + eventMonth);
+      
       let region = '';
       let storeName = '';
       
@@ -76,7 +80,7 @@ function doPost(e) {
         timestamp,
         trainerId,
         eventTrainerName,
-        month,
+        eventMonth, // Use the event-specific month
         event.date,
         event.type,
         event.location || '',

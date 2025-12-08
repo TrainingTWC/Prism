@@ -80,15 +80,39 @@ const TrainerCalendarDashboard: React.FC = () => {
         console.log('Total entries:', entries.length);
         console.log('Selected trainer:', selectedTrainer);
         console.log('Current month:', currentDate.toLocaleString('default', { month: 'long', year: 'numeric' }));
+        console.log('Current viewing dates:', `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`);
         
         if (entries.length > 0) {
             console.log('First 3 entries:', entries.slice(0, 3));
-            console.log('All dates in entries:', [...new Set(entries.map(e => e.date))]);
+            const allDates = [...new Set(entries.map(e => e.date))];
+            console.log('All unique dates in entries:', allDates);
+            console.log('Date formats detected:', allDates.map(d => ({
+                original: d,
+                hasTimestamp: d.includes('T'),
+                hasSlashes: d.includes('/'),
+                length: d.length
+            })));
             console.log('All trainer names:', [...new Set(entries.map(e => e.trainerName))]);
+            
+            // Count entries in current month
+            const currentMonth = currentDate.getMonth();
+            const currentYear = currentDate.getFullYear();
+            const entriesInCurrentMonth = entries.filter(e => {
+                const entryDate = e.date.split('T')[0];
+                const entryDateObj = new Date(entryDate + 'T00:00:00');
+                return entryDateObj.getMonth() === currentMonth && 
+                       entryDateObj.getFullYear() === currentYear;
+            });
+            console.log(`📅 Entries in ${currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}:`, entriesInCurrentMonth.length);
+            if (entriesInCurrentMonth.length > 0) {
+                console.log('Dates in current month:', entriesInCurrentMonth.map(e => e.date));
+            } else {
+                console.warn('⚠️ No entries found for the currently viewed month. Try navigating to a different month.');
+            }
         } else {
             console.log('⚠️ No entries loaded from API');
         }
-    }, [entries, selectedTrainer]);
+    }, [entries, selectedTrainer, currentDate]);
 
 
     // Calendar helper functions
@@ -119,16 +143,50 @@ const TrainerCalendarDashboard: React.FC = () => {
     const getEventsForDate = (date: Date) => {
         const dateKey = formatDateKey(date);
         const filtered = entries.filter(entry => {
-            // Extract just the date part from entry.date (in case it has timestamp)
-            const entryDate = entry.date.split('T')[0]; // Get YYYY-MM-DD part only
+            if (!entry.date) return false;
+            
+            // Try multiple date format variations
+            let entryDate = entry.date;
+            
+            // If it's a full timestamp, extract just the date part
+            if (entryDate.includes('T')) {
+                entryDate = entryDate.split('T')[0];
+            }
+            
+            // If it's in DD/MM/YYYY or MM/DD/YYYY format, convert to YYYY-MM-DD
+            if (entryDate.includes('/')) {
+                const parts = entryDate.split('/');
+                if (parts.length === 3) {
+                    // Try DD/MM/YYYY format first
+                    const day = parts[0].padStart(2, '0');
+                    const month = parts[1].padStart(2, '0');
+                    const year = parts[2];
+                    entryDate = `${year}-${month}-${day}`;
+                }
+            }
+            
+            // Parse the entry date to check month/year
+            const entryDateObj = new Date(entryDate + 'T00:00:00');
+            const currentMonth = currentDate.getMonth();
+            const currentYear = currentDate.getFullYear();
+            
+            // Check if entry is in the currently viewed month
+            const isInCurrentMonth = entryDateObj.getMonth() === currentMonth && 
+                                    entryDateObj.getFullYear() === currentYear;
+            
+            if (!isInCurrentMonth) {
+                return false; // Skip entries not in current month
+            }
+            
             const matchesDate = entryDate === dateKey;
             const matchesTrainer = !selectedTrainer || entry.trainerName === selectedTrainer;
+            
+            if (matchesDate) {
+                console.log(`✓ Match found for ${dateKey}:`, entry);
+            }
+            
             return matchesDate && matchesTrainer;
         });
-        
-        if (filtered.length > 0) {
-            console.log(`Events for ${dateKey}:`, filtered);
-        }
         
         return filtered;
     };

@@ -147,6 +147,17 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
         return trainerName || trainerId || 'Trainer';
     })();
 
+    // Initialize trainer name on first load
+    useEffect(() => {
+        if (trainerId && !selectedTrainerName) {
+            const normalizedTrainerId = trainerId.toUpperCase();
+            const autoTrainerName = TRAINER_ID_MAPPING[normalizedTrainerId] || '';
+            if (autoTrainerName) {
+                setSelectedTrainerName(autoTrainerName);
+            }
+        }
+    }, [trainerId]); // Only run when trainerId changes
+
     // Load events from localStorage
     useEffect(() => {
         const loadEvents = () => {
@@ -203,26 +214,32 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
     const handleDateClick = (date: Date) => {
         setSelectedDate(date);
         setEditingEvent(null);
+        // Reset form but preserve trainer name if already selected
+        const currentTrainerName = selectedTrainerName;
         resetForm();
-        // Auto-populate trainer name based on trainerId from URL if available
-        if (trainerId) {
+        // Only auto-populate trainer name if not already set by user
+        if (!currentTrainerName && trainerId) {
             const normalizedTrainerId = trainerId.toUpperCase();
             const autoTrainerName = TRAINER_ID_MAPPING[normalizedTrainerId] || '';
             if (autoTrainerName) {
                 setSelectedTrainerName(autoTrainerName);
             }
+        } else {
+            setSelectedTrainerName(currentTrainerName);
         }
     };
 
     const resetForm = () => {
-        // Auto-populate trainer name based on trainerId from URL if available
-        if (trainerId) {
+        // Preserve trainer name - don't reset it
+        const currentTrainerName = selectedTrainerName;
+        
+        // Only set trainer name on first load if empty
+        if (!currentTrainerName && trainerId) {
             const normalizedTrainerId = trainerId.toUpperCase();
             const autoTrainerName = TRAINER_ID_MAPPING[normalizedTrainerId] || '';
             setSelectedTrainerName(autoTrainerName);
-        } else {
-            setSelectedTrainerName('');
         }
+        
         setEventType('store');
         setSelectedStore('');
         setSelectedCampus('');
@@ -342,15 +359,22 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
                 trainerId,
                 trainerName: actualTrainerName,
                 month: currentDate.toLocaleString('default', { month: 'long', year: 'numeric' }),
-                events: allEvents.map(event => ({
-                    date: event.date,
-                    type: event.type,
-                    trainerName: event.trainerName,
-                    location: event.type === 'store' ? (event.storeId || event.storeName) : 
-                             event.type === 'campus' ? event.campusName : 'Outdoor',
-                    task: event.task || '',
-                    details: event.details || ''
-                }))
+                events: allEvents.map(event => {
+                    // Derive month from the actual event date, not the calendar view
+                    const eventDate = new Date(event.date);
+                    const eventMonth = eventDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+                    
+                    return {
+                        date: event.date,
+                        month: eventMonth, // Add month field per event
+                        type: event.type,
+                        trainerName: event.trainerName,
+                        location: event.type === 'store' ? (event.storeId || event.storeName) : 
+                                 event.type === 'campus' ? event.campusName : 'Outdoor',
+                        task: event.task || '',
+                        details: event.details || ''
+                    };
+                })
             };
 
             console.log('Submitting calendar payload:', payload);
