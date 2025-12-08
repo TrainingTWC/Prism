@@ -193,7 +193,12 @@ function computeOverall(submission: any): { total: number; max: number; pct: num
   return { total, max, pct, zeroToleranceFailed };
 }
 
-export const buildQAPDF = async (submissions: QASubmission[], metadata: any = {}, options: ReportOptions = {}) => {
+export const buildQAPDF = async (
+  submissions: QASubmission[], 
+  metadata: any = {}, 
+  options: ReportOptions = {}, 
+  questionImages: Record<string, string[]> = {}
+) => {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   let y = 15;
   const first = submissions[0] || {} as any;
@@ -426,6 +431,7 @@ export const buildQAPDF = async (submissions: QASubmission[], metadata: any = {}
 
       sections[section.id].rows.push({
         id: item.id,
+        questionId: `${section.id}_${questionId}`, // Add full question ID for image lookup
         question: item.q,
         answer: display,
         score: numeric,
@@ -622,6 +628,74 @@ export const buildQAPDF = async (submissions: QASubmission[], metadata: any = {}
       }
     });
     y = (doc as any).lastAutoTable.finalY + 6;
+    
+    // Render images for questions in this section
+    sec.rows.forEach((rowData, rowIndex) => {
+      if (rowData.questionId) {
+        const imageKey = rowData.questionId; // e.g., "ZeroTolerance_ZT1"
+        const images = questionImages[imageKey];
+        
+        if (images && images.length > 0) {
+          // Check if we need a new page
+          if (y > 250) {
+            doc.addPage();
+            y = 20;
+          }
+          
+          // Question label
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(51, 65, 85);
+          const questionLabel = `Q${rowIndex + 1}: ${rowData.question.substring(0, 80)}${rowData.question.length > 80 ? '...' : ''}`;
+          doc.text(questionLabel, 14, y);
+          y += 6;
+          
+          // Layout images in a grid (3 per row)
+          const imagesPerRow = 3;
+          const imageWidth = 55; // Width for each image
+          const imageHeight = 40; // Height for each image
+          const spacing = 5;
+          const startX = 14;
+          
+          images.forEach((base64Image, idx) => {
+            try {
+              const col = idx % imagesPerRow;
+              const row = Math.floor(idx / imagesPerRow);
+              
+              // Check if we need a new page for this row of images
+              if (row > 0 && col === 0 && y + imageHeight > 270) {
+                doc.addPage();
+                y = 20;
+              }
+              
+              const x = startX + col * (imageWidth + spacing);
+              const currentY = y + row * (imageHeight + spacing);
+              
+              // Add image
+              doc.addImage(base64Image, 'JPEG', x, currentY, imageWidth, imageHeight);
+              
+              // Draw border around image
+              doc.setDrawColor(226, 232, 240);
+              doc.setLineWidth(0.3);
+              doc.rect(x, currentY, imageWidth, imageHeight);
+              
+              // Add image counter badge
+              doc.setFontSize(7);
+              doc.setTextColor(255, 255, 255);
+              doc.setFillColor(59, 130, 246);
+              doc.roundedRect(x + 2, currentY + 2, 14, 6, 1, 1, 'F');
+              doc.text(`${idx + 1}/${images.length}`, x + 9, currentY + 5.5, { align: 'center' });
+            } catch (err) {
+              console.warn('Could not add image to PDF:', err);
+            }
+          });
+          
+          // Update y position to account for images
+          const totalRows = Math.ceil(images.length / imagesPerRow);
+          y += (imageHeight + spacing) * totalRows + spacing;
+        }
+      }
+    });
 
     // Display section remarks if they exist
     if (sec.remarks && sec.remarks.trim()) {

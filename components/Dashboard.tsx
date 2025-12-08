@@ -2131,7 +2131,19 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         if (lastRefresh) meta.date = lastRefresh.toLocaleString();
 
         const fileName = `QA_Assessment_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
-        const pdf = await buildQAPDF(reportData as any, meta, { title: 'QA Assessment Report' });
+        
+        // Retrieve question images from localStorage
+        let questionImages: Record<string, string[]> = {};
+        try {
+          const storedImages = localStorage.getItem('qa_images');
+          if (storedImages) {
+            questionImages = JSON.parse(storedImages);
+          }
+        } catch (error) {
+          console.warn('Could not load question images:', error);
+        }
+        
+        const pdf = await buildQAPDF(reportData as any, meta, { title: 'QA Assessment Report' }, questionImages);
         pdf.save(fileName);
         setIsGenerating(false);
         showNotificationMessage('QA Assessment PDF generated successfully!', 'success');
