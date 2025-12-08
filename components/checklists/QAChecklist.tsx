@@ -174,7 +174,17 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
   // Save images to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('qa_images', JSON.stringify(questionImages));
+    try {
+      localStorage.setItem('qa_images', JSON.stringify(questionImages));
+    } catch (e) {
+      // Handle quota exceeded error
+      if (e instanceof DOMException && (e.code === 22 || e.name === 'QuotaExceededError')) {
+        console.error('LocalStorage quota exceeded. Too many images stored.');
+        alert('Storage limit reached. Please remove some images before adding more.');
+      } else {
+        console.error('Failed to save images:', e);
+      }
+    }
   }, [questionImages]);
 
   // Save signatures to localStorage whenever they change
@@ -401,13 +411,57 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   };
 
   const handleImageUpload = (questionId: string, file: File) => {
+    // Compress and resize image to reduce storage size
     const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      setQuestionImages(prev => ({
-        ...prev,
-        [questionId]: [...(prev[questionId] || []), base64String]
-      }));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // Create canvas for compression
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Calculate new dimensions (max 1200px width/height)
+        const maxDimension = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height && width > maxDimension) {
+          height = (height * maxDimension) / width;
+          width = maxDimension;
+        } else if (height > maxDimension) {
+          width = (width * maxDimension) / height;
+          height = maxDimension;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // Draw and compress image (0.7 quality for JPEG)
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+        // Update state with compressed image
+        setQuestionImages(prev => {
+          try {
+            const newImages = {
+              ...prev,
+              [questionId]: [...(prev[questionId] || []), compressedBase64]
+            };
+            // Test if it fits in localStorage
+            const testString = JSON.stringify(newImages);
+            if (testString.length > 5000000) { // ~5MB limit
+              alert('Storage limit reached. Please remove some images before adding more.');
+              return prev;
+            }
+            return newImages;
+          } catch (error) {
+            alert('Failed to add image. Storage limit may be reached.');
+            return prev;
+          }
+        });
+      };
+      img.src = e.target?.result as string;
     };
     reader.readAsDataURL(file);
   };
