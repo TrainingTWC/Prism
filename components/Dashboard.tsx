@@ -7,7 +7,7 @@ import { buildTrainingPDF } from '../src/utils/trainingReport';
 import { buildOperationsPDF } from '../src/utils/operationsReport';
 import { buildQAPDF } from '../src/utils/qaReport';
 import { buildHRPDF } from '../src/utils/hrReport';
-import { Users, Clipboard, GraduationCap, BarChart3, Brain } from 'lucide-react';
+import { Users, Clipboard, GraduationCap, BarChart3, Brain, Calendar } from 'lucide-react';
 import { Submission, Store } from '../types';
 import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission } from '../services/dataService';
 import { hapticFeedback } from '../utils/haptics';
@@ -68,6 +68,7 @@ import QAAMPerformanceInfographic from './QAAMPerformanceInfographic';
 import QAAverageScoreChart from './QAAverageScoreChart';
 import QAEditModal from './QAEditModal';
 import CampusHiringStats from './CampusHiringStats';
+import TrainerCalendarDashboard from './TrainerCalendarDashboard';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../roleMapping';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -147,6 +148,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       { id: 'qa', label: 'QA Assessments', access: 'qa-dashboard' },
       { id: 'finance', label: 'Finance Reports', access: 'finance-dashboard' },
       { id: 'campus-hiring', label: 'Campus Hiring', access: 'campus-hiring-dashboard' },
+      { id: 'trainer-calendar', label: 'Trainer Calendar', access: 'trainer-calendar-dashboard' },
       { id: 'consolidated', label: 'Consolidated View', access: 'all' }
     ];
 
@@ -1789,9 +1791,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       return stats?.avgScore != null ? `${stats.avgScore}%` : '—';
     }
     
-    // HR dashboard - show as percentage
+    // HR dashboard - show as 1-5 scale
     if (dashboardType === 'hr') {
-      return stats?.avgScore != null ? `${stats.avgScore}%` : '—';
+      if (stats?.avgScore != null) {
+        const score = ((stats.avgScore / 100) * 4 + 1).toFixed(1); // Convert percentage to 1-5 scale
+        return `${score}/5`;
+      }
+      return '—';
     }
     
     // Training dashboard special handling - show as 1-5 scale
@@ -3222,6 +3228,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                     </svg>
                   );
                   case 'campus-hiring': return <Brain className="w-4 h-4 sm:w-5 sm:h-5" />;
+                  case 'trainer-calendar': return <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />;
                   default: return <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />;
                 }
               };
@@ -3234,6 +3241,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                   case 'qa': return dashboardType === 'qa' ? 'bg-red-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'finance': return dashboardType === 'finance' ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'campus-hiring': return dashboardType === 'campus-hiring' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'trainer-calendar': return dashboardType === 'trainer-calendar' ? 'bg-purple-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'consolidated': return dashboardType === 'consolidated' ? 'bg-slate-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   default: return 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                 }
@@ -3259,12 +3267,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             {dashboardType === 'qa' && 'View insights from Quality Assurance Assessments'}
             {dashboardType === 'finance' && 'View insights from Finance Reports and Analytics'}
             {dashboardType === 'campus-hiring' && 'View Campus Hiring Psychometric Assessment Results'}
+            {dashboardType === 'trainer-calendar' && 'View and manage trainer schedules and calendar events'}
             {dashboardType === 'consolidated' && 'View combined insights from all authorized checklist types'}
           </p>
         </div>
       )}
 
-      {dashboardType !== 'campus-hiring' && (() => {
+      {dashboardType !== 'campus-hiring' && dashboardType !== 'trainer-calendar' && (() => {
         console.log(`Dashboard - Passing to filters - trainers:`, allTrainers?.length || 0, 'stores:', availableStores.length, 'AMs:', availableAreaManagers.length);
         return (
           <div>
@@ -3299,7 +3308,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       */}
 
       {/* Check if we have data for the selected dashboard type */}
-      {dashboardType === 'campus-hiring' ? (
+      {dashboardType === 'trainer-calendar' ? (
+        // Trainer Calendar Dashboard
+        <TrainerCalendarDashboard />
+      ) : dashboardType === 'campus-hiring' ? (
         // Campus Hiring Dashboard
         campusHiringData.length > 0 ? (
           <CampusHiringStats submissions={campusHiringData} />

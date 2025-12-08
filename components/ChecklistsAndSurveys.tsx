@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Settings, GraduationCap, CheckCircle, DollarSign, ArrowLeft, Home, Brain, FileText } from 'lucide-react';
+import { Users, Settings, GraduationCap, CheckCircle, DollarSign, ArrowLeft, Home, Brain, FileText, Calendar } from 'lucide-react';
 import { UserRole } from '../roleMapping';
 import { useAuth } from '../contexts/AuthContext';
 import HRChecklist from './checklists/HRChecklist';
@@ -9,12 +9,13 @@ import QAChecklist from './checklists/QAChecklist';
 import FinanceChecklist from './checklists/FinanceChecklist';
 import CampusHiringChecklist from './checklists/CampusHiringChecklist';
 import FormsChecklist from './checklists/FormsChecklist';
+import TrainerCalendarChecklist from './checklists/TrainerCalendarChecklist';
 
 interface ChecklistsAndSurveysProps {
   userRole: UserRole;
 }
 
-type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'campus-hiring' | 'forms';
+type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'campus-hiring' | 'forms' | 'trainer-calendar';
 
 const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole }) => {
   const { userRole: authUserRole, hasPermission } = useAuth();
@@ -26,7 +27,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     qa: { completed: 0, total: 0, score: 0 },
     finance: { completed: 0, total: 0, score: 0 },
     'campus-hiring': { completed: 0, total: 0, score: 0 },
-    forms: { completed: 0, total: 0, score: 0 }
+    forms: { completed: 0, total: 0, score: 0 },
+    'trainer-calendar': { completed: 0, total: 0, score: 0 }
   });
 
   // Get auditor info from URL parameters
@@ -50,7 +52,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
       { id: 'qa' as ChecklistType, label: 'QA', icon: CheckCircle, color: 'bg-orange-500' },
       { id: 'finance' as ChecklistType, label: 'Finance', icon: DollarSign, color: 'bg-red-500' },
       { id: 'campus-hiring' as ChecklistType, label: 'Campus Hiring', icon: Brain, color: 'bg-indigo-500' },
-      { id: 'forms' as ChecklistType, label: 'Forms & Surveys', icon: FileText, color: 'bg-teal-500' }
+      { id: 'forms' as ChecklistType, label: 'Forms & Surveys', icon: FileText, color: 'bg-teal-500' },
+      { id: 'trainer-calendar' as ChecklistType, label: 'Trainer Calendar', icon: Calendar, color: 'bg-purple-600' }
     ];
 
     // For admin or editor role with Full Access, show all checklists
@@ -73,7 +76,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     { id: 'qa' as ChecklistType, label: 'QA', icon: CheckCircle, color: 'bg-orange-500' },
     { id: 'finance' as ChecklistType, label: 'Finance', icon: DollarSign, color: 'bg-red-500' },
     { id: 'campus-hiring' as ChecklistType, label: 'Campus Hiring', icon: Brain, color: 'bg-indigo-500' },
-    { id: 'forms' as ChecklistType, label: 'Forms & Surveys', icon: FileText, color: 'bg-teal-500' }
+    { id: 'forms' as ChecklistType, label: 'Forms & Surveys', icon: FileText, color: 'bg-teal-500' },
+    { id: 'trainer-calendar' as ChecklistType, label: 'Trainer Calendar', icon: Calendar, color: 'bg-purple-600' }
   ];
 
   const updateChecklistStats = (type: ChecklistType, stats: { completed: number; total: number; score: number }) => {
@@ -117,6 +121,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
         return <CampusHiringChecklist {...commonProps} />;
       case 'forms':
         return <FormsChecklist {...commonProps} />;
+      case 'trainer-calendar':
+        return <TrainerCalendarChecklist {...commonProps} />;
       default:
         return <HRChecklist {...commonProps} />;
     }
@@ -258,7 +264,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                     
                     <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
                       <span className="text-sm text-sky-600 dark:text-sky-400 font-medium group-hover:text-sky-700 dark:group-hover:text-sky-300">
-                        Open Checklist →
+                        {checklist.id === 'trainer-calendar' ? 'Open →' : 'Open Checklist →'}
                       </span>
                     </div>
                   </div>

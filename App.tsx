@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Brain, CheckSquare, HelpCircle, Calendar } from 'lucide-react';
+import { BarChart3, Brain, CheckSquare, HelpCircle } from 'lucide-react';
 import Dashboard from './components/Dashboard';
-import TrainerCalendarDashboard from './components/TrainerCalendarDashboard';
 import AIInsights from './components/AIInsights';
 import ChecklistsAndSurveys from './components/ChecklistsAndSurveys';
 import Header from './components/Header';
@@ -15,7 +14,7 @@ import { ConfigProvider } from './contexts/ConfigContext';
 import AdminConfig from './components/AdminConfig';
 
 const AppContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'ai-insights' | 'checklists' | 'trainer-calendar' | 'admin'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'ai-insights' | 'checklists' | 'admin'>('dashboard');
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userId, setUserId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -189,8 +188,7 @@ const AppContent: React.FC = () => {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     // { id: 'ai-insights', label: 'AI Insights', icon: Brain }, // Hidden per user request
-    { id: 'checklists', label: 'Checklists & Surveys', icon: CheckSquare },
-    { id: 'trainer-calendar', label: 'Trainer Calendar', icon: Calendar }
+    { id: 'checklists', label: 'Checklists & Surveys', icon: CheckSquare }
   ];
 
   // Get auth role once
@@ -254,7 +252,7 @@ const AppContent: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as 'dashboard' | 'ai-insights' | 'checklists' | 'trainer-calendar' | 'admin')}
+                onClick={() => setActiveTab(tab.id as 'dashboard' | 'ai-insights' | 'checklists' | 'admin')}
                 className={`flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 outline-none ${
                   activeTab === tab.id
                     ? 'border-sky-400 text-sky-400'
@@ -274,7 +272,6 @@ const AppContent: React.FC = () => {
         {activeTab === 'dashboard' && <Dashboard userRole={userRole} />}
         {activeTab === 'ai-insights' && <AIInsights userRole={userRole} />}
         {activeTab === 'checklists' && <ChecklistsAndSurveys userRole={userRole} />}
-        {activeTab === 'trainer-calendar' && <TrainerCalendarDashboard />}
         {activeTab === 'admin' && <AdminConfig />}
       </main>
     </div>

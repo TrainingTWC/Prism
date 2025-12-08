@@ -276,9 +276,6 @@ interface TrainingChecklistProps {
 const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) => {
   const { config, loading: configLoading } = useConfig();
   
-  // Tab state - 'audit' for checklist, 'calendar' for calendar view
-  const [activeTab, setActiveTab] = useState<'audit' | 'calendar'>('audit');
-  
   // Use config data if available, otherwise fall back to hardcoded SECTIONS
   const sections = config?.CHECKLISTS?.TRAINING || SECTIONS;
   
@@ -1583,51 +1580,9 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
               <span className="break-words">Training Management</span>
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400 leading-relaxed">
-              Comprehensive training assessment and calendar planning for trainers.
+              Comprehensive training assessment for trainers.
             </p>
           </div>
-
-          {/* Tab Navigation */}
-          <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
-            <div className="flex">
-              <button
-                onClick={() => setActiveTab('audit')}
-                className={`flex items-center gap-2 px-4 sm:px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-                  activeTab === 'audit'
-                    ? 'border-purple-500 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20'
-                    : 'border-transparent text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                <ClipboardCheck className="w-4 h-4" />
-                <span className="hidden sm:inline">Audit & Checklist</span>
-                <span className="sm:hidden">Audit</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('calendar')}
-                className={`flex items-center gap-2 px-4 sm:px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-                  activeTab === 'calendar'
-                    ? 'border-purple-500 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20'
-                    : 'border-transparent text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                <CalendarIcon className="w-4 h-4" />
-                <span className="hidden sm:inline">Training Calendar</span>
-                <span className="sm:hidden">Calendar</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Conditional Content based on active tab */}
-          {activeTab === 'calendar' ? (
-            <div className="p-4 h-[calc(100vh-200px)]">
-              <TrainingCalendar 
-                trainerId={meta.trainerId || ''} 
-                trainerName={meta.trainerName || 'Trainer'} 
-              />
-            </div>
-          ) : (
-            <>
-              {/* Original Checklist Content */}
 
       {/* Meta Information Form - Full Width */}
       <div id="audit-information" className="bg-gray-50 dark:bg-slate-900 p-3 sm:p-4 border-b border-gray-200 dark:border-slate-700">
@@ -2290,8 +2245,6 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
           </button>
         </div>
       </div>
-            </>
-          )}
         </div>
       )}
     </>

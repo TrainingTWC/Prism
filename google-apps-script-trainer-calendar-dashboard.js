@@ -7,19 +7,55 @@ const SHEET_NAME = 'Trainer Calendar';
 
 function doPost(e) {
   try {
+    // Log the incoming request for debugging
+    Logger.log('=== NEW POST REQUEST ===');
+    Logger.log('Request received at: ' + new Date().toISOString());
+    
+    if (!e || !e.postData || !e.postData.contents) {
+      Logger.log('ERROR: No post data received');
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'No data received in POST request'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    Logger.log('Raw post data: ' + e.postData.contents);
+    
     const sheet = getOrCreateSheet();
     const data = JSON.parse(e.postData.contents);
+    
+    Logger.log('Parsed data - Trainer ID: ' + data.trainerId);
+    Logger.log('Parsed data - Trainer Name: ' + data.trainerName);
+    Logger.log('Parsed data - Month: ' + data.month);
+    Logger.log('Parsed data - Events count: ' + (data.events ? data.events.length : 0));
     
     const timestamp = new Date().toISOString();
     const trainerId = data.trainerId || '';
     const trainerName = data.trainerName || '';
     const month = data.month || '';
     
+    if (!data.events || data.events.length === 0) {
+      Logger.log('ERROR: No events in payload');
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'No events provided'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
     // Get store region and name mapping from comprehensive_store_mapping
     const storeMapping = getStoreMapping();
+    Logger.log('Store mapping loaded: ' + Object.keys(storeMapping).length + ' stores');
+    
+    let processedCount = 0;
     
     // Process each event
-    data.events.forEach(event => {
+    data.events.forEach((event, index) => {
+      Logger.log('Processing event ' + (index + 1) + ': ' + event.type + ' at ' + event.location);
+      
+      // Use trainer name from the event if available, otherwise fall back to payload trainer name
+      const eventTrainerName = event.trainerName || trainerName;
+      Logger.log('  Trainer name for this event: ' + eventTrainerName);
+      
       let region = '';
       let storeName = '';
       
@@ -29,15 +65,17 @@ function doPost(e) {
         if (storeInfo) {
           region = storeInfo.region || '';
           storeName = storeInfo.storeName || event.location;
+          Logger.log('  Store found in mapping - Region: ' + region + ', Name: ' + storeName);
         } else {
           storeName = event.location;
+          Logger.log('  Store not in mapping, using location as name: ' + storeName);
         }
       }
       
       sheet.appendRow([
         timestamp,
         trainerId,
-        trainerName,
+        eventTrainerName,
         month,
         event.date,
         event.type,
@@ -47,16 +85,22 @@ function doPost(e) {
         region,
         storeName
       ]);
+      
+      processedCount++;
     });
+    
+    Logger.log('SUCCESS: Processed ' + processedCount + ' events');
+    Logger.log('Sheet now has ' + sheet.getLastRow() + ' rows (including header)');
     
     return ContentService.createTextOutput(JSON.stringify({
       status: 'success',
       message: 'Calendar submitted successfully',
-      entriesAdded: data.events.length
+      entriesAdded: processedCount
     })).setMimeType(ContentService.MimeType.JSON);
     
   } catch (error) {
-    Logger.log('Error in doPost: ' + error.toString());
+    Logger.log('ERROR in doPost: ' + error.toString());
+    Logger.log('Error stack: ' + error.stack);
     return ContentService.createTextOutput(JSON.stringify({
       status: 'error',
       message: error.toString()
@@ -66,15 +110,23 @@ function doPost(e) {
 
 function doGet(e) {
   try {
+    Logger.log('=== NEW GET REQUEST ===');
+    Logger.log('Request received at: ' + new Date().toISOString());
+    
     const action = e.parameter.action;
+    Logger.log('Action parameter: ' + action);
     
     if (action === 'fetch') {
       const sheet = getOrCreateSheet();
       const data = sheet.getDataRange().getValues();
       
+      Logger.log('Sheet has ' + data.length + ' rows (including header)');
+      
       // Skip header row
       const headers = data[0];
       const rows = data.slice(1);
+      
+      Logger.log('Returning ' + rows.length + ' data rows');
       
       // Convert to array of objects
       const entries = rows.map(row => {
@@ -93,18 +145,24 @@ function doGet(e) {
         };
       });
       
+      Logger.log('SUCCESS: Returning ' + entries.length + ' entries');
+      
       return ContentService.createTextOutput(JSON.stringify({
         status: 'success',
-        data: entries
+        data: entries,
+        count: entries.length
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
+    Logger.log('ERROR: Invalid or missing action parameter');
     return ContentService.createTextOutput(JSON.stringify({
       status: 'error',
-      message: 'Invalid action'
+      message: 'Invalid action. Use ?action=fetch to retrieve data'
     })).setMimeType(ContentService.MimeType.JSON);
     
   } catch (error) {
+    Logger.log('ERROR in doGet: ' + error.toString());
+    Logger.log('Error stack: ' + error.stack);
     return ContentService.createTextOutput(JSON.stringify({
       status: 'error',
       message: error.toString()

@@ -42,7 +42,7 @@ export const AUTH_CONFIG: AuthConfig = {
     training: {
       password: 'TrainingHub2024!',
       permissions: ['training', 'dashboard', 'learning-management'],
-      dashboardAccess: ['training-dashboard', 'training-reports', 'learning-analytics', 'training-audit']
+      dashboardAccess: ['training-dashboard', 'training-reports', 'learning-analytics', 'training-audit', 'trainer-calendar-dashboard']
     },
     forms: {
       password: 'MT2025!',
@@ -67,7 +67,7 @@ export const AUTH_CONFIG: AuthConfig = {
     editor: {
       password: 'Editornotcreator2025!',
       permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'dashboard'],
-      dashboardAccess: ['all', 'campus-hiring-dashboard']
+      dashboardAccess: ['all', 'campus-hiring-dashboard', 'trainer-calendar-dashboard']
     }
   },
   

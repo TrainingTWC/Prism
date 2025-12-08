@@ -230,21 +230,159 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
     return 'N/A';
   }, [last3Months]);
 
-  // Feedback data from AI insights
+  // Feedback data from AI insights with contradiction removal
   const feedbackData = React.useMemo(() => {
-    if (aiInsights) {
+    try {
+      if (aiInsights) {
+        // Get ALL text from all sources (positives, negatives, AND detailed insights)
+        const allPositiveTexts: string[] = [...(aiInsights.positives || [])];
+        const allNegativeTexts: string[] = [...(aiInsights.negatives || [])];
+        
+        // Also include detailed insights summaries
+        if (aiInsights.detailedInsights) {
+          const detailedPos = (aiInsights.detailedInsights.positives || []).map((p: any) => 
+            typeof p === 'string' ? p : p.summary
+          );
+          const detailedNeg = (aiInsights.detailedInsights.negatives || []).map((n: any) => 
+            typeof n === 'string' ? n : n.summary
+          );
+          allPositiveTexts.push(...detailedPos);
+          allNegativeTexts.push(...detailedNeg);
+        }
+        
+        // COMPREHENSIVE topic extraction - check for ALL keywords in a single item
+        const extractAllTopics = (text: string): string[] => {
+          if (!text || typeof text !== 'string') return ['general'];
+          const lower = text.toLowerCase();
+          const topics: string[] = [];
+          
+          // Check for ALL possible topic keywords
+          if (lower.includes('zing')) {
+            if (lower.includes('learn') || lower.includes('lms')) topics.push('zinglearn');
+            if (lower.includes('hr')) topics.push('zinghr');
+            // If mentions "zing" but not specific subsystem, tag as generic zing
+            if (topics.length === 0) topics.push('zing');
+          }
+          if (lower.includes('schedule') || lower.includes('roster')) topics.push('scheduling');
+          if (lower.includes('training')) topics.push('training');
+          if (lower.includes('manager') || lower.includes('leadership')) topics.push('management');
+          if (lower.includes('team')) topics.push('teamwork');
+          if (lower.includes('communication')) topics.push('communication');
+          
+          return topics.length > 0 ? topics : ['general'];
+        };
+      
+        // Find ALL topics mentioned across ALL sources
+        const allPosTopics = new Set<string>();
+        const allNegTopics = new Set<string>();
+        
+        allPositiveTexts.forEach(text => {
+          extractAllTopics(text).forEach(t => allPosTopics.add(t));
+        });
+        
+        allNegativeTexts.forEach(text => {
+          extractAllTopics(text).forEach(t => allNegTopics.add(t));
+        });
+        
+        // Find conflicts - topics that appear in BOTH lists (ANYWHERE)
+        const conflictingTopics = new Set(
+          [...allPosTopics].filter(topic => topic !== 'general' && allNegTopics.has(topic))
+        );
+        
+        console.log('🔍 COMPREHENSIVE Conflict Analysis:', {
+          allPosTopics: [...allPosTopics],
+          allNegTopics: [...allNegTopics],
+          conflicts: [...conflictingTopics],
+          positiveTexts: allPositiveTexts,
+          negativeTexts: allNegativeTexts
+        });
+        
+        // Helper to check if text mentions any conflicting topic
+        const mentionsConflict = (text: string): boolean => {
+          const topics = extractAllTopics(text);
+          return topics.some(topic => conflictingTopics.has(topic));
+        };
+        
+        // FILTER EVERYTHING - both simple arrays and detailed insights
+        const cleanedPositives = (aiInsights.positives || []).filter(text => !mentionsConflict(text));
+        const cleanedNegatives = (aiInsights.negatives || []).filter(text => !mentionsConflict(text));
+        
+        // Also filter detailed insights
+        let cleanedDetailedPos = [];
+        let cleanedDetailedNeg = [];
+        
+        if (aiInsights.detailedInsights) {
+          cleanedDetailedPos = (aiInsights.detailedInsights.positives || []).filter((p: any) => {
+            const text = typeof p === 'string' ? p : p.summary;
+            return !mentionsConflict(text);
+          });
+          
+          cleanedDetailedNeg = (aiInsights.detailedInsights.negatives || []).filter((n: any) => {
+            const text = typeof n === 'string' ? n : n.summary;
+            return !mentionsConflict(text);
+          });
+        }
+        
+        // Deduplication within each list
+        const deduplicateList = (items: string[]) => {
+          const result: string[] = [];
+          for (const item of items) {
+            if (!item) continue;
+            const itemLower = item.toLowerCase().trim();
+            const isDuplicate = result.some(existing => {
+              const existingLower = existing.toLowerCase().trim();
+              return itemLower === existingLower || 
+                     (itemLower.length > 30 && (itemLower.includes(existingLower) || existingLower.includes(itemLower)));
+            });
+            if (!isDuplicate) {
+              result.push(item);
+            }
+          }
+          return result;
+        };
+        
+        const finalPositives = deduplicateList(cleanedPositives);
+        const finalNegatives = deduplicateList(cleanedNegatives);
+        
+        // Return filtered data INCLUDING filtered detailed insights
+        const filteredAiInsights = {
+          ...aiInsights,
+          positives: finalPositives,
+          negatives: finalNegatives,
+          detailedInsights: aiInsights.detailedInsights ? {
+            positives: cleanedDetailedPos,
+            negatives: cleanedDetailedNeg
+          } : undefined
+        };
+        
+        // Update the parent aiInsights state with filtered version
+        if (conflictingTopics.size > 0) {
+          console.warn('⚠️ REMOVED conflicting topics:', [...conflictingTopics]);
+          setAiInsights(filteredAiInsights);
+        }        
+        return {
+          positives: finalPositives.length > 0 ? finalPositives : ['No specific positive feedback recorded'],
+          negatives: finalNegatives.length > 0 ? finalNegatives : ['No specific concerns recorded'],
+          improvements: finalNegatives.length > 0 ? finalNegatives : ['No specific concerns recorded'],
+          isAiGenerated: aiInsights.isAiGenerated
+        };
+      }
+      
       return {
-        positives: aiInsights.positives,
-        improvements: aiInsights.negatives,
-        isAiGenerated: aiInsights.isAiGenerated
+        positives: ['Analyzing...', 'Processing...', 'Generating...'],
+        negatives: ['Analyzing...', 'Processing...', 'Generating...'],
+        improvements: ['Analyzing...', 'Processing...', 'Generating...'],
+        isAiGenerated: false
+      };
+    } catch (error) {
+      console.error('Error processing feedback data:', error);
+      return {
+        positives: ['Error loading feedback'],
+        negatives: ['Error loading feedback'],
+        improvements: ['Error loading feedback'],
+        isAiGenerated: false
       };
     }
-    
-    return {
-      positives: ['Analyzing...', 'Processing...', 'Generating...'],
-      improvements: ['Analyzing...', 'Processing...', 'Generating...'],
-      isAiGenerated: false
-    };
   }, [aiInsights]);
 
   // Extract positives and negatives from submissions
@@ -269,38 +407,195 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
   };
 
   const getMonthFeedback = (subs: any[]) => {
+    try {
+      // Question mapping with topics and sentiment direction
+      const questionMap: Record<number, { 
+        topic: string; 
+        title: string; 
+        positiveDirection: boolean; // true if high score = positive
+      }> = {
+        1: { topic: 'work-pressure', title: 'Work pressure in café', positiveDirection: true }, // high score = no pressure (positive)
+        2: { topic: 'empowerment', title: 'Decision-making empowerment', positiveDirection: true },
+        3: { topic: 'feedback', title: 'Regular performance reviews', positiveDirection: true },
+        4: { topic: 'fairness', title: 'Fair treatment within team', positiveDirection: true }, // high score = no partiality (positive)
+        5: { topic: 'training', title: 'Training as per Wings program', positiveDirection: true },
+        6: { topic: 'apps-systems', title: 'Operational apps & HR systems', positiveDirection: true }, // high score = no issues (positive)
+        7: { topic: 'policies', title: 'HR Handbook familiarity', positiveDirection: true },
+        8: { topic: 'scheduling', title: 'Work schedule satisfaction', positiveDirection: true },
+        9: { topic: 'teamwork', title: 'Team collaboration', positiveDirection: true },
+        12: { topic: 'overall-experience', title: 'Overall TWC experience', positiveDirection: true }
+      };
+      
+      // Step 1: Collect all feedback based on question responses (scores)
+      interface FeedbackItem {
+        text: string;
+        topic: string;
+        sentiment: 'positive' | 'negative' | 'mixed';
+        strength: number; // 1-5
+        questionContext: string;
+        score: number;
+      }
+      
+      const feedbackItems: FeedbackItem[] = [];
+    
+    subs.forEach(sub => {
+      // Process scored questions (q1-q9, q12)
+      Object.entries(questionMap).forEach(([qNum, qInfo]) => {
+        const questionKey = `q${qNum}`;
+        const response = sub[questionKey];
+        
+        if (response) {
+          // Extract score from the response (could be number or label with score)
+          let score = 0;
+          if (typeof response === 'number') {
+            score = response;
+          } else if (typeof response === 'object' && response.score) {
+            score = response.score;
+          } else if (typeof response === 'string') {
+            // Try to extract score from string label
+            const scoreMatch = response.match(/score[:\s]*(\d)/i);
+            if (scoreMatch) {
+              score = parseInt(scoreMatch[1]);
+            }
+          }
+          
+          if (score >= 1 && score <= 5) {
+            // Determine sentiment based on score and direction
+            let sentiment: 'positive' | 'negative' | 'mixed';
+            let strength = 0;
+            
+            if (qInfo.positiveDirection) {
+              // High score = positive
+              if (score === 5) {
+                sentiment = 'positive';
+                strength = 5;
+              } else if (score === 4) {
+                sentiment = 'positive';
+                strength = 4;
+              } else if (score === 3) {
+                sentiment = 'mixed';
+                strength = 0; // Skip neutral
+              } else if (score === 2) {
+                sentiment = 'negative';
+                strength = 4;
+              } else { // score === 1
+                sentiment = 'negative';
+                strength = 5;
+              }
+            }
+            
+            if (strength > 0) {
+              // Create meaningful text from question + response
+              const responseLabel = typeof response === 'string' ? response : 
+                                  typeof response === 'object' && response.label ? response.label :
+                                  `Score: ${score}/5`;
+              
+              feedbackItems.push({
+                text: `${qInfo.title}: ${responseLabel}`,
+                topic: qInfo.topic,
+                sentiment,
+                strength,
+                questionContext: questionKey,
+                score
+              });
+            }
+          }
+        }
+      });
+      
+      // q11 suggestions/improvements (always negative feedback)
+      if (sub.q11 && String(sub.q11).trim().length > 10) {
+        feedbackItems.push({
+          text: String(sub.q11).trim(),
+          topic: 'suggestions',
+          sentiment: 'negative',
+          strength: 3,
+          questionContext: 'q11',
+          score: 0
+        });
+      }
+    });
+    
+    // Step 2: Group by topic and calculate statistics
+    const topicAnalysis: Record<string, {
+      positive: { items: FeedbackItem[], totalStrength: number, avgScore: number },
+      negative: { items: FeedbackItem[], totalStrength: number, avgScore: number },
+      count: number
+    }> = {};
+    
+    feedbackItems.forEach(item => {
+      if (!topicAnalysis[item.topic]) {
+        topicAnalysis[item.topic] = {
+          positive: { items: [], totalStrength: 0, avgScore: 0 },
+          negative: { items: [], totalStrength: 0, avgScore: 0 },
+          count: 0
+        };
+      }
+      
+      topicAnalysis[item.topic].count++;
+      
+      if (item.sentiment === 'positive') {
+        topicAnalysis[item.topic].positive.items.push(item);
+        topicAnalysis[item.topic].positive.totalStrength += item.strength;
+      } else if (item.sentiment === 'negative') {
+        topicAnalysis[item.topic].negative.items.push(item);
+        topicAnalysis[item.topic].negative.totalStrength += item.strength;
+      }
+    });
+    
+    // Calculate average scores per topic
+    Object.values(topicAnalysis).forEach(analysis => {
+      if (analysis.positive.items.length > 0) {
+        const avgScore = analysis.positive.items.reduce((sum, item) => sum + item.score, 0) / analysis.positive.items.length;
+        analysis.positive.avgScore = avgScore;
+      }
+      if (analysis.negative.items.length > 0) {
+        const avgScore = analysis.negative.items.reduce((sum, item) => sum + item.score, 0) / analysis.negative.items.length;
+        analysis.negative.avgScore = avgScore;
+      }
+    });
+    
+    // Step 3: Create meaningful summaries for each topic
     const positives: string[] = [];
     const negatives: string[] = [];
     
-    subs.forEach(sub => {
-      // Check all question remarks
-      for (let i = 1; i <= 12; i++) {
-        const remarkKey = `q${i}_remarks`;
-        const remark = sub[remarkKey];
-        
-        if (remark && String(remark).trim().length > 5) {
-          const remarkText = String(remark).trim();
-          const remarkLower = remarkText.toLowerCase();
-          
-          // Categorize as positive or negative based on keywords
-          const positiveKeywords = ['good', 'great', 'excellent', 'happy', 'satisfied', 'best', 'love', 'amazing', 'fantastic', 'wonderful', 'appreciate', 'thank', 'helpful', 'support'];
-          const negativeKeywords = ['bad', 'poor', 'issue', 'problem', 'concern', 'difficult', 'hard', 'need', 'should', 'improve', 'better', 'lack', 'not', 'no', 'never', 'delay', 'late', 'unfair'];
-          
-          const hasPositive = positiveKeywords.some(kw => remarkLower.includes(kw));
-          const hasNegative = negativeKeywords.some(kw => remarkLower.includes(kw));
-          
-          if (hasPositive && !hasNegative) {
-            positives.push(remarkText);
-          } else if (hasNegative) {
-            negatives.push(remarkText);
-          }
+    Object.entries(topicAnalysis).forEach(([topic, analysis]) => {
+      const posCount = analysis.positive.items.length;
+      const negCount = analysis.negative.items.length;
+      const posStrength = analysis.positive.totalStrength;
+      const negStrength = analysis.negative.totalStrength;
+      const total = posCount + negCount;
+      
+      if (total === 0) return;
+      
+      // Calculate sentiment ratio (need 70% dominance to avoid contradictions)
+      const posRatio = posCount / total;
+      const negRatio = negCount / total;
+      const strengthRatio = posStrength / (posStrength + negStrength || 1);
+      
+      // Only add if CLEARLY dominant (70%+ by count OR 75%+ by strength)
+      if ((posRatio >= 0.7 || strengthRatio >= 0.75) && posCount > 0) {
+        // Create aggregated summary for positive feedback
+        const avgScore = analysis.positive.avgScore;
+        const topicLabel = topic.replace(/-/g, ' ');
+        const summary = `${topicLabel.charAt(0).toUpperCase() + topicLabel.slice(1)}: Strong performance (avg ${avgScore.toFixed(1)}/5 from ${posCount} response${posCount > 1 ? 's' : ''})`;
+        positives.push(summary);
+      } else if ((negRatio >= 0.7 || strengthRatio <= 0.25) && negCount > 0) {
+        // Create aggregated summary for negative feedback
+        if (topic === 'suggestions') {
+          // For suggestions, include the actual text instead of aggregated summary
+          analysis.negative.items
+            .sort((a, b) => b.strength - a.strength)
+            .slice(0, 2) // Max 2 suggestions
+            .forEach(item => negatives.push(`Suggestion: ${item.text}`));
+        } else {
+          const avgScore = analysis.negative.avgScore;
+          const topicLabel = topic.replace(/-/g, ' ');
+          const summary = `${topicLabel.charAt(0).toUpperCase() + topicLabel.slice(1)}: Needs improvement (avg ${avgScore.toFixed(1)}/5 from ${negCount} response${negCount > 1 ? 's' : ''})`;
+          negatives.push(summary);
         }
       }
-      
-      // Check q11 (suggestions)
-      if (sub.q11 && String(sub.q11).trim().length > 5) {
-        negatives.push(String(sub.q11).trim());
-      }
+      // If sentiment is mixed (between 30-70%), skip entirely to avoid contradictions
     });
     
     // Helper to normalize text: collapse whitespace, normalize quotes, remove month names and years
@@ -349,18 +644,26 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
 
     // Fuzzy dedupe preserving order: skip items that are very similar to an earlier kept item
     const fuzzyDedupe = (arr: string[], threshold = 0.75) => {
+      if (!arr || arr.length === 0) return [];
       const out: string[] = [];
+      const normalized: string[] = [];
+      
       for (const v of arr) {
+        if (!v || typeof v !== 'string') continue;
         const n = normalize(v);
         if (!n) continue;
+        
         let isDup = false;
-        for (const kept of out) {
-          if (similarity(n, kept) >= threshold) {
+        for (let i = 0; i < normalized.length; i++) {
+          if (similarity(n, normalized[i]) >= threshold) {
             isDup = true;
             break;
           }
         }
-        if (!isDup) out.push(n);
+        if (!isDup) {
+          out.push(v); // Keep original text, not normalized
+          normalized.push(n); // Store normalized for comparison
+        }
       }
       return out;
     };
@@ -372,6 +675,13 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
       positives: uniquePositives.length > 0 ? uniquePositives.slice(0, 5) : ['No specific positive feedback recorded'],
       negatives: uniqueNegatives.length > 0 ? uniqueNegatives.slice(0, 5) : ['No specific concerns recorded']
     };
+    } catch (error) {
+      console.error('Error in getMonthFeedback:', error);
+      return {
+        positives: ['Error analyzing feedback'],
+        negatives: ['Error analyzing feedback']
+      };
+    }
   };
 
   // Function to get monthly insights with caching
@@ -746,15 +1056,21 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
 
       if (detailedPositives.length > 0) {
         detailedPositives.slice(0, 3).forEach((insight: any) => {
-          const summaryLines = doc.splitTextToSize(`${insight.summary}`, pageWidth - 55);
-          const explanationLines = doc.splitTextToSize(insight.explanation || '', pageWidth - 55);
+          // Full title - no truncation, just first sentence
+          let title = insight.summary;
+          if (title.includes('.')) title = title.split('.')[0];
+          const summaryLines = doc.splitTextToSize(title, pageWidth - 55);
+          // Full explanation - wrap to multiple lines if needed
+          const explanation = insight.explanation || '';
+          const explanationLines = doc.splitTextToSize(explanation, pageWidth - 55);
           successContentBlocks.push({ type: 'summary', lines: summaryLines });
           successContentBlocks.push({ type: 'explanation', lines: explanationLines });
           estimatedY += (summaryLines.length + explanationLines.length) * 3 + 7;
         });
       } else {
         feedbackData.positives.slice(0, 3).forEach((pos: string) => {
-          const lines = doc.splitTextToSize(`• ${pos}`, pageWidth - 55);
+          // Full text - no truncation
+          const lines = doc.splitTextToSize(pos, pageWidth - 55);
           successContentBlocks.push({ type: 'bullet', lines });
           estimatedY += lines.length * 3 + 2;
         });
@@ -815,15 +1131,21 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
 
       if (detailedNegatives.length > 0) {
         detailedNegatives.slice(0, 3).forEach((insight: any) => {
-          const summaryLines = doc.splitTextToSize(`${insight.summary}`, pageWidth - 55);
-          const explanationLines = doc.splitTextToSize(insight.explanation || '', pageWidth - 55);
+          // Full title - no truncation, just first sentence
+          let title = insight.summary;
+          if (title.includes('.')) title = title.split('.')[0];
+          const summaryLines = doc.splitTextToSize(title, pageWidth - 55);
+          // Full explanation - wrap to multiple lines if needed
+          const explanation = insight.explanation || '';
+          const explanationLines = doc.splitTextToSize(explanation, pageWidth - 55);
           improvementContentBlocks.push({ type: 'summary', lines: summaryLines });
           improvementContentBlocks.push({ type: 'explanation', lines: explanationLines });
           impEstimatedY += (summaryLines.length + explanationLines.length) * 3 + 7;
         });
       } else {
-        feedbackData.improvements.slice(0, 3).forEach((imp: string) => {
-          const lines = doc.splitTextToSize(`• ${imp}`, pageWidth - 55);
+        feedbackData.negatives.slice(0, 3).forEach((neg: string) => {
+          // Full text - no truncation
+          const lines = doc.splitTextToSize(neg, pageWidth - 55);
           improvementContentBlocks.push({ type: 'bullet', lines });
           impEstimatedY += lines.length * 3 + 2;
         });

@@ -7,6 +7,7 @@ interface CalendarEvent {
     id: string;
     date: string; // YYYY-MM-DD
     type: 'store' | 'outdoor' | 'campus';
+    trainerName: string;
     storeId?: string;
     storeName?: string;
     campusName?: string;
@@ -26,6 +27,7 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
     const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
 
     // Form State
+    const [selectedTrainerName, setSelectedTrainerName] = useState('');
     const [eventType, setEventType] = useState<'store' | 'outdoor' | 'campus'>('store');
     const [selectedStore, setSelectedStore] = useState('');
     const [selectedCampus, setSelectedCampus] = useState('');
@@ -54,6 +56,33 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
     ];
     
     const CAMPUS_TASK_TYPES = ['Campus placement'];
+    
+    // Trainer ID to Name mapping
+    const TRAINER_ID_MAPPING: Record<string, string> = {
+        'H1761': 'Mahadev',
+        'H701': 'Mallika',
+        'H1697': 'Sheldon',
+        'H3595': 'Bhawna',
+        'H2595': 'Kailash',
+        'H3252': 'Priyanka',
+        'H1278': 'Viraj',
+        'H3247': 'Sunil',
+        'H2155': 'Jagruti'
+    };
+    
+    // Trainer names list
+    const TRAINER_NAMES = [
+        'Kailash',
+        'Bhawna',
+        'Sunil',
+        'Viraj',
+        'Priyanka',
+        'Sheldon',
+        'Mallika',
+        'Mahadev',
+        'Jagruti',
+        'Oviya'
+    ];
     
     // Campus list
     const CAMPUS_LIST = [
@@ -175,9 +204,25 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
         setSelectedDate(date);
         setEditingEvent(null);
         resetForm();
+        // Auto-populate trainer name based on trainerId from URL if available
+        if (trainerId) {
+            const normalizedTrainerId = trainerId.toUpperCase();
+            const autoTrainerName = TRAINER_ID_MAPPING[normalizedTrainerId] || '';
+            if (autoTrainerName) {
+                setSelectedTrainerName(autoTrainerName);
+            }
+        }
     };
 
     const resetForm = () => {
+        // Auto-populate trainer name based on trainerId from URL if available
+        if (trainerId) {
+            const normalizedTrainerId = trainerId.toUpperCase();
+            const autoTrainerName = TRAINER_ID_MAPPING[normalizedTrainerId] || '';
+            setSelectedTrainerName(autoTrainerName);
+        } else {
+            setSelectedTrainerName('');
+        }
         setEventType('store');
         setSelectedStore('');
         setSelectedCampus('');
@@ -192,6 +237,7 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
         setSelectedDate(new Date(event.date));
         setEditingEvent(event);
         setEventType(event.type);
+        setSelectedTrainerName(event.trainerName || '');
         setSelectedStore(event.storeId || '');
         setSelectedCampus(event.campusName || '');
         
@@ -221,6 +267,10 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
     const handleSaveEvent = () => {
         if (!selectedDate) return;
         
+        if (!selectedTrainerName) {
+            alert('Please select a trainer name');
+            return;
+        }
         if (eventType === 'store' && !selectedStore) {
             alert('Please select a store');
             return;
@@ -238,6 +288,7 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
             id: editingEvent?.id || Date.now().toString(),
             date: dateKey,
             type: eventType,
+            trainerName: selectedTrainerName,
             storeId: eventType === 'store' ? selectedStore : undefined,
             storeName: eventType === 'store' ? storeName : undefined,
             campusName: eventType === 'campus' ? selectedCampus : undefined,
@@ -294,31 +345,51 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
                 events: allEvents.map(event => ({
                     date: event.date,
                     type: event.type,
-                    location: event.type === 'store' ? event.storeName : 
+                    trainerName: event.trainerName,
+                    location: event.type === 'store' ? (event.storeId || event.storeName) : 
                              event.type === 'campus' ? event.campusName : 'Outdoor',
                     task: event.task || '',
-                    details: event.details
+                    details: event.details || ''
                 }))
             };
 
+            console.log('Submitting calendar payload:', payload);
+            console.log('Script URL:', scriptUrl);
+
             const response = await fetch(scriptUrl, {
                 method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
+                redirect: 'follow',
+                headers: { 
+                    'Content-Type': 'text/plain;charset=utf-8'
+                },
                 body: JSON.stringify(payload)
             });
 
-            setSubmitMessage({
-                type: 'success',
-                text: 'Calendar submitted successfully!'
-            });
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
 
-            setTimeout(() => setSubmitMessage(null), 3000);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Submission result:', result);
+
+            if (result.status === 'success') {
+                setSubmitMessage({
+                    type: 'success',
+                    text: `Calendar submitted successfully! (${result.entriesAdded || allEvents.length} events)`
+                });
+            } else {
+                throw new Error(result.message || 'Submission failed');
+            }
+
+            setTimeout(() => setSubmitMessage(null), 5000);
         } catch (error) {
             console.error('Submission error:', error);
             setSubmitMessage({
                 type: 'error',
-                text: 'Failed to submit calendar. Please try again.'
+                text: `Failed to submit calendar: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         } finally {
             setIsSubmitting(false);
@@ -402,8 +473,7 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
             const storeName = typeof store === 'object' && store && 'Store Name' in store ? store['Store Name'] : '';
             return storeName.toLowerCase().includes(storeSearch.toLowerCase()) ||
                    id.toLowerCase().includes(storeSearch.toLowerCase());
-        })
-        .slice(0, 10);
+        });
 
     const filteredCampuses = CAMPUS_LIST.filter(campus =>
         campus.toLowerCase().includes(campusSearch.toLowerCase())
@@ -467,6 +537,32 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
 
                         <div className="text-sm text-gray-600 dark:text-slate-400 mb-6">
                             {selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
+
+                        {/* Trainer Name Selection */}
+                        <div className="mb-6">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                                Trainer Name
+                            </label>
+                            {trainerId && TRAINER_ID_MAPPING[trainerId.toUpperCase()] ? (
+                                <input
+                                    type="text"
+                                    value={selectedTrainerName}
+                                    readOnly
+                                    className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-300 dark:border-slate-600 bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-white cursor-not-allowed"
+                                />
+                            ) : (
+                                <select
+                                    value={selectedTrainerName}
+                                    onChange={(e) => setSelectedTrainerName(e.target.value)}
+                                    className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-white focus:border-purple-500 dark:focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all"
+                                >
+                                    <option value="">Select Trainer</option>
+                                    {TRAINER_NAMES.map((name) => (
+                                        <option key={name} value={name}>{name}</option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
 
                         {/* Event Type Selection */}
