@@ -54,7 +54,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     }
   });
 
-  const [questionImages, setQuestionImages] = useState<Record<string, string>>(() => {
+  const [questionImages, setQuestionImages] = useState<Record<string, string[]>>(() => {
     try {
       return JSON.parse(localStorage.getItem('qa_images') || '{}');
     } catch (e) {
@@ -406,16 +406,20 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       const base64String = reader.result as string;
       setQuestionImages(prev => ({
         ...prev,
-        [questionId]: base64String
+        [questionId]: [...(prev[questionId] || []), base64String]
       }));
     };
     reader.readAsDataURL(file);
   };
 
-  const removeImage = (questionId: string) => {
+  const removeImage = (questionId: string, imageIndex: number) => {
     setQuestionImages(prev => {
       const updated = { ...prev };
-      delete updated[questionId];
+      const images = updated[questionId] || [];
+      updated[questionId] = images.filter((_, idx) => idx !== imageIndex);
+      if (updated[questionId].length === 0) {
+        delete updated[questionId];
+      }
       return updated;
     });
   };
@@ -832,9 +836,10 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                       ))}
                     </div>
 
-                    {/* Image Upload Section - Mobile Optimized */}
+                    {/* Image Upload Section - Multiple Images Support */}
                     <div className="pl-0 sm:pl-9">
-                      {!questionImages[`${section.id}_${item.id}`] ? (
+                      <div className="space-y-3">
+                        {/* Upload Buttons - Always Visible */}
                         <div className="flex flex-col sm:flex-row gap-2">
                           <label className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -849,6 +854,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) handleImageUpload(`${section.id}_${item.id}`, file);
+                                e.target.value = ''; // Reset input to allow same file again
                               }}
                               className="hidden"
                             />
@@ -865,47 +871,41 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) handleImageUpload(`${section.id}_${item.id}`, file);
+                                e.target.value = ''; // Reset input to allow same file again
                               }}
                               className="hidden"
                             />
                           </label>
                         </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="relative inline-block w-full">
-                            <img 
-                              src={questionImages[`${section.id}_${item.id}`]} 
-                              alt="Uploaded" 
-                              className="w-full max-h-64 object-contain rounded-lg border-2 border-gray-300 dark:border-slate-600"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeImage(`${section.id}_${item.id}`)}
-                              className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
-                              title="Remove image"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
+
+                        {/* Display Uploaded Images */}
+                        {questionImages[`${section.id}_${item.id}`] && questionImages[`${section.id}_${item.id}`].length > 0 && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {questionImages[`${section.id}_${item.id}`].map((image, idx) => (
+                              <div key={idx} className="relative">
+                                <img 
+                                  src={image} 
+                                  alt={`Upload ${idx + 1}`} 
+                                  className="w-full h-48 object-cover rounded-lg border-2 border-gray-300 dark:border-slate-600"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeImage(`${section.id}_${item.id}`, idx)}
+                                  className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                  title="Remove image"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                                <div className="absolute bottom-2 left-2 px-2 py-1 bg-black bg-opacity-60 text-white text-xs rounded">
+                                  {idx + 1} of {questionImages[`${section.id}_${item.id}`].length}
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                          <label className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px]">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            Replace Image
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleImageUpload(`${section.id}_${item.id}`, file);
-                              }}
-                              className="hidden"
-                            />
-                          </label>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
