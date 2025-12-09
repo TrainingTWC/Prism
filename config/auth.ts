@@ -1,6 +1,20 @@
 // Configuration for Prism Dashboard Authentication
 // Role-based password system for different departments
-// supabase password: J!ddQZYdx**%72C
+//
+// ⚠️ CRITICAL SECURITY WARNING ⚠️
+// This file contains PLAINTEXT PASSWORDS which is a CRITICAL SECURITY VULNERABILITY!
+// Anyone with access to this source code can see all passwords and bypass authentication.
+//
+// TODO - URGENT: Implement proper authentication:
+// 1. Move authentication to backend server (Node.js/Express)
+// 2. Hash passwords using bcrypt or argon2
+// 3. Store password hashes in environment variables or secure database
+// 4. Use JWT tokens with httpOnly cookies for sessions
+// 5. Add rate limiting to prevent brute force attacks
+//
+// This is a TEMPORARY implementation for development/internal use only.
+// DO NOT deploy to production or expose publicly in current state.
+//
 //http://192.168.120.219:3001/Prism/?EMPID=h541
 
 export interface RoleConfig {

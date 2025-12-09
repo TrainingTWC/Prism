@@ -6,6 +6,13 @@ import { parseSubmissionDate, getMonthKey } from '../utils/dateParser';
 import { getCachedAMInsights, generateMonthlyInsights } from '../services/aiInsightsService';
 import { EMBEDDED_LOGO } from '../src/assets/embeddedLogo';
 import { getHRBPForAM } from '../utils/mappingUtils';
+import { 
+  analyzeQuestionsByAMAndMonth, 
+  getLatestMonthAnalysis,
+  ResponseDistribution,
+  QuestionPerformance
+} from '../services/questionAnalysisService';
+import { analyzeMultipleQuestions } from '../services/commentAnalysisService';
 
 interface AMScorecardProps {
   amId: string;
@@ -43,6 +50,16 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
   const [loadingMonthly, setLoadingMonthly] = useState(false);
   const [modalData, setModalData] = useState<ModalData | null>(null);
   const [hrbpName, setHrbpName] = useState<string>('Loading...');
+  
+  // NEW: State for question-based analysis
+  const [questionPerformance, setQuestionPerformance] = useState<Map<string, QuestionPerformance>>(new Map());
+  const [latestMonthAnalysis, setLatestMonthAnalysis] = useState<{
+    monthKey: string;
+    performance: QuestionPerformance;
+    bestAnalyses: Map<string, string>;
+    worstAnalyses: Map<string, string>;
+  } | null>(null);
+  const [loadingQuestionAnalysis, setLoadingQuestionAnalysis] = useState(true);
   
   // Filter submissions for this AM
   const amSubmissions = submissions.filter((sub: any) => sub.amId === amId);
@@ -218,6 +235,46 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
     
     loadInsights();
   }, [amId, last3MonthsSubmissions.length]);
+
+  // NEW: Load question-based analysis
+  useEffect(() => {
+    const loadQuestionAnalysis = async () => {
+      if (amSubmissions.length === 0) {
+        setLoadingQuestionAnalysis(false);
+        return;
+      }
+      
+      try {
+        setLoadingQuestionAnalysis(true);
+        
+        // Analyze questions by month
+        const monthlyPerformance = analyzeQuestionsByAMAndMonth(amId, amSubmissions);
+        setQuestionPerformance(monthlyPerformance);
+        
+        // Get latest month's analysis
+        const latest = getLatestMonthAnalysis(monthlyPerformance);
+        
+        if (latest) {
+          // Get AI analysis for best and worst questions
+          const bestAnalyses = await analyzeMultipleQuestions(latest.performance.best);
+          const worstAnalyses = await analyzeMultipleQuestions(latest.performance.worst);
+          
+          setLatestMonthAnalysis({
+            monthKey: latest.monthKey,
+            performance: latest.performance,
+            bestAnalyses,
+            worstAnalyses
+          });
+        }
+      } catch (error) {
+        console.error('Error loading question analysis:', error);
+      } finally {
+        setLoadingQuestionAnalysis(false);
+      }
+    };
+    
+    loadQuestionAnalysis();
+  }, [amId, amSubmissions.length]);
 
   // Latest score (most recent month with data)
   const latestScore = useMemo(() => {
@@ -559,6 +616,24 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
     const positives: string[] = [];
     const negatives: string[] = [];
     
+    // Track related topics to prevent contradictions
+    const processedRelatedTopics = new Set<string>();
+    
+    // Group related topics that could create contradictions
+    const topicGroups: Record<string, string[]> = {
+      'work-experience': ['work-pressure', 'empowerment', 'overall-experience', 'scheduling'],
+      'team-dynamics': ['feedback', 'fairness', 'teamwork'],
+      'systems-operations': ['apps-systems', 'policies', 'training']
+    };
+    
+    // Reverse mapping for quick lookup
+    const topicToGroup: Record<string, string> = {};
+    Object.entries(topicGroups).forEach(([group, topics]) => {
+      topics.forEach(topic => {
+        topicToGroup[topic] = group;
+      });
+    });
+    
     Object.entries(topicAnalysis).forEach(([topic, analysis]) => {
       const posCount = analysis.positive.items.length;
       const negCount = analysis.negative.items.length;
@@ -567,6 +642,13 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
       const total = posCount + negCount;
       
       if (total === 0) return;
+      
+      // Check if this topic is part of a group we've already processed
+      const group = topicToGroup[topic];
+      if (group && processedRelatedTopics.has(group)) {
+        // Skip this topic to avoid contradictions with already processed related topics
+        return;
+      }
       
       // Calculate sentiment ratio (need 70% dominance to avoid contradictions)
       const posRatio = posCount / total;
@@ -580,7 +662,17 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
         const topicLabel = topic.replace(/-/g, ' ');
         const summary = `${topicLabel.charAt(0).toUpperCase() + topicLabel.slice(1)}: Strong performance (avg ${avgScore.toFixed(1)}/5 from ${posCount} response${posCount > 1 ? 's' : ''})`;
         positives.push(summary);
+        
+        // Mark this topic group as processed with positive sentiment
+        if (group) processedRelatedTopics.add(group);
+        
       } else if ((negRatio >= 0.7 || strengthRatio <= 0.25) && negCount > 0) {
+        // Before adding negative feedback, check if we already have positive feedback from same group
+        if (group && positives.some(p => topicGroups[group].some(t => p.toLowerCase().includes(t.replace(/-/g, ' '))))) {
+          // Skip - contradicts existing positive feedback from same group
+          return;
+        }
+        
         // Create aggregated summary for negative feedback
         if (topic === 'suggestions') {
           // For suggestions, include the actual text instead of aggregated summary
@@ -594,6 +686,9 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
           const summary = `${topicLabel.charAt(0).toUpperCase() + topicLabel.slice(1)}: Needs improvement (avg ${avgScore.toFixed(1)}/5 from ${negCount} response${negCount > 1 ? 's' : ''})`;
           negatives.push(summary);
         }
+        
+        // Mark this topic group as processed with negative sentiment
+        if (group) processedRelatedTopics.add(group);
       }
       // If sentiment is mixed (between 30-70%), skip entirely to avoid contradictions
     });
@@ -686,18 +781,21 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
 
   // Function to get monthly insights with caching
   const getMonthlyAIInsights = async (monthName: string, submissions: any[]) => {
-    // Check cache first
-    if (monthlyInsights.has(monthName)) {
-      return monthlyInsights.get(monthName);
+    // FORCE REGENERATION: Cache key changed to v3 after fixing third AI prompt
+    const cacheKey = `v3_${monthName}`;
+    
+    // Check cache first with versioned key
+    if (monthlyInsights.has(cacheKey)) {
+      return monthlyInsights.get(cacheKey);
     }
     
     // Generate new insights
     const insights = await generateMonthlyInsights(monthName, submissions);
     
-    // Cache the results
+    // Cache the results with versioned key
     setMonthlyInsights(prev => {
       const newMap = new Map(prev);
-      newMap.set(monthName, insights);
+      newMap.set(cacheKey, insights);
       return newMap;
     });
     
@@ -814,53 +912,65 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
     }
   };
 
-  const showPositivesModal = () => {
-    const detailedPositives = aiInsights?.detailedInsights?.positives || [];
+  const showPositivesModal = async () => {
+    if (!latestMonthAnalysis) {
+      setModalData({
+        title: 'Positive Factors - No Data',
+        color: 'from-emerald-500 to-teal-600',
+        items: [{ label: 'No data available', value: '', details: 'Please check back when survey responses are collected' }]
+      });
+      return;
+    }
 
-    const items = (detailedPositives.length > 0
-      ? detailedPositives.map((p: any, i: number) => {
-          const summary = typeof p === 'string' ? p : p.summary || '';
-          const explanation = typeof p === 'string' ? undefined : p.explanation;
-          return {
-            label: `Success Factor ${i + 1}`,
-            value: transformSummary(summary),
-            details: explanation
-          };
-        })
-      : feedbackData.positives.map((p: string, i: number) => ({
-          label: `Strength ${i + 1}`,
-          value: transformSummary(p),
-          details: 'Detailed analysis will be available once AI insights are processed.'
-        })));
+    // Format month name
+    const date = new Date(latestMonthAnalysis.monthKey);
+    const monthName = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+    // Build items from top 3 best questions
+    const items = latestMonthAnalysis.performance.best.map((dist: ResponseDistribution) => {
+      const analysis = latestMonthAnalysis.bestAnalyses.get(dist.questionId) || 'No analysis available';
+      
+      return {
+        label: dist.questionTitle,
+        value: `${dist.goodPercentage.toFixed(0)}% positive (${dist.goodCount}/${dist.totalResponses} responses)`,
+        details: `Distribution: ${dist.count5} excellent, ${dist.count4} very good, ${dist.count3} neutral, ${dist.count2} concerns, ${dist.count1} major concerns. ${analysis}`
+      };
+    });
 
     setModalData({
-      title: 'Root Cause Analysis - Positive Factors',
+      title: `Top 3 Best Performing Areas - ${monthName}`,
       color: 'from-emerald-500 to-teal-600',
       items
     });
   };
 
-  const showNegativesModal = () => {
-    const detailedNegatives = aiInsights?.detailedInsights?.negatives || [];
+  const showNegativesModal = async () => {
+    if (!latestMonthAnalysis) {
+      setModalData({
+        title: 'Improvement Areas - No Data',
+        color: 'from-amber-500 to-orange-600',
+        items: [{ label: 'No data available', value: '', details: 'Please check back when survey responses are collected' }]
+      });
+      return;
+    }
 
-    const items = (detailedNegatives.length > 0
-      ? detailedNegatives.map((n: any, i: number) => {
-          const summary = typeof n === 'string' ? n : n.summary || '';
-          const explanation = typeof n === 'string' ? undefined : n.explanation;
-          return {
-            label: `Improvement Area ${i + 1}`,
-            value: transformSummary(summary),
-            details: explanation
-          };
-        })
-      : feedbackData.improvements.map((n: string, i: number) => ({
-          label: `Area ${i + 1}`,
-          value: transformSummary(n),
-          details: 'Detailed analysis will be available once AI insights are processed.'
-        })));
+    // Format month name
+    const date = new Date(latestMonthAnalysis.monthKey);
+    const monthName = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+    // Build items from top 3 worst questions
+    const items = latestMonthAnalysis.performance.worst.map((dist: ResponseDistribution) => {
+      const analysis = latestMonthAnalysis.worstAnalyses.get(dist.questionId) || 'No analysis available';
+      
+      return {
+        label: dist.questionTitle,
+        value: `${dist.badPercentage.toFixed(0)}% concerns (${dist.badCount}/${dist.totalResponses} responses)`,
+        details: `Distribution: ${dist.count5} excellent, ${dist.count4} very good, ${dist.count3} neutral, ${dist.count2} concerns, ${dist.count1} major concerns. ${analysis}`
+      };
+    });
 
     setModalData({
-      title: 'Root Cause Analysis - Areas for Improvement',
+      title: `Top 3 Areas Needing Attention - ${monthName}`,
       color: 'from-amber-500 to-orange-600',
       items
     });
@@ -1019,29 +1129,61 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
   // Reserve space for sections (we keep everything compact so it fits on one page)
   yPos = checkPageBreak(yPos, 60);
       
-      // AI / Root Cause Insights section
-      // Section header - show AI label only when AI-generated, otherwise a neutral title
+      // Monthly Performance Analysis section
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(15, 23, 42);
-      const analysisTitle = feedbackData.isAiGenerated ? 'AI-Powered Root Cause Analysis' : 'Root Cause Analysis';
-      doc.text(analysisTitle, 15, yPos);
+      doc.text('Monthly Performance Analysis', 15, yPos);
 
-      if (feedbackData.isAiGenerated) {
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(100, 116, 139);
-        const analysisSubtitle = 'Detailed analysis generated by artificial intelligence from employee feedback';
-        doc.text(analysisSubtitle, 15, yPos + 6);
-        yPos += 15;
-      } else {
-        // smaller gap when no AI subtitle is shown
-        yPos += 10;
+      // Get latest month's data and generate AI insights for PDF
+      const latestMonth = last3Months.slice().reverse().find(m => m.count > 0);
+      let pdfMonthInsights: any = null;
+      
+      if (latestMonth) {
+        // Generate AI insights for the latest month
+        try {
+          pdfMonthInsights = await getMonthlyAIInsights(latestMonth.month, latestMonth.submissions);
+        } catch (error) {
+          console.error('Error generating PDF insights:', error);
+        }
       }
 
-      // Get detailed AI insights if available
-      const detailedPositives = aiInsights?.detailedInsights?.positives || [];
-      const detailedNegatives = aiInsights?.detailedInsights?.negatives || [];
+      const pdfAnalysisMonth = latestMonth ? 
+        new Date(latestMonth.month).toLocaleString('en-US', { month: 'long', year: 'numeric' }) :
+        'No Data';
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Analysis for ${pdfAnalysisMonth}`, 15, yPos + 6);
+      yPos += 15;
+
+      // Prepare content arrays for PDF from AI insights
+      const detailedPositives: Array<{ summary: string; explanation: string }> = [];
+      const detailedNegatives: Array<{ summary: string; explanation: string }> = [];
+      
+      if (pdfMonthInsights?.detailedInsights) {
+        // Use AI-generated insights
+        const posInsights = pdfMonthInsights.detailedInsights.positives || [];
+        posInsights.slice(0, 3).forEach((p: any) => {
+          const summary = typeof p === 'string' ? p : p.summary || '';
+          const explanation = typeof p === 'string' ? '' : p.explanation || '';
+          detailedPositives.push({
+            summary: transformSummary(summary),
+            explanation
+          });
+        });
+        
+        const negInsights = pdfMonthInsights.detailedInsights.negatives || [];
+        negInsights.slice(0, 3).forEach((n: any) => {
+          const summary = typeof n === 'string' ? n : n.summary || '';
+          const explanation = typeof n === 'string' ? '' : n.explanation || '';
+          detailedNegatives.push({
+            summary: transformSummary(summary),
+            explanation
+          });
+        });
+      }
       
   // Check if we need a new page for Success Factors section
   yPos = checkPageBreak(yPos, 40);
@@ -1052,31 +1194,20 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
       // Pre-calc content lines to compute height before drawing the background
       const contentStartY = yPos + 18;
       let estimatedY = contentStartY;
-      const successContentBlocks: Array<{ type: 'summary' | 'explanation' | 'bullet'; lines: string[] }> = [];
+      const successContentBlocks: Array<{ type: 'summary' | 'explanation'; lines: string[]; title?: string }> = [];
 
       if (detailedPositives.length > 0) {
         detailedPositives.slice(0, 3).forEach((insight: any) => {
-          // Full title - no truncation, just first sentence
-          let title = insight.summary;
-          if (title.includes('.')) title = title.split('.')[0];
+          // AI-generated summary title (e.g., "High manager support")
+          const title = insight.summary || '';
           const summaryLines = doc.splitTextToSize(title, pageWidth - 55);
-          // Full explanation - wrap to multiple lines if needed
-          const explanation = insight.explanation || '';
-          const explanationLines = doc.splitTextToSize(explanation, pageWidth - 55);
-          successContentBlocks.push({ type: 'summary', lines: summaryLines });
-          successContentBlocks.push({ type: 'explanation', lines: explanationLines });
-          estimatedY += (summaryLines.length + explanationLines.length) * 3 + 7;
-        });
-      } else {
-        feedbackData.positives.slice(0, 3).forEach((pos: string) => {
-          // Full text - no truncation
-          const lines = doc.splitTextToSize(pos, pageWidth - 55);
-          successContentBlocks.push({ type: 'bullet', lines });
-          estimatedY += lines.length * 3 + 2;
+          successContentBlocks.push({ type: 'summary', lines: summaryLines, title });
+          estimatedY += summaryLines.length * 3 + 5;
         });
       }
 
-  const successSectionHeight = Math.max(36, estimatedY - successSectionStart + 3);
+  const successSectionHeight = detailedPositives.length > 0 ? 
+    Math.max(36, estimatedY - successSectionStart + 3) : 40;
 
       // Draw background box first so text is visible on top
       doc.setFillColor(240, 253, 244); // emerald-50
@@ -1089,32 +1220,27 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(5, 150, 105); // emerald-600
-      doc.text('Success Factors - What is Working Well', 20, successSectionStart + 10);
+      doc.text('What Went Well', 20, successSectionStart + 10);
 
       // Write content
-      let currentY = contentStartY;
-      successContentBlocks.forEach((block, idx) => {
-        if (block.type === 'summary') {
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(6, 78, 59); // emerald-900
-          doc.text(`${Math.floor(idx / 2) + 1}. ${block.lines.join(' ')}`, 20, currentY);
-          currentY += 4 + block.lines.length * 3 + 2;
-        } else if (block.type === 'explanation') {
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(71, 85, 105); // slate-600
-          doc.text(block.lines, 25, currentY + 0);
-          currentY += block.lines.length * 3 + 3;
-        } else {
-          // bullet
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(6, 78, 59); // emerald-900
-          doc.text(block.lines, 20, currentY);
-          currentY += block.lines.length * 3 + 2;
-        }
-      });
+      if (detailedPositives.length > 0) {
+        let currentY = contentStartY;
+        let itemNumber = 1;
+        successContentBlocks.forEach((block) => {
+          if (block.type === 'summary') {
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(6, 78, 59); // emerald-900
+            doc.text(`${itemNumber}. ${block.lines.join(' ')}`, 20, currentY);
+            currentY += block.lines.length * 3 + 5;
+            itemNumber++;
+          }
+        });
+      } else {
+        doc.setFontSize(9);
+        doc.setTextColor(100, 116, 139);
+        doc.text('No positive factors identified for this period', 20, contentStartY);
+      }
 
   yPos = successSectionStart + successSectionHeight + 6;
       
@@ -1127,31 +1253,20 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
       // Pre-calc content for improvements to compute height first
       const improvementContentStartY = yPos + 18;
       let impEstimatedY = improvementContentStartY;
-      const improvementContentBlocks: Array<{ type: 'summary' | 'explanation' | 'bullet'; lines: string[] }> = [];
+      const improvementContentBlocks: Array<{ type: 'summary' | 'explanation'; lines: string[]; title?: string }> = [];
 
       if (detailedNegatives.length > 0) {
         detailedNegatives.slice(0, 3).forEach((insight: any) => {
-          // Full title - no truncation, just first sentence
-          let title = insight.summary;
-          if (title.includes('.')) title = title.split('.')[0];
+          // AI-generated summary title (e.g., "Low staffing during rush hours")
+          const title = insight.summary || '';
           const summaryLines = doc.splitTextToSize(title, pageWidth - 55);
-          // Full explanation - wrap to multiple lines if needed
-          const explanation = insight.explanation || '';
-          const explanationLines = doc.splitTextToSize(explanation, pageWidth - 55);
-          improvementContentBlocks.push({ type: 'summary', lines: summaryLines });
-          improvementContentBlocks.push({ type: 'explanation', lines: explanationLines });
-          impEstimatedY += (summaryLines.length + explanationLines.length) * 3 + 7;
-        });
-      } else {
-        feedbackData.negatives.slice(0, 3).forEach((neg: string) => {
-          // Full text - no truncation
-          const lines = doc.splitTextToSize(neg, pageWidth - 55);
-          improvementContentBlocks.push({ type: 'bullet', lines });
-          impEstimatedY += lines.length * 3 + 2;
+          improvementContentBlocks.push({ type: 'summary', lines: summaryLines, title });
+          impEstimatedY += summaryLines.length * 3 + 5;
         });
       }
 
-  const improvementSectionHeight = Math.max(36, impEstimatedY - improvementSectionStart + 3);
+  const improvementSectionHeight = detailedNegatives.length > 0 ?
+    Math.max(36, impEstimatedY - improvementSectionStart + 3) : 40;
 
       // Draw background first
       doc.setFillColor(255, 251, 235); // amber-50
@@ -1164,64 +1279,110 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(217, 119, 6); // amber-600
-      doc.text('Areas for Improvement - Root Cause Analysis', 20, improvementSectionStart + 10);
+      doc.text('Areas for Improvement', 20, improvementSectionStart + 10);
 
       // Write improvements content
-      currentY = improvementContentStartY;
-      improvementContentBlocks.forEach((block, idx) => {
-        if (block.type === 'summary') {
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(120, 53, 15); // amber-900
-          doc.text(`${Math.floor(idx / 2) + 1}. ${block.lines.join(' ')}`, 20, currentY);
-          currentY += 4 + block.lines.length * 3 + 2;
-        } else if (block.type === 'explanation') {
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(71, 85, 105); // slate-600
-          doc.text(block.lines, 25, currentY + 0);
-          currentY += block.lines.length * 3 + 3;
-        } else {
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(120, 53, 15); // amber-900
-          doc.text(block.lines, 20, currentY);
-          currentY += block.lines.length * 3 + 2;
-        }
-      });
+      if (detailedNegatives.length > 0) {
+        let currentY = improvementContentStartY;
+        let itemNumber = 1;
+        improvementContentBlocks.forEach((block) => {
+          if (block.type === 'summary') {
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(120, 53, 15); // amber-900
+            doc.text(`${itemNumber}. ${block.lines.join(' ')}`, 20, currentY);
+            currentY += block.lines.length * 3 + 5;
+            itemNumber++;
+          }
+        });
+      } else {
+        doc.setFontSize(9);
+        doc.setTextColor(100, 116, 139);
+        doc.text('No improvement areas identified for this period', 20, improvementContentStartY);
+      }
 
   yPos = improvementSectionStart + improvementSectionHeight + 8;
-      
-      // Check if we need a new page for Attribution section
-      // Only show the attribution box when AI-generated insights are present
-      if (feedbackData.isAiGenerated) {
-        yPos = checkPageBreak(yPos, 35);
-        // AI Analysis Attribution Section
-        doc.setFillColor(248, 250, 252); // slate-50
-        doc.roundedRect(15, yPos, pageWidth - 30, 25, 3, 3, 'F');
-        doc.setDrawColor(203, 213, 225); // slate-300
-        doc.setLineWidth(0.5);
-        doc.roundedRect(15, yPos, pageWidth - 30, 25, 3, 3, 'S');
-
-        // AI-generated content notice
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(147, 51, 234); // purple-600
-        doc.text('AI-Generated Analysis', pageWidth / 2, yPos + 8, { align: 'center' });
-
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(71, 85, 105); // slate-600
-        const aiNotice = 'This root cause analysis was generated using advanced artificial intelligence technology. The insights are based on employee feedback patterns, statistical analysis, and workplace best practices.';
-        const aiNoticeLines = doc.splitTextToSize(aiNotice, pageWidth - 50);
-        doc.text(aiNoticeLines, pageWidth / 2, yPos + 14, { align: 'center' });
-
-        yPos += 30;
-      }
     } else {
       doc.setFontSize(11);
       doc.setTextColor(148, 163, 184);
       doc.text('No submissions found for this Area Manager', 15, yPos);
+    }
+    
+    // Add Region-wise Question Averages Table
+    yPos = checkPageBreak(yPos, 80); // Ensure space for table
+    
+    // Calculate region-wise averages from all submissions (not just this AM)
+    // We need to pass all submissions from the parent component to get region data
+    // For now, calculate from this AM's submissions as a baseline
+    const questionAverages: { [key: string]: number } = {};
+    const questionCounts: { [key: string]: number } = {};
+    
+    amSubmissions.forEach(sub => {
+      for (let i = 1; i <= 12; i++) {
+        const qKey = `q${i}score`;
+        const score = sub[qKey];
+        if (score && score > 0) {
+          if (!questionAverages[qKey]) {
+            questionAverages[qKey] = 0;
+            questionCounts[qKey] = 0;
+          }
+          questionAverages[qKey] += Number(score);
+          questionCounts[qKey]++;
+        }
+      }
+    });
+    
+    // Calculate final averages
+    const avgData: Array<{ question: string; avg: string }> = [];
+    const questionTitles: { [key: string]: string } = {
+      'q1score': 'Work Pressure',
+      'q2score': 'Empowerment',
+      'q3score': 'Performance Reviews',
+      'q4score': 'Fair Treatment',
+      'q5score': 'Training (Wings)',
+      'q6score': 'Apps & Systems',
+      'q7score': 'HR Handbook',
+      'q8score': 'Work Schedule',
+      'q9score': 'Team Collaboration',
+      'q12score': 'Overall Experience'
+    };
+    
+    Object.keys(questionTitles).forEach(qKey => {
+      if (questionCounts[qKey] > 0) {
+        const avg = (questionAverages[qKey] / questionCounts[qKey]).toFixed(1);
+        avgData.push({ question: questionTitles[qKey], avg: `${avg}/5` });
+      }
+    });
+    
+    if (avgData.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text('Question-wise Average Scores', 15, yPos);
+      yPos += 8;
+      
+      // Use autoTable for clean table rendering
+      (doc as any).autoTable({
+        startY: yPos,
+        head: [['Question', 'Avg Score']],
+        body: avgData.map(item => [item.question, item.avg]),
+        theme: 'grid',
+        styles: {
+          fontSize: 8,
+          cellPadding: 2
+        },
+        headStyles: {
+          fillColor: [99, 102, 241], // indigo-500
+          textColor: 255,
+          fontStyle: 'bold'
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252] // slate-50
+        },
+        margin: { left: 15, right: 15 }
+      });
+      
+      yPos = (doc as any).lastAutoTable.finalY + 6;
     }
     
     // Footer
@@ -1474,16 +1635,19 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {feedbackData.positives.slice(0, 2).map((pos, idx) => (
+                    {latestMonthAnalysis && latestMonthAnalysis.performance.best.slice(0, 2).map((dist, idx) => (
                       <div key={idx} className="flex items-start gap-1.5 group">
                         <div className="w-4 h-4 rounded-md bg-emerald-500/80 dark:bg-emerald-600/80 backdrop-blur-sm flex items-center justify-center flex-shrink-0 mt-0.5 shadow-md border border-white/20">
                           <span className="text-white text-[9px] font-bold drop-shadow-sm">{idx + 1}</span>
                         </div>
                         <p className="text-[10px] text-slate-800 dark:text-slate-200 leading-snug flex-1 line-clamp-2">
-                          {pos}
+                          {dist.questionTitle}
                         </p>
                       </div>
                     ))}
+                    {(!latestMonthAnalysis || latestMonthAnalysis.performance.best.length === 0) && (
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">No positive factors identified</p>
+                    )}
                     <button
                       onClick={showPositivesModal}
                       className="mt-1 text-[9px] font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 underline drop-shadow-sm"
@@ -1500,7 +1664,7 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
                   <TrendingDown className="w-4 h-4 text-amber-600 dark:text-amber-400 drop-shadow-md" />
                   <h5 className="text-xs font-bold text-slate-900 dark:text-white uppercase">Negatives</h5>
                 </div>
-                {loadingInsights ? (
+                {loadingInsights || loadingQuestionAnalysis ? (
                   <div className="space-y-2">
                     {[1, 2].map((i) => (
                       <div key={i} className="flex items-center gap-1.5">
@@ -1511,16 +1675,19 @@ const AMScorecard: React.FC<AMScorecardProps> = ({ amId, amName, submissions }) 
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {feedbackData.improvements.slice(0, 2).map((neg, idx) => (
+                    {latestMonthAnalysis && latestMonthAnalysis.performance.worst.slice(0, 2).map((dist, idx) => (
                       <div key={idx} className="flex items-start gap-1.5 group">
                         <div className="w-4 h-4 rounded-md bg-amber-500/80 dark:bg-amber-600/80 backdrop-blur-sm flex items-center justify-center flex-shrink-0 mt-0.5 shadow-md border border-white/20">
                           <span className="text-white text-[9px] font-bold drop-shadow-sm">{idx + 1}</span>
                         </div>
                         <p className="text-[10px] text-slate-800 dark:text-slate-200 leading-snug flex-1 line-clamp-2">
-                          {neg}
+                          {dist.questionTitle}
                         </p>
                       </div>
                     ))}
+                    {(!latestMonthAnalysis || latestMonthAnalysis.performance.worst.length === 0) && (
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">No negative factors identified</p>
+                    )}
                     <button
                       onClick={showNegativesModal}
                       className="mt-1 text-[9px] font-semibold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 underline drop-shadow-sm"

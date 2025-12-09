@@ -360,13 +360,36 @@ export const buildHRPDF = async (
     doc.text('Question-wise Average Scores', 14, y);
     y += 6;
 
-    // Calculate average score per question
-    const questionScores: { [key: string]: { total: number; count: number; title: string } } = {};
+    // Calculate average score per question overall and per region
+    const questionScores: { 
+      [key: string]: { 
+        total: number; 
+        count: number; 
+        title: string;
+        regions: {
+          North: { total: number; count: number };
+          South: { total: number; count: number };
+          West: { total: number; count: number };
+        }
+      } 
+    } = {};
+    
     QUESTIONS.forEach(q => {
-      questionScores[q.id] = { total: 0, count: 0, title: q.title };
+      questionScores[q.id] = { 
+        total: 0, 
+        count: 0, 
+        title: q.title,
+        regions: {
+          North: { total: 0, count: 0 },
+          South: { total: 0, count: 0 },
+          West: { total: 0, count: 0 }
+        }
+      };
     });
 
     submissions.forEach(sub => {
+      const region = sub.region || 'Unknown';
+      
       QUESTIONS.forEach(q => {
         const ans = (sub as any)[q.id];
         if (ans === undefined || ans === null || ans === '') return;
@@ -391,6 +414,12 @@ export const buildHRPDF = async (
           const pct = (numeric / qMax) * 100;
           questionScores[q.id].total += pct;
           questionScores[q.id].count++;
+          
+          // Add to region-specific totals
+          if (region === 'North' || region === 'South' || region === 'West') {
+            questionScores[q.id].regions[region as 'North' | 'South' | 'West'].total += pct;
+            questionScores[q.id].regions[region as 'North' | 'South' | 'West'].count++;
+          }
         }
       });
     });
@@ -398,11 +427,27 @@ export const buildHRPDF = async (
     const questionTableData: any[] = [];
     Object.entries(questionScores).forEach(([qId, data]) => {
       if (data.count > 0) {
+        // Calculate overall average
         const avgPct = Math.round(data.total / data.count);
-        const score = ((avgPct / 100) * 5).toFixed(1); // Convert to 1-5 scale
+        const totalScore = ((avgPct / 100) * 5).toFixed(1);
+        
+        // Calculate region averages
+        const northScore = data.regions.North.count > 0 
+          ? ((Math.round(data.regions.North.total / data.regions.North.count) / 100) * 5).toFixed(1)
+          : '-';
+        const southScore = data.regions.South.count > 0 
+          ? ((Math.round(data.regions.South.total / data.regions.South.count) / 100) * 5).toFixed(1)
+          : '-';
+        const westScore = data.regions.West.count > 0 
+          ? ((Math.round(data.regions.West.total / data.regions.West.count) / 100) * 5).toFixed(1)
+          : '-';
+        
         questionTableData.push([
-          data.title.substring(0, 80) + (data.title.length > 80 ? '...' : ''),
-          `${score}/5`
+          data.title.substring(0, 60) + (data.title.length > 60 ? '...' : ''),
+          northScore === '-' ? '-' : `${northScore}/5`,
+          southScore === '-' ? '-' : `${southScore}/5`,
+          westScore === '-' ? '-' : `${westScore}/5`,
+          `${totalScore}/5`
         ]);
       }
     });
@@ -410,7 +455,7 @@ export const buildHRPDF = async (
     if (questionTableData.length > 0) {
       autoTable(doc, {
         startY: y,
-        head: [['Question', 'Avg Score']],
+        head: [['Question', 'North', 'South', 'West', 'Total']],
         body: questionTableData,
         theme: 'striped',
         headStyles: {
@@ -424,8 +469,11 @@ export const buildHRPDF = async (
           textColor: [31, 41, 55]
         },
         columnStyles: {
-          0: { cellWidth: 150 },
-          1: { cellWidth: 32, halign: 'center' }
+          0: { cellWidth: 90 },
+          1: { cellWidth: 23, halign: 'center' },
+          2: { cellWidth: 23, halign: 'center' },
+          3: { cellWidth: 23, halign: 'center' },
+          4: { cellWidth: 23, halign: 'center' }
         },
         margin: { left: 14, right: 14 }
       });

@@ -190,18 +190,18 @@ async function analyzeWithGitHubModels(
   // Question context with reverse scoring info
   const questionContext = `
 Question Details (1-5 scale where 5 is best, unless noted):
-Q1: Work pressure and staffing adequacy (REVERSE: 5=never pressured/well-staffed, 1=always pressured/understaffed) - Relates to barista staffing during coffee rush hours
-Q2: Empowerment in customer service decisions - Can baristas/shift managers make decisions to serve customers without constant approval
+Q1: Work pressure and staffing adequacy (REVERSE: 5=never pressured/well-staffed, 1=always pressured/understaffed) - Relates to staffing during rush hours
+Q2: Empowerment in customer service decisions - Can staff make decisions to serve customers without constant approval
 Q3: Regular feedback from Area Manager - How often AM provides guidance and performance feedback
 Q4: Fair treatment by management (REVERSE: 5=always fair treatment, 1=unfair treatment/favoritism) - Equal opportunities and respect for all staff
-Q5: Training program quality (Wings/ZingLearn) - Effectiveness of barista training on coffee preparation, customer service, systems
-Q6: Apps/systems/benefits issues (REVERSE: 5=no issues, 1=many issues) - ZingLearn app, POS systems, leave portal, salary processing problems
+Q5: Training program quality (Wings/ZingLearn) - Effectiveness of training programs on customer service, operational systems, and procedures
+Q6: Apps/systems/benefits issues (REVERSE: 5=no issues, 1=many issues) - ZingLearn app, Zing HR portal, Meal Benefit app, Jify app, PF/ESI processing, reimbursements - THESE ARE SOFTWARE APPS, NOT PHYSICAL EQUIPMENT
 Q7: HR handbook and policy awareness - Understanding of TWC policies (leave, OT, meals, RESPECT values, etc.)
 Q8: Work schedule satisfaction - Happiness with shift timings, weekly offs (4/month), work-life balance
-Q9: Team collaboration quality - How well baristas and shift managers work together during shifts
+Q9: Team collaboration quality - How well team members work together during shifts
 Q10: Helpful colleague recognition (text response) - Naming peers who provide great support
-Q11: Improvement suggestions (text response) - Staff ideas for making TWC cafés better workplaces
-Q12: Overall TWC café experience - General satisfaction working at Third Wave Coffee
+Q11: Improvement suggestions (text response) - Staff ideas for making TWC better workplaces
+Q12: Overall TWC experience - General satisfaction working at Third Wave Coffee
 `;
   
   // Prepare root cause analysis prompt
@@ -236,14 +236,16 @@ For NEGATIVES: Identify what specific processes/systems need improvement
 
 AVOID generic terms like "poor content", "bad management", "issues"
 USE specific terms like "understaffing during peak hours", "infrequent manager check-ins", "app crashes during transactions"
+DO NOT mention "equipment", "espresso", "grinders", "coffee machines", "latte art", "barista skills", "coffee quality" unless staff explicitly wrote about them in remarks
+REMEMBER: Q6 is about SOFTWARE APPS (Zing, Jify, Meal Benefit) NOT physical equipment or coffee machines
 
 Format: "[Main Issue]: [Simple explanation]" (max 120 chars for better detail)
 
 Examples:
 ✓ "Good staffing levels: We have enough people working during busy times so nobody feels too much pressure"  
 ✓ "Manager talks regularly: Area manager meets with staff every week to give feedback and help solve problems"
-✓ "App keeps crashing: The computer system stops working often which makes it hard to serve customers quickly"
-✗ "Poor content" or "Bad management" or "Issues exist"
+✓ "Apps work smoothly: The HR and operational apps work well without technical issues"
+✗ "Poor content" or "Bad management" or "Issues exist" or "Good equipment performance" or "Espresso machines working well"
 
 Use SIMPLE, CLEAR language that anyone can understand.
 
@@ -311,24 +313,28 @@ STAFF ROLES & HIERARCHY:
 
 KEY TWC PROGRAMS:
 - RESPECT Values: Core values framework with digital badges (Responsibility, Empathy, Service Excellence, Performance with Purpose, Ethics, Collaboration, Trust)
-- ZingLearn LMS: Digital learning management system and communication platform
+- ZingLearn LMS: Digital learning management system and communication platform for e-learning
+- Zing HR: HR portal for attendance, leave management, payroll, ESI, PF
+- Meal Benefit App: Digital app for meal tracking and benefits
+- Jify App: Operational app for store management
 - Orientation Online: Digital onboarding program for new hires
 - Bench Planning: Talent pipeline and succession planning for career progression
 - HR Connect: 15-minute one-on-one employee check-in conversations
 
-COFFEE OPERATIONS:
-- Peak Hours: Morning coffee rush (7-11 AM), evening rush (4-7 PM)
-- Core Activities: Espresso preparation, milk steaming, latte art, coffee quality control, equipment maintenance, inventory management, customer interaction
-- Critical Equipment: Espresso machines, coffee grinders, brewing equipment, milk steamers
-- Coffee Standards: Bean quality, grind consistency, extraction time, milk temperature, drink presentation
+WORK ENVIRONMENT:
+- Peak Hours: Morning rush (7-11 AM), evening rush (4-7 PM)
+- Work Schedule: 9-hour shifts with 1-hour break, 4 weekly offs per month
+- Core Activities: Customer service, team collaboration, daily operations
+- Work Pressure: Managing rush hours, handling customer complaints, multitasking
 
 COMMON TWC-SPECIFIC ISSUES TO IDENTIFY:
 Operational:
-- Staffing shortages during morning/evening coffee rush hours
-- Espresso machine or grinder breakdowns affecting service
+- Staffing shortages during rush hours
 - ZingLearn app/system issues preventing training or communication
-- Inventory delays for coffee beans, milk, or supplies
-- Training gaps in barista skills (espresso extraction, milk steaming, latte art)
+- Zing HR portal problems (attendance, leave, payroll access issues)
+- Meal Benefit app not working properly
+- Jify app technical issues
+- Training gaps in customer service or operational procedures
 - Work schedule conflicts or insufficient weekly offs
 
 Management:
@@ -344,26 +350,56 @@ HR & Workplace:
 - Work-life balance concerns (9-hour shifts with 1-hour break, 4 weekly offs/month)
 - HRBP responsiveness to store concerns
 - Meal policy implementation (2 beverages + 1 food per working day)
+- PF (Provident Fund) or ESI (Employee State Insurance) issues
+- Reimbursement delays
+- Insurance claim problems
+- Payslip access issues on Zing HR
 
 Team & Culture:
 - Team collaboration and peer support
 - Store environment and workplace safety
-- Career growth opportunities (Barista → Buddy → Shift Manager progression)
+- Career growth opportunities (team member progression)
 - Empowerment in decision-making for customer service
+- Fair treatment and recognition
 
 ANALYSIS APPROACH:
-- Use SPECIFIC coffee shop terminology (barista, espresso, grinder, steamer, rush hour, etc.)
-- Reference TWC-specific systems (ZingLearn, RESPECT badges, HR Connect, Bench Planning)
-- Identify root causes related to coffee shop operations, not general restaurant issues
-- Connect survey scores to actual café operational factors
+- ONLY analyze what's ACTUALLY mentioned in the survey responses and remarks
+- Question 6 asks about "operational Apps (Zing, Meal benefit, Jify) or issues with PF, ESI, Reimbursements, Insurance & Payslips" - these are HR/IT systems, NOT coffee equipment
+- Use TWC-specific systems when referenced (ZingLearn, Zing HR, RESPECT badges, HR Connect, Bench Planning, Meal Benefit, Jify)
+- DO NOT mention coffee quality, espresso machines, grinders, latte art, or beverage preparation unless staff explicitly wrote about it
+- DO NOT mention "equipment" unless staff specifically wrote about equipment in their remarks
+- Focus on the 12 survey questions: work pressure, empowerment, feedback, fairness, training, systems/apps, policies, schedules, teamwork, experience
 - Use clear, simple language that TWC café staff will understand
-- Consider coffee industry specifics (quality standards, equipment uptime, barista skills)
 
+CRITICAL - DO NOT FABRICATE:
 AVOID:
-- Generic restaurant terms (kitchen, food preparation, waitstaff)
-- Vague statements like "bad management" or "poor content"
+- Making up issues not present in the data
+- Generic vague statements like "bad management" or "poor content"
 - Unactionable feedback
-- Non-coffee industry terminology
+- Inventing coffee-specific problems when survey is about HR/workplace topics
+- Mentioning equipment, machines, grinders, espresso, latte art, or coffee quality unless staff specifically wrote about them
+- Confusing "Apps" (software) with "equipment" (hardware)
+- NEVER use words like: "equipment", "espresso", "grinder", "machine", "latte art", "coffee quality", "barista skills"
+
+FORBIDDEN WORDS/PHRASES - DO NOT USE:
+- "equipment performance"
+- "good equipment"
+- "espresso machines"
+- "grinders"
+- "coffee quality"
+- "latte art"
+- "barista skills"
+- "beverage preparation"
+- "milk steaming"
+
+OUTPUT FORMAT:
+- Summary: Clear, specific title using TWC context (e.g., "Not enough staff during rush hours", "Zing HR app keeps crashing", "Need more customer service training")
+- Explanation: Simple details about WHY this happens and its impact on daily work
+- DO NOT mention coffee equipment, machines, or beverage quality in summaries unless staff explicitly mentioned them
+- If analyzing Q6 responses, refer to "Apps and systems working well" NOT "equipment"
+- Generic vague statements like "bad management" or "poor content"
+- Unactionable feedback
+- Inventing coffee-specific problems when survey is about HR/workplace topics
 
 OUTPUT FORMAT:
 - Summary: Clear, specific title using TWC context (e.g., "Not enough baristas during morning rush", "Espresso machine keeps breaking", "Need more training on latte art")
@@ -991,7 +1027,10 @@ function parseScore(value: any): number {
  * Cache for AI insights to avoid repeated API calls
  */
 const insightsCache = new Map<string, { insights: InsightResult; timestamp: number }>();
-const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days - aggressive caching to minimize API calls
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes - short cache to get updated analysis quickly
+
+// Clear cache immediately to force fresh analysis with updated prompts
+insightsCache.clear();
 
 /**
  * Analyzes monthly submission data for detailed insights
@@ -1210,22 +1249,30 @@ Return ONLY valid JSON:
           content: `You are an expert workplace analyst for Third Wave Coffee (TWC), a specialty coffee chain in India. You analyze monthly employee survey data to identify trends, operational patterns, and management effectiveness for specific time periods.
 
 TWC CONTEXT:
-- Specialty coffee shop operations with peak hours (morning coffee rush 7-11 AM, evening rush 4-7 PM)
-- Café staff (baristas, shift managers) managed by Area Managers with HRBP support
-- Monthly HR Connect surveys measure employee satisfaction across coffee shop operations
-- Common factors: barista staffing during rush hours, espresso machine/grinder uptime, manager support, coffee training quality (ZingLearn), work schedules and weekly offs
+- Coffee shop operations with peak hours (morning rush 7-11 AM, evening rush 4-7 PM)
+- Staff (team members, shift managers) managed by Area Managers with HRBP support
+- Monthly HR Connect surveys measure employee satisfaction across workplace operations
+- Common factors: staffing during rush hours, manager support, training quality (ZingLearn), work schedules and weekly offs, app/system functionality
 - TWC Programs: RESPECT values/badges, ZingLearn LMS, Orientation, Bench Planning, HR Connect check-ins
+- Key Software Apps: ZingLearn (e-learning), Zing HR (attendance/payroll/PF/ESI), Meal Benefit app, Jify (operations)
 - Key Policies: 9-hour shifts with 1-hour break, 4 weekly offs/month, EL (24 days), FL (12-14 days), OT after +30 min, meal policy (2 beverages + 1 food)
 
 MONTHLY ANALYSIS FOCUS:
-- Seasonal factors (festival seasons, weather affecting coffee consumption, holiday staffing)
-- Operational changes during that month (new equipment, ZingLearn updates, policy changes)
-- Specific incidents or patterns unique to that time period (equipment failures, training rollouts, AM changes)
+- Seasonal factors (festival seasons, weather, holiday staffing)
+- Operational changes during that month (new app features, ZingLearn updates, policy changes)
+- Specific incidents or patterns unique to that time period (app crashes, training rollouts, AM changes)
 - Month-over-month improvements or declines in key metrics
-- Short-term vs long-term issues in coffee shop operations
-- Coffee quality initiatives or barista training programs launched that month
+- Short-term vs long-term issues in workplace operations
+- Training programs or policy initiatives launched that month
 
-Use TWC-specific terminology and coffee shop operations context (barista, espresso, grinder, steamer, rush hours, café, ZingLearn, RESPECT badges, etc.). Explain in simple, clear language what specifically happened during the given month in the context of running specialty coffee cafés.
+CRITICAL RULES - DO NOT VIOLATE:
+- NEVER mention "equipment", "espresso machines", "grinders", "coffee machines", "latte art", "barista skills", "coffee quality", "beverage preparation"
+- Q6 asks about APPS (ZingLearn, Zing HR, Meal Benefit, Jify) and HR SYSTEMS (PF, ESI, reimbursements) - NOT physical equipment
+- If Q6 scores are high, say "Apps and systems working well" NOT "equipment performance"
+- ONLY mention coffee-related topics if staff explicitly wrote about them in their remarks
+- Focus on HR/workplace topics: staffing, management, training, apps/systems, schedules, fairness, empowerment
+
+Use TWC-specific terminology for workplace context. Explain in simple, clear language what specifically happened during the given month.
 
 Always respond with valid JSON only.`
         },
@@ -1256,12 +1303,27 @@ Always respond with valid JSON only.`
       const uniquePositives = removeDuplicates(parsed.positives || []);
       const uniqueNegatives = removeDuplicates(parsed.negatives || []);
       
-      const positives = uniquePositives.slice(0, 3).map((item: any) => {
+      // POST-PROCESSING FILTER: Remove any equipment mentions that slipped through
+      const filterEquipmentMentions = (items: any[]) => {
+        return items.filter((item: any) => {
+          const text = (typeof item === 'string' ? item : (item.summary || '')).toLowerCase();
+          const forbiddenPatterns = [
+            'equipment', 'espresso', 'grinder', 'machine', 'steamer',
+            'coffee quality', 'latte art', 'beverage prep', 'barista skill'
+          ];
+          return !forbiddenPatterns.some(pattern => text.includes(pattern));
+        });
+      };
+      
+      const filteredPositives = filterEquipmentMentions(uniquePositives);
+      const filteredNegatives = filterEquipmentMentions(uniqueNegatives);
+      
+      const positives = filteredPositives.slice(0, 3).map((item: any) => {
         if (typeof item === 'string') return item;
         return item.summary;
       });
       
-      const negatives = uniqueNegatives.slice(0, 3).map((item: any) => {
+      const negatives = filteredNegatives.slice(0, 3).map((item: any) => {
         if (typeof item === 'string') return item;
         return item.summary;
       });
@@ -1271,8 +1333,8 @@ Always respond with valid JSON only.`
         negatives,
         isAiGenerated: true,
         detailedInsights: {
-          positives: uniquePositives.slice(0, 3),
-          negatives: uniqueNegatives.slice(0, 3)
+          positives: filteredPositives.slice(0, 3),
+          negatives: filteredNegatives.slice(0, 3)
         }
       };
     } catch (e) {
@@ -1381,10 +1443,11 @@ function generateMonthlyFallback(monthName: string, submissions: any[]): Insight
 }
 
 /**
- * Get insights with caching
+ * Get insights with caching - VERSION 2 (cache cleared for prompt updates)
  */
 export async function getCachedAMInsights(amId: string, submissions: any[]): Promise<InsightResult> {
-  const cacheKey = `${amId}_${submissions.length}`;
+  // Force cache miss by adding version to key - v3 after fixing third AI prompt
+  const cacheKey = `v3_${amId}_${submissions.length}`;
   const cached = insightsCache.get(cacheKey);
   
   // Check if cache is valid
