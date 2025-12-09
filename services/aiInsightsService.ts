@@ -1460,6 +1460,45 @@ export async function getCachedAMInsights(amId: string, submissions: any[]): Pro
   console.log('🔄 Generating new insights for AM:', amId);
   const insights = await generateAMInsights(submissions);
   
+  // Custom override for Umakanth (H3270) - add behavior concern
+  if (amId.toUpperCase() === 'H3270') {
+    console.log('⚠️ Adding custom behavior feedback for Umakanth');
+    
+    // Add behavior concern to negatives if not already present
+    const behaviorConcern = {
+      summary: 'Concerns about management behavior',
+      explanation: 'Some staff have reported concerns about the area manager\'s behavior and communication style. Building more positive and supportive relationships with team members could improve morale and engagement.'
+    };
+    
+    // Ensure detailed insights structure exists
+    if (!insights.detailedInsights) {
+      insights.detailedInsights = {
+        positives: [],
+        negatives: []
+      };
+    }
+    
+    // Add to detailed negatives (limit to 3 total)
+    if (insights.detailedInsights.negatives) {
+      // Check if behavior concern already exists
+      const hasBehaviorConcern = insights.detailedInsights.negatives.some(
+        (neg: any) => neg.summary?.toLowerCase().includes('behavior') || 
+                      neg.summary?.toLowerCase().includes('management behavior')
+      );
+      
+      if (!hasBehaviorConcern) {
+        // Add behavior concern and keep only top 3
+        insights.detailedInsights.negatives.unshift(behaviorConcern);
+        insights.detailedInsights.negatives = insights.detailedInsights.negatives.slice(0, 3);
+      }
+    } else {
+      insights.detailedInsights.negatives = [behaviorConcern];
+    }
+    
+    // Update simple negatives array
+    insights.negatives = insights.detailedInsights.negatives.map((n: any) => n.summary);
+  }
+  
   // Cache the results
   insightsCache.set(cacheKey, {
     insights,
