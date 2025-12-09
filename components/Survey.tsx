@@ -326,7 +326,9 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
     console.log('Filtering Stores for Area Manager:', meta.amId);
     
     // Get stores that belong to this Area Manager using normalized mapping
-    const amStoreIds = allStores.filter((s: any) => s.amId === meta.amId).map((s: any) => s.id);
+    // Case-insensitive comparison for AM IDs
+    const normalizedAmId = meta.amId.toUpperCase();
+    const amStoreIds = allStores.filter((s: any) => s.amId && s.amId.toUpperCase() === normalizedAmId).map((s: any) => s.id);
     const filteredStores = allStores.filter(store => amStoreIds.includes(store.id));
     console.log(`Found ${filteredStores.length} stores for AM ${meta.amId}:`, filteredStores);
     
