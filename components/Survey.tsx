@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { QUESTIONS, AREA_MANAGERS, HR_PERSONNEL, SENIOR_HR_ROLES, NORTH_REGION_HRBPS, NORTH_REGION_AMS } from '../constants';
+import { QUESTIONS as DEFAULT_QUESTIONS, AREA_MANAGERS as DEFAULT_AREA_MANAGERS, HR_PERSONNEL as DEFAULT_HR_PERSONNEL, SENIOR_HR_ROLES, NORTH_REGION_HRBPS, NORTH_REGION_AMS } from '../constants';
 import { Question, Choice, Store } from '../types';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../roleMapping';
 import { hapticFeedback } from '../utils/haptics';
 import LoadingOverlay from './LoadingOverlay';
 import { STORES_PROMISE, MAPPED_STORES } from '../mappedStores';
+import { useConfig } from '../contexts/ConfigContext';
 
 // Google Sheets endpoint for logging data
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKMVh-lnNBnINskIqD10CnQHvGsW_R2SLASGSdBDN9lTGj1gznlNbHORQ/exec';
@@ -29,6 +30,12 @@ interface SurveyProps {
 }
 
 const Survey: React.FC<SurveyProps> = ({ userRole }) => {
+  const { config, loading: configLoading } = useConfig();
+  
+  // Use config data if available, otherwise fall back to hardcoded constants
+  const QUESTIONS = config?.QUESTIONS || DEFAULT_QUESTIONS;
+  const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
+  const HR_PERSONNEL = config?.HR_PERSONNEL || DEFAULT_HR_PERSONNEL;
   console.log('Survey component mounted with userRole:', userRole);
   console.log('HR_PERSONNEL imported:', HR_PERSONNEL);
   console.log('HR_PERSONNEL length:', HR_PERSONNEL.length);
@@ -217,10 +224,21 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
 
       try {
         console.log('Filtering stores for HR:', meta.hrId);
+        console.log('Total allStores available:', allStores.length);
 
         // Find stores where this HR is responsible (HRBP > Regional HR > HR Head priority)
+        // Case-insensitive comparison for HR IDs
+        const normalizedHrId = meta.hrId.toUpperCase();
         const hrStoreIds = allStores
-          .filter((s: any) => s.hrbpId === meta.hrId || s.regionalHrId === meta.hrId || s.hrHeadId === meta.hrId)
+          .filter((s: any) => {
+            const match = (s.hrbpId && s.hrbpId.toUpperCase() === normalizedHrId) || 
+                         (s.regionalHrId && s.regionalHrId.toUpperCase() === normalizedHrId) || 
+                         (s.hrHeadId && s.hrHeadId.toUpperCase() === normalizedHrId);
+            if (match) {
+              console.log('Store matched for HR:', s.id, s.name);
+            }
+            return match;
+          })
           .map((s: any) => s.id);
 
         console.log('Found store IDs for HR:', hrStoreIds);
@@ -235,7 +253,7 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
           const firstStore = allStores.find((s: any) => s.id === hrStores[0].id);
           if (firstStore) {
             const amId = firstStore.amId;
-            const amPerson = AREA_MANAGERS.find(am => am.id === amId);
+            const amPerson = AREA_MANAGERS.find(am => am.id.toUpperCase() === amId?.toUpperCase());
             if (amPerson) {
               setMeta(prev => ({
                 ...prev,
@@ -311,28 +329,41 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
   }, [userRole, meta.hrId, allStores, MAPPED_STORES]);
 
   const availableStores = useMemo(() => {
+    console.log('🏪 availableStores recalculating...');
+    console.log('  meta.amId:', meta.amId);
+    console.log('  meta.hrId:', meta.hrId);
+    console.log('  allStores.length:', allStores.length);
+    console.log('  filteredStoresByHR.length:', filteredStoresByHR.length);
+    
     if (!meta.amId) {
       // No AM selected, show stores based on HR if available
       if (meta.hrId) {
-        console.log(`HR ${meta.hrId} has access to ${filteredStoresByHR.length} stores:`, filteredStoresByHR);
+        console.log(`✅ Returning ${filteredStoresByHR.length} stores filtered by HR ${meta.hrId}`);
         return filteredStoresByHR;
       }
       // Otherwise use role-based filtering for other user types
       const roleBasedStores = allStores.filter(store => canAccessStore(userRole, store.id));
-      console.log(`Role-based filtering: ${roleBasedStores.length} stores available`, roleBasedStores);
+      console.log(`✅ Role-based filtering: ${roleBasedStores.length} stores available`);
       return roleBasedStores;
     }
     
-    console.log('Filtering Stores for Area Manager:', meta.amId);
+    console.log('🔍 Filtering Stores for Area Manager:', meta.amId);
     
     // Get stores that belong to this Area Manager using normalized mapping
     // Case-insensitive comparison for AM IDs
     const normalizedAmId = meta.amId.toUpperCase();
-    const amStoreIds = allStores.filter((s: any) => s.amId && s.amId.toUpperCase() === normalizedAmId).map((s: any) => s.id);
-    const filteredStores = allStores.filter(store => amStoreIds.includes(store.id));
-    console.log(`Found ${filteredStores.length} stores for AM ${meta.amId}:`, filteredStores);
+    const matchingStores = allStores.filter((s: any) => {
+      const storeAmId = s.amId?.toUpperCase();
+      const matches = storeAmId === normalizedAmId;
+      if (matches) {
+        console.log('  ✓ Store matched:', s.id, s.name, 'amId:', s.amId);
+      }
+      return matches;
+    });
     
-    return filteredStores;
+    console.log(`✅ Found ${matchingStores.length} stores for AM ${meta.amId}`);
+    
+    return matchingStores;
   }, [userRole, allStores, filteredStoresByHR, meta.hrId, meta.amId]);
 
   const availableHRPersonnel = useMemo(() => {
@@ -761,7 +792,8 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
                 Store Name
                 {!meta.amId && meta.hrId && <span className="text-amber-600 dark:text-amber-400 text-xs"> (Select Area Manager first)</span>}
                 {!meta.hrId && <span className="text-amber-600 dark:text-amber-400 text-xs"> (Select HR first)</span>}
-                {meta.amId && availableStores.length === 0 && <span className="text-red-600 dark:text-red-400 text-xs"> (No stores available for this AM)</span>}
+                {meta.amId && availableStores.length === 0 && <span className="text-red-600 dark:text-red-400 text-xs"> (No stores available for this AM - HR: {meta.hrId}, AM: {meta.amId}, Total: {allStores.length})</span>}
+                {meta.amId && availableStores.length > 0 && <span className="text-green-600 dark:text-green-400 text-xs"> ({availableStores.length} stores available)</span>}
               </span>
               <div className="relative">
                 <input

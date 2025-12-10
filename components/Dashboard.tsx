@@ -17,8 +17,9 @@ import SkeletonLoader from './SkeletonLoader';
 import NotificationOverlay from './NotificationOverlay';
 import ScoreDistributionChart from './ScoreDistributionChart';
 import AverageScoreByManagerChart from './AverageScoreByManagerChart';
-import { QUESTIONS, OPERATIONS_QUESTIONS, TRAINING_QUESTIONS, AREA_MANAGERS, HR_PERSONNEL, TRAINER_PERSONNEL, REGIONS, SENIOR_HR_ROLES } from '../constants';
+import { QUESTIONS as DEFAULT_QUESTIONS, OPERATIONS_QUESTIONS as DEFAULT_OPERATIONS_QUESTIONS, TRAINING_QUESTIONS as DEFAULT_TRAINING_QUESTIONS, AREA_MANAGERS as DEFAULT_AREA_MANAGERS, HR_PERSONNEL as DEFAULT_HR_PERSONNEL, TRAINER_PERSONNEL, REGIONS, SENIOR_HR_ROLES } from '../constants';
 import DashboardFilters from './DashboardFilters';
+import { useConfig } from '../contexts/ConfigContext';
 // import RCACapaAnalysis from './RCACapaAnalysis'; // Commented out - file not found
 import RegionPerformanceInfographic from './RegionPerformanceInfographic';
 import AMPerformanceInfographic from './AMPerformanceInfographic';
@@ -78,6 +79,14 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const { userRole: authUserRole, hasPermission, hasDashboardAccess } = useAuth();
+  const { config, loading: configLoading } = useConfig();
+  
+  // Use config data if available, otherwise fall back to hardcoded constants
+  const QUESTIONS = config?.QUESTIONS || DEFAULT_QUESTIONS;
+  const OPERATIONS_QUESTIONS = config?.OPERATIONS_QUESTIONS || DEFAULT_OPERATIONS_QUESTIONS;
+  const TRAINING_QUESTIONS = config?.TRAINING_QUESTIONS || DEFAULT_TRAINING_QUESTIONS;
+  const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
+  const HR_PERSONNEL = config?.HR_PERSONNEL || DEFAULT_HR_PERSONNEL;
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [amOperationsData, setAMOperationsData] = useState<AMOperationsSubmission[]>([]);
   const [trainingData, setTrainingData] = useState<TrainingAuditSubmission[]>([]);

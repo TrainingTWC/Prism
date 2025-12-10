@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../../roleMapping';
-import { QUESTIONS, AREA_MANAGERS, HR_PERSONNEL, SENIOR_HR_ROLES, NORTH_REGION_HRBPS, NORTH_REGION_AMS } from '../../constants';
+import { QUESTIONS as DEFAULT_QUESTIONS, AREA_MANAGERS as DEFAULT_AREA_MANAGERS, HR_PERSONNEL as DEFAULT_HR_PERSONNEL, SENIOR_HR_ROLES, NORTH_REGION_HRBPS, NORTH_REGION_AMS } from '../../constants';
 import { Question, Choice, Store } from '../../types';
 import { hapticFeedback } from '../../utils/haptics';
 import LoadingOverlay from '../LoadingOverlay';
@@ -32,6 +32,13 @@ interface HRChecklistProps {
 }
 
 const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) => {
+  const { config, loading: configLoading } = useConfig();
+  
+  // Use config data if available, otherwise fall back to hardcoded constants
+  const QUESTIONS = config?.QUESTIONS || DEFAULT_QUESTIONS;
+  const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
+  const HR_PERSONNEL = config?.HR_PERSONNEL || DEFAULT_HR_PERSONNEL;
+  
   const [responses, setResponses] = useState<SurveyResponse>(() => {
     try { 
       return JSON.parse(localStorage.getItem('hr_resp') || '{}'); 
@@ -140,10 +147,12 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
         console.log(`[HRChecklist] Filtering stores for HR ${meta.hrId} from ${allStores.length} total stores`);
         
         // Filter stores where the HR is assigned (check hrbpId, regionalHrId, hrHeadId)
+        // Case-insensitive comparison for HR IDs
+        const normalizedHrId = meta.hrId.toUpperCase();
         const hrStores = allStores.filter((store: any) => 
-          store.hrbpId === meta.hrId || 
-          store.regionalHrId === meta.hrId || 
-          store.hrHeadId === meta.hrId
+          (store.hrbpId && store.hrbpId.toUpperCase() === normalizedHrId) ||
+          (store.regionalHrId && store.regionalHrId.toUpperCase() === normalizedHrId) ||
+          (store.hrHeadId && store.hrHeadId.toUpperCase() === normalizedHrId)
         );
         
         console.log(`[HRChecklist] Found ${hrStores.length} stores for HR ${meta.hrId}`);
@@ -153,7 +162,10 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
         if (hrStores.length > 0 && !meta.amId) {
           const firstStore = hrStores[0] as any;
           if (firstStore.amId) {
-            const amPerson = AREA_MANAGERS.find(am => am.id === firstStore.amId);
+            // Case-insensitive AM lookup
+            const amPerson = AREA_MANAGERS.find(am => 
+              am.id.toUpperCase() === firstStore.amId.toUpperCase()
+            );
             
             if (amPerson) {
               console.log(`[HRChecklist] Auto-filling AM: ${amPerson.name} (${amPerson.id})`);
@@ -204,9 +216,16 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     
     console.log('[HRChecklist] Source stores used:', sourceStores.length, 'stores');
     
+    // Case-insensitive comparison for HR IDs
+    const normalizedHrId = meta.hrId.toUpperCase();
     sourceStores.forEach((s: any) => {
-      if (s.hrbpId === meta.hrId || s.regionalHrId === meta.hrId || s.hrHeadId === meta.hrId) {
-        if (s.amId) hrAreaManagerIds.add(s.amId);
+      const matchesHR = 
+        (s.hrbpId && s.hrbpId.toUpperCase() === normalizedHrId) ||
+        (s.regionalHrId && s.regionalHrId.toUpperCase() === normalizedHrId) ||
+        (s.hrHeadId && s.hrHeadId.toUpperCase() === normalizedHrId);
+      
+      if (matchesHR && s.amId) {
+        hrAreaManagerIds.add(s.amId);
       }
     });
     
@@ -229,7 +248,11 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     // If AM is selected, filter stores by AM
     if (meta.amId) {
       console.log(`[HRChecklist] Filtering stores for AM ${meta.amId}`);
-      const filteredStores = allStores.filter((store: any) => store.amId === meta.amId);
+      // Case-insensitive comparison for AM IDs
+      const normalizedAmId = meta.amId.toUpperCase();
+      const filteredStores = allStores.filter((store: any) => 
+        store.amId && store.amId.toUpperCase() === normalizedAmId
+      );
       console.log(`[HRChecklist] Filtered stores for AM ${meta.amId}:`, filteredStores.length, 'stores');
       return filteredStores;
     }
