@@ -9,7 +9,9 @@ export default defineConfig(({ mode }) => {
       base: '/Prism/',
       clearScreen: false,
       server: {
-        port: 3000,
+        // Fix dev port to avoid collision with proxy (3003)
+        port: 3002,
+        strictPort: true,
         host: '0.0.0.0',
         hmr: {
           overlay: false

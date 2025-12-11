@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "proxy": "node server/proxy.js",
-    "dev:all": "concurrently \"npm run dev\" \"npm run proxy\""
+    "api": "node server/index.js",
+    "dev:all": "concurrently \"npm run dev\" \"npm run proxy\" \"npm run api\""
   },
   "dependencies": {
     "@types/jspdf": "^1.3.3",

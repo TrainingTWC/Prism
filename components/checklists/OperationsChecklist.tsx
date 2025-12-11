@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../../roleMapping';
-import { AREA_MANAGERS, HR_PERSONNEL, SENIOR_HR_ROLES } from '../../constants';
+import { AREA_MANAGERS as DEFAULT_AREA_MANAGERS, HR_PERSONNEL as DEFAULT_HR_PERSONNEL, SENIOR_HR_ROLES } from '../../constants';
 import { Store } from '../../types';
 import { hapticFeedback } from '../../utils/haptics';
 import compStoreMapping from '../../src/comprehensive_store_mapping.json';
@@ -147,6 +147,8 @@ const SECTIONS: ChecklistSection[] = [
 
 const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onStatsUpdate }) => {
   const { config, loading: configLoading } = useConfig();
+  const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
+  const HR_PERSONNEL = config?.HR_PERSONNEL || DEFAULT_HR_PERSONNEL;
   
   // Use config data if available, otherwise fall back to hardcoded SECTIONS
   const sections = config?.CHECKLISTS?.OPERATIONS || SECTIONS;

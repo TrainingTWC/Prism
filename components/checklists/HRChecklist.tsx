@@ -208,6 +208,30 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
       return northAMs;
     }
     
+    // NEW: Use AM_HR_MAPPING from config if available
+    if (config?.AM_HR_MAPPING) {
+      console.log('📍 [HRChecklist] Using AM_HR_MAPPING from config for HR:', meta.hrId);
+      const amsForThisHr: typeof AREA_MANAGERS = [];
+      Object.entries(config.AM_HR_MAPPING).forEach(([amId, hrMapping]: [string, any]) => {
+        // Check if this AM is mapped to the selected HR (as hrbp, hr2, or hr3)
+        if (hrMapping.hrbp === meta.hrId || hrMapping.hr2 === meta.hrId || hrMapping.hr3 === meta.hrId) {
+          const amPerson = AREA_MANAGERS.find(am => am.id === amId);
+          if (amPerson) {
+            amsForThisHr.push(amPerson);
+          }
+        }
+      });
+      
+      if (amsForThisHr.length > 0) {
+        console.log(`📍 [HRChecklist] Found ${amsForThisHr.length} AMs for HR ${meta.hrId} from AM_HR_MAPPING:`, amsForThisHr);
+        return amsForThisHr;
+      } else {
+        console.log(`⚠️ [HRChecklist] No AMs found in AM_HR_MAPPING for HR ${meta.hrId}, falling back to store mapping`);
+      }
+    } else {
+      console.log('⚠️ [HRChecklist] config.AM_HR_MAPPING not available yet, using store mapping');
+    }
+    
     // Derive AM IDs from normalized mapping (allStores). Use `allStores` when
     // available; fall back to the immediate `MAPPED_STORES` export so the UI can
     // populate AMs even before async mapping loading completes.
@@ -242,7 +266,7 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     console.log('[HRChecklist] Derived AM IDs:', Array.from(hrAreaManagerIds));
     
     return result;
-  }, [userRole, meta.hrId, allStores, MAPPED_STORES]);
+  }, [userRole, meta.hrId, allStores, MAPPED_STORES, config, AREA_MANAGERS]);
 
   const availableStores = useMemo(() => {
     // If AM is selected, filter stores by AM

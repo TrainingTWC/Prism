@@ -20,16 +20,28 @@ export const ConfigProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const fetchConfig = async () => {
     setLoading(true);
     try {
+      console.log('[ConfigContext] Fetching config from /api/config...');
       const res = await fetch('/api/config');
       const data = await res.json();
+      console.log('[ConfigContext] API Response:', data);
+      console.log('[ConfigContext] data.config.CHECKLISTS:', data?.config?.CHECKLISTS);
+      console.log('[ConfigContext] Defaults:', Defaults);
+      
       if (data && data.ok && data.config) {
-        setConfig({ ...Defaults, ...data.config });
+        const merged = { ...Defaults, ...data.config };
+        console.log('[ConfigContext] Merged config:', merged);
+        console.log('[ConfigContext] Merged CHECKLISTS:', merged.CHECKLISTS);
+        setConfig(merged);
       } else if (data && data.config) {
-        setConfig({ ...Defaults, ...data.config });
+        const merged = { ...Defaults, ...data.config };
+        console.log('[ConfigContext] Merged config (no ok flag):', merged);
+        setConfig(merged);
       } else {
+        console.warn('[ConfigContext] No config data, using defaults only');
         setConfig({ ...Defaults });
       }
     } catch (e) {
+      console.error('[ConfigContext] Error fetching config:', e);
       setConfig({ ...Defaults });
     } finally {
       setLoading(false);

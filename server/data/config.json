@@ -14,7 +14,7 @@
     },
     {
       "name": "Amar",
-      "id": "H535"
+      "id": "h535"
     },
     {
       "name": "Anil  Rawat",
@@ -23,6 +23,14 @@
     {
       "name": "Umakanth",
       "id": "H3270"
+    },
+    {
+      "name": "VijayaLakshmi",
+      "id": "H2759"
+    },
+    {
+      "name": "Himanshu",
+      "id": "h955"
     },
     {
       "name": "Himanshu",
@@ -57,12 +65,28 @@
       "id": "H1766"
     },
     {
+      "name": "Ajitabh",
+      "id": "h1105"
+    },
+    {
+      "name": "Hemant",
+      "id": "h777"
+    },
+    {
+      "name": "Bikesh",
+      "id": "h2585"
+    },
+    {
       "name": "Vruchika",
       "id": "H1575"
     },
     {
       "name": "Nandish  M",
       "id": "H833"
+    },
+    {
+      "name": "Atul",
+      "id": "h2396"
     },
     {
       "name": "Atul",
@@ -75,6 +99,10 @@
     {
       "name": "Rutuja",
       "id": "H2758"
+    },
+    {
+      "name": "Shubham",
+      "id": "H3914"
     }
   ],
   "HR_PERSONNEL": [
@@ -99,12 +127,16 @@
       "id": "H3603"
     },
     {
-      "name": "Siddhant",
-      "id": "H3728"
+      "name": "Sumanjali",
+      "id": "H3730"
     },
     {
       "name": "Sunil",
       "id": "H3247"
+    },
+    {
+      "name": "Siddhant",
+      "id": "H3728"
     },
     {
       "name": "Sarit",
@@ -127,8 +159,162 @@
       "id": "H541"
     }
   ],
+  "AM_HR_MAPPING": {
+    "H3386": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3730"},
+    "H3914": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3730"},
+    "H3270": {"hrbp": "H1972", "hr2": "H2761", "hr3": "H3551"},
+    "H3362": {"hrbp": "H1972", "hr2": "H2761", "hr3": "H3551"},
+    "H2155": {"hrbp": "H1972", "hr2": "H2761", "hr3": "H3551"},
+    "H2908": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3730"},
+    "H2262": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3247"},
+    "H1575": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3730"},
+    "H2273": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3730"},
+    "H2759": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3730"},
+    "H833": {"hrbp": "H1972", "hr2": "H2761", "hr3": "H3551"},
+    "H955": {"hrbp": "H2165", "hr2": "H3728", "hr3": "H3578"},
+    "h955": {"hrbp": "H2165", "hr2": "H3728", "hr3": "H3578"},
+    "H546": {"hrbp": "H1972", "hr2": "H2761", "hr3": "H3551"},
+    "H2601": {"hrbp": "H1972", "hr2": "H2761", "hr3": "H3551"},
+    "H2396": {"hrbp": "H2165", "hr2": "H3728", "hr3": "H3578"},
+    "h2396": {"hrbp": "H2165", "hr2": "H3728", "hr3": "H3578"},
+    "h535": {"hrbp": "H2165", "hr2": "H3728", "hr3": "H3578"},
+    "H1355": {"hrbp": "H1972", "hr2": "H2761", "hr3": "H3551"},
+    "H1766": {"hrbp": "H2165", "hr2": "H3728", "hr3": "H3578"},
+    "H2758": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3730"}
+  },
   "OPERATIONS_QUESTIONS": [],
-  "QUESTIONS": [],
+  "QUESTIONS": [
+    {
+      "id": "q1",
+      "title": "Is there any work pressure in the café?",
+      "type": "radio",
+      "choices": [
+        {"label": "Every time", "score": 1},
+        {"label": "Most of the time", "score": 2},
+        {"label": "Sometime", "score": 3},
+        {"label": "At Time", "score": 4},
+        {"label": "Never", "score": 5}
+      ]
+    },
+    {
+      "id": "q2",
+      "title": "Are you empowered to make decisions on the spot to help customers and immediately solve their problems/complaints?",
+      "type": "radio",
+      "choices": [
+        {"label": "Every time", "score": 5},
+        {"label": "Most of the time", "score": 4},
+        {"label": "Sometime", "score": 3},
+        {"label": "At Time", "score": 2},
+        {"label": "Never", "score": 1}
+      ]
+    },
+    {
+      "id": "q3",
+      "title": "Do you receive regular performance reviews and constructive feedback from your SM / AM?",
+      "type": "radio",
+      "choices": [
+        {"label": "Every time", "score": 5},
+        {"label": "Most of the time", "score": 4},
+        {"label": "Sometime", "score": 3},
+        {"label": "At Time", "score": 2},
+        {"label": "Never", "score": 1}
+      ]
+    },
+    {
+      "id": "q4",
+      "title": "Do you think there is any partiality or unfair treatment within team?",
+      "type": "radio",
+      "choices": [
+        {"label": "Every time", "score": 1},
+        {"label": "Most of the time", "score": 2},
+        {"label": "Sometime", "score": 3},
+        {"label": "At Time", "score": 4},
+        {"label": "Never", "score": 5}
+      ]
+    },
+    {
+      "id": "q5",
+      "title": "Are you getting the training as per Wings program? What was the last training you got and when?",
+      "type": "radio",
+      "choices": [
+        {"label": "Every time", "score": 5},
+        {"label": "Most of the time", "score": 4},
+        {"label": "Sometime", "score": 3},
+        {"label": "At Time", "score": 2},
+        {"label": "Never", "score": 1}
+      ]
+    },
+    {
+      "id": "q6",
+      "title": "Are you facing any issues with operational Apps (Zing, Meal benefit, Jify) or any issues with PF, ESI, Reimbursements, Insurance & Payslips?",
+      "type": "radio",
+      "choices": [
+        {"label": "Every time", "score": 1},
+        {"label": "Most of the time", "score": 2},
+        {"label": "Sometime", "score": 3},
+        {"label": "At Time", "score": 4},
+        {"label": "Never", "score": 5}
+      ]
+    },
+    {
+      "id": "q7",
+      "title": "Have you gone through the HR Handbook on Zing / Accepted all the policies?",
+      "type": "radio",
+      "choices": [
+        {"label": "Excellent", "score": 5},
+        {"label": "Very Good", "score": 4},
+        {"label": "Good", "score": 3},
+        {"label": "Average", "score": 2},
+        {"label": "Poor", "score": 1}
+      ]
+    },
+    {
+      "id": "q8",
+      "title": "Are you satisfied with your current work schedule - Working Hours, Breaks, Timings, Weekly Offs & Comp Offs?",
+      "type": "radio",
+      "choices": [
+        {"label": "Every time", "score": 5},
+        {"label": "Most of the time", "score": 4},
+        {"label": "Sometime", "score": 3},
+        {"label": "At Time", "score": 2},
+        {"label": "Never", "score": 1}
+      ]
+    },
+    {
+      "id": "q9",
+      "title": "How effectively does the team collaborate, and what factors contribute to that?",
+      "type": "radio",
+      "choices": [
+        {"label": "Excellent", "score": 5},
+        {"label": "Very Good", "score": 4},
+        {"label": "Good", "score": 3},
+        {"label": "Average", "score": 2},
+        {"label": "Poor", "score": 1}
+      ]
+    },
+    {
+      "id": "q10",
+      "title": "Name one of your colleague who is very helpful on the floor",
+      "type": "input"
+    },
+    {
+      "id": "q11",
+      "title": "Any suggestions or support required from the organization?",
+      "type": "textarea"
+    },
+    {
+      "id": "q12",
+      "title": "On a scale of 1 to 5 how do you rate your experience with TWC & why?",
+      "type": "radio",
+      "choices": [
+        {"label": "Excellent", "score": 5},
+        {"label": "Very Good", "score": 4},
+        {"label": "Good", "score": 3},
+        {"label": "Average", "score": 2},
+        {"label": "Poor", "score": 1}
+      ]
+    }
+  ],
   "REGIONS": [
     "North",
     "South",

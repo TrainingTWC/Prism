@@ -3,7 +3,8 @@ import { X } from 'lucide-react';
 import { TrainingAuditSubmission } from '../services/dataService';
 import comprehensiveStoreMapping from '../public/comprehensive_store_mapping.json';
 import trainerMapping from '../trainerMapping.json';
-import { AREA_MANAGERS } from '../constants';
+import { AREA_MANAGERS as DEFAULT_AREA_MANAGERS } from '../constants';
+import { useConfig } from '../contexts/ConfigContext';
 
 interface TrainingHealthBreakdownModalProps {
   isOpen: boolean;
@@ -15,40 +16,43 @@ interface TrainingHealthBreakdownModalProps {
 // Create lookup maps
 const storeMapping = new Map(comprehensiveStoreMapping.map(store => [store['Store ID'], store]));
 const trainerNameMapping = new Map(trainerMapping.map(t => [t['Trainer ID']?.toLowerCase(), t.Trainer]));
-const amNameMapping = new Map(AREA_MANAGERS.map(am => [am.id, am.name]));
 
 // Add additional trainer mappings not in trainerMapping.json
 trainerNameMapping.set('h3595', 'Bhawna');
 
-function getStoreDetails(storeId: string) {
-  const store = storeMapping.get(storeId);
-  if (!store) {
-    console.log('⚠️ Store not found in mapping:', storeId);
+export default function TrainingHealthBreakdownModal({ isOpen, onClose, submissions, trendsData = [] }: TrainingHealthBreakdownModalProps) {
+  const { config } = useConfig();
+  const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
+  const amNameMapping = useMemo(() => new Map(AREA_MANAGERS.map(am => [am.id, am.name])), [AREA_MANAGERS]);
+
+  function getStoreDetails(storeId: string) {
+    const store = storeMapping.get(storeId);
+    if (!store) {
+      console.log('⚠️ Store not found in mapping:', storeId);
+    }
+    
+    const amId = store?.AM || 'Unknown';
+    const trainerId = store?.Trainer || 'Unknown';
+    
+    return {
+      region: store?.Region || 'Unknown',
+      areaManager: amNameMapping.get(amId) || amId,
+      trainer: trainerNameMapping.get(trainerId.toLowerCase()) || trainerId
+    };
   }
-  
-  const amId = store?.AM || 'Unknown';
-  const trainerId = store?.Trainer || 'Unknown';
-  
-  return {
-    region: store?.Region || 'Unknown',
-    areaManager: amNameMapping.get(amId) || amId,
-    trainer: trainerNameMapping.get(trainerId.toLowerCase()) || trainerId
-  };
-}
 
-interface MonthHealthStats {
-  month: string;
-  needsAttention: number;
-  brewing: number;
-  perfectShot: number;
-  total: number;
-}
+  interface MonthHealthStats {
+    month: string;
+    needsAttention: number;
+    brewing: number;
+    perfectShot: number;
+    total: number;
+  }
 
-interface CategoryStats {
-  [key: string]: MonthHealthStats[];
-}
+  interface CategoryStats {
+    [key: string]: MonthHealthStats[];
+  }
 
-const TrainingHealthBreakdownModal: React.FC<TrainingHealthBreakdownModalProps> = ({ isOpen, onClose, submissions, trendsData = [] }) => {
   const [activeTab, setActiveTab] = useState<'overall' | 'region' | 'am' | 'trainer'>('overall');
 
   // Helper function to categorize store by score
@@ -362,6 +366,4 @@ const TrainingHealthBreakdownModal: React.FC<TrainingHealthBreakdownModalProps> 
       </div>
     </div>
   );
-};
-
-export default TrainingHealthBreakdownModal;
+}

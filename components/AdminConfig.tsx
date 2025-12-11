@@ -202,8 +202,22 @@ const AdminConfig: React.FC = () => {
 // Checklists Editor Component
 const ChecklistsEditor: React.FC<{ config: any; setJson: (s: string) => void; saving: boolean; onSave: () => void }> = ({ config, setJson, saving, onSave }) => {
   const [selectedChecklist, setSelectedChecklist] = useState<string>('TRAINING');
-  const checklists = config?.CHECKLISTS || {};
+  
+  // Memoize checklists to prevent unnecessary re-renders
+  const checklists = React.useMemo(() => {
+    const cls = config?.CHECKLISTS || {};
+    console.log('📦 checklists memo recalculating, CHECKLISTS keys:', Object.keys(cls));
+    return cls;
+  }, [config?.CHECKLISTS]);
+  
   const checklistKeys = Object.keys(checklists);
+
+  console.log('ChecklistsEditor - Rendering with config:', config);
+  console.log('ChecklistsEditor - CHECKLISTS:', checklists);
+  console.log('ChecklistsEditor - Selected checklist:', selectedChecklist);
+  console.log('ChecklistsEditor - Checklist keys:', checklistKeys);
+  console.log('ChecklistsEditor - TRAINING data:', checklists['TRAINING']);
+  console.log('ChecklistsEditor - TRAINING data length:', checklists['TRAINING']?.length);
 
   // Use local editable state
   const [editableChecklist, setEditableChecklist] = useState<any[]>([]);
@@ -213,6 +227,17 @@ const ChecklistsEditor: React.FC<{ config: any; setJson: (s: string) => void; sa
     return new Set([0, 1, 2]);
   });
 
+  // Initialize editableChecklist when component mounts or config loads
+  React.useEffect(() => {
+    const currentData = checklists[selectedChecklist];
+    if (currentData && Array.isArray(currentData) && currentData.length > 0) {
+      console.log('🔄 Initializing editableChecklist from config, length:', currentData.length);
+      setEditableChecklist(JSON.parse(JSON.stringify(currentData)));
+    } else {
+      console.log('⚠️ No data found for', selectedChecklist, 'in checklists');
+    }
+  }, [checklists, selectedChecklist]);
+
   // Sync editable state with config when checklist changes
   React.useEffect(() => {
     const currentData = checklists[selectedChecklist] || [];
@@ -220,8 +245,10 @@ const ChecklistsEditor: React.FC<{ config: any; setJson: (s: string) => void; sa
     console.log('AdminConfig - Checklists object:', checklists);
     console.log('AdminConfig - Current data:', currentData);
     console.log('AdminConfig - Data length:', currentData.length);
-    setEditableChecklist(JSON.parse(JSON.stringify(currentData)));
-  }, [selectedChecklist]);
+    if (currentData.length > 0) {
+      setEditableChecklist(JSON.parse(JSON.stringify(currentData)));
+    }
+  }, [selectedChecklist, checklists]);
 
   // Sync changes back to config
   React.useEffect(() => {
@@ -388,6 +415,10 @@ const ChecklistsEditor: React.FC<{ config: any; setJson: (s: string) => void; sa
           </h3>
           <p className="text-gray-600 dark:text-slate-400 mb-4">
             Start building your {selectedChecklist} checklist by adding the first section.
+          </p>
+          <p className="text-sm text-red-600 dark:text-red-400 mb-2">
+            DEBUG: editableChecklist.length = {editableChecklist.length}, 
+            checklists[{selectedChecklist}] = {JSON.stringify(checklists[selectedChecklist])?.substring(0, 100)}...
           </p>
           <button
             onClick={addSection}

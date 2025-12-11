@@ -298,6 +298,32 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
       return northAMs;
     }
 
+    // NEW: Use AM_HR_MAPPING from config if available
+    if (config?.AM_HR_MAPPING) {
+      console.log('📍 Using AM_HR_MAPPING from config for HR:', meta.hrId);
+      console.log('📍 AM_HR_MAPPING:', config.AM_HR_MAPPING);
+      const amsForThisHr: typeof AREA_MANAGERS = [];
+      Object.entries(config.AM_HR_MAPPING).forEach(([amId, hrMapping]: [string, any]) => {
+        // Check if this AM is mapped to the selected HR (as hrbp, hr2, or hr3)
+        if (hrMapping.hrbp === meta.hrId || hrMapping.hr2 === meta.hrId || hrMapping.hr3 === meta.hrId) {
+          const amPerson = AREA_MANAGERS.find(am => am.id === amId);
+          console.log(`📍 Checking AM ${amId}:`, amPerson ? `Found - ${amPerson.name}` : 'Not found in AREA_MANAGERS');
+          if (amPerson) {
+            amsForThisHr.push(amPerson);
+          }
+        }
+      });
+      
+      if (amsForThisHr.length > 0) {
+        console.log(`Found ${amsForThisHr.length} AMs for HR ${meta.hrId} from AM_HR_MAPPING:`, amsForThisHr);
+        return amsForThisHr;
+      } else {
+        console.log(`⚠️ No AMs found in AM_HR_MAPPING for HR ${meta.hrId}`);
+      }
+    } else {
+      console.log('⚠️ config.AM_HR_MAPPING not available yet');
+    }
+
     // Derive AM IDs from normalized mapping (allStores). Use `allStores` when
     // available; fall back to the immediate `MAPPED_STORES` export so the UI can
     // populate AMs even before async mapping loading completes.
@@ -326,7 +352,7 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
   console.log('Source stores used:', sourceStores.length, 'stores');
   if (missingIds && missingIds.length > 0) console.log('AM IDs referenced in mapping but missing from AREA_MANAGERS:', missingIds);
   return result;
-  }, [userRole, meta.hrId, allStores, MAPPED_STORES]);
+  }, [userRole, meta.hrId, allStores, MAPPED_STORES, config, AREA_MANAGERS]);
 
   const availableStores = useMemo(() => {
     console.log('🏪 availableStores recalculating...');
@@ -437,6 +463,42 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
       localStorage.setItem('hr_meta', JSON.stringify(meta)); 
     } catch(e) {}
   }, [meta]);
+
+  // Auto-fill Area Manager when store is selected
+  useEffect(() => {
+    if (meta.storeId && allStores.length > 0) {
+      const selectedStore = allStores.find((s: any) => s.id === meta.storeId);
+      if (selectedStore && selectedStore.amId) {
+        const amPerson = AREA_MANAGERS.find(am => am.id.toUpperCase() === selectedStore.amId.toUpperCase());
+        if (amPerson && amPerson.id !== meta.amId) {
+          console.log('Auto-filling AM from store:', amPerson.name, amPerson.id);
+          setMeta(prev => ({
+            ...prev,
+            amId: amPerson.id,
+            amName: amPerson.name
+          }));
+        }
+      }
+    }
+  }, [meta.storeId, allStores, AREA_MANAGERS]);
+
+  // Auto-fill HR when Area Manager is selected (using AM_HR_MAPPING from config)
+  useEffect(() => {
+    if (meta.amId && config?.AM_HR_MAPPING && !meta.hrId) {
+      const hrMapping = config.AM_HR_MAPPING[meta.amId];
+      if (hrMapping && hrMapping.hrbp) {
+        const hrPerson = HR_PERSONNEL.find(hr => hr.id === hrMapping.hrbp);
+        if (hrPerson) {
+          console.log('Auto-filling HR from AM mapping:', hrPerson.name, hrPerson.id);
+          setMeta(prev => ({
+            ...prev,
+            hrId: hrPerson.id,
+            hrName: hrPerson.name
+          }));
+        }
+      }
+    }
+  }, [meta.amId, config?.AM_HR_MAPPING, HR_PERSONNEL]);
 
   const validate = () => {
     for(const q of QUESTIONS){

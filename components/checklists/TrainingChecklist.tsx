@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GraduationCap, Calendar as CalendarIcon, ClipboardCheck } from 'lucide-react';
-import { AREA_MANAGERS } from '../../constants';
+import { AREA_MANAGERS as DEFAULT_AREA_MANAGERS } from '../../constants';
 import { hapticFeedback } from '../../utils/haptics';
 import compStoreMapping from '../../src/comprehensive_store_mapping.json';
 import { useConfig } from '../../contexts/ConfigContext';
@@ -275,6 +275,7 @@ interface TrainingChecklistProps {
 
 const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) => {
   const { config, loading: configLoading } = useConfig();
+  const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
   
   // Use config data if available, otherwise fall back to hardcoded SECTIONS
   const sections = config?.CHECKLISTS?.TRAINING || SECTIONS;

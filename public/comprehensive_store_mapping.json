@@ -246,7 +246,7 @@
     "Concept": "Experience",
     "HRBP": "H1972",
     "Trainer": "H1697",
-    "AM": "H833",
+    "AM": "H2155",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -302,7 +302,7 @@
     "Concept": "Experience",
     "HRBP": "H3578",
     "Trainer": "H3595",
-    "AM": "H535",
+    "AM": "h535",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -372,7 +372,7 @@
     "Concept": "Experience",
     "HRBP": "H2761",
     "Trainer": "H1697",
-    "AM": "H2155",
+    "AM": "H833",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -442,7 +442,7 @@
     "Concept": "Experience",
     "HRBP": "H3578",
     "Trainer": "H3595",
-    "AM": "H535",
+    "AM": "h535",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -610,7 +610,7 @@
     "Concept": "Premium",
     "HRBP": "H3730",
     "Trainer": "H3252",
-    "AM": "H2758",
+    "AM": "H3914",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -723,7 +723,7 @@
     "Concept": "Experience",
     "HRBP": "H3730",
     "Trainer": "H3252",
-    "AM": "H2758",
+    "AM": "H3914",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -737,7 +737,7 @@
     "Concept": "Premium",
     "HRBP": "H3730",
     "Trainer": "H3252",
-    "AM": "H2758",
+    "AM": "H3914",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -807,7 +807,7 @@
     "Concept": "",
     "HRBP": "H2761",
     "Trainer": "H1697",
-    "AM": "H2761",
+    "AM": "H546",
     "Regional Training Manager": "H1697",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
@@ -892,7 +892,7 @@
     "Concept": "Experience",
     "HRBP": "H3578",
     "Trainer": "H3595",
-    "AM": "H535",
+    "AM": "h535",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -920,7 +920,7 @@
     "Concept": "Experience",
     "HRBP": "H3730",
     "Trainer": "H3252",
-    "AM": "H2758",
+    "AM": "H3914",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -1270,7 +1270,7 @@
     "Concept": "",
     "HRBP": "H2165",
     "Trainer": "H3595",
-    "AM": "H1766",
+    "AM": "H2396",
     "Regional Training Manager": "H2595",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
@@ -1313,7 +1313,7 @@
     "Concept": "Kiosk",
     "HRBP": "H3603",
     "Trainer": "H1278",
-    "AM": "H2396",
+    "AM": "H2908",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -1355,7 +1355,7 @@
     "Concept": "",
     "HRBP": "H3247",
     "Trainer": "H3247",
-    "AM": "H3247",
+    "AM": "H2262",
     "Regional Training Manager": "H3252",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
@@ -1455,7 +1455,7 @@
     "Concept": "",
     "HRBP": "H1972",
     "Trainer": "H2155",
-    "AM": "H1972",
+    "AM": "H2155",
     "Regional Training Manager": "H1697",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
@@ -1624,7 +1624,7 @@
     "Concept": "Experience",
     "HRBP": "H3730",
     "Trainer": "H3252",
-    "AM": "H2758",
+    "AM": "H3914",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -1820,7 +1820,7 @@
     "Concept": "Experience",
     "HRBP": "H3578",
     "Trainer": "H3595",
-    "AM": "H535",
+    "AM": "h535",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -2198,7 +2198,7 @@
     "Concept": "Experience",
     "HRBP": "H3578",
     "Trainer": "H3595",
-    "AM": "H535",
+    "AM": "h535",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -2212,7 +2212,7 @@
     "Concept": "Experience",
     "HRBP": "H3578",
     "Trainer": "H3595",
-    "AM": "H535",
+    "AM": "h535",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"
@@ -2582,6 +2582,20 @@
     "HR Head": "H2081"
   },
   {
+    "Store ID": "S205",
+    "Store Name": "CG Road Navrangpura",
+    "Region": "West",
+    "Menu": "REGULAR",
+    "Store Type": "Highstreet",
+    "Concept": "Experience",
+    "HRBP": "H3247",
+    "Trainer": "H3247",
+    "AM": "H2759",
+    "E-Learning Specialist": "H541",
+    "Training Head": "H3237",
+    "HR Head": "H2081"
+  },
+  {
     "Store ID": "S206",
     "Store Name": "Capita land ITPH",
     "Region": "West",
@@ -2596,6 +2610,20 @@
     "HR Head": "H2081"
   },
   {
+    "Store ID": "S210",
+    "Store Name": "Prahlad Nagar- AHM",
+    "Region": "West",
+    "Menu": "REGULAR",
+    "Store Type": "Highstreet",
+    "Concept": "Experience",
+    "HRBP": "H3247",
+    "Trainer": "H3247",
+    "AM": "H2759",
+    "E-Learning Specialist": "H541",
+    "Training Head": "H3237",
+    "HR Head": "H2081"
+  },
+  {
     "Store ID": "S211",
     "Store Name": "Sattva Knowledge Park",
     "Region": "West",
@@ -2605,6 +2633,34 @@
     "HRBP": "H3247",
     "Trainer": "H3247",
     "AM": "H2262",
+    "E-Learning Specialist": "H541",
+    "Training Head": "H3237",
+    "HR Head": "H2081"
+  },
+  {
+    "Store ID": "S216",
+    "Store Name": "Kotia Nirman- Andheri West",
+    "Region": "West",
+    "Menu": "REGULAR",
+    "Store Type": "Highstreet",
+    "Concept": "Experience",
+    "HRBP": "H3603",
+    "Trainer": "H3603",
+    "AM": "H3386",
+    "E-Learning Specialist": "H541",
+    "Training Head": "H3237",
+    "HR Head": "H2081"
+  },
+  {
+    "Store ID": "S219",
+    "Store Name": "Pune Camp",
+    "Region": "West",
+    "Menu": "REGULAR",
+    "Store Type": "Highstreet",
+    "Concept": "Experience",
+    "HRBP": "H3728",
+    "Trainer": "H3728",
+    "AM": "H3914",
     "E-Learning Specialist": "H541",
     "Training Head": "H3237",
     "HR Head": "H2081"

@@ -4083,36 +4083,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
                         console.log('🔍 Audit Coverage Debug:');
                         console.log('  - filteredTrainingData entries:', filteredTrainingData.length);
-                        console.log('  - hrMappingData entries:', hrMappingData?.length || 0);
 
-                        // First, initialize ALL stores from hrMappingData (comprehensive mapping)
-                        if (hrMappingData && hrMappingData.length > 0) {
-                          hrMappingData.forEach((item: any) => {
-                            const storeId = item['Store ID'] || item.storeId;
-                            const storeName = item['Store Name'] || item.locationName;
-                            const region = item.Region || item.region;
-                            const amId = item.AM || item.areaManagerId;
-                            const amName = allAreaManagers?.find(am => am.code === amId)?.name || amId || 'Unknown';
-                            
-                            if (storeId && !storeAudits.has(storeId)) {
-                              // Initialize all stores with no audit data
-                              storeAudits.set(storeId, {
-                                storeId,
-                                storeName: storeName || storeId,
-                                region: region || 'Unknown',
-                                amName: amName,
-                                trainerName: 'Unknown',
-                                lastAuditDate: null, // No audit yet
-                                healthStatus: 'Never Audited',
-                                auditInterval: 30, // Default interval
-                                percentage: 0,
-                                hasAudit: false
-                              });
-                            }
-                          });
-                        }
-
-                        // Now update with actual audit data
+                        // Process actual audit data first
                         filteredTrainingData.forEach(submission => {
                           const storeId = submission.storeId;
                           if (!storeId) return;
@@ -4145,8 +4117,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           const existingStore = storeAudits.get(storeId);
                           
                           // Update if this is the first audit OR if this submission is newer
-                          if (!existingStore) {
-                            // Store not in mapping - add it
+                          if (!existingStore || submissionDate > existingStore.lastAuditDate) {
                             storeAudits.set(storeId, {
                               storeId,
                               storeName: submission.storeName || storeId,
@@ -4159,27 +4130,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                               percentage,
                               hasAudit: true
                             });
-                          } else if (!existingStore.hasAudit || submissionDate > existingStore.lastAuditDate) {
-                            // Update existing store with audit data
-                            storeAudits.set(storeId, {
-                              ...existingStore, // Keep existing metadata
-                              storeName: submission.storeName || existingStore.storeName,
-                              region: submission.region || existingStore.region,
-                              amName: submission.amName || existingStore.amName,
-                              trainerName: submission.trainerName || existingStore.trainerName,
-                              lastAuditDate: submissionDate,
-                              healthStatus,
-                              auditInterval,
-                              percentage,
-                              hasAudit: true
-                            });
                           }
                         });
                         
-                        console.log('  - Stores initialized from mapping:', storeAudits.size);
-                        console.log('  - Audits processed (with updates):', Array.from(storeAudits.values()).filter(s => s.hasAudit).length);
-                        console.log('  - Sample store IDs from mapping:', hrMappingData?.slice(0, 3).map((item: any) => item['Store ID'] || item.storeId));
-                        console.log('  - Sample store IDs from audits:', filteredTrainingData.slice(0, 3).map(s => s.storeId));
+                        console.log('  - Stores with audits:', storeAudits.size);
 
                         // Calculate due dates and status for ALL stores
                         let auditCoverage = Array.from(storeAudits.values()).map(store => {
@@ -4188,32 +4142,23 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           let status: string;
                           let statusColor: string;
                           
-                          if (!store.hasAudit || !store.lastAuditDate) {
-                            // Store has NEVER been audited
-                            nextDue = new Date(today); // Should have been done already
-                            nextDue.setDate(nextDue.getDate() - 30); // Show as 30 days overdue minimum
-                            daysRemaining = -30;
-                            status = 'Never Audited';
+                          // All stores in this list have audits (we only add stores with audit data now)
+                          const lastAudit = store.lastAuditDate;
+                          nextDue = new Date(lastAudit);
+                          nextDue.setDate(nextDue.getDate() + store.auditInterval);
+                          
+                          const diffTime = nextDue.getTime() - today.getTime();
+                          daysRemaining = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                          
+                          status = 'On Track';
+                          statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+                          
+                          if (daysRemaining < 0) {
+                            status = 'Overdue';
                             statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-                          } else {
-                            // Store has been audited - calculate next due date
-                            const lastAudit = store.lastAuditDate;
-                            nextDue = new Date(lastAudit);
-                            nextDue.setDate(nextDue.getDate() + store.auditInterval);
-                            
-                            const diffTime = nextDue.getTime() - today.getTime();
-                            daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            
-                            status = 'On Track';
-                            statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-                            
-                            if (daysRemaining < 0) {
-                              status = 'Overdue';
-                              statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-                            } else if (daysRemaining <= 7) {
-                              status = 'Due Soon';
-                              statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-                            }
+                          } else if (daysRemaining <= 7) {
+                            status = 'Due Soon';
+                            statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
                           }
 
                           return {
