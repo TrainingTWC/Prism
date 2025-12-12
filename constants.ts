@@ -61,7 +61,8 @@ export const AREA_MANAGERS: AreaManager[] = [
       { name: 'Atul', id: 'h2396' },
       { name: 'Atul', id: 'H2396' },
       { name: 'Sanjay', id: 'H2273' },
-      { name: 'Rutuja', id: 'H2758' }
+      { name: 'Rutuja', id: 'H2758' },
+      { name: 'VijayaLakshmi', id: 'H2759' }
       // Monica (H2165) removed - she is an HRBP, not an Area Manager
 ];
 
