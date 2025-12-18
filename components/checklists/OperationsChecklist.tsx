@@ -345,7 +345,11 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
 
   // Build unique trainers list from comprehensive store mapping - ULTIMATE SOURCE OF TRUTH
   const uniqueTrainers = useMemo(() => {
-    const ids = Array.from(new Set((compStoreMapping as any[]).map((r: any) => r.Trainer).filter(Boolean)));
+    const allIds = (compStoreMapping as any[])
+      .map((r: any) => r.Trainer)
+      .filter(Boolean)
+      .flatMap((trainer: string) => trainer.split(',').map(id => id.trim())); // Split comma-separated IDs
+    const ids = Array.from(new Set(allIds));
     const trainers = ids.map((id: string) => ({
       id,
       name: trainerNameOverrides[id] || id
@@ -409,7 +413,11 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     try {
       const trainerIdNorm = normalizeId(metadata.trainerId);
       const amsForTrainer = Array.from(new Set((compStoreMapping as any[])
-        .filter((r: any) => normalizeId(r.Trainer) === trainerIdNorm)
+        .filter((r: any) => {
+          // Handle comma-separated trainer IDs
+          const trainers = (r.Trainer || '').split(',').map((id: string) => normalizeId(id.trim()));
+          return trainers.includes(trainerIdNorm);
+        })
         .map((r: any) => normalizeId(r.AM))
         .filter(Boolean)));
       return matchesSearch && amsForTrainer.includes(normalizeId(am.id));
@@ -435,7 +443,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         const amIdNorm = normalizeId(metadata.amId);
         const trainersForAM = Array.from(new Set((compStoreMapping as any[])
           .filter((r: any) => normalizeId(r.AM) === amIdNorm)
-          .map((r: any) => normalizeId(r.Trainer))
+          .flatMap((r: any) => (r.Trainer || '').split(',').map((id: string) => normalizeId(id.trim())))
           .filter(Boolean)));
         return matchesSearch && trainersForAM.includes(normalizeId(trainer.id));
       } catch (e) {

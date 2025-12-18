@@ -30,7 +30,10 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
   // Get available stores, AMs, and trainers from comprehensive mapping
   const availableStores = comprehensiveMapping || [];
   const availableAMs = [...new Set(availableStores.map(s => s['AM']).filter(Boolean))];
-  const availableTrainers = [...new Set(availableStores.map(s => s['Trainer']).filter(Boolean))];
+  const availableTrainers = [...new Set(availableStores
+    .map(s => s['Trainer'])
+    .filter(Boolean)
+    .flatMap((trainer: string) => trainer.split(',').map(id => id.trim())))]; // Handle comma-separated trainer IDs
 
   // Auto-fill AM and Trainer when store is selected
   const handleStoreChange = (storeId: string) => {

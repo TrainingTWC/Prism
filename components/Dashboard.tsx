@@ -518,7 +518,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             // Build Trainer list for Training/Operations/QA dashboards
             const trainerIds = new Set<string>();
             comp.forEach((row: any) => {
-              if (row.Trainer) trainerIds.add(String(row.Trainer).toUpperCase());
+              if (row.Trainer) {
+                // Handle comma-separated trainer IDs
+                const trainers = String(row.Trainer).split(',').map(id => id.trim().toUpperCase());
+                trainers.forEach(id => trainerIds.add(id));
+              }
             });
             console.log('Dashboard - Trainer IDs found:', Array.from(trainerIds));
             
@@ -775,7 +779,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     else if (trainerFilterId && compStoreMapping && compStoreMapping.length > 0) {
       console.log('Filtering Stores for Trainer via comprehensive mapping:', trainerFilterId);
       const trainerStoreIds = compStoreMapping
-        .filter((m: any) => normalizeId(m.Trainer) === trainerFilterId)
+        .filter((m: any) => {
+          // Handle comma-separated trainer IDs
+          const trainers = (m.Trainer || '').split(',').map((id: string) => normalizeId(id.trim()));
+          return trainers.includes(trainerFilterId);
+        })
         .map((m: any) => (m['Store ID'] || m.storeId || m.StoreID || m.store_id));
       const uniqueIds = new Set(trainerStoreIds.filter(Boolean));
       stores = stores.filter(store => uniqueIds.has(store.id));
@@ -801,7 +809,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       if (compStoreMapping && compStoreMapping.length > 0) {
         const amIds = new Set<string>();
         compStoreMapping.forEach((m: any) => {
-          if (normalizeId(m.Trainer) === trainerFilterId) {
+          // Handle comma-separated trainer IDs
+          const trainers = (m.Trainer || '').split(',').map((id: string) => normalizeId(id.trim()));
+          if (trainers.includes(trainerFilterId)) {
             const am = m.AM || m.am || m.areaManager || m.AMId || m.amId;
             if (am) amIds.add(String(am));
           }

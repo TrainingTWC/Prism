@@ -436,7 +436,11 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
   const uniqueTrainers = (() => {
     // Use comprehensive store mapping as the ULTIMATE source of truth
-    const ids = Array.from(new Set((compStoreMapping as any[]).map((r: any) => r.Trainer).filter(Boolean)));
+    const allIds = (compStoreMapping as any[])
+      .map((r: any) => r.Trainer)
+      .filter(Boolean)
+      .flatMap((trainer: string) => trainer.split(',').map(id => id.trim())); // Split comma-separated IDs
+    const ids = Array.from(new Set(allIds));
     const trainers = ids.map((id: string) => ({
       id,
       name: trainerNameOverrides[id] || id
@@ -473,7 +477,11 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     try {
       const trainerIdNorm = normalizeId(meta.trainerId);
       const amsForTrainer = Array.from(new Set((compStoreMapping as any[])
-        .filter((r: any) => normalizeId(r.Trainer) === trainerIdNorm)
+        .filter((r: any) => {
+          // Handle comma-separated trainer IDs
+          const trainers = (r.Trainer || '').split(',').map((id: string) => normalizeId(id.trim()));
+          return trainers.includes(trainerIdNorm);
+        })
         .map((r: any) => normalizeId(r.AM))
         .filter(Boolean)));
       return matchesSearch && amsForTrainer.includes(normalizeId(am.id));
