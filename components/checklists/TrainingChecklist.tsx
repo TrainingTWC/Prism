@@ -420,14 +420,18 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
   // Build trainers list from comprehensive store mapping - ULTIMATE SOURCE OF TRUTH
   const trainerNameOverrides: Record<string, string> = {
-    H1761: 'Mahadev',
-    H701: 'Mallika',
-    H1697: 'Sheldon',
-    H2595: 'Kailash',
-    H3595: 'Bhawna',
-    H3252: 'Priyanka',
-    H1278: 'Viraj',
-    H3247: 'Sunil'
+    H1278: 'Viraj Vijay Mahamunkar',
+    H1697: 'Sheldon Antonio Xavier DSouza', 
+    H1761: 'Mahadev Nayak',
+    H2155: 'Jagruti Narendra Bhanushali',
+    H2595: 'Kailash Singh',
+    H3247: 'Thatikonda Sunil Kumar',
+    H3252: 'Priyanka Pankajkumar Gupta',
+    H3595: 'Bhawna Devidas',
+    H3603: 'Manasi',
+    H3728: 'Siddhant',
+    H3786: 'Oviya',
+    H701: 'Mallika M'
   };
 
   const uniqueTrainers = (() => {

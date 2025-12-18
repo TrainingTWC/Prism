@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
 
 // Google Sheets endpoint for logging AM Operations data - UPDATED URL
-const AM_OPS_LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw_Q9JD-4ys1qElIM4-DYFwwOUzVmPs-LYsYmP9lWqsp3ExJr5tnt-RYEJxYTi5SEjJ6w/exec';
+const AM_OPS_LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwdogoQrHjYkIwJ0om_dcbYJZ1FBXxyNvTpdGP63mTxjqISl3gA9Oh0gaWX792oU2PyNw/exec';
 
 interface ChecklistMeta {
   hrName: string;
@@ -141,6 +141,55 @@ const SECTIONS: ChecklistSection[] = [
       {id:'EX_4', q:'Have top performers been recognized?'},
       {id:'EX_5', q:'Have wins been celebrated and improvement areas communicated?'},
       {id:'EX_6', q:'Has the team been motivated for ongoing improvement?'}
+    ]
+  },
+  { 
+    id: 'SHLP', 
+    title: 'SHLP Certification Tool', 
+    items: [
+      // Store Readiness
+      {id:'SHLP_1', q:'Complete Opening, Mid, and Closing checklists'},
+      {id:'SHLP_2', q:'Ensure store readiness before opening'},
+      {id:'SHLP_3', q:'VM of food case & merchandise wall'},
+      {id:'SHLP_4', q:'Marketing & promo collaterals'},
+      {id:'SHLP_5', q:'Complete all closing tasks'},
+      // Product Quality & Standards
+      {id:'SHLP_6', q:'Dial-in checks for coffee & food'},
+      {id:'SHLP_7', q:'No sub-standard products served'},
+      {id:'SHLP_8', q:'SOPs & recipes followed'},
+      {id:'SHLP_9', q:'Understand COGS, wastage & variance'},
+      {id:'SHLP_10', q:'Sampling & coffee tasting'},
+      // Cash & Administration
+      {id:'SHLP_11', q:'Petty cash, float & safe check'},
+      {id:'SHLP_12', q:'Cash log book handover'},
+      {id:'SHLP_13', q:'Arrange POS float/change'},
+      {id:'SHLP_14', q:'GRN & petty cash entries'},
+      {id:'SHLP_15', q:'Ordering flow/schedule'},
+      // Team Management
+      {id:'SHLP_16', q:'Team briefing'},
+      {id:'SHLP_17', q:'Shift goals & targets'},
+      {id:'SHLP_18', q:'Motivate team to follow standards'},
+      {id:'SHLP_19', q:'Plan team breaks'},
+      {id:'SHLP_20', q:'Identify bottlenecks & support'},
+      {id:'SHLP_21', q:'Recognize top performers'},
+      {id:'SHLP_22', q:'Task-specific feedback'},
+      {id:'SHLP_23', q:'Share inputs with SM'},
+      // Operations & Availability
+      {id:'SHLP_24', q:'Product availability monitoring'},
+      {id:'SHLP_25', q:'Lean period training'},
+      {id:'SHLP_26', q:'Peak period utilisation'},
+      {id:'SHLP_27', q:'Deployment adjustment'},
+      {id:'SHLP_28', q:'Shift priority changes'},
+      {id:'SHLP_29', q:'Receiving/storing/thawing'},
+      {id:'SHLP_30', q:'Remove thawing products'},
+      // Safety & Compliance
+      {id:'SHLP_31', q:'Key handling & handover'},
+      {id:'SHLP_32', q:'Lost & Found SOP'},
+      {id:'SHLP_33', q:'Maintenance logging'},
+      // Business Acumen
+      {id:'SHLP_34', q:'Sales analysis (WoW, MoM – ADS, ADT, FIPT, LTO)'},
+      {id:'SHLP_35', q:'BSC understanding'},
+      {id:'SHLP_36', q:'Controllables (EB units, COGS)'}
     ]
   }
 ];
@@ -280,14 +329,18 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
 
   // Trainer name overrides from comprehensive mapping
   const trainerNameOverrides: Record<string, string> = {
-    H1761: 'Mahadev',
-    H701: 'Mallika',
-    H1697: 'Sheldon',
-    H2595: 'Kailash',
-    H3595: 'Bhawna',
-    H3252: 'Priyanka',
-    H1278: 'Viraj',
-    H3247: 'Sunil'
+    H1278: 'Viraj Vijay Mahamunkar',
+    H1697: 'Sheldon Antonio Xavier DSouza', 
+    H1761: 'Mahadev Nayak',
+    H2155: 'Jagruti Narendra Bhanushali',
+    H2595: 'Kailash Singh',
+    H3247: 'Thatikonda Sunil Kumar',
+    H3252: 'Priyanka Pankajkumar Gupta',
+    H3595: 'Bhawna Devidas',
+    H3603: 'Manasi',
+    H3728: 'Siddhant',
+    H3786: 'Oviya',
+    H701: 'Mallika M'
   };
 
   // Build unique trainers list from comprehensive store mapping - ULTIMATE SOURCE OF TRUTH
@@ -550,45 +603,81 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         percentageScore: percentage.toString()
       };
 
-      // Add all question responses with section prefixes
-      let questionCounter = 1;
+      // Add all question responses - item.id already contains the full ID (e.g., 'CG_1', 'OTA_1')
       sections.forEach((section, sectionIndex) => {
         section.items.forEach((item, itemIndex) => {
           const questionKey = `${section.id}_${item.id}`;
-          let paramKey = '';
           
-          // Map sections to proper question numbers for Google Sheets
-          if (section.id === 'CG') {
-            paramKey = `q${questionCounter}`;
-          } else if (section.id === 'OTA') {
-            paramKey = `q${100 + (itemIndex + 1)}`;
-          } else if (section.id === 'FAS') {
-            paramKey = `q${200 + (itemIndex + 1)}`;
-          } else if (section.id === 'FWS') {
-            paramKey = `q${300 + (itemIndex + 1)}`;
-          } else if (section.id === 'ENJ') {
-            paramKey = `q${400 + (itemIndex + 1)}`;
-          } else if (section.id === 'EX') {
-            paramKey = `q${500 + (itemIndex + 1)}`;
+          // Use item.id directly as it already has the correct format (CG_1, OTA_1, etc.)
+          // But Google Apps Script expects OTA_101, FAS_201, etc.
+          let paramKey = item.id;
+          
+          // Remap OTA, FAS, FWS, ENJ, EX to use 100s, 200s, 300s, 400s, 500s format
+          if (item.id.startsWith('OTA_')) {
+            const num = item.id.split('_')[1];
+            paramKey = `OTA_${100 + parseInt(num)}`;
+          } else if (item.id.startsWith('FAS_')) {
+            const num = item.id.split('_')[1];
+            paramKey = `FAS_${200 + parseInt(num)}`;
+          } else if (item.id.startsWith('FWS_')) {
+            const num = item.id.split('_')[1];
+            paramKey = `FWS_${300 + parseInt(num)}`;
+          } else if (item.id.startsWith('ENJ_')) {
+            const num = item.id.split('_')[1];
+            paramKey = `ENJ_${400 + parseInt(num)}`;
+          } else if (item.id.startsWith('EX_')) {
+            const num = item.id.split('_')[1];
+            paramKey = `EX_${500 + parseInt(num)}`;
           }
           
           params[paramKey] = responses[questionKey] || '';
-          
-          if (section.id === 'CG') {
-            questionCounter++;
-          }
         });
         
         // Add section remarks
         params[`section_${section.id}_remarks`] = sectionRemarks[section.id] || '';
       });
 
+      // Add section scores (matching the header format in Google Sheets)
+      sections.forEach(section => {
+        const sectionScore = getSectionScore(section);
+        const sectionPercentage = sectionScore.maxScore > 0 
+          ? Math.round((sectionScore.score / sectionScore.maxScore) * 100) 
+          : 0;
+        
+        // Use the exact header format from Google Apps Script
+        if (section.id === 'CG') {
+          params.CG_Score = sectionPercentage.toString();
+        } else if (section.id === 'OTA') {
+          params.OTA_Score = sectionPercentage.toString();
+        } else if (section.id === 'FAS') {
+          params.FAS_Score = sectionPercentage.toString();
+        } else if (section.id === 'FWS') {
+          params.FWS_Score = sectionPercentage.toString();
+        } else if (section.id === 'ENJ') {
+          params.ENJ_Score = sectionPercentage.toString();
+        } else if (section.id === 'EX') {
+          params.EX_Score = sectionPercentage.toString();
+        } else if (section.id === 'SHLP') {
+          params.SHLP_Score = sectionPercentage.toString();
+        }
+      });
+
+      // Add overall score
+      params.overallScore = percentage.toString();
+      
+      // Add remarks and image upload fields
+      params.remarks = Object.values(sectionRemarks).filter(r => r).join(' | ');
+      params.imageUpload = '';
+
       // Convert to URL-encoded format
       const body = Object.keys(params).map(k => 
         encodeURIComponent(k) + '=' + encodeURIComponent(params[k])
       ).join('&');
 
-      console.log('Submitting AM Operations Checklist to Google Sheets with data:', params);
+      console.log('📤 Submitting AM Operations Checklist to Google Sheets');
+      console.log('📍 Endpoint:', AM_OPS_LOG_ENDPOINT);
+      console.log('📊 Data being sent:', params);
+      console.log('📝 Total fields:', Object.keys(params).length);
 
       const response = await fetch(AM_OPS_LOG_ENDPOINT, {
         method: 'POST',
@@ -596,7 +685,21 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         body
       });
 
+      console.log('📥 Response status:', response.status, response.statusText);
+      
+      const responseText = await response.text();
+      console.log('📥 Response body:', responseText);
+      
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+        console.log('📥 Parsed response:', responseData);
+      } catch (e) {
+        console.warn('⚠️ Could not parse response as JSON');
+      }
+
       if (response.ok) {
+        console.log('✅ Submission successful!');
         setSubmitted(true);
         localStorage.removeItem('operations_checklist_responses');
         localStorage.removeItem('operations_checklist_metadata');
@@ -604,11 +707,12 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         localStorage.removeItem('operations_section_images');
         hapticFeedback.success();
       } else {
-        throw new Error('Failed to submit AM Operations Checklist');
+        console.error('❌ Submission failed with status:', response.status);
+        throw new Error(`Failed to submit AM Operations Checklist: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
-      console.error('Error submitting AM Operations Checklist:', error);
-      alert('Failed to submit checklist. Please try again.');
+      console.error('❌ Error submitting AM Operations Checklist:', error);
+      alert('Failed to submit checklist. Please try again. Check console for details.');
       hapticFeedback.error();
     } finally {
       setIsLoading(false);
@@ -645,13 +749,22 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         const questionKey = `${section.id}_${item.id}`;
         const response = responses[questionKey];
         
-        if (response === 'yes') {
-          score += 1;
-          maxScore += 1;
-        } else if (response === 'no') {
-          maxScore += 1; // Count towards max but don't add to score
+        if (section.id === 'SHLP') {
+          // SHLP questions use 0-2 scoring
+          if (response === '0' || response === '1' || response === '2') {
+            score += parseInt(response);
+            maxScore += 2; // Max score for SHLP questions is 2
+          }
+        } else {
+          // Regular questions use yes/no/na scoring
+          if (response === 'yes') {
+            score += 1;
+            maxScore += 1;
+          } else if (response === 'no') {
+            maxScore += 1; // Count towards max but don't add to score
+          }
+          // N/A responses are excluded from both score and maxScore
         }
-        // N/A responses are excluded from both score and maxScore
       });
     });
 
@@ -667,13 +780,22 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
       const questionKey = `${section.id}_${item.id}`;
       const response = responses[questionKey];
       
-      if (response === 'yes') {
-        score += 1;
-        maxScore += 1;
-      } else if (response === 'no') {
-        maxScore += 1;
+      if (section.id === 'SHLP') {
+        // SHLP questions use 0-2 scoring
+        if (response === '0' || response === '1' || response === '2') {
+          score += parseInt(response);
+          maxScore += 2; // Max score for SHLP questions is 2
+        }
+      } else {
+        // Regular questions use yes/no/na scoring
+        if (response === 'yes') {
+          score += 1;
+          maxScore += 1;
+        } else if (response === 'no') {
+          maxScore += 1;
+        }
+        // N/A responses are excluded
       }
-      // N/A responses are excluded
     });
 
     return { score, maxScore };
@@ -1108,24 +1230,52 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
                       </span>
                     </div>
                     
-                    <div className="ml-11 flex gap-4">
-                      {['yes', 'no', 'na'].map((option) => (
-                        <label key={option} className="flex items-center space-x-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name={questionKey}
-                            value={option}
-                            checked={responses[questionKey] === option}
-                            onChange={(e) => handleResponse(questionKey, e.target.value)}
-                            className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500"
-                          />
-                          <span className={`text-sm font-medium ${
-                            option === 'na' ? 'text-gray-500 dark:text-slate-400' : 'text-gray-900 dark:text-slate-100'
-                          }`}>
-                            {option.toUpperCase()}
-                          </span>
-                        </label>
-                      ))}
+                    <div className="ml-11">
+                      {section.id === 'SHLP' ? (
+                        // SHLP questions use 0-2 scoring system
+                        <div className="space-y-2">
+                          {[
+                            { value: '0', label: '0 - Not Done / Incorrect', color: 'text-red-600 dark:text-red-400' },
+                            { value: '1', label: '1 - Partially Done / Needs Support', color: 'text-yellow-600 dark:text-yellow-400' },
+                            { value: '2', label: '2 - Done Right / On Time / As Per SOP', color: 'text-green-600 dark:text-green-400' }
+                          ].map((option) => (
+                            <label key={option.value} className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={questionKey}
+                                value={option.value}
+                                checked={responses[questionKey] === option.value}
+                                onChange={(e) => handleResponse(questionKey, e.target.value)}
+                                className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500"
+                              />
+                              <span className={`text-sm font-medium ${option.color}`}>
+                                {option.label}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        // Regular questions use yes/no/na system
+                        <div className="flex gap-4">
+                          {['yes', 'no', 'na'].map((option) => (
+                            <label key={option} className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={questionKey}
+                                value={option}
+                                checked={responses[questionKey] === option}
+                                onChange={(e) => handleResponse(questionKey, e.target.value)}
+                                className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500"
+                              />
+                              <span className={`text-sm font-medium ${
+                                option === 'na' ? 'text-gray-500 dark:text-slate-400' : 'text-gray-900 dark:text-slate-100'
+                              }`}>
+                                {option.toUpperCase()}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
