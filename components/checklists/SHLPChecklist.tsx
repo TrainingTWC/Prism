@@ -6,6 +6,7 @@ import { useComprehensiveMapping } from '../../hooks/useComprehensiveMapping';
 import { AREA_MANAGERS as DEFAULT_AREA_MANAGERS } from '../../constants';
 import { useConfig } from '../../contexts/ConfigContext';
 import { getTrainerName } from '../../utils/trainerMapping';
+import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 
 // Google Sheets endpoint for SHLP data logging
 const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw0ndZitHKmrI3z3MFzCfFn90sl1ljDkBVZjdM6NjCDN1mteJM-r7uDy_U5EBKy_AMwPQ/exec';
@@ -20,6 +21,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
   const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
   const { config } = useConfig();
   const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
+  const { getName: getEmployeeName } = useEmployeeDirectory();
   
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [questionRemarks, setQuestionRemarks] = useState<Record<string, string>>({});
@@ -63,13 +65,13 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
     const selectedStore = availableStores.find(s => normalize(s['Store ID']) === normalize(storeId));
     if (selectedStore) {
       const amId = (selectedStore['AM'] || '').toString().trim();
-      const amName = (AREA_MANAGERS.find(am => am.id === amId)?.name || '').toString();
+      const amName = (AREA_MANAGERS.find(am => am.id === amId)?.name || getEmployeeName(amId) || '').toString();
 
       const trainerIdsList = ((selectedStore['Trainer'] || '') as string)
         .split(',')
         .map(t => t.trim())
         .filter(Boolean);
-      const trainerNamesList = trainerIdsList.map(id => getTrainerName(id));
+      const trainerNamesList = trainerIdsList.map(id => getEmployeeName(id) || getTrainerName(id));
 
       setMetadata(prev => ({
         ...prev,
