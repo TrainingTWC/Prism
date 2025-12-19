@@ -10,12 +10,13 @@ import FinanceChecklist from './checklists/FinanceChecklist';
 import CampusHiringChecklist from './checklists/CampusHiringChecklist';
 import FormsChecklist from './checklists/FormsChecklist';
 import TrainerCalendarChecklist from './checklists/TrainerCalendarChecklist';
+import SHLPChecklist from './checklists/SHLPChecklist';
 
 interface ChecklistsAndSurveysProps {
   userRole: UserRole;
 }
 
-type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'campus-hiring' | 'forms' | 'trainer-calendar';
+type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar';
 
 const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole }) => {
   const { userRole: authUserRole, hasPermission } = useAuth();
@@ -26,6 +27,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     training: { completed: 0, total: 0, score: 0 },
     qa: { completed: 0, total: 0, score: 0 },
     finance: { completed: 0, total: 0, score: 0 },
+    shlp: { completed: 0, total: 0, score: 0 },
     'campus-hiring': { completed: 0, total: 0, score: 0 },
     forms: { completed: 0, total: 0, score: 0 },
     'trainer-calendar': { completed: 0, total: 0, score: 0 }
@@ -51,13 +53,14 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
       { id: 'training' as ChecklistType, label: 'Training', icon: GraduationCap, color: 'bg-purple-500' },
       { id: 'qa' as ChecklistType, label: 'QA', icon: CheckCircle, color: 'bg-orange-500' },
       { id: 'finance' as ChecklistType, label: 'Finance', icon: DollarSign, color: 'bg-red-500' },
+      { id: 'shlp' as ChecklistType, label: 'SHLP', icon: CheckCircle, color: 'bg-emerald-500' },
       { id: 'campus-hiring' as ChecklistType, label: 'Campus Hiring', icon: Brain, color: 'bg-indigo-500' },
       { id: 'forms' as ChecklistType, label: 'Forms & Surveys', icon: FileText, color: 'bg-teal-500' },
       { id: 'trainer-calendar' as ChecklistType, label: 'Trainer Calendar', icon: Calendar, color: 'bg-purple-600' }
     ];
 
     // For admin or editor role with Full Access, show all checklists
-    if (authUserRole === 'admin' || hasPermission('Full Access') || hasPermission('All Dashboards')) {
+    if (authUserRole === 'admin' || authUserRole === 'editor' || hasPermission('Full Access') || hasPermission('All Dashboards')) {
       return allChecklists;
     }
 
@@ -75,6 +78,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     { id: 'training' as ChecklistType, label: 'Training', icon: GraduationCap, color: 'bg-purple-500' },
     { id: 'qa' as ChecklistType, label: 'QA', icon: CheckCircle, color: 'bg-orange-500' },
     { id: 'finance' as ChecklistType, label: 'Finance', icon: DollarSign, color: 'bg-red-500' },
+    { id: 'shlp' as ChecklistType, label: 'SHLP', icon: CheckCircle, color: 'bg-emerald-500' },
     { id: 'campus-hiring' as ChecklistType, label: 'Campus Hiring', icon: Brain, color: 'bg-indigo-500' },
     { id: 'forms' as ChecklistType, label: 'Forms & Surveys', icon: FileText, color: 'bg-teal-500' },
     { id: 'trainer-calendar' as ChecklistType, label: 'Trainer Calendar', icon: Calendar, color: 'bg-purple-600' }
@@ -117,6 +121,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
         return <QAChecklist {...commonProps} />;
       case 'finance':
         return <FinanceChecklist {...commonProps} />;
+      case 'shlp':
+        return <SHLPChecklist {...commonProps} />;
       case 'campus-hiring':
         return <CampusHiringChecklist {...commonProps} />;
       case 'forms':
