@@ -13,16 +13,18 @@ export interface TrainerInfo {
 
 // Centralized trainer name mapping based on employee_data.json
 export const TRAINER_NAME_OVERRIDES: Record<string, string> = {
-  H1278: 'Viraj Vijay Mahamunkar',
-  H1697: 'Sheldon Antonio Xavier DSouza',
-  H1761: 'Mahadev Nayak',
-  H2155: 'Jagruti Narendra Bhanushali',
-  H2595: 'Kailash Singh',
-  H3247: 'Thatikonda Sunil Kumar',
-  H3252: 'Priyanka Pankajkumar Gupta',
-  H3595: 'Bhawna',
-  H3603: 'Manasi',
-  H3728: 'Siddhant'  H3786: 'Oviya',  H701: 'Mallika M'
+  'H1278': 'Viraj Vijay Mahamunkar',
+  'H1697': 'Sheldon Antonio Xavier DSouza',
+  'H1761': 'Mahadev Nayak',
+  'H2155': 'Jagruti Narendra Bhanushali',
+  'H2595': 'Kailash Singh',
+  'H3247': 'Thatikonda Sunil Kumar',
+  'H3252': 'Priyanka Pankajkumar Gupta',
+  'H3595': 'Bhawna',
+  'H3603': 'Manasi',
+  'H3728': 'Siddhant',
+  'H3786': 'Oviya',
+  'H701': 'Mallika M'
 };
 
 /**

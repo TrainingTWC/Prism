@@ -3,6 +3,9 @@ import { UserRole } from '../../roleMapping';
 import { CheckCircle } from 'lucide-react';
 import LoadingOverlay from '../LoadingOverlay';
 import { useComprehensiveMapping } from '../../hooks/useComprehensiveMapping';
+import { AREA_MANAGERS as DEFAULT_AREA_MANAGERS } from '../../constants';
+import { useConfig } from '../../contexts/ConfigContext';
+import { getTrainerName } from '../../utils/trainerMapping';
 
 // Google Sheets endpoint for SHLP data logging
 const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw0ndZitHKmrI3z3MFzCfFn90sl1ljDkBVZjdM6NjCDN1mteJM-r7uDy_U5EBKy_AMwPQ/exec';
@@ -15,17 +18,35 @@ interface SHLPChecklistProps {
 
 const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, onBackToChecklists }) => {
   const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
+  const { config } = useConfig();
+  const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
   
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [metadata, setMetadata] = useState({
     empName: '',
     empId: '',
     store: '',
-    am: '',
-    trainer: ''
+    // Keep IDs for submission/dashboard joins
+    amId: '',
+    trainerIds: '',
+    // Human-friendly display values
+    amName: '',
+    trainerNames: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  type SectionScores = {
+    Store_Readiness: number;
+    Product_Quality: number;
+    Cash_Admin: number;
+    Team_Management: number;
+    Operations: number;
+    Safety: number;
+    Business: number;
+    totalScore: number;
+    overallPercentage: number;
+  };
 
   // Get available stores, AMs, and trainers from comprehensive mapping
   const availableStores = comprehensiveMapping || [];
@@ -37,20 +58,34 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
 
   // Auto-fill AM and Trainer when store is selected
   const handleStoreChange = (storeId: string) => {
-    const selectedStore = availableStores.find(s => s['Store ID'] === storeId);
+    const normalize = (v: any) => (v ?? '').toString().trim();
+    const selectedStore = availableStores.find(s => normalize(s['Store ID']) === normalize(storeId));
     if (selectedStore) {
+      const amId = (selectedStore['AM'] || '').toString().trim();
+      const amName = (AREA_MANAGERS.find(am => am.id === amId)?.name || '').toString();
+
+      const trainerIdsList = ((selectedStore['Trainer'] || '') as string)
+        .split(',')
+        .map(t => t.trim())
+        .filter(Boolean);
+      const trainerNamesList = trainerIdsList.map(id => getTrainerName(id));
+
       setMetadata(prev => ({
         ...prev,
         store: storeId,
-        am: selectedStore['AM'] || '',
-        trainer: selectedStore['Trainer'] || ''
+        amId,
+        amName,
+        trainerIds: trainerIdsList.join(','),
+        trainerNames: trainerNamesList.join(', ')
       }));
     } else {
       setMetadata(prev => ({
         ...prev,
         store: storeId,
-        am: '',
-        trainer: ''
+        amId: '',
+        amName: '',
+        trainerIds: '',
+        trainerNames: ''
       }));
     }
   };
@@ -173,7 +208,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
   };
 
   const handleSubmit = async () => {
-    if (!metadata.empName || !metadata.empId || !metadata.store || !metadata.am || !metadata.trainer) {
+    if (!metadata.empName || !metadata.empId || !metadata.store || !metadata.amId || !metadata.trainerIds) {
       alert('Please fill in all employee information fields before submitting.');
       return;
     }
@@ -201,8 +236,12 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         empName: metadata.empName,
         empId: metadata.empId,
         store: metadata.store,
-        am: metadata.am,
-        trainer: metadata.trainer,
+        // Keep existing keys as IDs (dashboards/mapping)
+        am: metadata.amId,
+        trainer: metadata.trainerIds,
+        // Add human-friendly columns (safe additive)
+        amName: metadata.amName,
+        trainerNames: metadata.trainerNames,
         submissionTime: new Date().toISOString(),
         
         // Individual question responses
@@ -237,7 +276,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         setShowSuccess(true);
         // Clear form after successful submission
         setResponses({});
-        setMetadata({ empName: '', empId: '', store: '', am: '', trainer: '' });
+        setMetadata({ empName: '', empId: '', store: '', amId: '', trainerIds: '', amName: '', trainerNames: '' });
         
         setTimeout(() => {
           setShowSuccess(false);
@@ -256,7 +295,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
     }
   };
 
-  const calculateSectionScores = () => {
+  const calculateSectionScores = (): SectionScores => {
     const sectionDefinitions = {
       'Store_Readiness': ['SHLP_1', 'SHLP_2', 'SHLP_3', 'SHLP_4', 'SHLP_5'],
       'Product_Quality': ['SHLP_6', 'SHLP_7', 'SHLP_8', 'SHLP_9', 'SHLP_10'],
@@ -292,10 +331,10 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
     const overallPercentage = totalMaxScore > 0 ? Math.round((totalScore / totalMaxScore) * 100) : 0;
 
     return {
-      ...sectionScores,
+      ...(sectionScores as any),
       totalScore,
       overallPercentage
-    };
+    } as SectionScores;
   };
 
   return (
@@ -377,7 +416,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
             </label>
             <input
               type="text"
-              value={metadata.am}
+              value={metadata.amName || metadata.amId}
               readOnly
               className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 dark:text-slate-100 cursor-not-allowed"
               placeholder="Select store first"
@@ -390,7 +429,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
             </label>
             <input
               type="text"
-              value={metadata.trainer}
+              value={metadata.trainerNames || metadata.trainerIds}
               readOnly
               className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 dark:text-slate-100 cursor-not-allowed"
               placeholder="Select store first"

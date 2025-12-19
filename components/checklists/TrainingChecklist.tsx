@@ -26,6 +26,9 @@ interface TrainingMeta {
   amId: string;
   trainerName: string;
   trainerId: string;
+  // Trainer mapped to the selected store (designated trainer). Used for dashboards/autofill.
+  mappedTrainerName: string;
+  mappedTrainerId: string;
   storeName: string;
   storeId: string;
   mod: string;
@@ -303,6 +306,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       amId: (stored as any).amId || '',
       trainerName: trainerName,
       trainerId: trainerId,
+      mappedTrainerName: (stored as any).mappedTrainerName || '',
+      mappedTrainerId: (stored as any).mappedTrainerId || '',
       storeName: (stored as any).storeName || '',
       storeId: (stored as any).storeId || '',
       mod: (stored as any).mod || ''
@@ -465,30 +470,10 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   const normalizeId = (v: any) => (v || '').toString().trim().toUpperCase();
 
   const filteredAMs = uniqueAMs.filter(am => {
-    // First apply search filter
-    const matchesSearch = amSearchTerm === '' || 
+    // Audits can be done by anybody, so AM list should not be restricted by auditor.
+    return amSearchTerm === '' ||
       (am.name as string).toLowerCase().includes(amSearchTerm.toLowerCase()) ||
       (am.id as string).toLowerCase().includes(amSearchTerm.toLowerCase());
-
-    // If no trainer is selected, show all AMs that match search
-    if (!meta.trainerId) return matchesSearch;
-
-    // If trainer is selected, use comprehensive mapping to find AMs for that trainer
-    try {
-      const trainerIdNorm = normalizeId(meta.trainerId);
-      const amsForTrainer = Array.from(new Set((compStoreMapping as any[])
-        .filter((r: any) => {
-          // Handle comma-separated trainer IDs
-          const trainers = (r.Trainer || '').split(',').map((id: string) => normalizeId(id.trim()));
-          return trainers.includes(trainerIdNorm);
-        })
-        .map((r: any) => normalizeId(r.AM))
-        .filter(Boolean)));
-      return matchesSearch && amsForTrainer.includes(normalizeId(am.id));
-    } catch (e) {
-      // If error, only show AMs that match search
-      return matchesSearch;
-    }
   });
 
   // 2. Trainers - no cascading filter needed (they are the top level)
@@ -540,6 +525,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             ...prev,
             trainerName: value,
             trainerId: mappingItem['Trainer'] || '',
+            mappedTrainerName: '',
+            mappedTrainerId: '',
             // Clear dependent fields when trainer changes
             amName: '',
             amId: '',
@@ -561,6 +548,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
               ...prev,
               amName: amFromConstants.name,
               amId: amFromConstants.id,
+              mappedTrainerName: '',
+              mappedTrainerId: '',
               // Clear dependent store when AM changes
               storeName: '',
               storeId: ''
@@ -572,8 +561,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         
       case 'store':
         // Find store in comprehensive store mapping ONLY
-        mappingItem = (compStoreMapping as any[]).find((item: any) => 
-          item['Store Name'] === value || item['Store ID'] === value
+        mappingItem = (compStoreMapping as any[]).find((item: any) =>
+          item['Store ID'] === value || item['Store Name'] === value
         );
         if (mappingItem) {
           // Get the AM info for this store
@@ -586,9 +575,9 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             storeId: mappingItem['Store ID'] || '',
             amName: amFromStoreMapping?.name || '',
             amId: amFromStoreMapping?.id || '',
-            // Auto-populate trainer based on store selection
-            trainerName: trainerName,
-            trainerId: mappingItem.Trainer || ''
+            // Keep auditor as-is; record store-mapped trainer separately for dashboards/autofill
+            mappedTrainerName: trainerName,
+            mappedTrainerId: mappingItem.Trainer || ''
             // MOD remains as user input - not auto-populated
           }));
         }
@@ -1195,6 +1184,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         [field]: value,
         amName: '',
         amId: '',
+        mappedTrainerName: '',
+        mappedTrainerId: '',
         storeName: '',
         storeId: ''
       }));
@@ -1203,6 +1194,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       setMeta(prev => ({
         ...prev,
         [field]: value,
+        mappedTrainerName: '',
+        mappedTrainerId: '',
         storeName: '',
         storeId: ''
       }));
@@ -1318,11 +1311,15 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
       const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
 
+      // For dashboards, we want the designated (store-mapped) trainer, not the auditor.
+      const dashboardTrainerName = meta.mappedTrainerName || meta.trainerName;
+      const dashboardTrainerId = meta.mappedTrainerId || meta.trainerId;
+
       // Submit to Google Sheets
       const formData = new URLSearchParams({
         timestamp: new Date().toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
-        trainerName: meta.trainerName,
-        trainerId: meta.trainerId,
+        trainerName: dashboardTrainerName,
+        trainerId: dashboardTrainerId,
         amName: meta.amName,
         amId: meta.amId,
         storeName: meta.storeName,
@@ -1401,6 +1398,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       amId: '',
       trainerName: '',
       trainerId: '',
+      mappedTrainerName: '',
+      mappedTrainerId: '',
       storeName: '',
       storeId: '',
       mod: ''
@@ -1417,6 +1416,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       amId: '',
       trainerName: '',
       trainerId: '',
+      mappedTrainerName: '',
+      mappedTrainerId: '',
       storeName: '',
       storeId: '',
       mod: ''
@@ -1735,7 +1736,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                         onClick={() => {
                           handleMetaChange('storeId', store.id as string);
                           handleMetaChange('storeName', store.name as string);
-                          autoFillFields('store', store.name as string);
+                          autoFillFields('store', store.id as string);
                           setStoreSearchTerm('');
                           setShowStoreDropdown(false);
                         }}
