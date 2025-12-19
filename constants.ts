@@ -97,7 +97,7 @@ export const TRAINER_PERSONNEL: HRPerson[] = [
     { name: 'Kailash', id: 'H2595' },
     { name: 'Sunil', id: 'H3247' },
     { name: 'Priyanka', id: 'H3252' },
-    { name: 'Bhavna', id: 'H3595' }
+    { name: 'Bhawna', id: 'H3595' }
 ];
 
 // Senior HR roles that should have access to all Area Managers

@@ -20,7 +20,7 @@ export const TRAINER_NAME_OVERRIDES: Record<string, string> = {
   H2595: 'Kailash Singh',
   H3247: 'Thatikonda Sunil Kumar',
   H3252: 'Priyanka Pankajkumar Gupta',
-  H3595: 'Bhawna Devidas',
+  H3595: 'Bhawna',
   H3603: 'Manasi',
   H3728: 'Siddhant'  H3786: 'Oviya',  H701: 'Mallika M'
 };

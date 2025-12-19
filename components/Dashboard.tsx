@@ -7,9 +7,10 @@ import { buildTrainingPDF } from '../src/utils/trainingReport';
 import { buildOperationsPDF } from '../src/utils/operationsReport';
 import { buildQAPDF } from '../src/utils/qaReport';
 import { buildHRPDF } from '../src/utils/hrReport';
-import { Users, Clipboard, GraduationCap, BarChart3, Brain, Calendar } from 'lucide-react';
+import { Users, Clipboard, GraduationCap, BarChart3, Brain, Calendar, CheckCircle } from 'lucide-react';
 import { Submission, Store } from '../types';
 import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission } from '../services/dataService';
+import { fetchSHLPData, SHLPSubmission } from '../services/shlpDataService';
 import { hapticFeedback } from '../utils/haptics';
 import StatCard from './StatCard';
 import Loader from './Loader';
@@ -93,6 +94,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const [qaData, setQAData] = useState<QASubmission[]>([]);
   const [financeData, setFinanceData] = useState<FinanceSubmission[]>([]);
   const [campusHiringData, setCampusHiringData] = useState<CampusHiringSubmission[]>([]);
+  const [shlpData, setSHLPData] = useState<SHLPSubmission[]>([]);
   const [expandedFinanceRow, setExpandedFinanceRow] = useState<number | null>(null);
   const [auditCoverageFilters, setAuditCoverageFilters] = useState({
     status: 'all', // all, overdue, due-soon, on-track
@@ -120,7 +122,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     training: false,
     qa: false,
     finance: false,
-    campusHiring: false
+    campusHiring: false,
+    shlp: false
   });
   
   const [filters, setFilters] = useState({
@@ -156,6 +159,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       { id: 'training', label: 'Training Audits', access: 'training-dashboard' },
       { id: 'qa', label: 'QA Assessments', access: 'qa-dashboard' },
       { id: 'finance', label: 'Finance Reports', access: 'finance-dashboard' },
+      { id: 'shlp', label: 'SHLP Certification', access: 'shlp-dashboard' },
       { id: 'campus-hiring', label: 'Campus Hiring', access: 'campus-hiring-dashboard' },
       { id: 'trainer-calendar', label: 'Trainer Calendar', access: 'trainer-calendar-dashboard' },
       { id: 'consolidated', label: 'Consolidated View', access: 'all' }
@@ -695,6 +699,24 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         console.log('♻️ Using cached Campus Hiring data');
       }
       
+      // Load SHLP data ONLY if currently viewing SHLP dashboard OR consolidated view
+      if ((targetDashboard === 'shlp' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.shlp || isRefresh)) {
+        loadPromises.push(
+          fetchSHLPData().then(data => {
+            console.log('✅ Loaded SHLP data:', data.length, 'submissions');
+            if (data.length > 0) {
+              console.log('SHLP data sample:', data[0]);
+            }
+            setSHLPData(data);
+            setDataLoadedFlags(prev => ({ ...prev, shlp: true }));
+          }).catch(err => {
+            console.error('❌ Failed to load SHLP data:', err);
+          })
+        );
+      } else if (dataLoadedFlags.shlp) {
+        console.log('♻️ Using cached SHLP data');
+      }
+      
       // If no promises to load, we're using all cached data
       if (loadPromises.length === 0) {
         console.log('All data loaded from cache - no network requests needed!');
@@ -1022,6 +1044,69 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       return true; // Admin sees all
     });
   }, [dashboardType, financeData, userRole]);
+
+  const consolidatedSHLPData = useMemo(() => {
+    if (dashboardType !== 'consolidated' || !shlpData) return [];
+    
+    return shlpData.filter((submission: SHLPSubmission) => {
+      // Only apply role-based access, no other filters
+      if (userRole.role === 'store') {
+        return canAccessStore(userRole, submission.Store);
+      } else if (userRole.role === 'area_manager') {
+        return canAccessAM(userRole, submission['Area Manager']);
+      } else if (userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') {
+        return canAccessHR(userRole, submission.Trainer);
+      }
+      return true; // Admin sees all
+    });
+  }, [dashboardType, shlpData, userRole]);
+
+  // Filter SHLP data
+  const filteredSHLPData = useMemo(() => {
+    if (!shlpData) return [];
+    
+    let filtered = shlpData.filter((submission: SHLPSubmission) => {
+      // Role-based access control
+      if (userRole.role === 'store') {
+        if (!canAccessStore(userRole, submission.Store)) {
+          return false;
+        }
+      } else if (userRole.role === 'area_manager') {
+        if (!canAccessAM(userRole, submission['Area Manager'])) {
+          return false;
+        }
+      } else if (userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') {
+        if (!canAccessHR(userRole, submission.Trainer)) {
+          return false;
+        }
+      }
+      
+      // Apply filters
+      if (filters.region) {
+        // Filter by region based on store mapping
+        const storeData = compStoreMapping?.find((s: any) => s['Store ID'] === submission.Store);
+        if (storeData && storeData.region !== filters.region) {
+          return false;
+        }
+      }
+      
+      if (filters.store && submission.Store !== filters.store) {
+        return false;
+      }
+      
+      if (filters.am && submission['Area Manager'] !== filters.am) {
+        return false;
+      }
+      
+      if (filters.trainer && submission.Trainer !== filters.trainer) {
+        return false;
+      }
+      
+      return true;
+    });
+
+    return filtered;
+  }, [shlpData, filters, userRole]);
 
   // Filter AM Operations data
   const filteredAMOperations = useMemo(() => {
@@ -1492,6 +1577,25 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       };
     }
     
+    // For SHLP dashboard, use SHLP Certification data
+    if (dashboardType === 'shlp') {
+      if (!filteredSHLPData) return null;
+
+      const totalSubmissions = filteredSHLPData.length;
+      const avgScore = totalSubmissions > 0 
+        ? filteredSHLPData.reduce((acc, s) => acc + parseFloat(s.Overall_Percentage || '0'), 0) / totalSubmissions 
+        : 0;
+      const uniqueTrainers = new Set(filteredSHLPData.map(s => s.Trainer)).size;
+      const uniqueStores = new Set(filteredSHLPData.map(s => s.Store)).size;
+
+      return {
+        totalSubmissions,
+        avgScore: Math.round(avgScore * 100) / 100,
+        uniqueTrainers,
+        uniqueStores
+      };
+    }
+    
     // For Training dashboard, prefer filtered Training Audit records when any filter is applied
     if (dashboardType === 'training') {
       // If a filter is active, use the deduped, filtered training data so the header cards change
@@ -1796,7 +1900,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       uniqueEmployees,
       uniqueStores
     };
-  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, filteredQAData, dashboardType, trendsData, trendsLoading, trainingData, filters]);
+  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, filteredQAData, filteredFinanceData, filteredSHLPData, dashboardType, trendsData, trendsLoading, trainingData, filters]);
 
   // Helper to compute the Average Score display string robustly
   const getAverageScoreDisplay = () => {
@@ -1939,11 +2043,20 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         }
         reportData = filteredQAData;
         dataType = 'QA Assessment Checklist';
+      } else if (dashboardType === 'shlp') {
+        if (!filteredSHLPData || filteredSHLPData.length === 0) {
+          alert('No SHLP Certification data available to generate report');
+          hapticFeedback.error();
+          return;
+        }
+        reportData = filteredSHLPData;
+        dataType = 'SHLP Certification Assessment';
       } else { // consolidated
         if ((!filteredSubmissions || filteredSubmissions.length === 0) && 
             (!filteredAMOperations || filteredAMOperations.length === 0) && 
             (!filteredTrainingData || filteredTrainingData.length === 0) &&
-            (!filteredQAData || filteredQAData.length === 0)) {
+            (!filteredQAData || filteredQAData.length === 0) &&
+            (!filteredSHLPData || filteredSHLPData.length === 0)) {
           alert('No data available to generate report');
           hapticFeedback.error();
           return;
@@ -3201,7 +3314,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         </div>
 
         <div className="text-center text-sm text-gray-500 dark:text-slate-400 mt-4">
-          Loading {dashboardType === 'training' ? 'training' : dashboardType === 'operations' ? 'operations' : dashboardType === 'qa' ? 'QA' : dashboardType === 'hr' ? 'HR' : dashboardType === 'campus-hiring' ? 'Campus Hiring' : ''} dashboard data...
+          Loading {dashboardType === 'training' ? 'training' : dashboardType === 'operations' ? 'operations' : dashboardType === 'qa' ? 'QA' : dashboardType === 'hr' ? 'HR' : dashboardType === 'shlp' ? 'SHLP' : dashboardType === 'campus-hiring' ? 'Campus Hiring' : ''} dashboard data...
         </div>
       </div>
     );
@@ -3258,6 +3371,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                     </svg>
                   );
+                  case 'shlp': return <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />;
                   case 'campus-hiring': return <Brain className="w-4 h-4 sm:w-5 sm:h-5" />;
                   case 'trainer-calendar': return <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />;
                   default: return <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />;
@@ -3271,6 +3385,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                   case 'training': return dashboardType === 'training' ? 'bg-purple-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'qa': return dashboardType === 'qa' ? 'bg-red-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'finance': return dashboardType === 'finance' ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'shlp': return dashboardType === 'shlp' ? 'bg-emerald-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'campus-hiring': return dashboardType === 'campus-hiring' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'trainer-calendar': return dashboardType === 'trainer-calendar' ? 'bg-purple-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'consolidated': return dashboardType === 'consolidated' ? 'bg-slate-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
@@ -3297,6 +3412,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             {dashboardType === 'training' && 'View insights from Training Audit Checklists'}
             {dashboardType === 'qa' && 'View insights from Quality Assurance Assessments'}
             {dashboardType === 'finance' && 'View insights from Finance Reports and Analytics'}
+            {dashboardType === 'shlp' && 'View Store-level Hourly Leadership Performance Certification Results'}
             {dashboardType === 'campus-hiring' && 'View Campus Hiring Psychometric Assessment Results'}
             {dashboardType === 'trainer-calendar' && 'View and manage trainer schedules and calendar events'}
             {dashboardType === 'consolidated' && 'View combined insights from all authorized checklist types'}
@@ -3353,12 +3469,22 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             <p className="text-gray-600 dark:text-slate-400">No psychometric assessment submissions found. Candidates can submit assessments through the Campus Hiring form.</p>
           </div>
         )
-      ) : ((dashboardType === 'hr' && filteredSubmissions.length > 0) || 
+      ) : (
+        (dashboardType === 'hr' && filteredSubmissions.length > 0) ||
         (dashboardType === 'operations' && filteredAMOperations.length > 0) ||
         (dashboardType === 'training' && filteredTrainingData.length > 0) ||
         (dashboardType === 'qa' && filteredQAData.length > 0) ||
         (dashboardType === 'finance' && filteredFinanceData.length > 0) ||
-        (dashboardType === 'consolidated' && (consolidatedHRData.length > 0 || consolidatedOperationsData.length > 0 || consolidatedTrainingData.length > 0 || consolidatedQAData.length > 0 || consolidatedFinanceData.length > 0))) ? (
+        (dashboardType === 'shlp' && filteredSHLPData.length > 0) ||
+        (dashboardType === 'consolidated' && (
+          consolidatedHRData.length > 0 ||
+          consolidatedOperationsData.length > 0 ||
+          consolidatedTrainingData.length > 0 ||
+          consolidatedQAData.length > 0 ||
+          consolidatedFinanceData.length > 0 ||
+          consolidatedSHLPData.length > 0
+        ))
+      ) ? (
         <>
           {/* Consolidated Dashboard - New 4Ps Framework */}
           {dashboardType === 'consolidated' ? (
@@ -3368,6 +3494,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               trainingData={consolidatedTrainingData}
               qaData={consolidatedQAData}
               financeData={consolidatedFinanceData}
+              shlpData={consolidatedSHLPData}
             />
           ) : (
             <>
@@ -3417,8 +3544,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               <StatCard title="Average Score" value={String(getAverageScoreDisplay())} />
               {dashboardType !== 'qa' && dashboardType !== 'finance' && (
                 <StatCard 
-                  title={dashboardType === 'operations' ? "Trainers Involved" : "Employees Surveyed"} 
-                  value={stats?.uniqueEmployees} 
+                  title={
+                    dashboardType === 'operations' ? "Trainers Involved" : 
+                    dashboardType === 'shlp' ? "Trainers Involved" :
+                    "Employees Surveyed"
+                  } 
+                  value={dashboardType === 'shlp' ? (stats as any)?.uniqueTrainers : (stats as any)?.uniqueEmployees} 
                 />
               )}
               <StatCard 
@@ -5263,7 +5394,338 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               </div>
             </>
           )}
-          </>
+
+          {/* SHLP Dashboard Content */}
+          {dashboardType === 'shlp' && (
+            <>
+              {/* Enhanced SHLP Filters */}
+              <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700 mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">SHLP Dashboard Filters</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Region Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Region</label>
+                    <select
+                      value={filters.region}
+                      onChange={(e) => setFilters(prev => ({ ...prev, region: e.target.value, store: '', am: '' }))}
+                      className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm"
+                    >
+                      <option value="">All Regions</option>
+                      {availableRegions.map(region => (
+                        <option key={region} value={region}>{region}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Store Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Store</label>
+                    <select
+                      value={filters.store}
+                      onChange={(e) => setFilters(prev => ({ ...prev, store: e.target.value }))}
+                      className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm"
+                    >
+                      <option value="">All Stores</option>
+                      {availableStores.map(store => (
+                        <option key={store.storeId} value={store.storeId}>{store.storeId} - {store.city}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Area Manager Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Area Manager</label>
+                    <select
+                      value={filters.am}
+                      onChange={(e) => setFilters(prev => ({ ...prev, am: e.target.value }))}
+                      className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm"
+                    >
+                      <option value="">All Area Managers</option>
+                      {availableAreaManagers.map(am => (
+                        <option key={am.id} value={am.id}>{am.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Trainer Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Trainer</label>
+                    <select
+                      value={filters.trainer}
+                      onChange={(e) => setFilters(prev => ({ ...prev, trainer: e.target.value }))}
+                      className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm"
+                    >
+                      <option value="">All Trainers</option>
+                      {availableTrainers.map(trainer => (
+                        <option key={trainer.id} value={trainer.id}>{trainer.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* SHLP Submissions List */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Recent SHLP Certifications ({filteredSHLPData.length})
+                  </h3>
+                  {filteredSHLPData && filteredSHLPData.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                        <thead>
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Date
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Employee
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Store
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              AM
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Trainer
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Overall Score
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                          {filteredSHLPData.slice(0, 10).map((submission, index) => (
+                            <tr key={index} className="hover:bg-gray-50 dark:hover:bg-slate-700">
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100 whitespace-nowrap">
+                                {new Date(submission['Submission Time']).toLocaleDateString()}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
+                                <div>
+                                  <div className="font-medium">{submission['Employee Name']}</div>
+                                  <div className="text-gray-500 dark:text-slate-400 text-xs">{submission['Employee ID']}</div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
+                                {submission.Store}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
+                                {submission['Area Manager']}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
+                                {submission.Trainer}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  parseFloat(submission.Overall_Percentage) >= 80 
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                    : parseFloat(submission.Overall_Percentage) >= 60 
+                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                }`}>
+                                  {submission.Overall_Percentage}%
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 dark:text-slate-400 text-center py-8">
+                      No SHLP certification submissions found.
+                    </p>
+                  )}
+                </div>
+
+                {/* SHLP Section Scores */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Section Performance
+                  </h3>
+                  {filteredSHLPData && filteredSHLPData.length > 0 ? (
+                    <div className="space-y-4">
+                      {(() => {
+                        const sections = [
+                          { key: 'Store_Readiness_Score', label: 'Store Readiness' },
+                          { key: 'Product_Quality_Score', label: 'Product Quality' },
+                          { key: 'Cash_Admin_Score', label: 'Cash & Administration' },
+                          { key: 'Team_Management_Score', label: 'Team Management' },
+                          { key: 'Operations_Score', label: 'Operations' },
+                          { key: 'Safety_Score', label: 'Safety & Compliance' },
+                          { key: 'Business_Score', label: 'Business Acumen' }
+                        ];
+                        
+                        return sections.map(section => {
+                          const scores = filteredSHLPData.map(s => parseFloat(s[section.key] || '0')).filter(s => s > 0);
+                          const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+                          
+                          return (
+                            <div key={section.key}>
+                              <div className="flex justify-between mb-2">
+                                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">{section.label}</span>
+                                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">{Math.round(avgScore)}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full ${
+                                    avgScore >= 80 ? 'bg-green-600' :
+                                    avgScore >= 60 ? 'bg-yellow-600' : 'bg-red-600'
+                                  }`}
+                                  style={{ width: `${avgScore}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 dark:text-slate-400 text-center py-8">
+                      No section data available.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Detailed Question Analysis */}
+              {filteredSHLPData && filteredSHLPData.length > 0 && (
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+                    Question-wise Performance Analysis
+                  </h3>
+                  {(() => {
+                    const questionDetails = [
+                      // Store Readiness (Q1-Q5)
+                      { id: 1, section: 'Store Readiness', question: 'Store opening checklist completion' },
+                      { id: 2, section: 'Store Readiness', question: 'Equipment functionality verification' },
+                      { id: 3, section: 'Store Readiness', question: 'Inventory stock levels adequacy' },
+                      { id: 4, section: 'Store Readiness', question: 'Store cleanliness and presentation' },
+                      { id: 5, section: 'Store Readiness', question: 'Safety protocols implementation' },
+                      // Product Quality (Q6-Q10)
+                      { id: 6, section: 'Product Quality', question: 'Product quality consistency' },
+                      { id: 7, section: 'Product Quality', question: 'Recipe adherence and standardization' },
+                      { id: 8, section: 'Product Quality', question: 'Temperature control maintenance' },
+                      { id: 9, section: 'Product Quality', question: 'Expiry date monitoring' },
+                      { id: 10, section: 'Product Quality', question: 'Presentation standards compliance' },
+                      // Cash & Administration (Q11-Q15)
+                      { id: 11, section: 'Cash & Administration', question: 'Cash handling procedures' },
+                      { id: 12, section: 'Cash & Administration', question: 'Transaction accuracy' },
+                      { id: 13, section: 'Cash & Administration', question: 'Administrative documentation' },
+                      { id: 14, section: 'Cash & Administration', question: 'Reporting timeliness' },
+                      { id: 15, section: 'Cash & Administration', question: 'Compliance with financial protocols' },
+                      // Team Management (Q16-Q23)
+                      { id: 16, section: 'Team Management', question: 'Staff scheduling effectiveness' },
+                      { id: 17, section: 'Team Management', question: 'Team communication quality' },
+                      { id: 18, section: 'Team Management', question: 'Performance management' },
+                      { id: 19, section: 'Team Management', question: 'Training and development' },
+                      { id: 20, section: 'Team Management', question: 'Conflict resolution' },
+                      { id: 21, section: 'Team Management', question: 'Leadership demonstration' },
+                      { id: 22, section: 'Team Management', question: 'Motivation and engagement' },
+                      { id: 23, section: 'Team Management', question: 'Delegation and supervision' },
+                      // Operations (Q24-Q30)
+                      { id: 24, section: 'Operations', question: 'Operational efficiency' },
+                      { id: 25, section: 'Operations', question: 'Service speed and quality' },
+                      { id: 26, section: 'Operations', question: 'Customer satisfaction' },
+                      { id: 27, section: 'Operations', question: 'Resource utilization' },
+                      { id: 28, section: 'Operations', question: 'Process optimization' },
+                      { id: 29, section: 'Operations', question: 'Availability and accessibility' },
+                      { id: 30, section: 'Operations', question: 'System reliability' },
+                      // Safety & Compliance (Q31-Q33)
+                      { id: 31, section: 'Safety & Compliance', question: 'Safety protocol adherence' },
+                      { id: 32, section: 'Safety & Compliance', question: 'Regulatory compliance' },
+                      { id: 33, section: 'Safety & Compliance', question: 'Maintenance logging' },
+                      // Business Acumen (Q34-Q36)
+                      { id: 34, section: 'Business Acumen', question: 'Sales analysis (WoW, MoM – ADS, ADT, FIPT, LTO)' },
+                      { id: 35, section: 'Business Acumen', question: 'BSC understanding' },
+                      { id: 36, section: 'Business Acumen', question: 'Controllables (EB units, COGS)' }
+                    ];
+
+                    // Group questions by section
+                    const sectionGroups = questionDetails.reduce((acc, q) => {
+                      if (!acc[q.section]) acc[q.section] = [];
+                      acc[q.section].push(q);
+                      return acc;
+                    }, {} as Record<string, typeof questionDetails>);
+
+                    return (
+                      <div className="space-y-6">
+                        {Object.entries(sectionGroups).map(([sectionName, questions]) => (
+                          <div key={sectionName} className="border border-gray-200 dark:border-slate-600 rounded-lg p-4">
+                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{sectionName}</h4>
+                            <div className="space-y-3">
+                              {questions.map(q => {
+                                // Calculate average score for this question
+                                const scores = filteredSHLPData.map(s => parseInt(s[`SHLP_${q.id}`] || '0')).filter(s => s >= 0);
+                                const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+                                const percentage = (avgScore / 2) * 100; // Convert 0-2 scale to percentage
+                                
+                                // Count score distribution
+                                const scoreCounts = { 0: 0, 1: 0, 2: 0 };
+                                scores.forEach(score => {
+                                  if (score >= 0 && score <= 2) scoreCounts[score as keyof typeof scoreCounts]++;
+                                });
+                                
+                                return (
+                                  <div key={q.id} className="bg-gray-50 dark:bg-slate-700 p-3 rounded">
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div className="flex-1">
+                                        <div className="font-medium text-sm text-gray-900 dark:text-white">Q{q.id}: {q.question}</div>
+                                        <div className="text-xs text-gray-500 dark:text-slate-400 mt-1">Based on {scores.length} submissions</div>
+                                      </div>
+                                      <div className="text-right ml-4">
+                                        <div className={`text-sm font-bold ${
+                                          percentage >= 80 ? 'text-green-600' :
+                                          percentage >= 60 ? 'text-yellow-600' : 'text-red-600'
+                                        }`}>
+                                          {Math.round(percentage)}% ({avgScore.toFixed(1)}/2.0)
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Score Distribution */}
+                                    <div className="flex items-center space-x-4 text-xs">
+                                      <div className="flex items-center space-x-1">
+                                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                                        <span className="text-gray-600 dark:text-slate-400">Not Done: {scoreCounts[0]}</span>
+                                      </div>
+                                      <div className="flex items-center space-x-1">
+                                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                        <span className="text-gray-600 dark:text-slate-400">Partial: {scoreCounts[1]}</span>
+                                      </div>
+                                      <div className="flex items-center space-x-1">
+                                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                        <span className="text-gray-600 dark:text-slate-400">Complete: {scoreCounts[2]}</span>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Progress Bar */}
+                                    <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 mt-2">
+                                      <div 
+                                        className={`h-2 rounded-full ${
+                                          percentage >= 80 ? 'bg-green-600' :
+                                          percentage >= 60 ? 'bg-yellow-600' : 'bg-red-600'
+                                        }`}
+                                        style={{ width: `${percentage}%` }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </>
+          )}
+
+            </>
           )}
 
           {/* Campus Hiring Stats - Only show in consolidated view for admins */}
