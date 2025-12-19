@@ -22,6 +22,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
   const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
   
   const [responses, setResponses] = useState<Record<string, string>>({});
+  const [questionRemarks, setQuestionRemarks] = useState<Record<string, string>>({});
   const [metadata, setMetadata] = useState({
     empName: '',
     empId: '',
@@ -207,6 +208,13 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
     }));
   };
 
+  const handleRemark = (questionKey: string, value: string) => {
+    setQuestionRemarks(prev => ({
+      ...prev,
+      [questionKey]: value
+    }));
+  };
+
   const handleSubmit = async () => {
     if (!metadata.empName || !metadata.empId || !metadata.store || !metadata.amId || !metadata.trainerIds) {
       alert('Please fill in all employee information fields before submitting.');
@@ -246,6 +254,11 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         
         // Individual question responses
         ...responses,
+
+        // Per-question remarks (safe additive fields)
+        ...Object.fromEntries(
+          Object.entries(questionRemarks).map(([k, v]) => [`${k}_remarks`, v || ''])
+        ),
         
         // Section scores
         Store_Readiness_Score: sectionScores.Store_Readiness.toString(),
@@ -276,6 +289,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         setShowSuccess(true);
         // Clear form after successful submission
         setResponses({});
+        setQuestionRemarks({});
         setMetadata({ empName: '', empId: '', store: '', amId: '', trainerIds: '', amName: '', trainerNames: '' });
         
         setTimeout(() => {
@@ -492,6 +506,19 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
                           </span>
                         </label>
                       ))}
+
+                      <div className="pt-2">
+                        <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                          Remarks (optional)
+                        </label>
+                        <textarea
+                          value={questionRemarks[questionKey] || ''}
+                          onChange={(e) => handleRemark(questionKey, e.target.value)}
+                          rows={2}
+                          className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-slate-700 dark:text-slate-100"
+                          placeholder="Add remarks for this question..."
+                        />
+                      </div>
                     </div>
                   </div>
                 );
@@ -505,7 +532,10 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
         <div className="flex justify-between items-center">
           <button
-            onClick={() => setResponses({})}
+            onClick={() => {
+              setResponses({});
+              setQuestionRemarks({});
+            }}
             className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
           >
             Reset Assessment
