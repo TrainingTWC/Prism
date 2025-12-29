@@ -178,13 +178,9 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   useEffect(() => {
     if (meta.storeId && comprehensiveMapping.length > 0) {
       const store = comprehensiveMapping.find(s => s['Store ID'] === meta.storeId);
-      console.log('🔍 Finance: Looking for store mapping for:', meta.storeId);
-      console.log('🔍 Finance: Found store mapping:', store);
       
       if (store && store.AM) {
-        console.log('🔍 Finance: Store has AM ID:', store.AM);
         const am = areaManagers.areaManagers.find(am => am.id === store.AM);
-        console.log('🔍 Finance: Found AM in list:', am);
         
         if (am && (!meta.amId || meta.amId !== am.id)) {
           setMeta(prev => ({
@@ -192,7 +188,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
             amId: am.id,
             amName: am.name
           }));
-          console.log('✅ Auto-filled AM from comprehensive mapping:', am.name, '('+am.id+') for store:', meta.storeId);
+
         } else if (!am) {
           console.warn('❌ AM not found in areaManagers list for ID:', store.AM);
         }
@@ -463,7 +459,6 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
           if (storeMapping) {
             detectedRegion = storeMapping.Region || '';
             correctedStoreId = storeMapping['Store ID'];
-            console.log('✅ Mapped Finance store to region:', detectedRegion, 'Store ID:', correctedStoreId);
           }
         }
       } catch (error) {
@@ -497,9 +492,6 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         params[`${section.id}_remarks`] = responses[`${section.id}_remarks`] || '';
       });
 
-      console.log('Finance Survey data being sent:', params);
-      console.log('Total parameters:', Object.keys(params).length);
-
       // Send as URL-encoded form data (like QA checklist)
       const response = await fetch(LOG_ENDPOINT, {
         method: 'POST',
@@ -510,7 +502,6 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         body: new URLSearchParams(params).toString()
       });
 
-      console.log('Finance Survey submitted successfully (no-cors mode - check Google Sheet to verify)');
       alert('Finance audit submitted successfully! Please check your Google Sheet to verify the data was recorded.');
       setSubmitted(true);
       

@@ -577,7 +577,6 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
           
           if (storeMapping) {
             detectedRegion = storeMapping['Region'] || '';
-            console.log(`✅ Store mapped from comprehensive_store_mapping.json: ${metadata.storeId} (${metadata.storeName}) → Region: ${detectedRegion}`);
           } else {
             console.warn(`❌ No mapping found in comprehensive_store_mapping.json for store ${metadata.storeId} (${metadata.storeName})`);
           }
@@ -682,32 +681,22 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         encodeURIComponent(k) + '=' + encodeURIComponent(params[k])
       ).join('&');
 
-      console.log('📤 Submitting AM Operations Checklist to Google Sheets');
-      console.log('📍 Endpoint:', AM_OPS_LOG_ENDPOINT);
-      console.log('📊 Data being sent:', params);
-      console.log('📝 Total fields:', Object.keys(params).length);
-
       const response = await fetch(AM_OPS_LOG_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
         body
       });
-
-      console.log('📥 Response status:', response.status, response.statusText);
       
       const responseText = await response.text();
-      console.log('📥 Response body:', responseText);
       
       let responseData;
       try {
         responseData = JSON.parse(responseText);
-        console.log('📥 Parsed response:', responseData);
       } catch (e) {
         console.warn('⚠️ Could not parse response as JSON');
       }
 
       if (response.ok) {
-        console.log('✅ Submission successful!');
         setSubmitted(true);
         localStorage.removeItem('operations_checklist_responses');
         localStorage.removeItem('operations_checklist_metadata');

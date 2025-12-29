@@ -384,9 +384,6 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
                 })
             };
 
-            console.log('Submitting calendar payload:', payload);
-            console.log('Script URL:', scriptUrl);
-
             const response = await fetch(scriptUrl, {
                 method: 'POST',
                 redirect: 'follow',
@@ -396,15 +393,11 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ trainerId, trainerN
                 body: JSON.stringify(payload)
             });
 
-            console.log('Response status:', response.status);
-            console.log('Response ok:', response.ok);
-
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const result = await response.json();
-            console.log('Submission result:', result);
 
             if (result.status === 'success') {
                 setSubmitMessage({

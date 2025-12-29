@@ -46,7 +46,7 @@ export const AUTH_CONFIG: AuthConfig = {
     hr: {
       password: 'HRConnect2024!',
       permissions: ['hr', 'dashboard', 'employee-data'],
-      dashboardAccess: ['hr-dashboard', 'hr-analytics', 'employee-reports', 'training-audit', 'campus-hiring-dashboard']
+      dashboardAccess: ['hr-dashboard', 'hr-analytics', 'employee-reports', 'training-audit', 'campus-hiring-dashboard', 'bench-planning-dashboard']
     },
     qa: {
       password: 'QualityCheck2024!',
@@ -56,7 +56,7 @@ export const AUTH_CONFIG: AuthConfig = {
     training: {
       password: 'TrainingHub2024!',
       permissions: ['training', 'dashboard', 'learning-management'],
-      dashboardAccess: ['training-dashboard', 'training-reports', 'learning-analytics', 'training-audit', 'trainer-calendar-dashboard']
+      dashboardAccess: ['training-dashboard', 'training-reports', 'learning-analytics', 'training-audit', 'trainer-calendar-dashboard', 'bench-planning-dashboard']
     },
     forms: {
       password: 'MT2025!',
@@ -73,15 +73,20 @@ export const AUTH_CONFIG: AuthConfig = {
       permissions: ['campus-hiring'],
       dashboardAccess: [] // No dashboard access - checklist only
     },
+    'bench-planning': {
+      password: 'BenchPlan2025!',
+      permissions: ['bench-planning'],
+      dashboardAccess: [] // No dashboard access - checklist only, role-based access within module
+    },
     admin: {
       password: 'AdminView2024!',
-      permissions: ['operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'dashboard'],
+      permissions: ['operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'bench-planning', 'dashboard'],
       dashboardAccess: ['all', 'campus-hiring-dashboard']
     },
     editor: {
       password: 'Editornotcreator2025!',
-      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'dashboard'],
-      dashboardAccess: ['all', 'campus-hiring-dashboard', 'trainer-calendar-dashboard']
+      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'bench-planning', 'dashboard'],
+      dashboardAccess: ['all', 'campus-hiring-dashboard', 'trainer-calendar-dashboard', 'bench-planning-dashboard']
     }
   },
   

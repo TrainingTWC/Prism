@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Brain, CheckSquare, HelpCircle } from 'lucide-react';
+import { BarChart3, Brain, CheckSquare, HelpCircle, Users, LogOut } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import AIInsights from './components/AIInsights';
 import ChecklistsAndSurveys from './components/ChecklistsAndSurveys';
+import BenchPlanningDashboard from './components/BenchPlanningDashboard';
 import Header from './components/Header';
 import Login from './components/Login';
 import AccessDenied from './components/AccessDenied';
@@ -14,18 +15,18 @@ import { ConfigProvider } from './contexts/ConfigContext';
 import AdminConfig from './components/AdminConfig';
 
 const AppContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'ai-insights' | 'checklists' | 'admin'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'ai-insights' | 'checklists' | 'admin' | 'bench-planning-dashboard'>('dashboard');
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userId, setUserId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [accessDenied, setAccessDenied] = useState<boolean>(false);
   const [empIdChecked, setEmpIdChecked] = useState<boolean>(false);
+  const [benchPlanningView, setBenchPlanningView] = useState<'checklist' | 'dashboard'>('checklist');
   const { isAuthenticated, isLoading: authLoading, loginWithEmpId, isEmployeeValidated, employeeData } = useAuth();
 
   // Sync userRole when user gets authenticated (after password login or campus auto-auth)
   useEffect(() => {
     if (isAuthenticated && employeeData && !userRole) {
-      console.log('[App] User authenticated, setting userRole from employeeData:', employeeData.code);
       try {
         const role = getUserRole(employeeData.code);
         setUserRole(role || { role: 'admin' } as any);
@@ -45,12 +46,9 @@ const AppContent: React.FC = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const empId = urlParams.get('EMPID');
       
-      console.log('[App] Checking URL auth (once), EMPID:', empId, 'isAuthenticated:', isAuthenticated);
-      
       if (empId) {
         // If already authenticated with valid session, don't re-check employee
         if (isAuthenticated && isEmployeeValidated) {
-          console.log('[App] Already authenticated with valid session, skipping employee check');
           setUserId(empId);
           try {
             const role = getUserRole(empId);
@@ -63,8 +61,6 @@ const AppContent: React.FC = () => {
           // Try to authenticate with EMPID
           const success = await loginWithEmpId(empId);
           
-          console.log('[App] Login result:', success);
-          
           if (!success) {
             // Employee ID not found - show access denied
             setAccessDenied(true);
@@ -75,7 +71,6 @@ const AppContent: React.FC = () => {
             // Only set userRole if already authenticated (campus candidates)
             // Regular employees need to enter password first
             if (isAuthenticated) {
-              console.log('[App] User is authenticated, setting role');
               try {
                 const role = getUserRole(empId);
                 setUserRole(role || { role: 'admin' } as any);
@@ -84,15 +79,12 @@ const AppContent: React.FC = () => {
                 setUserRole({ role: 'admin' } as any);
               }
             } else {
-              console.log('[App] User validated but not authenticated - will show login screen');
+              setAccessDenied(false);
             }
-            
-            setAccessDenied(false);
           }
         }
       } else {
         // No EMPID in URL - check if already authenticated
-        console.log('[App] No EMPID in URL, isAuthenticated:', isAuthenticated);
         if (!isAuthenticated && !isEmployeeValidated) {
           setAccessDenied(true);
         }
@@ -131,7 +123,6 @@ const AppContent: React.FC = () => {
 
   // Show loading while checking authentication
   if (authLoading || loading) {
-    console.log('[App] Showing loading, authLoading:', authLoading, 'loading:', loading);
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 flex items-center justify-center">
         <div className="text-center">
@@ -142,36 +133,23 @@ const AppContent: React.FC = () => {
     );
   }
 
-  console.log('[App] 🔍 AUTH STATE CHECK:', {
-    accessDenied,
-    isEmployeeValidated,
-    isAuthenticated,
-    userRole,
-    userId
-  });
 
   // Show ACCESS DENIED if EMPID not found or not provided
   if (accessDenied) {
-    console.log('[App] Showing ACCESS DENIED');
     return <AccessDenied />;
   }
 
   // Show login if employee validated but not authenticated with password
   if (isEmployeeValidated && !isAuthenticated) {
-    console.log('[App] ✅ SHOWING LOGIN SCREEN - Employee validated but not authenticated');
     return <Login />;
   }
 
   // Show login if not authenticated (fallback for old flow)
   if (!isAuthenticated) {
-    console.log('[App] Not authenticated, showing Login (fallback)');
     return <Login />;
   }
 
-  console.log('[App] Rendering main app, authenticated:', isAuthenticated);
-
   if (!userRole) {
-    console.log('[App] No userRole, showing access denied');
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 flex items-center justify-center">
         <div className="text-center">
@@ -183,8 +161,6 @@ const AppContent: React.FC = () => {
     );
   }
 
-  console.log('[App] Full state - isAuth:', isAuthenticated, 'isEmpValidated:', isEmployeeValidated, 'userRole:', userRole);
-
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     // { id: 'ai-insights', label: 'AI Insights', icon: Brain }, // Hidden per user request
@@ -192,8 +168,14 @@ const AppContent: React.FC = () => {
   ];
 
   // Get auth role once
-  const { userRole: authUserRole } = useAuth();
+  const { userRole: authUserRole, hasPermission } = useAuth();
   const isEditor = authUserRole === 'editor';
+  
+  // Add Bench Planning Dashboard tab for editor, training (traininghub), and hr (hrconnect) roles
+  const hasBenchPlanningDashboardAccess = authUserRole === 'editor' || authUserRole === 'training' || authUserRole === 'hr';
+  if (hasBenchPlanningDashboardAccess) {
+    tabs.push({ id: 'bench-planning-dashboard', label: 'Bench Planning Dashboard', icon: Users });
+  }
   
   if (isEditor) {
     tabs.push({ id: 'admin', label: 'Admin', icon: HelpCircle });
@@ -239,6 +221,78 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // If user has bench-planning role, only show the bench planning module
+  if (authUserRole === 'bench-planning') {
+    const benchPlanningRole = {
+      userId: 'bench-planning',
+      name: 'Bench Planning Access',
+      role: 'bench-planning' as const,
+      allowedStores: [],
+      allowedAMs: [],
+      allowedHRs: []
+    };
+    
+    const { logout } = useAuth();
+    
+    const handleExit = () => {
+      logout();
+      window.location.href = '/Prism/';
+    };
+    
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
+        <Header />
+        
+        {/* View Switcher */}
+        <nav className="px-2 sm:px-4 lg:px-8 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+          <div className="flex justify-between items-center">
+            <div className="flex space-x-4 sm:space-x-8">
+              <button
+                onClick={() => setBenchPlanningView('checklist')}
+                className={`flex items-center gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 ${
+                  benchPlanningView === 'checklist'
+                    ? 'border-violet-500 text-violet-600 dark:text-violet-400'
+                    : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
+                }`}
+              >
+                <CheckSquare className="w-4 h-4" />
+                Bench Planning Module
+              </button>
+              <button
+                onClick={() => setBenchPlanningView('dashboard')}
+                className={`flex items-center gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 ${
+                  benchPlanningView === 'dashboard'
+                    ? 'border-violet-500 text-violet-600 dark:text-violet-400'
+                    : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                Dashboard
+              </button>
+            </div>
+            
+            {/* Exit Button */}
+            <button
+              onClick={handleExit}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Exit
+            </button>
+          </div>
+        </nav>
+        
+        <main className="p-2 sm:p-4 lg:p-8">
+          {benchPlanningView === 'checklist' ? (
+            <ChecklistsAndSurveys userRole={benchPlanningRole} />
+          ) : (
+            <BenchPlanningDashboard userRole={benchPlanningRole} />
+          )}
+        </main>
+      </div>
+    );
+  }
+
   // For all other roles, show the normal interface
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
@@ -252,7 +306,7 @@ const AppContent: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as 'dashboard' | 'ai-insights' | 'checklists' | 'admin')}
+                onClick={() => setActiveTab(tab.id as 'dashboard' | 'ai-insights' | 'checklists' | 'admin' | 'bench-planning-dashboard')}
                 className={`flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 outline-none ${
                   activeTab === tab.id
                     ? 'border-sky-400 text-sky-400'
@@ -272,6 +326,7 @@ const AppContent: React.FC = () => {
         {activeTab === 'dashboard' && <Dashboard userRole={userRole} />}
         {activeTab === 'ai-insights' && <AIInsights userRole={userRole} />}
         {activeTab === 'checklists' && <ChecklistsAndSurveys userRole={userRole} />}
+        {activeTab === 'bench-planning-dashboard' && <BenchPlanningDashboard userRole={userRole} />}
         {activeTab === 'admin' && <AdminConfig />}
       </main>
     </div>

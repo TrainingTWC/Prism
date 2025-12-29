@@ -221,7 +221,7 @@ const TrainerCalendarDashboard: React.FC = () => {
                             <option value="all">All Trainers</option>
                             {calendarData.map(trainer => (
                                 <option key={trainer.trainerId} value={trainer.trainerId}>
-                                    {trainer.trainerName} ({trainer.trainerId})
+                                    {trainer.trainerName.split(' ')[0]}
                                 </option>
                             ))}
                         </select>
@@ -293,10 +293,7 @@ const TrainerCalendarDashboard: React.FC = () => {
                                             </td>
                                             <td className="px-4 py-3 text-sm">
                                                 <div className="font-medium text-gray-900 dark:text-slate-100">
-                                                    {event['Trainer Name']}
-                                                </div>
-                                                <div className="text-xs text-gray-500 dark:text-slate-400">
-                                                    {event['Trainer ID']}
+                                                    {event['Trainer Name'].split(' ')[0]}
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3">

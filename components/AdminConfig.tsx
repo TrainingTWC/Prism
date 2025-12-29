@@ -4,6 +4,7 @@ import { useConfig } from '../contexts/ConfigContext';
 import { CONFIG } from '../contexts/config';
 import { Users, ClipboardList, FileJson, Plus, Trash2, Edit2, Save, X, Download } from 'lucide-react';
 import { AM_ID_TO_NAME } from '../utils/amNameMapping';
+import { useEmployeeDirectory } from '../hooks/useEmployeeDirectory';
 
 type AdminTab = 'roles' | 'checklists' | 'raw' | 'audit-details' | 'store-health';
 
@@ -1039,13 +1040,26 @@ const RoleMappingEditor: React.FC<{ config: any; setJson: (s: string) => void; s
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRegion, setFilterRegion] = useState('');
   const [editingRow, setEditingRow] = useState<number | null>(null);
+  
+  // Use Supabase employee directory hook with fallback to JSON
+  const { directory: supabaseDirectory, loading: directoryLoading } = useEmployeeDirectory();
   const [employeeData, setEmployeeData] = useState<Record<string, string>>({});
 
-  // Load employee data
+  // Load employee data from Supabase first, fallback to JSON
   React.useEffect(() => {
-    fetch('/Prism/employee_data.json')
-      .then(res => res.json())
-      .then((data: Array<{code: string, name: string}>) => {
+    async function loadEmployeeData() {
+      // Check if Supabase directory has data
+      if (Object.keys(supabaseDirectory.nameById).length > 0) {
+        console.log('[AdminConfig] Using Supabase employee directory');
+        setEmployeeData(supabaseDirectory.nameById);
+        return;
+      }
+      
+      // Fallback to JSON file if Supabase not configured or empty
+      try {
+        console.log('[AdminConfig] Falling back to JSON employee data');
+        const res = await fetch('/Prism/employee_data.json');
+        const data: Array<{code: string, name: string}> = await res.json();
         const mapping: Record<string, string> = {};
         data.forEach(emp => {
           // Store both lowercase and uppercase versions for flexible matching
@@ -1053,9 +1067,15 @@ const RoleMappingEditor: React.FC<{ config: any; setJson: (s: string) => void; s
           mapping[emp.code.toLowerCase()] = emp.name;
         });
         setEmployeeData(mapping);
-      })
-      .catch(err => console.error('Failed to load employee data:', err));
-  }, []);
+      } catch (err) {
+        console.error('[AdminConfig] Failed to load employee data:', err);
+      }
+    }
+    
+    if (!directoryLoading) {
+      loadEmployeeData();
+    }
+  }, [supabaseDirectory, directoryLoading]);
 
   const getPersonnelDisplay = (id: string) => {
     if (!id) return '';

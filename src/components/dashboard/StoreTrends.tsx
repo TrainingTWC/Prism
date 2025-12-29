@@ -46,30 +46,18 @@ export default function StoreTrends({
   const rows = propRows !== undefined ? propRows : fetchedRows;
   const loading = propLoading !== undefined ? propLoading : fetchedLoading;
   
-  console.log('📈 StoreTrends - Props received:', { 
-    propRows: propRows?.length ?? 'undefined', 
-    fetchedRows: fetchedRows?.length ?? 0,
-    finalRows: rows?.length ?? 0,
-    propLoading,
-    fetchedLoading,
-    finalLoading: loading 
-  });
-  
   const filteredRows = useMemo(() => {
     const filtered = applyFilters(rows, filters);
-    console.log('📈 StoreTrends - filteredRows:', filtered.length, 'rows');
     return filtered;
   }, [rows, filters]);
 
   const scoreTrend = useMemo(() => {
     const trend = aggregatePeriodAverages(filteredRows, 'score');
-    console.log('📈 StoreTrends - scoreTrend:', trend.length, 'periods');
     return trend;
   }, [filteredRows]);
   // Use per-period averages computed from per-store latest-up-to-period-end values
   const pctTrend = useMemo(() => {
     const trend = computePerPeriodLatestAverages(filteredRows, 'percentage');
-    console.log('📈 StoreTrends - pctTrend:', trend.length, 'periods');
     return trend;
   }, [filteredRows]);
 
@@ -132,7 +120,6 @@ export default function StoreTrends({
   // Build a combined dataset for chart: list of { period, percentage, categories }
   const combined = useMemo(() => {
     const periods = Array.from(new Set([...scoreTrend.map((s) => s.period), ...pctTrend.map((p) => p.period)])).sort();
-    console.log('📈 StoreTrends - unique periods:', periods);
     // Create array and remove any duplicate formatted periods
     const dataPoints = periods.map((p) => {
       const categories = categoryBreakdown.get(p) || { needsAttention: 0, brewing: 0, perfectShot: 0 };
@@ -152,8 +139,6 @@ export default function StoreTrends({
       seen.add(item.period);
       return true;
     });
-    console.log('📈 StoreTrends - combined chart data:', deduped.length, 'points');
-    console.log('📈 StoreTrends - combined data detail:', JSON.stringify(deduped, null, 2));
     return deduped;
   }, [scoreTrend, pctTrend, categoryBreakdown]);
 

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AUTH_CONFIG, RoleConfig } from '../config/auth';
 
-export type UserRole = 'operations' | 'hr' | 'qa' | 'training' | 'finance' | 'forms' | 'campus-hiring' | 'admin' | 'editor';
+export type UserRole = 'operations' | 'hr' | 'qa' | 'training' | 'finance' | 'forms' | 'campus-hiring' | 'bench-planning' | 'admin' | 'editor';
 
 interface Employee {
   code: string;
@@ -105,7 +105,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Helper function to check if email is in campus hiring candidate list
   const checkCampusHiringCandidate = async (email: string): Promise<boolean> => {
     try {
-      console.log('[Auth] Checking if email is campus hiring candidate:', email);
       
       // Try multiple paths for the JSON file
       const paths = [
@@ -120,7 +119,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const response = await fetch(path);
           if (response.ok) {
             const data = await response.json();
-            console.log('[Auth] Loaded campus candidates from:', path);
             
             // Check if email exists in candidates list (case-insensitive)
             const candidate = data.candidates?.find(
@@ -128,11 +126,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             );
             
             if (candidate) {
-              console.log('[Auth] ✅ Found campus candidate:', candidate.name);
               return true;
             }
             
-            console.log('[Auth] Email not found in campus candidates list');
             return false;
           }
         } catch (err) {
@@ -140,7 +136,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
       
-      console.log('[Auth] Could not load campus candidates file from any path');
       return false;
     } catch (error) {
       console.error('[Auth] Error checking campus hiring candidate:', error);
@@ -148,17 +143,71 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Helper function to check if employee ID exists in bench planning Google Sheet
+  const checkBenchPlanningEmployee = async (empId: string): Promise<boolean> => {
+    try {
+      
+      // TODO: Update this URL with your deployed Google Apps Script URL
+      const BENCH_PLANNING_ENDPOINT = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+      
+      // Skip if endpoint not configured
+      if (BENCH_PLANNING_ENDPOINT === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+        return false;
+      }
+      
+      const response = await fetch(`${BENCH_PLANNING_ENDPOINT}?action=getCandidateData&employeeId=${empId}`);
+      const data = await response.json();
+      
+      if (data.success && data.candidate) {
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('[Auth] Error checking bench planning employee:', error);
+      return false;
+    }
+  };
+
   const loginWithEmpId = async (empId: string): Promise<boolean> => {
     try {
-      console.log('[Auth] Attempting login with EMPID:', empId);
       
-      // First, check if this is a campus hiring candidate (email format check)
+      // First, check if this is a bench planning employee
+      const isBenchPlanningEmployee = await checkBenchPlanningEmployee(empId);
+      
+      if (isBenchPlanningEmployee) {
+        
+        // Auto-authenticate as bench-planning role without password
+        const benchRole: UserRole = 'bench-planning';
+        const config = AUTH_CONFIG.roles[benchRole];
+        
+        if (config) {
+          localStorage.setItem(AUTH_CONFIG.storageKeys.auth, 'true');
+          localStorage.setItem(AUTH_CONFIG.storageKeys.timestamp, Date.now().toString());
+          localStorage.setItem(AUTH_CONFIG.storageKeys.role, benchRole);
+          
+          setIsAuthenticated(true);
+          setUserRole(benchRole);
+          setRoleConfig(config);
+          
+          const employeeInfo: Employee = {
+            code: empId,
+            name: `Bench Planning: ${empId}`
+          };
+          
+          setEmployeeData(employeeInfo);
+          setIsEmployeeValidated(true);
+          localStorage.setItem('auth_employee', JSON.stringify(employeeInfo));
+          localStorage.setItem('employee_validated', 'true');
+          
+          return true;
+        }
+      }
+      
+      // Then check if this is a campus hiring candidate (email format check)
       const isCampusCandidate = await checkCampusHiringCandidate(empId);
       
-      console.log('[Auth] Is campus candidate check result:', isCampusCandidate);
-      
       if (isCampusCandidate) {
-        console.log('[Auth] ✅ Campus hiring candidate detected - auto-authenticating');
         
         // Auto-authenticate as campus-hiring role without password
         const campusRole: UserRole = 'campus-hiring';
@@ -183,12 +232,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           localStorage.setItem('auth_employee', JSON.stringify(employeeInfo));
           localStorage.setItem('employee_validated', 'true');
           
-          console.log('[Auth] ✅ Campus hiring candidate auto-authenticated successfully');
           return true;
         }
       }
-      
-      console.log('[Auth] ⚠️ NOT a campus candidate - clearing auth and requiring password');
       
       // CRITICAL: Clear authentication FIRST before any state updates
       // This must happen synchronously to prevent race conditions
@@ -196,7 +242,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem(AUTH_CONFIG.storageKeys.auth);
         localStorage.removeItem(AUTH_CONFIG.storageKeys.timestamp);
         localStorage.removeItem(AUTH_CONFIG.storageKeys.role);
-        console.log('[Auth] 🗑️  Cleared localStorage auth tokens');
       } catch (e) {
         console.error('[Auth] Error clearing localStorage:', e);
       }
@@ -207,37 +252,54 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUserRole(null);
       setRoleConfig(null);
       
-      console.log('[Auth] 🔒 Authentication state CLEARED - isAuthenticated = FALSE, userRole = NULL');
-      
       // UNIVERSAL ACCESS: Accept ANY employee ID without validation
       // This allows all employee IDs (including i192 and any format) to access the system
-      console.log('[Auth] ✅ Universal access enabled - accepting all employee IDs');
       
       const employeeInfo: Employee = {
         code: empId,
         name: `Employee ${empId}` // Generic name if not found in database
       };
       
-      // Optionally try to fetch real employee data for display purposes
+      // Try to fetch real employee data from Supabase
       try {
-        const response = await fetch('/Prism/employee_data.json');
-        const employees: Employee[] = await response.json();
-        console.log('[Auth] Loaded', employees.length, 'employees from database');
+        const { fetchEmployeeDirectory } = await import('../services/employeeDirectoryService');
+        const { isSupabaseConfigured } = await import('../services/supabaseClient');
         
-        // Case-insensitive search for employee
-        const foundEmployee = employees.find(
-          emp => emp.code.toLowerCase() === empId.toLowerCase()
-        );
+        if (isSupabaseConfigured()) {
+          const data = await fetchEmployeeDirectory({ onlyExisting: false });
+          
+          // Case-insensitive search for employee
+          const normalizedEmpId = empId.trim().toUpperCase();
+          const foundEmployee = data.byId[normalizedEmpId];
 
-        if (foundEmployee) {
-          console.log('[Auth] ✅ Found employee in database:', foundEmployee);
-          employeeInfo.code = foundEmployee.code;
-          employeeInfo.name = foundEmployee.name;
+          if (foundEmployee) {
+            employeeInfo.code = foundEmployee.employee_code;
+            employeeInfo.name = foundEmployee.empname;
+          } else {
+            console.log('[Auth] ℹ️ Employee not in Supabase, using generic info');
+          }
         } else {
-          console.log('[Auth] ℹ️ Employee not in database, using generic info');
+          console.log('[Auth] ℹ️ Supabase not configured, checking JSON fallback');
+          
+          // Fallback to JSON file if Supabase not configured
+          const response = await fetch('/Prism/employee_data.json');
+          const employees: Employee[] = await response.json();
+          console.log('[Auth] Loaded', employees.length, 'employees from JSON');
+          
+          const foundEmployee = employees.find(
+            emp => emp.code.toLowerCase() === empId.toLowerCase()
+          );
+
+          if (foundEmployee) {
+            console.log('[Auth] ✅ Found employee in JSON:', foundEmployee);
+            employeeInfo.code = foundEmployee.code;
+            employeeInfo.name = foundEmployee.name;
+          } else {
+            console.log('[Auth] ℹ️ Employee not in JSON, using generic info');
+          }
         }
       } catch (error) {
-        console.log('[Auth] ℹ️ Could not load employee database, using generic info');
+        console.log('[Auth] ℹ️ Could not load employee database, using generic info:', error);
       }
       
       // Store employee data in localStorage (persists across browser sessions)

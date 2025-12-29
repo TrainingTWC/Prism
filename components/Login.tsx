@@ -26,19 +26,22 @@ const Login: React.FC = () => {
       setPassword('');
     } else if (result.role) {
       // Show success message briefly before redirecting
-      const roleConfig = {
+      const roleConfig: Record<string, { permissions: string[] }> = {
         operations: { permissions: ['Operations Dashboard', 'Store Analytics', 'Performance Reports'] },
-        hr: { permissions: ['HR Dashboard', 'Employee Data', 'Training Audit', 'HR Analytics'] },
+        hr: { permissions: ['HR Dashboard', 'Employee Data', 'Training Audit', 'HR Analytics', 'Campus Hiring', 'Bench Planning'] },
         qa: { permissions: ['QA Dashboard', 'Quality Reports', 'Audit Checklists'] },
-        training: { permissions: ['Training Dashboard', 'Learning Analytics', 'Training Reports'] },
+        training: { permissions: ['Training Dashboard', 'Learning Analytics', 'Training Reports', 'Training Audit', 'Bench Planning'] },
         finance: { permissions: ['Finance Dashboard', 'Financial Analytics', 'Budget Reports'] },
-        admin: { permissions: ['All Dashboards', 'All Reports', 'View All Data'] },
+        forms: { permissions: ['Forms & Surveys'] },
+        'campus-hiring': { permissions: ['Campus Hiring Checklist', 'Candidate Management'] },
+        'bench-planning': { permissions: ['Bench Planning Checklist', 'Readiness Assessment', 'Candidate Interviews'] },
+        admin: { permissions: ['All Dashboards', 'All Reports', 'View All Data', 'Campus Hiring', 'Bench Planning'] },
         editor: { permissions: ['Full Access', 'All Dashboards', 'All Reports', 'System Administration', 'Configuration'] }
       };
       
       setLoginSuccess({
         role: result.role,
-        permissions: roleConfig[result.role].permissions
+        permissions: roleConfig[result.role]?.permissions || ['Access Granted']
       });
       
       // Auto-redirect after showing success

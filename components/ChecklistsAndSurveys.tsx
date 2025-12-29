@@ -11,12 +11,13 @@ import CampusHiringChecklist from './checklists/CampusHiringChecklist';
 import FormsChecklist from './checklists/FormsChecklist';
 import TrainerCalendarChecklist from './checklists/TrainerCalendarChecklist';
 import SHLPChecklist from './checklists/SHLPChecklist';
+import BenchPlanningChecklist from './checklists/BenchPlanningChecklist';
 
 interface ChecklistsAndSurveysProps {
   userRole: UserRole;
 }
 
-type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar';
+type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning';
 
 const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole }) => {
   const { userRole: authUserRole, hasPermission } = useAuth();
@@ -30,7 +31,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     shlp: { completed: 0, total: 0, score: 0 },
     'campus-hiring': { completed: 0, total: 0, score: 0 },
     forms: { completed: 0, total: 0, score: 0 },
-    'trainer-calendar': { completed: 0, total: 0, score: 0 }
+    'trainer-calendar': { completed: 0, total: 0, score: 0 },
+    'bench-planning': { completed: 0, total: 0, score: 0 }
   });
 
   // Get auditor info from URL parameters
@@ -45,6 +47,13 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     }
   }, [authUserRole]);
 
+  // Auto-open bench planning for bench-planning role users
+  useEffect(() => {
+    if (authUserRole === 'bench-planning' && !activeChecklist) {
+      setActiveChecklist('bench-planning');
+    }
+  }, [authUserRole]);
+
   // Filter checklists based on user permissions
   const getAvailableChecklists = () => {
     const allChecklists = [
@@ -56,7 +65,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
       { id: 'shlp' as ChecklistType, label: 'SHLP', icon: CheckCircle, color: 'bg-emerald-500' },
       { id: 'campus-hiring' as ChecklistType, label: 'Campus Hiring', icon: Brain, color: 'bg-indigo-500' },
       { id: 'forms' as ChecklistType, label: 'Forms & Surveys', icon: FileText, color: 'bg-teal-500' },
-      { id: 'trainer-calendar' as ChecklistType, label: 'Trainer Calendar', icon: Calendar, color: 'bg-purple-600' }
+      { id: 'trainer-calendar' as ChecklistType, label: 'Trainer Calendar', icon: Calendar, color: 'bg-purple-600' },
+      { id: 'bench-planning' as ChecklistType, label: 'Bench Planning', icon: Users, color: 'bg-violet-600' }
     ];
 
     // For admin or editor role with Full Access, show all checklists
@@ -81,7 +91,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     { id: 'shlp' as ChecklistType, label: 'SHLP', icon: CheckCircle, color: 'bg-emerald-500' },
     { id: 'campus-hiring' as ChecklistType, label: 'Campus Hiring', icon: Brain, color: 'bg-indigo-500' },
     { id: 'forms' as ChecklistType, label: 'Forms & Surveys', icon: FileText, color: 'bg-teal-500' },
-    { id: 'trainer-calendar' as ChecklistType, label: 'Trainer Calendar', icon: Calendar, color: 'bg-purple-600' }
+    { id: 'trainer-calendar' as ChecklistType, label: 'Trainer Calendar', icon: Calendar, color: 'bg-purple-600' },
+    { id: 'bench-planning' as ChecklistType, label: 'Bench Planning', icon: Users, color: 'bg-violet-600' }
   ];
 
   const updateChecklistStats = (type: ChecklistType, stats: { completed: number; total: number; score: number }) => {
@@ -129,6 +140,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
         return <FormsChecklist {...commonProps} />;
       case 'trainer-calendar':
         return <TrainerCalendarChecklist {...commonProps} />;
+      case 'bench-planning':
+        return <BenchPlanningChecklist {...commonProps} />;
       default:
         return <HRChecklist {...commonProps} />;
     }
@@ -157,8 +170,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
           <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 py-3 sm:px-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                {/* Hide back button for campus-hiring role */}
-                {authUserRole !== 'campus-hiring' && (
+                {/* Hide back button for campus-hiring and bench-planning roles */}
+                {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && (
                   <button
                     onClick={handleBackToOverview}
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
@@ -169,8 +182,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                 )}
                 
                 <nav className="flex items-center space-x-2 text-sm">
-                  {/* Hide breadcrumb for campus-hiring role */}
-                  {authUserRole !== 'campus-hiring' && (
+                  {/* Hide breadcrumb for campus-hiring and bench-planning roles */}
+                  {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && (
                     <>
                       <button
                         onClick={handleBackToOverview}

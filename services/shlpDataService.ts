@@ -64,7 +64,6 @@ const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw0ndZitHKmrI3z3M
 
 export const fetchSHLPData = async (): Promise<SHLPSubmission[]> => {
   try {
-    console.log('🔄 Fetching SHLP data from:', SHLP_ENDPOINT);
     
     const response = await fetch(`${SHLP_ENDPOINT}?action=getSHLPData`);
     
@@ -73,10 +72,8 @@ export const fetchSHLPData = async (): Promise<SHLPSubmission[]> => {
     }
     
     const result = await response.json();
-    console.log('📊 SHLP API Response:', result);
     
     if (result.result === 'success' && Array.isArray(result.data)) {
-      console.log(`✅ Successfully fetched ${result.data.length} SHLP records`);
       return result.data;
     } else {
       console.warn('⚠️ Unexpected SHLP API response structure:', result);

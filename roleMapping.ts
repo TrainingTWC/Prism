@@ -4,7 +4,7 @@ import { HR_PERSONNEL } from './constants';
 export interface UserRole {
   userId: string;
   name: string;
-  role: 'admin' | 'area_manager' | 'hrbp' | 'regional_hr' | 'hr_head' | 'lms_head' | 'store' | 'trainer' | 'forms' | 'campus-hiring';
+  role: 'admin' | 'area_manager' | 'hrbp' | 'regional_hr' | 'hr_head' | 'lms_head' | 'store' | 'trainer' | 'forms' | 'campus-hiring' | 'bench-planning';
   allowedStores: string[]; // Store IDs they can access
   allowedAMs: string[]; // Area Manager IDs they can see
   allowedHRs: string[]; // HR Personnel IDs they can see

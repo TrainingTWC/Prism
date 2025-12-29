@@ -66,3 +66,61 @@ export interface HRPerson {
   name: string;
   id: string;
 }
+
+// Bench Planning Types
+export interface BenchCandidate {
+  employeeId: string;
+  employeeName: string;
+  managerId: string;
+  managerName: string;
+  panelistId: string;
+  panelistName: string;
+  storeId?: string;
+  region?: string;
+  assessmentUnlockDateTime?: string;
+}
+
+export interface ReadinessChecklistItem {
+  id: string;
+  text: string;
+  score: number; // 1-5
+}
+
+export interface ReadinessChecklistSubmission {
+  submissionTime: string;
+  employeeId: string;
+  employeeName: string;
+  managerId: string;
+  managerName: string;
+  items: ReadinessChecklistItem[];
+  totalScore: number;
+  maxScore: number;
+  passed: boolean;
+  remarks?: string;
+}
+
+export interface SelfAssessmentSubmission {
+  submissionTime: string;
+  employeeId: string;
+  employeeName: string;
+  answers: { [key: string]: string };
+  totalScore: number;
+  maxScore: number;
+  passed: boolean;
+  attemptNumber: number;
+}
+
+export interface InterviewSubmission {
+  submissionTime: string;
+  employeeId: string;
+  employeeName: string;
+  panelistId: string;
+  panelistName: string;
+  sections: {
+    name: string;
+    score: number; // 1-5
+  }[];
+  totalScore: number;
+  maxScore: number;
+  remarks?: string;
+}

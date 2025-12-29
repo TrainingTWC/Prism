@@ -7,7 +7,8 @@ import { buildTrainingPDF } from '../src/utils/trainingReport';
 import { buildOperationsPDF } from '../src/utils/operationsReport';
 import { buildQAPDF } from '../src/utils/qaReport';
 import { buildHRPDF } from '../src/utils/hrReport';
-import { Users, Clipboard, GraduationCap, BarChart3, Brain, Calendar, CheckCircle } from 'lucide-react';
+import { Users, Clipboard, GraduationCap, BarChart3, Brain, Calendar, CheckCircle, TrendingUp, Target } from 'lucide-react';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Submission, Store } from '../types';
 import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission } from '../services/dataService';
 import { fetchSHLPData, SHLPSubmission } from '../services/shlpDataService';
@@ -73,6 +74,7 @@ import CampusHiringStats from './CampusHiringStats';
 import TrainerCalendarDashboard from './TrainerCalendarDashboard';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../roleMapping';
 import { useAuth } from '../contexts/AuthContext';
+import { useEmployeeDirectory } from '../hooks/useEmployeeDirectory';
 
 interface DashboardProps {
   userRole: UserRole;
@@ -81,6 +83,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const { userRole: authUserRole, hasPermission, hasDashboardAccess } = useAuth();
   const { config, loading: configLoading } = useConfig();
+  const { directory: employeeDirectory, loading: employeeLoading } = useEmployeeDirectory();
   
   // Use config data if available, otherwise fall back to hardcoded constants
   const QUESTIONS = config?.QUESTIONS || DEFAULT_QUESTIONS;
@@ -142,6 +145,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   // HRBP Calendar Modal state
   const [selectedHRBP, setSelectedHRBP] = useState<{ id: string; name: string } | null>(null);
   const [showHRBPCalendar, setShowHRBPCalendar] = useState(false);
+
+  // Connect Targets Modal state
+  const [showConnectTargetsModal, setShowConnectTargetsModal] = useState(false);
+  const [connectTargetsModalType, setConnectTargetsModalType] = useState<'week' | 'month' | 'region' | 'store' | 'am' | 'daily'>('week');
 
   // Normalized trainer filter id for robust comparisons (handle h3595 vs H3595 etc.)
   const normalizeId = (v: any) => (v === undefined || v === null) ? '' : String(v).toUpperCase();
@@ -1893,14 +1900,329 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     const avgScore = totalSubmissions > 0 ? filteredSubmissions.reduce((acc, s) => acc + s.percent, 0) / totalSubmissions : 0;
     const uniqueEmployees = new Set(filteredSubmissions.map(s => s.empId)).size;
     const uniqueStores = new Set(filteredSubmissions.map(s => s.storeID)).size;
+    
+    // Calculate total employees from Supabase directory - only if fully loaded
+    const totalEmployees = (!employeeLoading && employeeDirectory?.byId) ? Object.keys(employeeDirectory.byId).length : 0;
+    console.log('📊 HR Stats Debug:', { 
+      totalEmployees, 
+      employeeDirectoryExists: !!employeeDirectory, 
+      byIdKeys: employeeDirectory?.byId ? Object.keys(employeeDirectory.byId).length : 0,
+      employeeLoading 
+    });
+    
+    // IMPORTANT: If employee directory is not loaded, we cannot calculate accurate percentages
+    // Show a warning and use surveyed employees as the denominator
+    if (totalEmployees === 0) {
+      console.warn('⚠️ Employee directory not loaded! Percentage calculations will be inaccurate.');
+      console.warn('Make sure Supabase employee directory is properly configured and loaded.');
+    }
+    
+    const idealConnects = totalEmployees * 12; // 12 connects per employee per year
+    // Actual connects = unique employees who have submitted (not total submissions)
+    const actualConnects = uniqueEmployees;
+
+    // Build store-to-region and store-to-AM maps from comprehensive mapping
+    const storeToRegionMap = new Map<string, string>();
+    const storeToAMMap = new Map<string, string>();
+    
+    if (compStoreMapping && Array.isArray(compStoreMapping)) {
+      compStoreMapping.forEach((row: any) => {
+        const storeId = String(row['Store ID'] || row.storeId || row.StoreID || row.store_id || '').trim();
+        const region = row.Region || row.region;
+        const amId = row.AM || row.areaManagerId;
+        
+        if (storeId) {
+          if (region) storeToRegionMap.set(storeId, region);
+          if (amId) storeToAMMap.set(storeId, String(amId).toUpperCase());
+        }
+      });
+    }
+    
+    console.log('📍 Store mapping debug:', {
+      compStoreMappingLoaded: !!compStoreMapping,
+      totalMappingRows: compStoreMapping?.length || 0,
+      storeToRegionSize: storeToRegionMap.size,
+      storeToAMSize: storeToAMMap.size,
+      sampleStoreRegion: Array.from(storeToRegionMap.entries()).slice(0, 3),
+      sampleStoreAM: Array.from(storeToAMMap.entries()).slice(0, 3)
+    });
+    
+    // Count employees per Region, Store, and AM from employee directory
+    const employeesPerRegion: { [key: string]: number } = {};
+    const employeesPerStore: { [key: string]: number } = {};
+    const employeesPerAM: { [key: string]: number } = {};
+    
+    if (employeeDirectory?.byId) {
+      const sampleEmployees = Object.values(employeeDirectory.byId).slice(0, 3);
+      console.log('🔍 Raw employee objects:', sampleEmployees);
+      console.log('🔍 Employee object keys:', Object.keys(sampleEmployees[0] || {}));
+      
+      Object.values(employeeDirectory.byId).forEach((emp: any) => {
+        const storeCode = String(emp.store_code || '').trim();
+        
+        // Derive region from employee data or store mapping
+        let region = emp.region || (storeCode ? storeToRegionMap.get(storeCode) : null) || 'Unknown';
+        employeesPerRegion[region] = (employeesPerRegion[region] || 0) + 1;
+        
+        // Count by store
+        if (storeCode) {
+          employeesPerStore[storeCode] = (employeesPerStore[storeCode] || 0) + 1;
+        }
+        
+        // Derive AM from store mapping (employees don't have AM_Code directly)
+        let amCode = storeCode ? storeToAMMap.get(storeCode) : null;
+        if (amCode) {
+          amCode = String(amCode).toUpperCase();
+          employeesPerAM[amCode] = (employeesPerAM[amCode] || 0) + 1;
+        }
+      });
+    }
+    
+    console.log('👥 Employee distribution:', {
+      totalEmployees,
+      employeesPerRegion,
+      employeesPerStore: Object.keys(employeesPerStore).length + ' stores',
+      employeesPerAM: Object.keys(employeesPerAM).length + ' AMs',
+      sampleEmployeesPerStore: Object.entries(employeesPerStore).slice(0, 5)
+    });
+
+    // Regional breakdown - initialize with all regions from employee directory
+    const byRegion: { [key: string]: { connects: number; employees: Set<string>; submissions: number; totalEmployees: number } } = {};
+    
+    // First, initialize all regions with their employee counts
+    Object.keys(employeesPerRegion).forEach(region => {
+      byRegion[region] = { 
+        connects: 0, 
+        employees: new Set(), 
+        submissions: 0, 
+        totalEmployees: employeesPerRegion[region] || 0 
+      };
+    });
+    
+    // Then add submission data
+    filteredSubmissions.forEach(s => {
+      const storeId = String(s.storeID || '').trim();
+      const region = s.region || (storeId ? storeToRegionMap.get(storeId) : null) || 'Unknown';
+      
+      // Ensure region exists in byRegion
+      if (!byRegion[region]) {
+        byRegion[region] = { 
+          connects: 0, 
+          employees: new Set(), 
+          submissions: 0, 
+          totalEmployees: employeesPerRegion[region] || 0 
+        };
+      }
+      
+      byRegion[region].employees.add(s.empId);
+      byRegion[region].submissions++;
+    });
+    
+    Object.keys(byRegion).forEach(region => {
+      byRegion[region].connects = byRegion[region].employees.size;
+    });
+
+    // Store breakdown - initialize with all stores from employee directory
+    const byStore: { [key: string]: { storeName: string; connects: number; employees: Set<string>; submissions: number; region?: string; totalEmployees: number } } = {};
+    
+    // First, initialize all stores with their employee counts
+    Object.keys(employeesPerStore).forEach(storeId => {
+      const storeName = allStores.find(s => s.id === storeId)?.name || storeId;
+      const region = storeToRegionMap.get(storeId);
+      byStore[storeId] = { 
+        storeName, 
+        connects: 0, 
+        employees: new Set(), 
+        submissions: 0, 
+        region, 
+        totalEmployees: employeesPerStore[storeId] || 0 
+      };
+    });
+    
+    // Then add submission data
+    filteredSubmissions.forEach(s => {
+      const storeId = String(s.storeID || '').trim();
+      if (!storeId) return; // Skip if no store ID
+      
+      const region = s.region || (storeId ? storeToRegionMap.get(storeId) : null);
+      
+      // Ensure store exists in byStore
+      if (!byStore[storeId]) {
+        byStore[storeId] = { 
+          storeName: s.storeName || storeId, 
+          connects: 0, 
+          employees: new Set(), 
+          submissions: 0, 
+          region: region, 
+          totalEmployees: employeesPerStore[storeId] || 0 
+        };
+      }
+      
+      byStore[storeId].employees.add(s.empId);
+      byStore[storeId].submissions++;
+    });
+    
+    Object.keys(byStore).forEach(storeId => {
+      byStore[storeId].connects = byStore[storeId].employees.size;
+    });
+    
+    console.log('🏪 Store breakdown debug:', {
+      totalStores: Object.keys(byStore).length,
+      storesWithEmployees: Object.values(byStore).filter(s => s.totalEmployees > 0).length,
+      storesWithSubmissions: Object.values(byStore).filter(s => s.submissions > 0).length,
+      sampleStores: Object.entries(byStore).slice(0, 5).map(([id, data]) => ({
+        id,
+        name: data.storeName,
+        employees: data.totalEmployees,
+        connects: data.connects,
+        submissions: data.submissions
+      }))
+    });
+
+    // AM breakdown - initialize with all AMs from employee directory
+    const byAM: { [key: string]: { amName: string; connects: number; employees: Set<string>; submissions: number; totalEmployees: number } } = {};
+    
+    // First, initialize all AMs with their employee counts
+    Object.keys(employeesPerAM).forEach(amId => {
+      const amName = AREA_MANAGERS.find(am => am.id.toUpperCase() === amId)?.name || amId;
+      byAM[amId] = { 
+        amName, 
+        connects: 0, 
+        employees: new Set(), 
+        submissions: 0, 
+        totalEmployees: employeesPerAM[amId] || 0 
+      };
+    });
+    
+    // Then add submission data
+    filteredSubmissions.forEach(s => {
+      const storeId = String(s.storeID || '').trim();
+      let amId = s.amId || (storeId ? storeToAMMap.get(storeId) : null);
+      
+      if (amId) {
+        amId = String(amId).toUpperCase();
+        
+        // Ensure AM exists in byAM
+        if (!byAM[amId]) {
+          byAM[amId] = { 
+            amName: s.amName || AREA_MANAGERS.find(am => am.id.toUpperCase() === amId)?.name || amId, 
+            connects: 0, 
+            employees: new Set(), 
+            submissions: 0, 
+            totalEmployees: employeesPerAM[amId] || 0 
+          };
+        }
+        
+        byAM[amId].employees.add(s.empId);
+        byAM[amId].submissions++;
+      }
+    });
+    
+    Object.keys(byAM).forEach(amId => {
+      byAM[amId].connects = byAM[amId].employees.size;
+    });
+    
+    console.log('👔 AM breakdown debug:', {
+      totalAMs: Object.keys(byAM).length,
+      amsWithEmployees: Object.values(byAM).filter(a => a.totalEmployees > 0).length,
+      amsWithSubmissions: Object.values(byAM).filter(a => a.submissions > 0).length,
+      sampleAMs: Object.entries(byAM).slice(0, 5).map(([id, data]) => ({
+        id,
+        name: data.amName,
+        employees: data.totalEmployees,
+        connects: data.connects,
+        submissions: data.submissions
+      }))
+    });
+
+    // Time-based tracking (3 connects per day per HRBP)
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const currentDate = now.getDate();
+    
+    // Week-wise: Get current week (Mon-Sun)
+    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay; // Calculate days back to Monday
+    const weekStart = new Date(now);
+    weekStart.setDate(currentDate + mondayOffset);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+    
+    // Month-wise: Current month start to now
+    const monthStart = new Date(currentYear, currentMonth, 1, 0, 0, 0, 0);
+    const monthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+    const daysInMonth = monthEnd.getDate();
+    const daysElapsedInMonth = currentDate; // Days from 1st to today
+    
+    // Count unique HRBPs in filtered data
+    const activeHRBPs = new Set(filteredSubmissions.map(s => s.hrId)).size;
+    const numHRBPs = activeHRBPs > 0 ? activeHRBPs : 1; // At least 1 to avoid division by zero
+    
+    // Calculate actual connects in current week and month
+    let weekConnects = 0;
+    let monthConnects = 0;
+    const weekEmployees = new Set<string>();
+    const monthEmployees = new Set<string>();
+    
+    filteredSubmissions.forEach(s => {
+      try {
+        const submissionDate = new Date(s.submissionTime);
+        if (!isNaN(submissionDate.getTime())) {
+          // Week check
+          if (submissionDate >= weekStart && submissionDate <= weekEnd) {
+            weekEmployees.add(s.empId);
+          }
+          // Month check
+          if (submissionDate >= monthStart && submissionDate <= now) {
+            monthEmployees.add(s.empId);
+          }
+        }
+      } catch (error) {
+        // Skip invalid dates
+      }
+    });
+    
+    weekConnects = weekEmployees.size;
+    monthConnects = monthEmployees.size;
+    
+    // Calculate targets based on 3 connects per day per HRBP
+    // Week: assuming 5-6 working days (using 6 to include Saturday)
+    const workingDaysInWeek = 6; // Mon-Sat
+    const weekTarget = numHRBPs * 3 * workingDaysInWeek; // HRBPs × 3 employees/day × 6 working days
+    
+    // Month: 24 working days as per standard
+    const workingDaysInMonth = 24;
+    const workingDaysElapsedInMonth = Math.min(daysElapsedInMonth, workingDaysInMonth);
+    const monthTarget = numHRBPs * 3 * workingDaysElapsedInMonth; // HRBPs × 3 employees/day × working days elapsed
 
     return {
       totalSubmissions,
       avgScore: Math.round(avgScore),
       uniqueEmployees,
-      uniqueStores
+      uniqueStores,
+      totalEmployees,
+      idealConnects,
+      actualConnects,
+      // Dimensional breakdowns
+      byRegion,
+      byStore,
+      byAM,
+      // Time-based tracking
+      weekConnects,
+      weekTarget,
+      weekProgress: weekTarget > 0 ? Math.round((weekConnects / weekTarget) * 100) : 0,
+      monthConnects,
+      monthTarget,
+      monthProgress: monthTarget > 0 ? Math.round((monthConnects / monthTarget) * 100) : 0,
+      workingDaysInWeek,
+      workingDaysElapsedInMonth,
+      workingDaysInMonth,
+      numHRBPs
     };
-  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, filteredQAData, filteredFinanceData, filteredSHLPData, dashboardType, trendsData, trendsLoading, trainingData, filters]);
+  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, filteredQAData, filteredFinanceData, filteredSHLPData, dashboardType, trendsData, trendsLoading, trainingData, filters, employeeDirectory, employeeLoading]);
 
   // Helper to compute the Average Score display string robustly
   const getAverageScoreDisplay = () => {
@@ -3336,6 +3658,186 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   return (
     <div className="space-y-6">
+      {/* Connect Targets Detail Modal */}
+      {showConnectTargetsModal && stats && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowConnectTargetsModal(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">
+                    {connectTargetsModalType === 'week' && 'Week Performance Details'}
+                    {connectTargetsModalType === 'month' && 'Month Performance Details'}
+                    {connectTargetsModalType === 'region' && 'Regional Performance'}
+                    {connectTargetsModalType === 'store' && 'Store Performance'}
+                    {connectTargetsModalType === 'am' && 'Area Manager Performance'}
+                    {connectTargetsModalType === 'daily' && 'Daily Average Details'}
+                  </h2>
+                  <p className="text-blue-100 mt-1">Breakdown by HR, Region, AM, and Store</p>
+                </div>
+                <button
+                  onClick={() => setShowConnectTargetsModal(false)}
+                  className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              {/* By HRBP */}
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-600" />
+                  By HRBP
+                </h3>
+                <div className="space-y-2">
+                  {(() => {
+                    const byHR: { [key: string]: { name: string; connects: number; submissions: number; employees: Set<string> } } = {};
+                    filteredSubmissions.forEach(s => {
+                      if (!byHR[s.hrId]) {
+                        byHR[s.hrId] = { name: s.hrName, connects: 0, submissions: 0, employees: new Set() };
+                      }
+                      byHR[s.hrId].employees.add(s.empId);
+                      byHR[s.hrId].submissions++;
+                    });
+                    Object.keys(byHR).forEach(hrId => {
+                      byHR[hrId].connects = byHR[hrId].employees.size;
+                    });
+                    
+                    return Object.entries(byHR)
+                      .sort(([, a], [, b]) => b.connects - a.connects)
+                      .map(([hrId, data]) => (
+                        <div key={hrId} className="bg-gray-50 dark:bg-slate-700 rounded-lg p-3 flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold text-gray-900 dark:text-white">{data.name}</p>
+                            <p className="text-xs text-gray-500 dark:text-slate-400">ID: {hrId}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{data.connects}</p>
+                            <p className="text-xs text-gray-500 dark:text-slate-400">{data.submissions} total connects</p>
+                          </div>
+                        </div>
+                      ));
+                  })()}
+                </div>
+              </div>
+
+              {/* By Region */}
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  By Region
+                </h3>
+                <div className="space-y-2">
+                  {stats && (stats as any).byRegion && Object.entries((stats as any).byRegion)
+                    .sort(([, a]: any, [, b]: any) => b.connects - a.connects)
+                    .map(([region, data]: [string, any]) => {
+                      // Percentage = (Surveyed Employees / Total Employees in Region) * 100
+                      const completion = data.totalEmployees > 0 ? Math.round((data.connects / data.totalEmployees) * 100) : 0;
+                      return (
+                        <div key={region} className="bg-gray-50 dark:bg-slate-700 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="font-semibold text-gray-900 dark:text-white">{region}</p>
+                            <div className="text-right">
+                              <p className="text-xl font-bold text-orange-600 dark:text-orange-400">{data.connects} / {data.totalEmployees}</p>
+                              <p className="text-xs text-gray-500 dark:text-slate-400">{completion}% surveyed • {data.submissions} total connects</p>
+                            </div>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2">
+                            <div 
+                              className="h-full bg-gradient-to-r from-orange-500 to-red-600 rounded-full"
+                              style={{ width: `${completion}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* By Area Manager */}
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-pink-600" />
+                  By Area Manager
+                </h3>
+                <div className="space-y-2">
+                  {stats && (stats as any).byAM && Object.entries((stats as any).byAM)
+                    .sort(([, a]: any, [, b]: any) => b.connects - a.connects)
+                    .map(([amId, data]: [string, any]) => {
+                      // Percentage = (Surveyed Employees / Total Employees in AM Patch) * 100
+                      const completion = data.totalEmployees > 0 ? Math.round((data.connects / data.totalEmployees) * 100) : 0;
+                      return (
+                        <div key={amId} className="bg-gray-50 dark:bg-slate-700 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <p className="font-semibold text-gray-900 dark:text-white">{data.amName}</p>
+                              <p className="text-xs text-gray-500 dark:text-slate-400">ID: {amId}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xl font-bold text-pink-600 dark:text-pink-400">{data.connects} / {data.totalEmployees}</p>
+                              <p className="text-xs text-gray-500 dark:text-slate-400">{completion}% surveyed • {data.submissions} total connects</p>
+                            </div>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2">
+                            <div 
+                              className="h-full bg-gradient-to-r from-pink-500 to-rose-600 rounded-full"
+                              style={{ width: `${completion}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* By Store */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  By Store
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {stats && (stats as any).byStore && Object.entries((stats as any).byStore)
+                    .sort(([, a]: any, [, b]: any) => b.connects - a.connects)
+                    .map(([storeId, data]: [string, any]) => {
+                      // Percentage = (Surveyed Employees / Total Employees in Store) * 100
+                      const completion = data.totalEmployees > 0 ? Math.round((data.connects / data.totalEmployees) * 100) : 0;
+                      return (
+                        <div key={storeId} className="bg-gray-50 dark:bg-slate-700 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-gray-900 dark:text-white truncate">{data.storeName}</p>
+                              <p className="text-xs text-gray-500 dark:text-slate-400">{data.region}</p>
+                            </div>
+                            <div className="text-right ml-2">
+                              <p className="text-lg font-bold text-cyan-600 dark:text-cyan-400">{data.connects}/{data.totalEmployees}</p>
+                              <p className="text-xs text-gray-500 dark:text-slate-400">{completion}% surveyed</p>
+                            </div>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5">
+                            <div 
+                              className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full"
+                              style={{ width: `${completion}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Refresh Indicator */}
       {refreshing && (
         <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl p-3">
@@ -3563,6 +4065,282 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           {/* Show HR Dashboard Content */}
           {dashboardType === 'hr' && (
             <>
+              {/* HR Connects Progress Card */}
+              {stats?.totalEmployees > 0 && (
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700 rounded-2xl shadow-lg p-6 border border-blue-200 dark:border-slate-600">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                        <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">HR Connects Progress</h3>
+                        <p className="text-sm text-gray-600 dark:text-slate-400">Target: 12 connects per employee annually</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm">
+                      <p className="text-sm text-gray-500 dark:text-slate-400 mb-1">Total Employees</p>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.totalEmployees.toLocaleString()}</p>
+                    </div>
+                    
+                    <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm">
+                      <p className="text-sm text-gray-500 dark:text-slate-400 mb-1">Actual Connects</p>
+                      <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.actualConnects.toLocaleString()}</p>
+                    </div>
+                    
+                    <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm">
+                      <p className="text-sm text-gray-500 dark:text-slate-400 mb-1">Target Connects</p>
+                      <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{stats.idealConnects.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-gray-700 dark:text-slate-300">Progress</span>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white">
+                        {Math.round((stats.actualConnects / stats.idealConnects) * 100)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, (stats.actualConnects / stats.idealConnects) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Connect Targets Section */}
+              {stats && (stats as any).weekTarget > 0 && (
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <Target className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Connect Targets</h3>
+                        <p className="text-sm text-gray-500 dark:text-slate-400">3 connects per HRBP per day • {(stats as any).numHRBPs} active HRBP{(stats as any).numHRBPs !== 1 ? 's' : ''}</p>
+                      </div>
+                    </div>
+
+                    {/* Filters */}
+                    <div className="flex flex-wrap gap-2">
+                      <select
+                        value={filters.region}
+                        onChange={(e) => handleFilterChange('region', e.target.value)}
+                        className="text-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">All Regions</option>
+                        {REGIONS.map(region => (
+                          <option key={region} value={region}>{region}</option>
+                        ))}
+                      </select>
+
+                      <select
+                        value={filters.am}
+                        onChange={(e) => handleFilterChange('am', e.target.value)}
+                        className="text-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">All AMs</option>
+                        {AREA_MANAGERS.map(am => (
+                          <option key={am.id} value={am.id}>{am.name}</option>
+                        ))}
+                      </select>
+
+                      <select
+                        value={filters.store}
+                        onChange={(e) => handleFilterChange('store', e.target.value)}
+                        className="text-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">All Stores</option>
+                        {allStores.map(store => (
+                          <option key={store.id} value={store.id}>{store.name}</option>
+                        ))}
+                      </select>
+
+                      <select
+                        value={filters.month}
+                        onChange={(e) => handleFilterChange('month', e.target.value)}
+                        className="text-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">All Time</option>
+                        <option value="2024-12">Dec 2024</option>
+                        <option value="2025-01">Jan 2025</option>
+                        <option value="2025-02">Feb 2025</option>
+                        <option value="2025-03">Mar 2025</option>
+                        <option value="2025-04">Apr 2025</option>
+                        <option value="2025-05">May 2025</option>
+                        <option value="2025-06">Jun 2025</option>
+                        <option value="2025-07">Jul 2025</option>
+                        <option value="2025-08">Aug 2025</option>
+                        <option value="2025-09">Sep 2025</option>
+                        <option value="2025-10">Oct 2025</option>
+                        <option value="2025-11">Nov 2025</option>
+                        <option value="2025-12">Dec 2025</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Stat Cards Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {/* Week Progress */}
+                    <div 
+                      onClick={() => { setConnectTargetsModalType('week'); setShowConnectTargetsModal(true); }}
+                      className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-slate-700 dark:to-slate-600 rounded-xl p-4 border border-green-200 dark:border-slate-500 cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        <p className="text-xs font-semibold text-gray-600 dark:text-slate-300">This Week</p>
+                      </div>
+                      <div className="flex items-baseline gap-1 mb-1">
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {(stats as any).weekConnects}
+                        </p>
+                        <span className="text-sm text-gray-500 dark:text-slate-400">/</span>
+                        <p className="text-xl font-bold text-gray-600 dark:text-slate-400">
+                          {(stats as any).weekTarget}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500 dark:text-slate-400">6 working days</span>
+                        <span className={`font-bold ${(stats as any).weekProgress >= 100 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                          {(stats as any).weekProgress}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Month Progress */}
+                    <div 
+                      onClick={() => { setConnectTargetsModalType('month'); setShowConnectTargetsModal(true); }}
+                      className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-slate-700 dark:to-slate-600 rounded-xl p-4 border border-purple-200 dark:border-slate-500 cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                        <p className="text-xs font-semibold text-gray-600 dark:text-slate-300">This Month</p>
+                      </div>
+                      <div className="flex items-baseline gap-1 mb-1">
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {(stats as any).monthConnects}
+                        </p>
+                        <span className="text-sm text-gray-500 dark:text-slate-400">/</span>
+                        <p className="text-xl font-bold text-gray-600 dark:text-slate-400">
+                          {(stats as any).monthTarget}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500 dark:text-slate-400">{(stats as any).workingDaysElapsedInMonth} days elapsed</span>
+                        <span className={`font-bold ${(stats as any).monthProgress >= 100 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                          {(stats as any).monthProgress}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Regional Stats */}
+                    <div 
+                      onClick={() => { setConnectTargetsModalType('region'); setShowConnectTargetsModal(true); }}
+                      className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-slate-700 dark:to-slate-600 rounded-xl p-4 border border-orange-200 dark:border-slate-500 cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        <p className="text-xs font-semibold text-gray-600 dark:text-slate-300">By Region</p>
+                      </div>
+                      <div className="flex items-baseline gap-1 mb-1">
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {(stats as any).byRegion ? Object.values((stats as any).byRegion).reduce((sum: number, r: any) => sum + r.connects, 0) : 0}
+                        </p>
+                        <span className="text-sm text-gray-500 dark:text-slate-400">/</span>
+                        <p className="text-xl font-bold text-gray-600 dark:text-slate-400">
+                          {(stats as any).byRegion ? Object.values((stats as any).byRegion).reduce((sum: number, r: any) => sum + r.totalEmployees, 0) : 0}
+                        </p>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-slate-400">
+                        {(stats as any).byRegion ? Object.keys((stats as any).byRegion).length : 0} regions • {(stats as any).byRegion ? Math.round((Object.values((stats as any).byRegion).reduce((sum: number, r: any) => sum + r.connects, 0) / Math.max(1, Object.values((stats as any).byRegion).reduce((sum: number, r: any) => sum + r.totalEmployees, 0))) * 100) : 0}%
+                      </p>
+                    </div>
+
+                    {/* Store Stats */}
+                    <div 
+                      onClick={() => { setConnectTargetsModalType('store'); setShowConnectTargetsModal(true); }}
+                      className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-slate-700 dark:to-slate-600 rounded-xl p-4 border border-cyan-200 dark:border-slate-500 cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-4 h-4 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <p className="text-xs font-semibold text-gray-600 dark:text-slate-300">By Store</p>
+                      </div>
+                      <div className="flex items-baseline gap-1 mb-1">
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {(stats as any).byStore ? Object.values((stats as any).byStore).reduce((sum: number, s: any) => sum + s.connects, 0) : 0}
+                        </p>
+                        <span className="text-sm text-gray-500 dark:text-slate-400">/</span>
+                        <p className="text-xl font-bold text-gray-600 dark:text-slate-400">
+                          {(stats as any).byStore ? Object.values((stats as any).byStore).reduce((sum: number, s: any) => sum + s.totalEmployees, 0) : 0}
+                        </p>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-slate-400">
+                        {(stats as any).byStore ? Object.keys((stats as any).byStore).length : 0} stores • {(stats as any).byStore ? Math.round((Object.values((stats as any).byStore).reduce((sum: number, s: any) => sum + s.connects, 0) / Math.max(1, Object.values((stats as any).byStore).reduce((sum: number, s: any) => sum + s.totalEmployees, 0))) * 100) : 0}%
+                      </p>
+                    </div>
+
+                    {/* AM Stats */}
+                    <div 
+                      onClick={() => { setConnectTargetsModalType('am'); setShowConnectTargetsModal(true); }}
+                      className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-700 dark:to-slate-600 rounded-xl p-4 border border-pink-200 dark:border-slate-500 cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Users className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                        <p className="text-xs font-semibold text-gray-600 dark:text-slate-300">By AM</p>
+                      </div>
+                      <div className="flex items-baseline gap-1 mb-1">
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {(stats as any).byAM ? Object.values((stats as any).byAM).reduce((sum: number, a: any) => sum + a.connects, 0) : 0}
+                        </p>
+                        <span className="text-sm text-gray-500 dark:text-slate-400">/</span>
+                        <p className="text-xl font-bold text-gray-600 dark:text-slate-400">
+                          {(stats as any).byAM ? Object.values((stats as any).byAM).reduce((sum: number, a: any) => sum + a.totalEmployees, 0) : 0}
+                        </p>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-slate-400">
+                        {(stats as any).byAM ? Object.keys((stats as any).byAM).length : 0} AMs • {(stats as any).byAM ? Math.round((Object.values((stats as any).byAM).reduce((sum: number, a: any) => sum + a.connects, 0) / Math.max(1, Object.values((stats as any).byAM).reduce((sum: number, a: any) => sum + a.totalEmployees, 0))) * 100) : 0}%
+                      </p>
+                    </div>
+
+                    {/* Daily Average */}
+                    <div 
+                      onClick={() => { setConnectTargetsModalType('daily'); setShowConnectTargetsModal(true); }}
+                      className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-slate-700 dark:to-slate-600 rounded-xl p-4 border border-indigo-200 dark:border-slate-500 cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        <p className="text-xs font-semibold text-gray-600 dark:text-slate-300">Daily Avg</p>
+                      </div>
+                      <div className="flex items-baseline gap-1 mb-1">
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {(stats as any).workingDaysElapsedInMonth > 0 ? Math.round((stats as any).monthConnects / (stats as any).workingDaysElapsedInMonth) : 0}
+                        </p>
+                        <span className="text-sm text-gray-500 dark:text-slate-400">/</span>
+                        <p className="text-xl font-bold text-gray-600 dark:text-slate-400">
+                          {(stats as any).numHRBPs * 3}
+                        </p>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-slate-400">
+                        per working day
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* HRBP Leaderboard - Combined with toggle */}
               <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">

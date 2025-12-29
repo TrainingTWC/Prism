@@ -21,7 +21,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
   const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
   const { config } = useConfig();
   const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
-  const { getName: getEmployeeName } = useEmployeeDirectory();
+  const { directory: employeeDirectory, loading: employeeLoading, getName: getEmployeeName } = useEmployeeDirectory();
   
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [questionRemarks, setQuestionRemarks] = useState<Record<string, string>>({});
@@ -38,6 +38,10 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  
+  // Employee search state
+  const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false);
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
 
   type SectionScores = {
     Store_Readiness: number;
@@ -90,6 +94,23 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         trainerIds: '',
         trainerNames: ''
       }));
+    }
+  };
+
+  // Auto-fill Store, AM, and Trainer when employee is selected
+  const handleEmployeeSelect = (emp: any) => {
+    setMetadata(prev => ({
+      ...prev,
+      empId: emp.employee_code,
+      empName: emp.empname
+    }));
+    setEmployeeSearchTerm('');
+    setEmployeeSearchOpen(false);
+
+    // If employee has store_code, auto-fill store and related fields
+    if (emp.store_code) {
+      const storeId = emp.store_code.toString().trim();
+      handleStoreChange(storeId);
     }
   };
 
@@ -373,33 +394,71 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
+          <div className="space-y-2 relative">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
-              Employee Name *
+              Employee (Search by Name or ID) *
             </label>
             <input
               type="text"
-              value={metadata.empName}
-              onChange={(e) => setMetadata(prev => ({ ...prev, empName: e.target.value }))}
+              value={employeeSearchTerm || (metadata.empId ? `${metadata.empId} - ${metadata.empName}` : '')}
+              onChange={(e) => {
+                setEmployeeSearchTerm(e.target.value);
+                setEmployeeSearchOpen(true);
+              }}
+              onFocus={() => setEmployeeSearchOpen(true)}
               className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-slate-700 dark:text-slate-100"
-              placeholder="Enter employee name"
+              placeholder="Search employee..."
               required
             />
+            
+            {/* Employee Dropdown */}
+            {employeeSearchOpen && (
+              <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {employeeLoading ? (
+                  <div className="p-4 text-sm text-gray-500">Loading employees...</div>
+                ) : Object.keys(employeeDirectory.byId).length === 0 ? (
+                  <div className="p-4 text-sm text-gray-500">No employees found</div>
+                ) : (
+                  Object.values(employeeDirectory.byId)
+                    .filter(emp => {
+                      const searchLower = employeeSearchTerm.toLowerCase();
+                      return (
+                        emp.empname.toLowerCase().includes(searchLower) ||
+                        emp.employee_code.toLowerCase().includes(searchLower) ||
+                        (emp.designation && emp.designation.toLowerCase().includes(searchLower)) ||
+                        (emp.store_code && emp.store_code.toLowerCase().includes(searchLower))
+                      );
+                    })
+                    .slice(0, 50)
+                    .map(emp => (
+                      <button
+                        key={emp.employee_code}
+                        type="button"
+                        className="w-full text-left p-3 hover:bg-gray-100 dark:hover:bg-slate-700 border-b border-gray-100 dark:border-slate-700 last:border-0"
+                        onClick={() => handleEmployeeSelect(emp)}
+                      >
+                        <div className="font-medium text-gray-900 dark:text-slate-100">
+                          {emp.empname}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-slate-400">
+                          ID: {emp.employee_code}
+                          {emp.designation && ` • ${emp.designation}`}
+                          {emp.store_code && ` • Store: ${emp.store_code}`}
+                        </div>
+                      </button>
+                    ))
+                )}
+                <button
+                  type="button"
+                  className="w-full p-2 text-sm text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700 border-t"
+                  onClick={() => setEmployeeSearchOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+            )}
           </div>
-          
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
-              Employee ID *
-            </label>
-            <input
-              type="text"
-              value={metadata.empId}
-              onChange={(e) => setMetadata(prev => ({ ...prev, empId: e.target.value }))}
-              className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-slate-700 dark:text-slate-100"
-              placeholder="Enter employee ID"
-              required
-            />
-          </div>
+
           
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">

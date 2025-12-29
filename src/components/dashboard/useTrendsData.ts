@@ -6,14 +6,9 @@ const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbytDw7gOZXNJd
 
 async function fetchGoogleSheets() {
   try {
-    console.log('📡 Fetching Monthly_Trends from Google Sheets...', GOOGLE_SHEETS_URL);
     const r = await fetch(GOOGLE_SHEETS_URL);
-    console.log('📡 Response status:', r.status, r.statusText);
     const j = await r.json();
-    console.log('📡 JSON response received:', { hasRows: !!j.rows, rowCount: (j.rows || []).length, responseKeys: Object.keys(j) });
     const rows = j.rows || [];
-    
-    console.log('📡 Raw rows from Google Sheets:', rows.length);
     
     // Filter out June 2025 data and normalize observed_period format
     const processed = rows
@@ -46,15 +41,9 @@ async function fetchGoogleSheets() {
           originalStr.startsWith('2025-06-') ||
           (typeof dateStr === 'string' && dateStr.includes('6/') && dateStr.includes('2025'));
         
-        if (isJune2025) {
-          console.log('Filtering out June 2025 data:', row.store_id, originalStr);
-        }
-        
+
         return !isJune2025;
       });
-    
-    console.log('📡 Filtered rows (after removing June):', processed.length);
-    console.log('📡 Sample periods:', processed.slice(0, 5).map(r => r.observed_period));
     
     return processed;
   } catch (e) {
@@ -73,10 +62,8 @@ export function useTrendsData() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('🔄 useTrendsData: Starting data fetch...');
     fetchGoogleSheets()
       .then((rows) => {
-        console.log('✅ useTrendsData: Fetched', rows.length, 'rows');
         setSheetRows(rows);
         setError(null);
       })
@@ -86,14 +73,12 @@ export function useTrendsData() {
         setSheetRows([]);
       })
       .finally(() => {
-        console.log('✅ useTrendsData: Fetch complete, loading = false');
         setLoading(false);
       });
   }, []);
 
   // ONLY use Google Sheets data - no local fallback
   const combinedRows = useMemo(() => {
-    console.log('📊 useTrendsData: Returning', sheetRows.length, 'rows to dashboard');
     return sheetRows;
   }, [sheetRows]);
 
