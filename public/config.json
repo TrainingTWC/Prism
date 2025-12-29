@@ -1,0 +1,2215 @@
+{
+  "AREA_MANAGERS": [
+    {
+      "name": "Abhishek",
+      "id": "H3386"
+    },
+    {
+      "name": "Ajay  H",
+      "id": "H546"
+    },
+    {
+      "name": "Ajay Omnath Tiwari",
+      "id": "H1815"
+    },
+    {
+      "name": "Amar",
+      "id": "h535"
+    },
+    {
+      "name": "Anil  Rawat",
+      "id": "H2262"
+    },
+    {
+      "name": "Umakanth",
+      "id": "H3270"
+    },
+    {
+      "name": "VijayaLakshmi",
+      "id": "H2759"
+    },
+    {
+      "name": "Himanshu",
+      "id": "h955"
+    },
+    {
+      "name": "Himanshu",
+      "id": "H955"
+    },
+    {
+      "name": "Jagruti",
+      "id": "H2155"
+    },
+    {
+      "name": "Karthick  G",
+      "id": "H3362"
+    },
+    {
+      "name": "Kiran",
+      "id": "H2601"
+    },
+    {
+      "name": "Shailesh",
+      "id": "H2908"
+    },
+    {
+      "name": "Suresh  A",
+      "id": "H1355"
+    },
+    {
+      "name": "Vishal Vishwanath Khatakalle",
+      "id": "H3184"
+    },
+    {
+      "name": "Vishu",
+      "id": "H1766"
+    },
+    {
+      "name": "Ajitabh",
+      "id": "h1105"
+    },
+    {
+      "name": "Hemant",
+      "id": "h777"
+    },
+    {
+      "name": "Bikesh",
+      "id": "h2585"
+    },
+    {
+      "name": "Vruchika",
+      "id": "H1575"
+    },
+    {
+      "name": "Nandish  M",
+      "id": "H833"
+    },
+    {
+      "name": "Atul",
+      "id": "h2396"
+    },
+    {
+      "name": "Atul",
+      "id": "H2396"
+    },
+    {
+      "name": "Sanjay",
+      "id": "H2273"
+    },
+    {
+      "name": "Rutuja",
+      "id": "H2758"
+    },
+    {
+      "name": "Shubham",
+      "id": "H3914"
+    }
+  ],
+  "HR_PERSONNEL": [
+    {
+      "name": "Abhishek",
+      "id": "H3578"
+    },
+    {
+      "name": "Monica",
+      "id": "H2165"
+    },
+    {
+      "name": "Subin",
+      "id": "H2761"
+    },
+    {
+      "name": "Swati",
+      "id": "H1972"
+    },
+    {
+      "name": "Manasi",
+      "id": "H3603"
+    },
+    {
+      "name": "Sumanjali",
+      "id": "H3730"
+    },
+    {
+      "name": "Sunil",
+      "id": "H3247"
+    },
+    {
+      "name": "Siddhant",
+      "id": "H3728"
+    },
+    {
+      "name": "Sarit",
+      "id": "H2081"
+    },
+    {
+      "name": "Pooja",
+      "id": "HC002"
+    },
+    {
+      "name": "Rohit Paul",
+      "id": "H3551"
+    },
+    {
+      "name": "Training Head",
+      "id": "H3237"
+    },
+    {
+      "name": "LMS Head",
+      "id": "H541"
+    }
+  ],
+  "AM_HR_MAPPING": {
+    "H3386": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3730"},
+    "H3914": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3730"},
+    "H3270": {"hrbp": "H1972", "hr2": "H2761", "hr3": "H3551"},
+    "H3362": {"hrbp": "H1972", "hr2": "H2761", "hr3": "H3551"},
+    "H2155": {"hrbp": "H1972", "hr2": "H2761", "hr3": "H3551"},
+    "H2908": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3730"},
+    "H2262": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3247"},
+    "H1575": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3730"},
+    "H2273": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3730"},
+    "H2759": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3730"},
+    "H833": {"hrbp": "H1972", "hr2": "H2761", "hr3": "H3551"},
+    "H955": {"hrbp": "H2165", "hr2": "H3728", "hr3": "H3578"},
+    "h955": {"hrbp": "H2165", "hr2": "H3728", "hr3": "H3578"},
+    "H546": {"hrbp": "H1972", "hr2": "H2761", "hr3": "H3551"},
+    "H2601": {"hrbp": "H1972", "hr2": "H2761", "hr3": "H3551"},
+    "H2396": {"hrbp": "H2165", "hr2": "H3728", "hr3": "H3578"},
+    "h2396": {"hrbp": "H2165", "hr2": "H3728", "hr3": "H3578"},
+    "h535": {"hrbp": "H2165", "hr2": "H3728", "hr3": "H3578"},
+    "H1355": {"hrbp": "H1972", "hr2": "H2761", "hr3": "H3551"},
+    "H1766": {"hrbp": "H2165", "hr2": "H3728", "hr3": "H3578"},
+    "H2758": {"hrbp": "H3603", "hr2": "HC002", "hr3": "H3730"}
+  },
+  "OPERATIONS_QUESTIONS": [],
+  "QUESTIONS": [
+    {
+      "id": "q1",
+      "title": "Is there any work pressure in the café?",
+      "type": "radio",
+      "choices": [
+        {"label": "Every time", "score": 1},
+        {"label": "Most of the time", "score": 2},
+        {"label": "Sometime", "score": 3},
+        {"label": "At Time", "score": 4},
+        {"label": "Never", "score": 5}
+      ]
+    },
+    {
+      "id": "q2",
+      "title": "Are you empowered to make decisions on the spot to help customers and immediately solve their problems/complaints?",
+      "type": "radio",
+      "choices": [
+        {"label": "Every time", "score": 5},
+        {"label": "Most of the time", "score": 4},
+        {"label": "Sometime", "score": 3},
+        {"label": "At Time", "score": 2},
+        {"label": "Never", "score": 1}
+      ]
+    },
+    {
+      "id": "q3",
+      "title": "Do you receive regular performance reviews and constructive feedback from your SM / AM?",
+      "type": "radio",
+      "choices": [
+        {"label": "Every time", "score": 5},
+        {"label": "Most of the time", "score": 4},
+        {"label": "Sometime", "score": 3},
+        {"label": "At Time", "score": 2},
+        {"label": "Never", "score": 1}
+      ]
+    },
+    {
+      "id": "q4",
+      "title": "Do you think there is any partiality or unfair treatment within team?",
+      "type": "radio",
+      "choices": [
+        {"label": "Every time", "score": 1},
+        {"label": "Most of the time", "score": 2},
+        {"label": "Sometime", "score": 3},
+        {"label": "At Time", "score": 4},
+        {"label": "Never", "score": 5}
+      ]
+    },
+    {
+      "id": "q5",
+      "title": "Are you getting the training as per Wings program? What was the last training you got and when?",
+      "type": "radio",
+      "choices": [
+        {"label": "Every time", "score": 5},
+        {"label": "Most of the time", "score": 4},
+        {"label": "Sometime", "score": 3},
+        {"label": "At Time", "score": 2},
+        {"label": "Never", "score": 1}
+      ]
+    },
+    {
+      "id": "q6",
+      "title": "Are you facing any issues with operational Apps (Zing, Meal benefit, Jify) or any issues with PF, ESI, Reimbursements, Insurance & Payslips?",
+      "type": "radio",
+      "choices": [
+        {"label": "Every time", "score": 1},
+        {"label": "Most of the time", "score": 2},
+        {"label": "Sometime", "score": 3},
+        {"label": "At Time", "score": 4},
+        {"label": "Never", "score": 5}
+      ]
+    },
+    {
+      "id": "q7",
+      "title": "Have you gone through the HR Handbook on Zing / Accepted all the policies?",
+      "type": "radio",
+      "choices": [
+        {"label": "Excellent", "score": 5},
+        {"label": "Very Good", "score": 4},
+        {"label": "Good", "score": 3},
+        {"label": "Average", "score": 2},
+        {"label": "Poor", "score": 1}
+      ]
+    },
+    {
+      "id": "q8",
+      "title": "Are you satisfied with your current work schedule - Working Hours, Breaks, Timings, Weekly Offs & Comp Offs?",
+      "type": "radio",
+      "choices": [
+        {"label": "Every time", "score": 5},
+        {"label": "Most of the time", "score": 4},
+        {"label": "Sometime", "score": 3},
+        {"label": "At Time", "score": 2},
+        {"label": "Never", "score": 1}
+      ]
+    },
+    {
+      "id": "q9",
+      "title": "How effectively does the team collaborate, and what factors contribute to that?",
+      "type": "radio",
+      "choices": [
+        {"label": "Excellent", "score": 5},
+        {"label": "Very Good", "score": 4},
+        {"label": "Good", "score": 3},
+        {"label": "Average", "score": 2},
+        {"label": "Poor", "score": 1}
+      ]
+    },
+    {
+      "id": "q10",
+      "title": "Name one of your colleague who is very helpful on the floor",
+      "type": "input"
+    },
+    {
+      "id": "q11",
+      "title": "Any suggestions or support required from the organization?",
+      "type": "textarea"
+    },
+    {
+      "id": "q12",
+      "title": "On a scale of 1 to 5 how do you rate your experience with TWC & why?",
+      "type": "radio",
+      "choices": [
+        {"label": "Excellent", "score": 5},
+        {"label": "Very Good", "score": 4},
+        {"label": "Good", "score": 3},
+        {"label": "Average", "score": 2},
+        {"label": "Poor", "score": 1}
+      ]
+    }
+  ],
+  "REGIONS": [
+    "North",
+    "South",
+    "West"
+  ],
+  "SENIOR_HR_ROLES": [
+    "H2081",
+    "H3237",
+    "H541"
+  ],
+  "STORES": [
+    {
+      "name": "Defence Colony",
+      "id": "S027",
+      "region": "North"
+    },
+    {
+      "name": "Khan Market",
+      "id": "S037",
+      "region": "North"
+    },
+    {
+      "name": "Connaught Place",
+      "id": "S049",
+      "region": "North"
+    },
+    {
+      "name": "Kalkaji",
+      "id": "S055",
+      "region": "North"
+    },
+    {
+      "name": "TWC-Koramangala",
+      "id": "S001",
+      "region": "South"
+    },
+    {
+      "name": "TWC-CMH Indira Nagar",
+      "id": "S002",
+      "region": "South"
+    },
+    {
+      "name": "Mahavir Nagar",
+      "id": "S096",
+      "region": "West"
+    },
+    {
+      "name": "Emerald Borivali",
+      "id": "S076",
+      "region": "West"
+    }
+  ],
+  "TRAINING_QUESTIONS": [],
+  "seededFrom": "constants_and_training_checklist",
+  "AUDIT_DETAILS": {
+    "TRAINING": [
+      {
+        "id": "AREA_MANAGER",
+        "label": "Area Manager",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "TRAINER",
+        "label": "Trainer (Auditor)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "STORE_LOCATION",
+        "label": "Store Location",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "MOD",
+        "label": "MOD (Manager on Duty)",
+        "type": "dropdown",
+        "required": true,
+        "source": "EMPLOYEE_LIST"
+      }
+    ],
+    "OPERATIONS": [
+      {
+        "id": "HR_NAME",
+        "label": "HR Name:",
+        "type": "dropdown",
+        "required": true,
+        "source": "HR_PERSONNEL"
+      },
+      {
+        "id": "AREA_MANAGER",
+        "label": "Area Manager:",
+        "type": "dropdown",
+        "required": true,
+        "source": "AREA_MANAGERS"
+      },
+      {
+        "id": "TRAINER_NAME",
+        "label": "Trainer Name:",
+        "type": "dropdown",
+        "required": true,
+        "source": "TRAINERS"
+      },
+      {
+        "id": "STORE",
+        "label": "Store:",
+        "type": "dropdown",
+        "required": true,
+        "source": "STORES"
+      },
+      {
+        "id": "BSC_ACHIEVEMENT",
+        "label": "BSC Achievement %:",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "NUM_PEOPLE_ON_SHIFT",
+        "label": "No. of people on shift:",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "MAN_POWER_FULFILMENT",
+        "label": "Man power fulfilment:",
+        "type": "dropdown",
+        "required": false,
+        "choices": [
+          "High",
+          "Med",
+          "Low"
+        ]
+      },
+      {
+        "id": "CAFE_TYPE",
+        "label": "Café Type:",
+        "type": "dropdown",
+        "required": false,
+        "choices": [
+          "REGULAR",
+          "PREMIUM",
+          "PREMIUM+"
+        ]
+      },
+      {
+        "id": "STORE_TYPE",
+        "label": "Store Type:",
+        "type": "dropdown",
+        "required": false,
+        "choices": [
+          "Mall",
+          "Highstreet",
+          "Hospital",
+          "Corporate",
+          "Airport",
+          "Highway"
+        ]
+      },
+      {
+        "id": "CONCEPT",
+        "label": "Concept:",
+        "type": "dropdown",
+        "required": false,
+        "choices": [
+          "Experience",
+          "Premium",
+          "Kiosk"
+        ]
+      }
+    ],
+    "HR": [
+      {
+        "id": "HR_NAME",
+        "label": "HR Name",
+        "type": "dropdown",
+        "required": true,
+        "source": "HR_PERSONNEL"
+      },
+      {
+        "id": "AREA_MANAGER",
+        "label": "Area Manager",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "EMPLOYEE_NAME",
+        "label": "Employee Name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "EMPLOYEE_ID",
+        "label": "Employee ID",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "STORE_LOCATION",
+        "label": "Store Location",
+        "type": "dropdown",
+        "required": true,
+        "source": "STORES"
+      }
+    ],
+    "QA": [
+      {
+        "id": "QA_AUDITOR_NAME",
+        "label": "QA Auditor Name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "QA_AUDITOR_ID",
+        "label": "QA Auditor ID",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "AREA_MANAGER",
+        "label": "Area Manager",
+        "type": "dropdown",
+        "required": true,
+        "source": "AREA_MANAGERS"
+      },
+      {
+        "id": "STORE",
+        "label": "Store",
+        "type": "dropdown",
+        "required": true,
+        "source": "STORES"
+      }
+    ],
+    "FINANCE": [
+      {
+        "id": "FINANCE_AUDITOR_NAME",
+        "label": "Finance Auditor Name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "FINANCE_AUDITOR_ID",
+        "label": "Finance Auditor ID",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "AREA_MANAGER",
+        "label": "Area Manager",
+        "type": "dropdown",
+        "required": true,
+        "source": "AREA_MANAGERS"
+      },
+      {
+        "id": "STORE",
+        "label": "Store",
+        "type": "dropdown",
+        "required": true,
+        "source": "STORES"
+      }
+    ]
+  },
+  "CHECKLISTS": {
+    "OPERATIONS": [
+      {
+        "id": "CheerfulGreeting",
+        "title": "Cheerful Greeting",
+        "items": [
+          {
+            "id": "CG_1",
+            "q": "Is the store front area clean and maintained?",
+            "w": 1,
+            "type": "radio",
+            "section": "Cheerful Greeting"
+          },
+          {
+            "id": "CG_2",
+            "q": "Is the signage clean and are all lights functioning?",
+            "w": 1,
+            "type": "radio",
+            "section": "Cheerful Greeting"
+          },
+          {
+            "id": "CG_3",
+            "q": "Are the glass and doors smudge-free?",
+            "w": 1,
+            "type": "radio",
+            "section": "Cheerful Greeting"
+          },
+          {
+            "id": "CG_4",
+            "q": "Do promotional displays reflect current offers?",
+            "w": 1,
+            "type": "radio",
+            "section": "Cheerful Greeting"
+          },
+          {
+            "id": "CG_5",
+            "q": "Are POS tent cards as per the latest communication?",
+            "w": 1,
+            "type": "radio",
+            "section": "Cheerful Greeting"
+          },
+          {
+            "id": "CG_6",
+            "q": "Are menu boards/DMB as per the latest communication?",
+            "w": 1,
+            "type": "radio",
+            "section": "Cheerful Greeting"
+          },
+          {
+            "id": "CG_7",
+            "q": "Does the café have a welcoming environment (music, lighting, AC, aroma)?",
+            "w": 1,
+            "type": "radio",
+            "section": "Cheerful Greeting"
+          },
+          {
+            "id": "CG_8",
+            "q": "Are washrooms cleaned and the checklist updated?",
+            "w": 1,
+            "type": "radio",
+            "section": "Cheerful Greeting"
+          },
+          {
+            "id": "CG_9",
+            "q": "Is the FDU counter neat, fully stocked, and set as per the planogram?",
+            "w": 1,
+            "type": "radio",
+            "section": "Cheerful Greeting"
+          },
+          {
+            "id": "CG_10",
+            "q": "Does the merch rack follow VM guidelines and attract attention?",
+            "w": 1,
+            "type": "radio",
+            "section": "Cheerful Greeting"
+          },
+          {
+            "id": "CG_11",
+            "q": "Is staff grooming (uniform, jewellery, hair and makeup) as per standards?",
+            "w": 1,
+            "type": "radio",
+            "section": "Cheerful Greeting"
+          },
+          {
+            "id": "CG_12",
+            "q": "Are all seating, furniture, and stations tidy and organized?",
+            "w": 1,
+            "type": "radio",
+            "section": "Cheerful Greeting"
+          },
+          {
+            "id": "CG_13",
+            "q": "Is the engine area clean and ready for operations?",
+            "w": 1,
+            "type": "radio",
+            "section": "Cheerful Greeting"
+          }
+        ]
+      },
+      {
+        "id": "OrderTaking",
+        "title": "Order Taking Assistance",
+        "items": [
+          {
+            "id": "OTA_1",
+            "q": "Is suggestive selling happening at the POS?",
+            "w": 1,
+            "type": "radio",
+            "section": "Order Taking"
+          },
+          {
+            "id": "OTA_2",
+            "q": "Is the POS partner updated on the latest promos and item availability?",
+            "w": 1,
+            "type": "radio",
+            "section": "Order Taking"
+          },
+          {
+            "id": "OTA_3",
+            "q": "Has order-taking time been recorded for 5 customers?",
+            "w": 1,
+            "type": "radio",
+            "section": "Order Taking"
+          },
+          {
+            "id": "OTA_4",
+            "q": "Is there sufficient cash and change at the POS?",
+            "w": 1,
+            "type": "radio",
+            "section": "Order Taking"
+          },
+          {
+            "id": "OTA_5",
+            "q": "Are valid licenses displayed and expiries checked (medical reports)?",
+            "w": 1,
+            "type": "radio",
+            "section": "Order Taking"
+          },
+          {
+            "id": "OTA_6",
+            "q": "Are cash audits completed and verified with the logbook?",
+            "w": 1,
+            "type": "radio",
+            "section": "Order Taking"
+          },
+          {
+            "id": "OTA_7",
+            "q": "Are daily banking reports tallied?",
+            "w": 1,
+            "type": "radio",
+            "section": "Order Taking"
+          },
+          {
+            "id": "OTA_8",
+            "q": "Has CPI been reviewed through the FAME pilot?",
+            "w": 1,
+            "type": "radio",
+            "section": "Order Taking"
+          },
+          {
+            "id": "OTA_9",
+            "q": "Are Swiggy/Zomato metrics (RDC, MFR, visibility) reviewed, and are Food Lock on LS and stock control on UrbanPiper managed per stock availability/opening inventory?",
+            "w": 1,
+            "type": "radio",
+            "section": "Order Taking"
+          },
+          {
+            "id": "OTA_10",
+            "q": "Are all food and drinks served as per SOP?",
+            "w": 1,
+            "type": "radio",
+            "section": "Order Taking"
+          },
+          {
+            "id": "OTA_11",
+            "q": "Are food orders placed based on the 4-week sales trend?",
+            "w": 1,
+            "type": "radio",
+            "section": "Order Taking"
+          }
+        ]
+      },
+      {
+        "id": "FriendlyService",
+        "title": "Friendly & Accurate Service",
+        "items": [
+          {
+            "id": "FAS_1",
+            "q": "Is equipment cleaned and maintained?",
+            "w": 1,
+            "type": "radio",
+            "section": "Service"
+          },
+          {
+            "id": "FAS_2",
+            "q": "Are temperature checks done with the Therma Pen and logs updated?",
+            "w": 1,
+            "type": "radio",
+            "section": "Service"
+          },
+          {
+            "id": "FAS_3",
+            "q": "Is documentation (GRN, RSTN, STN & TO) completed?",
+            "w": 1,
+            "type": "radio",
+            "section": "Service"
+          },
+          {
+            "id": "FAS_4",
+            "q": "Is fast-moving SKU availability checked and validated with LS?",
+            "w": 1,
+            "type": "radio",
+            "section": "Service"
+          },
+          {
+            "id": "FAS_5",
+            "q": "Is the thawing chart validated against actual thawing?",
+            "w": 1,
+            "type": "radio",
+            "section": "Service"
+          },
+          {
+            "id": "FAS_6",
+            "q": "Are deployment roles clear, with coaching and appreciation done by the MOD?",
+            "w": 1,
+            "type": "radio",
+            "section": "Service"
+          },
+          {
+            "id": "FAS_7",
+            "q": "Are there no broken/unused tools stored in the store?",
+            "w": 1,
+            "type": "radio",
+            "section": "Service"
+          },
+          {
+            "id": "FAS_8",
+            "q": "Is garbage segregated properly (wet/dry)?",
+            "w": 1,
+            "type": "radio",
+            "section": "Service"
+          },
+          {
+            "id": "FAS_9",
+            "q": "Are LTO products served as per standards?",
+            "w": 1,
+            "type": "radio",
+            "section": "Service"
+          },
+          {
+            "id": "FAS_10",
+            "q": "Is the coffee and food dial-in process followed?",
+            "w": 1,
+            "type": "radio",
+            "section": "Service"
+          },
+          {
+            "id": "FAS_11",
+            "q": "Are R.O.A.S.T. and app orders executed accurately?",
+            "w": 1,
+            "type": "radio",
+            "section": "Service"
+          },
+          {
+            "id": "FAS_12",
+            "q": "Have 5 order service times been validated?",
+            "w": 1,
+            "type": "radio",
+            "section": "Service"
+          },
+          {
+            "id": "FAS_13",
+            "q": "Have open maintenance-related points been reviewed?",
+            "w": 1,
+            "type": "radio",
+            "section": "Service"
+          }
+        ]
+      },
+      {
+        "id": "FeedbackSolution",
+        "title": "Feedback with Solution",
+        "items": [
+          {
+            "id": "FWS_1",
+            "q": "Has COGS been reviewed, with actions in place per last month P&L feedback?",
+            "w": 1,
+            "type": "radio",
+            "section": "Feedback"
+          },
+          {
+            "id": "FWS_2",
+            "q": "Have BSC targets vs achievements been reviewed?",
+            "w": 1,
+            "type": "radio",
+            "section": "Feedback"
+          },
+          {
+            "id": "FWS_3",
+            "q": "Has people budget vs actuals (labour cost/bench planning) been reviewed?",
+            "w": 1,
+            "type": "radio",
+            "section": "Feedback"
+          },
+          {
+            "id": "FWS_4",
+            "q": "Has variance in stock (physical vs system) been verified?",
+            "w": 1,
+            "type": "radio",
+            "section": "Feedback"
+          },
+          {
+            "id": "FWS_5",
+            "q": "Have the top 10 wastage items been reviewed?",
+            "w": 1,
+            "type": "radio",
+            "section": "Feedback"
+          },
+          {
+            "id": "FWS_6",
+            "q": "Have store utilities (units, chemical use) been reviewed?",
+            "w": 1,
+            "type": "radio",
+            "section": "Feedback"
+          },
+          {
+            "id": "FWS_7",
+            "q": "Have shift targets, briefings, and goal tracking been conducted?",
+            "w": 1,
+            "type": "radio",
+            "section": "Feedback"
+          },
+          {
+            "id": "FWS_8",
+            "q": "Have new staff training and bench plans been reviewed?",
+            "w": 1,
+            "type": "radio",
+            "section": "Feedback"
+          },
+          {
+            "id": "FWS_9",
+            "q": "Have Training and QA audits been reviewed?",
+            "w": 1,
+            "type": "radio",
+            "section": "Feedback"
+          },
+          {
+            "id": "FWS_10",
+            "q": "Has the duty roster (off/coff, ELCL, tenure) been checked and attendance ensured as per ZingHR?",
+            "w": 1,
+            "type": "radio",
+            "section": "Feedback"
+          },
+          {
+            "id": "FWS_11",
+            "q": "Have temperature and thawing logs been validated?",
+            "w": 1,
+            "type": "radio",
+            "section": "Feedback"
+          },
+          {
+            "id": "FWS_12",
+            "q": "Have audit and data findings been cross-checked with store observations?",
+            "w": 1,
+            "type": "radio",
+            "section": "Feedback"
+          },
+          {
+            "id": "FWS_13",
+            "q": "Is the pest control layout updated?",
+            "w": 1,
+            "type": "radio",
+            "section": "Feedback"
+          }
+        ]
+      },
+      {
+        "id": "EnjoyableExperience",
+        "title": "Enjoyable Experience",
+        "items": [
+          {
+            "id": "ENJ_1",
+            "q": "Have 2 new and 2 repeat customers been engaged, with feedback documented?",
+            "w": 1,
+            "type": "radio",
+            "section": "Experience"
+          },
+          {
+            "id": "ENJ_2",
+            "q": "Are seating and stations adjusted as per customer requirements?",
+            "w": 1,
+            "type": "radio",
+            "section": "Experience"
+          },
+          {
+            "id": "ENJ_3",
+            "q": "Is the team proactively assisting customers?",
+            "w": 1,
+            "type": "radio",
+            "section": "Experience"
+          },
+          {
+            "id": "ENJ_4",
+            "q": "Is CCTV checked to monitor customer service during peak hours?",
+            "w": 1,
+            "type": "radio",
+            "section": "Experience"
+          },
+          {
+            "id": "ENJ_5",
+            "q": "Is CCTV backup (minimum 60 days) in place and are black spots checked?",
+            "w": 1,
+            "type": "radio",
+            "section": "Experience"
+          },
+          {
+            "id": "ENJ_6",
+            "q": "Is opening/closing footage reviewed for correct practices?",
+            "w": 1,
+            "type": "radio",
+            "section": "Experience"
+          },
+          {
+            "id": "ENJ_7",
+            "q": "Are there no personal items/clutter in guest areas, with belongings kept in lockers/designated places?",
+            "w": 1,
+            "type": "radio",
+            "section": "Experience"
+          }
+        ]
+      },
+      {
+        "id": "EnthusiasticExit",
+        "title": "Enthusiastic Exit",
+        "items": [
+          {
+            "id": "EX_1",
+            "q": "Are there no unresolved issues at exits?",
+            "w": 1,
+            "type": "radio",
+            "section": "Exit"
+          },
+          {
+            "id": "EX_2",
+            "q": "Is the final interaction cheerful and courteous?",
+            "w": 1,
+            "type": "radio",
+            "section": "Exit"
+          },
+          {
+            "id": "EX_3",
+            "q": "Has a consolidated action plan been created with the Store Manager?",
+            "w": 1,
+            "type": "radio",
+            "section": "Exit"
+          },
+          {
+            "id": "EX_4",
+            "q": "Have top performers been recognized?",
+            "w": 1,
+            "type": "radio",
+            "section": "Exit"
+          },
+          {
+            "id": "EX_5",
+            "q": "Have wins been celebrated and improvement areas communicated?",
+            "w": 1,
+            "type": "radio",
+            "section": "Exit"
+          },
+          {
+            "id": "EX_6",
+            "q": "Has the team been motivated for ongoing improvement?",
+            "w": 1,
+            "type": "radio",
+            "section": "Exit"
+          }
+        ]
+      }
+    ],
+    "HR": [
+      {
+        "id": "EmployeeSatisfaction",
+        "title": "HR Employee Satisfaction Survey",
+        "items": [
+          {
+            "id": "HR_INFO_NAME",
+            "q": "Employee Name",
+            "w": 0,
+            "type": "text",
+            "section": "Survey Information"
+          },
+          {
+            "id": "HR_INFO_ID",
+            "q": "Employee ID",
+            "w": 0,
+            "type": "text",
+            "section": "Survey Information"
+          },
+          {
+            "id": "HR_INFO_PERSON",
+            "q": "Select HR Person",
+            "w": 0,
+            "type": "dropdown",
+            "section": "Survey Information"
+          },
+          {
+            "id": "HR_INFO_AM",
+            "q": "Area Manager",
+            "w": 0,
+            "type": "dropdown",
+            "section": "Survey Information"
+          },
+          {
+            "id": "HR_INFO_STORE",
+            "q": "Store Location",
+            "w": 0,
+            "type": "dropdown",
+            "section": "Survey Information"
+          },
+          {
+            "id": "HR_Q1",
+            "q": "Is there any work pressure in the café?",
+            "w": 1,
+            "type": "radio",
+            "section": "Survey Questions",
+            "choices": [
+              "Every time",
+              "Most of the time",
+              "Sometime",
+              "All Time",
+              "Never"
+            ]
+          },
+          {
+            "id": "HR_Q1_REMARKS",
+            "q": "Add remarks for this question (optional)",
+            "w": 0,
+            "type": "textarea",
+            "section": "Survey Questions"
+          },
+          {
+            "id": "HR_Q2",
+            "q": "Are you empowered to make decisions on the spot to help customers and immediately solve their problems/complaints?",
+            "w": 1,
+            "type": "radio",
+            "section": "Survey Questions",
+            "choices": [
+              "Every time",
+              "Most of the time",
+              "Sometime",
+              "All Time",
+              "Never"
+            ]
+          },
+          {
+            "id": "HR_Q2_REMARKS",
+            "q": "Add remarks for this question (optional)",
+            "w": 0,
+            "type": "textarea",
+            "section": "Survey Questions"
+          },
+          {
+            "id": "HR_Q3",
+            "q": "Do you receive regular performance reviews and constructive feedback from your SM / AM ?",
+            "w": 1,
+            "type": "radio",
+            "section": "Survey Questions",
+            "choices": [
+              "Every time",
+              "Most of the time",
+              "Sometime",
+              "All Time",
+              "Never"
+            ]
+          },
+          {
+            "id": "HR_Q3_REMARKS",
+            "q": "Add remarks for this question (optional)",
+            "w": 0,
+            "type": "textarea",
+            "section": "Survey Questions"
+          },
+          {
+            "id": "HR_Q4",
+            "q": "Do you think there is any partiality or unfair treatment within team ?",
+            "w": 1,
+            "type": "radio",
+            "section": "Survey Questions",
+            "choices": [
+              "Every time",
+              "Most of the time",
+              "Sometime",
+              "All Time",
+              "Never"
+            ]
+          },
+          {
+            "id": "HR_Q4_REMARKS",
+            "q": "Add remarks for this question (optional)",
+            "w": 0,
+            "type": "textarea",
+            "section": "Survey Questions"
+          },
+          {
+            "id": "HR_Q5",
+            "q": "Are you getting the training as per Wings program? What was the last training you got and when ?",
+            "w": 1,
+            "type": "radio",
+            "section": "Survey Questions",
+            "choices": [
+              "Every time",
+              "Most of the time",
+              "Sometime",
+              "All Time",
+              "Never"
+            ]
+          },
+          {
+            "id": "HR_Q5_REMARKS",
+            "q": "Add remarks for this question (optional)",
+            "w": 0,
+            "type": "textarea",
+            "section": "Survey Questions"
+          },
+          {
+            "id": "HR_Q6",
+            "q": "Are you facing any issues with operational Apps ( Zing, Meal benefit, ehr) or any issues with PF, Etc. (teams can use HR queries / Sarvice",
+            "w": 1,
+            "type": "radio",
+            "section": "Survey Questions",
+            "choices": [
+              "Every time",
+              "Most of the time",
+              "Sometime",
+              "All Time",
+              "Never"
+            ]
+          },
+          {
+            "id": "HR_Q6_REMARKS",
+            "q": "Add remarks for this question (optional)",
+            "w": 0,
+            "type": "textarea",
+            "section": "Survey Questions"
+          }
+        ]
+      }
+    ],
+    "QA": [
+      {
+        "id": "AssessmentInfo",
+        "title": "Assessment Information",
+        "items": [
+          {
+            "id": "QA_INFO_NAME",
+            "q": "QA Auditor Name",
+            "w": 0,
+            "type": "text",
+            "section": "Assessment Information"
+          },
+          {
+            "id": "QA_INFO_ID",
+            "q": "QA Auditor ID",
+            "w": 0,
+            "type": "text",
+            "section": "Assessment Information"
+          },
+          {
+            "id": "QA_INFO_AM",
+            "q": "Area Manager",
+            "w": 0,
+            "type": "dropdown",
+            "section": "Assessment Information"
+          },
+          {
+            "id": "QA_INFO_STORE",
+            "q": "Store",
+            "w": 0,
+            "type": "dropdown",
+            "section": "Assessment Information"
+          }
+        ]
+      },
+      {
+        "id": "RoomTemperature",
+        "title": "Room Temperature",
+        "items": [
+          {
+            "id": "QA_RT_1",
+            "q": "No expired food products in the café, and all food products are labeled with color tape date (MRD)",
+            "w": 1,
+            "type": "radio",
+            "section": "Room Temperature",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_RT_1_REMARKS",
+            "q": "Add any remarks for this section (optional)",
+            "w": 0,
+            "type": "textarea",
+            "section": "Room Temperature"
+          },
+          {
+            "id": "QA_RT_2",
+            "q": "The product shelf comply with the necessary shelf life; colour/process/test (coffee, pastries, specialty coffee, houses, and composte products)",
+            "w": 1,
+            "type": "radio",
+            "section": "Room Temperature",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_RT_3",
+            "q": "All food products placed the correct according to the appropriate storage conditions (Fridges, Chillers, and Ambients)",
+            "w": 1,
+            "type": "radio",
+            "section": "Room Temperature",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_RT_4",
+            "q": "All Opened items / CD used has labeled Date 01.01.21, in paper or being used for processing inside the café",
+            "w": 1,
+            "type": "radio",
+            "section": "Room Temperature",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_RT_5",
+            "q": "Temperature sensitive food items store must be maintained in other areas in perishable medium",
+            "w": 1,
+            "type": "radio",
+            "section": "Room Temperature",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_RT_6",
+            "q": "No ice/water leaking, Refilling level not beyond ice containers, raw, icemakers/milk, and spoons near water/new shop café",
+            "w": 1,
+            "type": "radio",
+            "section": "Room Temperature",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Maintenance",
+        "title": "Maintenance",
+        "items": [
+          {
+            "id": "QA_M_1",
+            "q": "All machine tagging to accompained permanent black with reach contacting levels",
+            "w": 1,
+            "type": "radio",
+            "section": "Maintenance",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_M_1_REMARKS",
+            "q": "Add any remarks for this section (optional)",
+            "w": 0,
+            "type": "textarea",
+            "section": "Maintenance"
+          },
+          {
+            "id": "QA_M_2",
+            "q": "Ice and fittings, floor drainage, oven/ storage, and floor ceiling, damage",
+            "w": 1,
+            "type": "radio",
+            "section": "Maintenance",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_M_3",
+            "q": "No environment under floor shocked learn or equipment",
+            "w": 1,
+            "type": "radio",
+            "section": "Maintenance",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_M_4",
+            "q": "All lighting device lost must that displayed protected outside service cords and to clean",
+            "w": 1,
+            "type": "radio",
+            "section": "Maintenance",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_M_5",
+            "q": "Free segregation can or receding condition and four suppliers",
+            "w": 1,
+            "type": "radio",
+            "section": "Maintenance",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_M_6",
+            "q": "Absence of staff every golden - On struggling in stable, leg filters, Method, lossen",
+            "w": 1,
+            "type": "radio",
+            "section": "Maintenance",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_M_7",
+            "q": "Have correct cleaning equipment and coffee height of 1 way starts from floor enndu",
+            "w": 1,
+            "type": "radio",
+            "section": "Maintenance",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_M_8",
+            "q": "Equipment washstation fire hazards and service access available",
+            "w": 1,
+            "type": "radio",
+            "section": "Maintenance",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_M_9",
+            "q": "Washing and fixtures maintained in 'good repair'",
+            "w": 1,
+            "type": "radio",
+            "section": "Maintenance",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_M_10",
+            "q": "Validate 1.Co and Others in is good working condition",
+            "w": 1,
+            "type": "radio",
+            "section": "Maintenance",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "QA_M_11",
+            "q": "Are water and ice serving available and ice in 13?",
+            "w": 1,
+            "type": "radio",
+            "section": "Maintenance",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          }
+        ]
+      }
+    ],
+    "FINANCE": [
+      {
+        "id": "AssessmentInfo",
+        "title": "Assessment Information",
+        "items": [
+          {
+            "id": "FIN_INFO_NAME",
+            "q": "Finance Auditor Name",
+            "w": 0,
+            "type": "text",
+            "section": "Assessment Information"
+          },
+          {
+            "id": "FIN_INFO_ID",
+            "q": "Finance Auditor ID",
+            "w": 0,
+            "type": "text",
+            "section": "Assessment Information"
+          },
+          {
+            "id": "FIN_INFO_AM",
+            "q": "Area Manager",
+            "w": 0,
+            "type": "dropdown",
+            "section": "Assessment Information"
+          },
+          {
+            "id": "FIN_INFO_STORE",
+            "q": "Store",
+            "w": 0,
+            "type": "dropdown",
+            "section": "Assessment Information"
+          }
+        ]
+      },
+      {
+        "id": "CashManagement",
+        "title": "Cash & POS Management",
+        "items": [
+          {
+            "id": "FIN_CM_1",
+            "q": "Daily cash reconciliation completed and documented and signed agreements",
+            "w": 1,
+            "type": "radio",
+            "section": "Cash Management",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "FIN_CM_1_REMARKS",
+            "q": "Add any remarks for this section (optional)",
+            "w": 0,
+            "type": "textarea",
+            "section": "Cash Management"
+          },
+          {
+            "id": "FIN_CM_2",
+            "q": "Credit notes/clearing petitioned in with changes and audited signing",
+            "w": 1,
+            "type": "radio",
+            "section": "Cash Management",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "FIN_CM_3",
+            "q": "POS(r) cash property charged with supporting invoices and authorizes",
+            "w": 1,
+            "type": "radio",
+            "section": "Cash Management",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "FIN_CM_4",
+            "q": "Great write-ins accordance to allow and balanced directors for feature account",
+            "w": 1,
+            "type": "radio",
+            "section": "Cash Management",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "FIN_CM_5",
+            "q": "Daily cash deposit and promote received with not circumcised",
+            "w": 1,
+            "type": "radio",
+            "section": "Cash Management",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "FIN_CM_6",
+            "q": "Credit audition investigation and required promoted to correspondent",
+            "w": 1,
+            "type": "radio",
+            "section": "Cash Management",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "FIN_CM_7",
+            "q": "Resources located the cash equivalence all others not the expenditure",
+            "w": 1,
+            "type": "radio",
+            "section": "Cash Management",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "SalesTracking",
+        "title": "Sales & Revenue Tracking",
+        "items": [
+          {
+            "id": "FIN_ST_1",
+            "q": "Daily sales revenue as tracked will accounting to management",
+            "w": 1,
+            "type": "radio",
+            "section": "Sales & Revenue",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "FIN_ST_1_REMARKS",
+            "q": "Add any remarks for this section (optional)",
+            "w": 0,
+            "type": "textarea",
+            "section": "Sales & Revenue"
+          },
+          {
+            "id": "FIN_ST_2",
+            "q": "Revenues and stock tracked as per hotel plan documented",
+            "w": 1,
+            "type": "radio",
+            "section": "Sales & Revenue",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "FIN_ST_3",
+            "q": "Sales analysis been completed documented and archived based",
+            "w": 1,
+            "type": "radio",
+            "section": "Sales & Revenue",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "FIN_ST_4",
+            "q": "Delivery tracking document(s) discussed and proper documentation",
+            "w": 1,
+            "type": "radio",
+            "section": "Sales & Revenue",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "FIN_ST_5",
+            "q": "Revenues properly reconciled with categorize skin reference is maintained",
+            "w": 1,
+            "type": "radio",
+            "section": "Sales & Revenue",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "FIN_ST_6",
+            "q": "Inventory of benefits selling and support involved",
+            "w": 1,
+            "type": "radio",
+            "section": "Sales & Revenue",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          },
+          {
+            "id": "FIN_ST_7",
+            "q": "All sales activity Documented Recorded and recorded for daily",
+            "w": 1,
+            "type": "radio",
+            "section": "Sales & Revenue",
+            "choices": [
+              "Yes",
+              "No",
+              "NA"
+            ]
+          }
+        ]
+      }
+    ],
+    "TRAINING": [
+      {
+        "id": "TrainingMaterials",
+        "title": "Training Materials",
+        "items": [
+          {
+            "id": "TM_1",
+            "q": "FRM available at store?",
+            "w": 1,
+            "allowCamera": false,
+            "required": false,
+            "type": "dropdown",
+            "source": "EMPLOYEE_LIST"
+          },
+          {
+            "id": "TM_2",
+            "q": "BRM available at store?",
+            "w": 1
+          },
+          {
+            "id": "TM_3",
+            "q": "One-pager – Hot/Cue Cards displayed?",
+            "w": 1
+          },
+          {
+            "id": "TM_4",
+            "q": "One-pager – Cold/Cue Cards displayed?",
+            "w": 1
+          },
+          {
+            "id": "TM_5",
+            "q": "Dial-in One-pager visible?",
+            "w": 2
+          },
+          {
+            "id": "TM_6",
+            "q": "New-launch learning material available?",
+            "w": 1
+          },
+          {
+            "id": "TM_7",
+            "q": "COFFEE & HD Playbook in store?",
+            "w": 1
+          },
+          {
+            "id": "TM_8",
+            "q": "MSDS, chemical chart and Shelf life chart available?",
+            "w": 1
+          },
+          {
+            "id": "TM_9",
+            "q": "Career Progression Chart & Reward Poster displayed?",
+            "w": 1
+          }
+        ]
+      },
+      {
+        "id": "LMS",
+        "title": "LMS Usage",
+        "items": [
+          {
+            "id": "LMS_1",
+            "q": "Orientation & Induction completed within 3 days of joining?",
+            "w": 4,
+            "wneg": -4
+          },
+          {
+            "id": "LMS_2",
+            "q": "All assessments & knowledge checks completed on LMS?",
+            "w": 4,
+            "wneg": -4
+          },
+          {
+            "id": "LMS_3",
+            "q": "Team uses LMS for new info & comms?",
+            "w": 2
+          }
+        ]
+      },
+      {
+        "id": "Buddy",
+        "title": "Buddy Trainer Availability & Capability",
+        "items": [
+          {
+            "id": "Buddy_1",
+            "q": "Does the café have at least 20% of the staff certified Buddy Trainers?",
+            "w": 2
+          },
+          {
+            "id": "Buddy_2",
+            "q": "Have Buddy Trainers completed their Skill Check?",
+            "w": 2
+          },
+          {
+            "id": "Buddy_3",
+            "q": "Are trainees rostered with Buddy Trainers and working in the same shift?",
+            "w": 1
+          },
+          {
+            "id": "Buddy_4",
+            "q": "Have Buddy Trainers attended the BT workshop?",
+            "w": 2
+          },
+          {
+            "id": "Buddy_5",
+            "q": "Can Buddy Trainers explain the 4-step training process effectively?",
+            "w": 2
+          },
+          {
+            "id": "Buddy_6",
+            "q": "Can Buddy Trainers navigate Zing LMS flawlessly?",
+            "w": 1
+          }
+        ]
+      },
+      {
+        "id": "NewJoiner",
+        "title": "New Joiner Training & Records",
+        "items": [
+          {
+            "id": "NJ_1",
+            "q": "Is the OJT book available for all partners?",
+            "w": 1
+          },
+          {
+            "id": "NJ_2",
+            "q": "Are trainees referring to the OJT book and completing their skill checks?",
+            "w": 1
+          },
+          {
+            "id": "NJ_3",
+            "q": "Is training progression aligned with the Training Calendar/Plan?",
+            "w": 1
+          },
+          {
+            "id": "NJ_4",
+            "q": "Are team members aware of post-barista training progressions?",
+            "w": 1
+          },
+          {
+            "id": "NJ_5",
+            "q": "Have managers completed SHLP training as per the calendar?",
+            "w": 2
+          },
+          {
+            "id": "NJ_6",
+            "q": "Are there at least 2 FOSTAC-certified managers in the store?",
+            "w": 2
+          },
+          {
+            "id": "NJ_7",
+            "q": "Is ASM/SM training completed as per the Training Calendar?",
+            "w": 2
+          }
+        ]
+      },
+      {
+        "id": "PartnerKnowledge",
+        "title": "Partner Knowledge",
+        "items": [
+          {
+            "id": "PK_1",
+            "q": "Are team members aware of current company communications?",
+            "w": 2
+          },
+          {
+            "id": "PK_2",
+            "q": "Ask a team member to conduct a Coffee Tasting & Sampling",
+            "w": 2
+          },
+          {
+            "id": "PK_3",
+            "q": "Is Sampling being conducted as per the set guidelines?",
+            "w": 2
+          },
+          {
+            "id": "PK_4",
+            "q": "Is Coffee Tasting engaging and effective?",
+            "w": 2
+          },
+          {
+            "id": "PK_5",
+            "q": "Are team members aware of manual brewing methods and standards?",
+            "w": 2
+          },
+          {
+            "id": "PK_6",
+            "q": "Are partners following grooming standards?",
+            "w": 2
+          },
+          {
+            "id": "PK_7",
+            "q": "Ask questions about key topics: COFFEE, LEAST, ROAST, Dial-in, Milk Steaming, LTO, Values(RESPECT), MSDS, Chemcial Dilution, Food Safety, and Security.",
+            "w": 3,
+            "wneg": -3
+          }
+        ]
+      },
+      {
+        "id": "TSA_Food",
+        "title": "TSA - Food Training Skill Assessment",
+        "items": [
+          {
+            "id": "FOOD_EMP_NAME",
+            "q": "EMP. name",
+            "w": 0,
+            "section": "Employee Information",
+            "type": "dropdown",
+            "source": "EMPLOYEE_LIST"
+          },
+          {
+            "id": "PH_1",
+            "q": "Well-groomed as per TWC standards (uniform, nails, hair)",
+            "w": 1,
+            "section": "Personal Hygiene"
+          },
+          {
+            "id": "PH_2",
+            "q": "Washed and sanitized hands every 30 mins",
+            "w": 1,
+            "section": "Personal Hygiene"
+          },
+          {
+            "id": "PH_3",
+            "q": "Wears gloves or avoids direct food contact",
+            "w": 1,
+            "section": "Personal Hygiene"
+          },
+          {
+            "id": "SR_1",
+            "q": "All ingredients available for the day",
+            "w": 1,
+            "section": "Station Readiness"
+          },
+          {
+            "id": "SR_2",
+            "q": "All smallware available & in correct use",
+            "w": 1,
+            "section": "Station Readiness"
+          },
+          {
+            "id": "SR_3",
+            "q": "Station cleaned and sanitized",
+            "w": 1,
+            "section": "Station Readiness"
+          },
+          {
+            "id": "SR_4",
+            "q": "Station and smallware organized and clean",
+            "w": 1,
+            "section": "Station Readiness"
+          },
+          {
+            "id": "SR_5",
+            "q": "Clean dusters available at the station",
+            "w": 1,
+            "section": "Station Readiness"
+          },
+          {
+            "id": "SR_6",
+            "q": "FDU AT LEAST 70% stocked, clean, follows planogram",
+            "w": 1,
+            "section": "Station Readiness"
+          },
+          {
+            "id": "SR_7",
+            "q": "MRD stickers used correctly (FDU + Make Line)",
+            "w": 1,
+            "section": "Station Readiness"
+          },
+          {
+            "id": "SR_8",
+            "q": "Products stored at correct temperature",
+            "w": 1,
+            "section": "Station Readiness"
+          },
+          {
+            "id": "FP_1",
+            "q": "Recipe followed per SOP (Food Item 1)",
+            "w": 1,
+            "section": "Food Preparation & Handling"
+          },
+          {
+            "id": "FP_2",
+            "q": "Build followed per SOP (Food Item 1)",
+            "w": 1,
+            "section": "Food Preparation & Handling"
+          },
+          {
+            "id": "FP_3",
+            "q": "Recipe followed per SOP (Food Item 2)",
+            "w": 1,
+            "section": "Food Preparation & Handling"
+          },
+          {
+            "id": "FP_4",
+            "q": "Build followed per SOP (Food Item 2)",
+            "w": 1,
+            "section": "Food Preparation & Handling"
+          },
+          {
+            "id": "FP_5",
+            "q": "Used correct tools for preparation",
+            "w": 1,
+            "section": "Food Preparation & Handling"
+          },
+          {
+            "id": "FP_6",
+            "q": "Used appropriate key to heat/warm food (Merry chef/Oven)",
+            "w": 1,
+            "section": "Food Preparation & Handling"
+          },
+          {
+            "id": "FP_7",
+            "q": "Gloves changed correctly (veg/non-veg switch or as per TWC guidelines)",
+            "w": 1,
+            "section": "Food Preparation & Handling"
+          },
+          {
+            "id": "FP_8",
+            "q": "Consistently follows Clean-As-You-Go",
+            "w": 1,
+            "section": "Food Preparation & Handling"
+          },
+          {
+            "id": "FP_9",
+            "q": "Correct duster used for station cleaning",
+            "w": 1,
+            "section": "Food Preparation & Handling"
+          },
+          {
+            "id": "FP_10",
+            "q": "Follows First-In-First-Out for food items",
+            "w": 1,
+            "section": "Food Preparation & Handling"
+          },
+          {
+            "id": "FP_11",
+            "q": "Products checked visually before serving",
+            "w": 1,
+            "section": "Food Preparation & Handling"
+          },
+          {
+            "id": "FP_12",
+            "q": "Chips, condiments, cutlery, etc., provided per SOP",
+            "w": 1,
+            "section": "Food Preparation & Handling"
+          },
+          {
+            "id": "SO_1",
+            "q": "Serves only food that meets TWC standards (fresh, safe, proper temp); knows what to do if not",
+            "w": 1,
+            "section": "Standards Ownership"
+          }
+        ]
+      },
+      {
+        "id": "TSA_Coffee",
+        "title": "TSA - Coffee Training Skill Assessment",
+        "items": [
+          {
+            "id": "COFFEE_EMP_NAME",
+            "q": "EMP. name",
+            "w": 0,
+            "section": "Employee Information",
+            "type": "dropdown",
+            "source": "EMPLOYEE_LIST",
+            "required": true
+          },
+          {
+            "id": "PH_1",
+            "q": "Well-groomed as per TWC standards (uniform, nails, hair)",
+            "w": 1,
+            "section": "Personal Hygiene"
+          },
+          {
+            "id": "PH_2",
+            "q": "Washed and sanitized hands",
+            "w": 1,
+            "section": "Personal Hygiene"
+          },
+          {
+            "id": "PH_3",
+            "q": "Wears gloves at CBS",
+            "w": 1,
+            "section": "Personal Hygiene"
+          },
+          {
+            "id": "SR_1",
+            "q": "Trainee Ensures that the station is well stocked with Milk, Warm cups, coffee beans, steaming jars, filter papers, stirrers, blenders and blending jars and scissors",
+            "w": 1,
+            "section": "Station Readiness"
+          }
+        ]
+      },
+      {
+        "id": "TSA_CX",
+        "title": "TSA: Customer Experience",
+        "items": [
+          {
+            "id": "CX_EMP_NAME",
+            "q": "EMP. name",
+            "w": 0,
+            "section": "Employee Information",
+            "type": "dropdown",
+            "source": "EMPLOYEE_LIST"
+          },
+          {
+            "id": "CX_PH_1",
+            "q": "Grooming & Hygiene: Well-groomed as per TWC standards (uniform, nails, hair)",
+            "w": 1,
+            "section": "Personal Hygiene"
+          }
+        ]
+      },
+      {
+        "id": "CustomerExperience",
+        "title": "Customer Experience",
+        "items": [
+          {
+            "id": "CX_1",
+            "q": "Is background music at appropriate volume?",
+            "w": 1
+          },
+          {
+            "id": "CX_2",
+            "q": "Is store temperature comfortable?",
+            "w": 1
+          },
+          {
+            "id": "CX_3",
+            "q": "Are washrooms clean and well-maintained?",
+            "w": 1
+          },
+          {
+            "id": "CX_4",
+            "q": "Is Wi-Fi available & functioning properly?",
+            "w": 1
+          },
+          {
+            "id": "CX_5",
+            "q": "Are marketing & Visual Merchandise displayes correct?",
+            "w": 2
+          },
+          {
+            "id": "CX_6",
+            "q": "Is store furniture clean & well-kept?",
+            "w": 1
+          },
+          {
+            "id": "CX_7",
+            "q": "What do you understand by MA, CPI, QA scores?",
+            "w": 1
+          },
+          {
+            "id": "CX_8",
+            "q": "What was the latest Mystery Audit score for the store?",
+            "w": 1
+          },
+          {
+            "id": "CX_9",
+            "q": "Top 2 CX opportunity areas last month?",
+            "w": 1
+          }
+        ]
+      },
+      {
+        "id": "ActionPlan",
+        "title": "Action Plan & Continuous Improvement",
+        "items": [
+          {
+            "id": "AP_1",
+            "q": "Concerns addressed within 48hrs?",
+            "w": 1,
+            "wneg": -1
+          },
+          {
+            "id": "AP_2",
+            "q": "Action points closed/work-in-progress?",
+            "w": 2
+          },
+          {
+            "id": "AP_3",
+            "q": "Managers aware of action plan?",
+            "w": 2
+          }
+        ]
+      }
+    ]
+  }
+}
