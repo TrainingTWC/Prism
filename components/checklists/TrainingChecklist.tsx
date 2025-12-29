@@ -1640,7 +1640,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                         index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
                       }`}
                     >
-                      <div className="truncate">{am.name} ({am.id})</div>
+                      <div className="truncate">{am.name.split(' ')[0]}</div>
                     </button>
                   ))
                 ) : (

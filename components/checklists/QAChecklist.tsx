@@ -786,7 +786,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                         index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
                       }`}
                     >
-                      {am.name} ({am.id})
+                      {am.name.split(' ')[0]}
                     </button>
                   ))
                 ) : (

@@ -147,7 +147,7 @@ const AMScorecardSection: React.FC<AMScorecardSectionProps> = ({ areaManagers, s
               <option value="">All Area Managers ({amsWithSubmissions.length})</option>
               {amsWithSubmissions.map(am => (
                 <option key={am.id} value={am.id}>
-                  {am.name} ({am.id})
+                  {am.name.split(' ')[0]}
                 </option>
               ))}
             </select>

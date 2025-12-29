@@ -816,8 +816,7 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
                           }}
                           onMouseEnter={() => setSelectedAmIndex(index)}
                         >
-                          <div className="font-medium text-gray-900 dark:text-slate-100">{am.name}</div>
-                          <div className="text-sm text-gray-500 dark:text-slate-400">{am.id}</div>
+                          <div className="font-medium text-gray-900 dark:text-slate-100">{am.name.split(' ')[0]}</div>
                         </div>
                       ))
                     )}
