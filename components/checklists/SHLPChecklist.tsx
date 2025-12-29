@@ -491,7 +491,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
             </label>
             <input
               type="text"
-              value={metadata.amName || metadata.amId}
+              value={metadata.amName ? metadata.amName.split(' ')[0] : metadata.amId}
               readOnly
               className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 dark:text-slate-100 cursor-not-allowed"
               placeholder="Select store first"

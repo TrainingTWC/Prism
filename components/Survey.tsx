@@ -713,7 +713,7 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
                       ? 'bg-gray-100 dark:bg-slate-600 cursor-not-allowed' 
                       : 'bg-white dark:bg-slate-700'
                   }`}
-                  value={showAmDropdown ? amSearchTerm : (meta.amName || '')}
+                  value={showAmDropdown ? amSearchTerm : (meta.amName ? meta.amName.split(' ')[0] : '')}
                   disabled={!meta.hrId || availableAreaManagers.length === 0}
                   placeholder={!meta.hrId ? 'Select HR first' : 'Search Area Manager...'}
                   onFocus={() => {

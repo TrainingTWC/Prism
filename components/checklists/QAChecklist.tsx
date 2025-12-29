@@ -758,7 +758,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
             </label>
             <input
               type="text"
-              value={amSearchTerm || (meta.amId ? `${meta.amName} (${meta.amId})` : '')}
+              value={amSearchTerm || (meta.amId ? meta.amName.split(' ')[0] : '')}
               onChange={(e) => {
                 setAmSearchTerm(e.target.value);
                 setShowAmDropdown(true);
