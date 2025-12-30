@@ -97,7 +97,10 @@ function doPost(e) {
       params.HygieneCompliance_HC_4 || '',        // AZ: HC_4 - Personal hygiene
       params.HygieneCompliance_HC_5 || '',        // BA: HC_5 - Hand washing procedures
       params.HygieneCompliance_HC_6 || '',        // BB: HC_6 - Glove usage
-      params.HygieneCompliance_remarks || ''      // BC: Hygiene & Compliance Remarks
+      params.HygieneCompliance_remarks || '',     // BC: Hygiene & Compliance Remarks
+      
+      // Images data as JSON
+      params.questionImagesJSON || ''             // BD: All question images as JSON
     ];
     
     // Add the data to the sheet
@@ -200,7 +203,10 @@ function setupQAHeaders(sheet) {
     'HC_4: Personal hygiene',                  // AZ
     'HC_5: Hand washing procedures',           // BA
     'HC_6: Glove usage',                       // BB
-    'Hygiene & Compliance Remarks'            // BC
+    'Hygiene & Compliance Remarks',            // BC
+    
+    // Images Data
+    'Question Images JSON'                     // BD
   ];
   
   // Set headers

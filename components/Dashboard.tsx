@@ -2498,12 +2498,26 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
         const fileName = `QA_Assessment_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
         
-        // Retrieve question images from localStorage
+        // Retrieve question images from the submission data (if available) or localStorage
         let questionImages: Record<string, string[]> = {};
         try {
-          const storedImages = localStorage.getItem('qa_images');
-          if (storedImages) {
-            questionImages = JSON.parse(storedImages);
+          // First, try to get images from the submission data (for downloaded reports)
+          if (reportData.length > 0) {
+            const firstRecord = reportData[0] as any;
+            if (firstRecord.questionImagesJSON || firstRecord['Question Images JSON']) {
+              const imagesJSON = firstRecord.questionImagesJSON || firstRecord['Question Images JSON'];
+              questionImages = JSON.parse(imagesJSON);
+              console.log('Loaded images from submission data');
+            }
+          }
+          
+          // Fallback to localStorage if no images in submission (for current session)
+          if (Object.keys(questionImages).length === 0) {
+            const storedImages = localStorage.getItem('qa_images');
+            if (storedImages) {
+              questionImages = JSON.parse(storedImages);
+              console.log('Loaded images from localStorage');
+            }
           }
         } catch (error) {
           console.warn('Could not load question images:', error);

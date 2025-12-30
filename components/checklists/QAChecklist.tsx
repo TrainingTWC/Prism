@@ -536,7 +536,9 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         // Add question remarks with _remark suffix
         ...Object.fromEntries(Object.entries(questionRemarks).map(([k, v]) => [`${k}_remark`, String(v)])),
         // Add image counts with _imageCount suffix
-        ...Object.fromEntries(Object.entries(questionImages).map(([k, v]) => [`${k}_imageCount`, String(v.length)]))
+        ...Object.fromEntries(Object.entries(questionImages).map(([k, v]) => [`${k}_imageCount`, String(v.length)])),
+        // Add all images as JSON (for PDF generation from dashboard)
+        questionImagesJSON: JSON.stringify(questionImages)
       };
 
       console.log('QA Survey data being sent:', params);
