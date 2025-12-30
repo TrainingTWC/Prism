@@ -248,6 +248,54 @@ const AppContent: React.FC = () => {
           <div className="flex justify-between items-center">
             <div className="flex space-x-4 sm:space-x-8">
               <button
+
+  // If user has shlp role, only show the SHLP checklist
+  if (authUserRole === 'shlp') {
+    const shlpRole = {
+      userId: 'shlp',
+      name: 'SHLP Access',
+      role: 'shlp' as const,
+      allowedStores: [],
+      allowedAMs: [],
+      allowedHRs: []
+    };
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
+        <Header />
+        <main className="p-2 sm:p-4 lg:p-8">
+          <ChecklistsAndSurveys userRole={shlpRole} />
+        </main>
+      </div>
+    );
+  }
+
+  // If user has bench-planning role, only show the bench planning module
+  if (authUserRole === 'bench-planning') {
+    const benchPlanningRole = {
+      userId: 'bench-planning',
+      name: 'Bench Planning Access',
+      role: 'bench-planning' as const,
+      allowedStores: [],
+      allowedAMs: [],
+      allowedHRs: []
+    };
+    
+    const { logout } = useAuth();
+    
+    const handleExit = () => {
+      logout();
+      window.location.href = '/Prism/';
+    };
+    
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
+        <Header />
+        
+        {/* View Switcher */}
+        <nav className="px-2 sm:px-4 lg:px-8 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+          <div className="flex justify-between items-center">
+            <div className="flex space-x-4 sm:space-x-8">
+              <button
                 onClick={() => setBenchPlanningView('checklist')}
                 className={`flex items-center gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 ${
                   benchPlanningView === 'checklist'
