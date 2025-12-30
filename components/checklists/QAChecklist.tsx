@@ -10,6 +10,10 @@ import { useComprehensiveMapping, useAreaManagers, useStoreDetails } from '../..
 // Google Sheets endpoint for logging data - Updated to capture all 116 questions
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw-loq3hmKFETYAU9Oe_hBTZs4maJS_Mh9tHG0jtd_qUTHf5kF4Rasxe8L4je9xcxWNJA/exec';
 
+// Google Sheets endpoint for draft management (optional - uncomment when deployed)
+// const DRAFT_ENDPOINT = 'YOUR_DRAFT_SCRIPT_URL_HERE';
+const DRAFT_ENDPOINT = ''; // Empty string means localStorage only
+
 interface SurveyResponse {
   [key: string]: string;
 }
@@ -306,7 +310,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   };
 
   // Draft management functions
-  const saveDraft = () => {
+  const saveDraft = async () => {
     const draftId = currentDraftId || `draft_${Date.now()}`;
     const timestamp = new Date().toLocaleString('en-GB', { hour12: false });
     
@@ -349,6 +353,41 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     setDrafts(updatedDrafts);
     localStorage.setItem('qa_drafts', JSON.stringify(updatedDrafts));
     setCurrentDraftId(draftId);
+    
+    // Also save to Google Sheets if endpoint is configured
+    if (DRAFT_ENDPOINT) {
+      try {
+        const params = new URLSearchParams({
+          action: 'saveDraft',
+          draftId: draftId,
+          qaId: meta.qaId || '',
+          qaName: meta.qaName || '',
+          storeId: meta.storeId || '',
+          storeName: meta.storeName || '',
+          amId: meta.amId || '',
+          amName: meta.amName || '',
+          timestamp: timestamp,
+          completionPercentage: completionPercentage.toString(),
+          responsesJSON: JSON.stringify(responses),
+          questionImagesJSON: JSON.stringify(questionImages),
+          questionRemarksJSON: JSON.stringify(questionRemarks),
+          signaturesJSON: JSON.stringify(signatures),
+          metaJSON: JSON.stringify(meta)
+        });
+        
+        await fetch(DRAFT_ENDPOINT, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
+        });
+        
+        console.log('Draft saved to Google Sheets');
+      } catch (error) {
+        console.warn('Could not save draft to Google Sheets:', error);
+        // Continue anyway - localStorage save was successful
+      }
+    }
     
     hapticFeedback.success();
     alert('Draft saved successfully! You can resume it later.');
