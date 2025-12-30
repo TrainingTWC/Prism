@@ -40,8 +40,8 @@ export const AUTH_CONFIG: AuthConfig = {
   roles: {
     operations: {
       password: 'OpsAccess2024!',
-      permissions: ['operations', 'dashboard'],
-      dashboardAccess: ['operations-dashboard', 'operations-analytics', 'operations-reports']
+      permissions: ['operations', 'shlp', 'dashboard'],
+      dashboardAccess: ['operations-dashboard', 'operations-analytics', 'operations-reports', 'shlp-dashboard']
     },
     hr: {
       password: 'HRConnect2024!',
@@ -55,8 +55,8 @@ export const AUTH_CONFIG: AuthConfig = {
     },
     training: {
       password: 'TrainingHub2024!',
-      permissions: ['training', 'dashboard', 'learning-management'],
-      dashboardAccess: ['training-dashboard', 'training-reports', 'learning-analytics', 'training-audit', 'trainer-calendar-dashboard', 'bench-planning-dashboard']
+      permissions: ['training', 'shlp', 'dashboard', 'learning-management'],
+      dashboardAccess: ['training-dashboard', 'training-reports', 'learning-analytics', 'training-audit', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'shlp-dashboard']
     },
     forms: {
       password: 'MT2025!',
