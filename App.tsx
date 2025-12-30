@@ -221,34 +221,6 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // If user has bench-planning role, only show the bench planning module
-  if (authUserRole === 'bench-planning') {
-    const benchPlanningRole = {
-      userId: 'bench-planning',
-      name: 'Bench Planning Access',
-      role: 'bench-planning' as const,
-      allowedStores: [],
-      allowedAMs: [],
-      allowedHRs: []
-    };
-    
-    const { logout } = useAuth();
-    
-    const handleExit = () => {
-      logout();
-      window.location.href = '/Prism/';
-    };
-    
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
-        <Header />
-        
-        {/* View Switcher */}
-        <nav className="px-2 sm:px-4 lg:px-8 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-          <div className="flex justify-between items-center">
-            <div className="flex space-x-4 sm:space-x-8">
-              <button
-
   // If user has shlp role, only show the SHLP checklist
   if (authUserRole === 'shlp') {
     const shlpRole = {
