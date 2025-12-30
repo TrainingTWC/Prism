@@ -54,13 +54,6 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     }
   }, [authUserRole]);
 
-  // Auto-open SHLP for shlp role users
-  useEffect(() => {
-    if (authUserRole === 'shlp' && !activeChecklist) {
-      setActiveChecklist('shlp');
-    }
-  }, [authUserRole]);
-
   // Filter checklists based on user permissions
   const getAvailableChecklists = () => {
     const allChecklists = [
@@ -177,8 +170,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
           <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 py-3 sm:px-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                {/* Hide back button for campus-hiring, bench-planning and shlp roles */}
-                {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && authUserRole !== 'shlp' && (
+                {/* Hide back button for campus-hiring and bench-planning roles */}
+                {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && (
                   <button
                     onClick={handleBackToOverview}
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
@@ -189,8 +182,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                 )}
                 
                 <nav className="flex items-center space-x-2 text-sm">
-                  {/* Hide breadcrumb for campus-hiring, bench-planning and shlp roles */}
-                  {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && authUserRole !== 'shlp' && (
+                  {/* Hide breadcrumb for campus-hiring and bench-planning roles */}
+                  {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && (
                     <>
                       <button
                         onClick={handleBackToOverview}

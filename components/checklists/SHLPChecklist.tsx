@@ -29,6 +29,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
     empName: '',
     empId: '',
     store: '',
+    auditorName: '',
     // Keep IDs for submission/dashboard joins
     amId: '',
     trainerIds: '',
@@ -246,7 +247,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
 
   const handleSubmit = async () => {
     if (!metadata.empName || !metadata.empId || !metadata.store || !metadata.amId || !metadata.trainerIds || !metadata.auditorName) {
-      alert('Please fill in all required fields including auditor name before submitting.');
+      alert('Please fill in all employee information fields before submitting.');
       return;
     }
 
@@ -321,7 +322,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         // Clear form after successful submission
         setResponses({});
         setQuestionRemarks({});
-        setMetadata({ empName: '', empId: '', store: '', amId: '', trainerIds: '', amName: '', trainerNames: '', auditorName: '' });
+        setMetadata({ empName: '', empId: '', store: '', amId: '', trainerIds: '', amName: '', trainerNames: '' });
         
         setTimeout(() => {
           setShowSuccess(false);
@@ -519,7 +520,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
               placeholder="Select store first"
             />
           </div>
-
+          
           <div className="space-y-2 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
               Auditor Name *
