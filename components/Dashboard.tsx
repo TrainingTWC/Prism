@@ -172,14 +172,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       { id: 'consolidated', label: 'Consolidated View', access: 'all' }
     ];
 
-    if (authUserRole === 'admin' || authUserRole === 'editor') {
-      return allTypes; // Admin can see everything
+    if (authUserRole === 'editor') {
+      return allTypes; // Editor can see everything including consolidated
     }
 
+    // For all other roles (including admin), exclude consolidated dashboard
     return allTypes.filter(type => {
       if (type.id === 'consolidated') {
-        // Show consolidated only if user has access to multiple dashboards
-        return allTypes.filter(t => t.id !== 'consolidated' && hasDashboardAccess(t.access)).length > 1;
+        return false; // Consolidated is ONLY for editor
       }
       return hasDashboardAccess(type.access);
     });
