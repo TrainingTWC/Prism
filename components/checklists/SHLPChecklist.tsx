@@ -9,7 +9,7 @@ import { getTrainerName } from '../../utils/trainerMapping';
 import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 
 // Google Sheets endpoint for SHLP data logging
-const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw0ndZitHKmrI3z3MFzCfFn90sl1ljDkBVZjdM6NjCDN1mteJM-r7uDy_U5EBKy_AMwPQ/exec';
+const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwKfwJY4fQqxcc2uQYgRrLkIKSgkd7Ft4H9cyqrOK55MameHrNMWdLPraoEyUiQiu8PBg/exec';
 
 interface SHLPChecklistProps {
   userRole: UserRole;
@@ -50,6 +50,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
     Team_Management: number;
     Operations: number;
     Safety: number;
+    Shift_Closing: number;
     Business: number;
     totalScore: number;
     overallPercentage: number;
@@ -114,84 +115,89 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
     }
   };
 
-  // SHLP sections and questions (same as in OperationsChecklist constants.ts)
+  // SHLP sections and questions
   const sections = [
     {
       id: 'SHLP_STORE_READINESS',
       title: 'Store Readiness',
       items: [
-        { id: '1', q: 'Store opening checklist completion' },
-        { id: '2', q: 'Equipment functionality verification' },
-        { id: '3', q: 'Inventory stock levels adequacy' },
-        { id: '4', q: 'Store cleanliness and presentation' },
-        { id: '5', q: 'Safety protocols implementation' }
+        { id: '1', q: 'Complete Opening, Mid, and Closing checklists' },
+        { id: '2', q: 'Ensure store readiness before opening' },
+        { id: '3', q: 'Check VM of food case & merchandise wall (stocked and fixed)' },
+        { id: '4', q: 'Ensure marketing & promotional collaterals are correctly displayed' }
       ]
     },
     {
       id: 'SHLP_PRODUCT_QUALITY',
       title: 'Product Quality & Standards',
       items: [
-        { id: '6', q: 'Product quality consistency' },
-        { id: '7', q: 'Recipe adherence and standardization' },
-        { id: '8', q: 'Temperature control maintenance' },
-        { id: '9', q: 'Expiry date monitoring' },
-        { id: '10', q: 'Presentation standards compliance' }
+        { id: '5', q: 'Conduct dial-in checks for coffee & food' },
+        { id: '6', q: 'Do not allow sub-standard products to be served' },
+        { id: '7', q: 'Ensure recipes, SOPs, and standards are followed' },
+        { id: '8', q: 'Understand impact on COGS, wastage & variances' },
+        { id: '9', q: 'Ensure sampling activation & coffee tasting' }
       ]
     },
     {
       id: 'SHLP_CASH_ADMIN',
       title: 'Cash & Administration',
       items: [
-        { id: '11', q: 'Cash handling procedures' },
-        { id: '12', q: 'Transaction accuracy' },
-        { id: '13', q: 'Administrative documentation' },
-        { id: '14', q: 'Reporting timeliness' },
-        { id: '15', q: 'Compliance with financial protocols' }
+        { id: '10', q: 'Check petty cash, float & safe amount' },
+        { id: '11', q: 'Fill cash log book for handover' },
+        { id: '12', q: 'Arrange float/change for POS' },
+        { id: '13', q: 'Complete GRN & petty cash entries' },
+        { id: '14', q: 'Follow ordering flow/schedule' }
       ]
     },
     {
       id: 'SHLP_TEAM_MGMT',
       title: 'Team Management',
       items: [
-        { id: '16', q: 'Staff scheduling effectiveness' },
-        { id: '17', q: 'Team communication quality' },
-        { id: '18', q: 'Performance management' },
-        { id: '19', q: 'Training and development' },
-        { id: '20', q: 'Conflict resolution' },
-        { id: '21', q: 'Leadership demonstration' },
-        { id: '22', q: 'Motivation and engagement' },
-        { id: '23', q: 'Delegation and supervision' }
+        { id: '15', q: 'Conduct team briefing (updates, promotions, grooming)' },
+        { id: '16', q: 'Communicate shift goals & targets' },
+        { id: '17', q: 'Motivate team to follow TWC standards' },
+        { id: '18', q: 'Plan team breaks effectively' },
+        { id: '19', q: 'Identify bottlenecks & support team- (C.O.F.F.E.E, LEAST, R.O.A.S.T and clearing station blockages or hurdles)' },
+        { id: '20', q: 'Recognize top performers' },
+        { id: '21', q: 'Provide task-specific feedback to partners' },
+        { id: '22', q: 'Share performance inputs with Store Manager' }
       ]
     },
     {
       id: 'SHLP_OPERATIONS',
       title: 'Operations & Availability',
       items: [
-        { id: '24', q: 'Operational efficiency' },
-        { id: '25', q: 'Service speed and quality' },
-        { id: '26', q: 'Customer satisfaction' },
-        { id: '27', q: 'Resource utilization' },
-        { id: '28', q: 'Process optimization' },
-        { id: '29', q: 'Availability and accessibility' },
-        { id: '30', q: 'System reliability' }
+        { id: '23', q: 'Monitor product availability & update team' },
+        { id: '24', q: 'Utilize lean periods for training & coaching' },
+        { id: '25', q: 'Utilize peak periods for customer experience & business' },
+        { id: '26', q: 'Adjust deployment based on shift need' },
+        { id: '27', q: 'Adjust shift priorities as required' },
+        { id: '28', q: 'Follow receiving, storing & thawing guidelines' },
+        { id: '29', q: 'Remove thawing products as per schedule' }
       ]
     },
     {
       id: 'SHLP_SAFETY',
       title: 'Safety & Compliance',
       items: [
-        { id: '31', q: 'Safety protocol adherence' },
-        { id: '32', q: 'Regulatory compliance' },
-        { id: '33', q: 'Maintenance logging' }
+        { id: '30', q: 'Follow key handling process and proactively hands over in case going on leave or weekly off' },
+        { id: '31', q: 'Follow Lost & Found SOP' },
+        { id: '32', q: 'Log maintenance issues' }
+      ]
+    },
+    {
+      id: 'SHLP_SHIFT_CLOSING',
+      title: 'Shift Closing',
+      items: [
+        { id: '33', q: 'Complete all closing tasks thoroughly' }
       ]
     },
     {
       id: 'SHLP_BUSINESS',
       title: 'Business Acumen',
       items: [
-        { id: '34', q: 'Sales analysis (WoW, MoM – ADS, ADT, FIPT, LTO)' },
-        { id: '35', q: 'BSC understanding' },
-        { id: '36', q: 'Controllables (EB units, COGS)' }
+        { id: '34', q: 'is able to do Shift Performance analysis (PSA) like LTO,LA, IPS, ADS, AOV drivers, CPI, MA,QA Etc. Has BSC understanding' },
+        { id: '35', q: 'check and keep the record of EB Units as per their shift' }
       ]
     }
   ];
@@ -290,6 +296,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         Team_Management_Score: sectionScores.Team_Management.toString(),
         Operations_Score: sectionScores.Operations.toString(),
         Safety_Score: sectionScores.Safety.toString(),
+        Shift_Closing_Score: sectionScores.Shift_Closing.toString(),
         Business_Score: sectionScores.Business.toString(),
         Overall_Score: sectionScores.totalScore.toString(),
         Overall_Percentage: sectionScores.overallPercentage.toString()
@@ -334,13 +341,14 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
 
   const calculateSectionScores = (): SectionScores => {
     const sectionDefinitions = {
-      'Store_Readiness': ['SHLP_1', 'SHLP_2', 'SHLP_3', 'SHLP_4', 'SHLP_5'],
-      'Product_Quality': ['SHLP_6', 'SHLP_7', 'SHLP_8', 'SHLP_9', 'SHLP_10'],
-      'Cash_Admin': ['SHLP_11', 'SHLP_12', 'SHLP_13', 'SHLP_14', 'SHLP_15'],
-      'Team_Management': ['SHLP_16', 'SHLP_17', 'SHLP_18', 'SHLP_19', 'SHLP_20', 'SHLP_21', 'SHLP_22', 'SHLP_23'],
-      'Operations': ['SHLP_24', 'SHLP_25', 'SHLP_26', 'SHLP_27', 'SHLP_28', 'SHLP_29', 'SHLP_30'],
-      'Safety': ['SHLP_31', 'SHLP_32', 'SHLP_33'],
-      'Business': ['SHLP_34', 'SHLP_35', 'SHLP_36']
+      'Store_Readiness': ['SHLP_1', 'SHLP_2', 'SHLP_3', 'SHLP_4'],
+      'Product_Quality': ['SHLP_5', 'SHLP_6', 'SHLP_7', 'SHLP_8', 'SHLP_9'],
+      'Cash_Admin': ['SHLP_10', 'SHLP_11', 'SHLP_12', 'SHLP_13', 'SHLP_14'],
+      'Team_Management': ['SHLP_15', 'SHLP_16', 'SHLP_17', 'SHLP_18', 'SHLP_19', 'SHLP_20', 'SHLP_21', 'SHLP_22'],
+      'Operations': ['SHLP_23', 'SHLP_24', 'SHLP_25', 'SHLP_26', 'SHLP_27', 'SHLP_28', 'SHLP_29'],
+      'Safety': ['SHLP_30', 'SHLP_31', 'SHLP_32'],
+      'Shift_Closing': ['SHLP_33'],
+      'Business': ['SHLP_34', 'SHLP_35']
     };
 
     const sectionScores: Record<string, number> = {};
@@ -547,28 +555,30 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
                       </span>
                     </div>
 
-                    <div className="ml-11 space-y-2">
-                      {[
-                        { value: '0', label: '0 - Not Done / Incorrect', color: 'text-red-600 dark:text-red-400' },
-                        { value: '1', label: '1 - Partially Done / Needs Support', color: 'text-yellow-600 dark:text-yellow-400' },
-                        { value: '2', label: '2 - Done Right / On Time / As Per SOP', color: 'text-green-600 dark:text-green-400' }
-                      ].map((option) => (
-                        <label key={option.value} className="flex items-center space-x-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name={questionKey}
-                            value={option.value}
-                            checked={responses[questionKey] === option.value}
-                            onChange={(e) => handleResponse(questionKey, e.target.value)}
-                            className="w-4 h-4 text-emerald-600 border-gray-300 dark:border-slate-600 focus:ring-emerald-500"
-                          />
-                          <span className={`text-sm font-medium ${option.color}`}>
-                            {option.label}
-                          </span>
-                        </label>
-                      ))}
+                    <div className="ml-11 space-y-3">
+                      <div className="flex flex-row flex-wrap gap-3">
+                        {[
+                          { value: '0', label: '0', color: 'text-red-600 dark:text-red-400' },
+                          { value: '1', label: '1', color: 'text-yellow-600 dark:text-yellow-400' },
+                          { value: '2', label: '2', color: 'text-green-600 dark:text-green-400' }
+                        ].map((option) => (
+                          <label key={option.value} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={questionKey}
+                              value={option.value}
+                              checked={responses[questionKey] === option.value}
+                              onChange={(e) => handleResponse(questionKey, e.target.value)}
+                              className="w-4 h-4 text-emerald-600 border-gray-300 dark:border-slate-600 focus:ring-emerald-500"
+                            />
+                            <span className={`text-sm font-medium ${option.color}`}>
+                              {option.label}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
 
-                      <div className="pt-2">
+                      <div>
                         <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
                           Remarks (optional)
                         </label>
