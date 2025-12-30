@@ -8,11 +8,10 @@ import { QA_SECTIONS } from '../../config/qaQuestions';
 import { useComprehensiveMapping, useAreaManagers, useStoreDetails } from '../../hooks/useComprehensiveMapping';
 
 // Google Sheets endpoint for logging data - Updated to capture all 116 questions
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw-loq3hmKFETYAU9Oe_hBTZs4maJS_Mh9tHG0jtd_qUTHf5kF4Rasxe8L4je9xcxWNJA/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw-loq3hmKFETYAU9Oe_hBTZs4maJS_Mh9tHG0jtd_qUTHf5kF4je9xcxWNJA/exec';
 
-// Google Sheets endpoint for draft management (optional - uncomment when deployed)
-// const DRAFT_ENDPOINT = 'YOUR_DRAFT_SCRIPT_URL_HERE';
-const DRAFT_ENDPOINT = ''; // Empty string means localStorage only
+// Google Sheets endpoint for draft management
+const DRAFT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxCtm2UGYSLsR6ZhJ9jxr_pHBwU3dVnJQhqg1VQ1asrf7aX4rW6rxopGKlrOvgXr-QShg/exec';
 
 interface SurveyResponse {
   [key: string]: string;
@@ -129,13 +128,8 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   const [isLoading, setIsLoading] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [showDraftList, setShowDraftList] = useState(false);
-  const [drafts, setDrafts] = useState<DraftMetadata[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('qa_drafts') || '[]');
-    } catch (e) {
-      return [];
-    }
-  });
+  const [drafts, setDrafts] = useState<DraftMetadata[]>([]);
+  const [draftsLoading, setDraftsLoading] = useState(false);
   
   // Load comprehensive mapping data
   const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
@@ -173,6 +167,56 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       }));
     }
   }, [authUserRole, employeeData]);
+
+  // Function to load drafts from Google Sheets
+  const loadDraftsFromSheet = async () => {
+    if (!DRAFT_ENDPOINT || !meta.qaId) {
+      console.log('Cannot load drafts: endpoint or QA ID missing', { DRAFT_ENDPOINT, qaId: meta.qaId });
+      return;
+    }
+    
+    setDraftsLoading(true);
+    try {
+      const url = `${DRAFT_ENDPOINT}?action=getDrafts&qaId=${encodeURIComponent(meta.qaId)}`;
+      console.log('Loading drafts from:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      console.log('Response status:', response.status, response.statusText);
+      console.log('Response ok:', response.ok);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Drafts response:', data);
+      
+      if (data.success && data.drafts) {
+        setDrafts(data.drafts);
+        console.log(`✅ Loaded ${data.drafts.length} drafts:`, data.drafts);
+      } else {
+        console.warn('⚠️ No drafts found or error:', data.message || data);
+        setDrafts([]);
+      }
+    } catch (error) {
+      console.error('❌ Could not load drafts from Google Sheets:', error);
+      console.error('Error details:', error.message, error.stack);
+      setDrafts([]);
+    } finally {
+      setDraftsLoading(false);
+    }
+  };
+
+  // Load drafts from Google Sheets when QA ID is available
+  useEffect(() => {
+    loadDraftsFromSheet();
+  }, [meta.qaId]);
 
   // Auto-fill AM when store is selected from comprehensive mapping
   useEffect(() => {
@@ -311,6 +355,16 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
   // Draft management functions
   const saveDraft = async () => {
+    if (!DRAFT_ENDPOINT) {
+      alert('Draft endpoint not configured. Cannot save draft.');
+      return;
+    }
+    
+    if (!meta.qaId || !meta.qaName) {
+      alert('Please fill in QA Auditor details before saving draft.');
+      return;
+    }
+    
     const draftId = currentDraftId || `draft_${Date.now()}`;
     const timestamp = new Date().toLocaleString('en-GB', { hour12: false });
     
@@ -321,111 +375,135 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     ).length;
     const completionPercentage = Math.round((answeredQuestions / totalQuestions) * 100);
     
-    // Save draft data
-    const draftData = {
-      responses,
-      meta,
-      questionImages,
-      questionRemarks,
-      signatures
-    };
-    localStorage.setItem(`qa_draft_${draftId}`, JSON.stringify(draftData));
-    
-    // Update or add draft metadata
-    const existingDraftIndex = drafts.findIndex(d => d.id === draftId);
-    const draftMetadata: DraftMetadata = {
-      id: draftId,
-      timestamp,
-      storeName: meta.storeName || 'Unsaved',
-      storeId: meta.storeId || '',
-      qaName: meta.qaName || 'Unknown',
-      completionPercentage
-    };
-    
-    let updatedDrafts;
-    if (existingDraftIndex >= 0) {
-      updatedDrafts = [...drafts];
-      updatedDrafts[existingDraftIndex] = draftMetadata;
-    } else {
-      updatedDrafts = [...drafts, draftMetadata];
-    }
-    
-    setDrafts(updatedDrafts);
-    localStorage.setItem('qa_drafts', JSON.stringify(updatedDrafts));
-    setCurrentDraftId(draftId);
-    
-    // Also save to Google Sheets if endpoint is configured
-    if (DRAFT_ENDPOINT) {
-      try {
-        const params = new URLSearchParams({
-          action: 'saveDraft',
-          draftId: draftId,
-          qaId: meta.qaId || '',
-          qaName: meta.qaName || '',
-          storeId: meta.storeId || '',
-          storeName: meta.storeName || '',
-          amId: meta.amId || '',
-          amName: meta.amName || '',
-          timestamp: timestamp,
-          completionPercentage: completionPercentage.toString(),
-          responsesJSON: JSON.stringify(responses),
-          questionImagesJSON: JSON.stringify(questionImages),
-          questionRemarksJSON: JSON.stringify(questionRemarks),
-          signaturesJSON: JSON.stringify(signatures),
-          metaJSON: JSON.stringify(meta)
-        });
-        
-        await fetch(DRAFT_ENDPOINT, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: params.toString()
-        });
-        
-        console.log('Draft saved to Google Sheets');
-      } catch (error) {
-        console.warn('Could not save draft to Google Sheets:', error);
-        // Continue anyway - localStorage save was successful
-      }
-    }
-    
-    hapticFeedback.success();
-    alert('Draft saved successfully! You can resume it later.');
-  };
-  
-  const loadDraft = (draftId: string) => {
+    setIsLoading(true);
     try {
-      const draftData = JSON.parse(localStorage.getItem(`qa_draft_${draftId}`) || '{}');
-      setResponses(draftData.responses || {});
-      setMeta(draftData.meta || {});
-      setQuestionImages(draftData.questionImages || {});
-      setQuestionRemarks(draftData.questionRemarks || {});
-      setSignatures(draftData.signatures || { auditor: '', sm: '' });
+      const params = new URLSearchParams({
+        action: 'saveDraft',
+        draftId: draftId,
+        qaId: meta.qaId || '',
+        qaName: meta.qaName || '',
+        storeId: meta.storeId || '',
+        storeName: meta.storeName || '',
+        amId: meta.amId || '',
+        amName: meta.amName || '',
+        timestamp: timestamp,
+        completionPercentage: completionPercentage.toString(),
+        responsesJSON: JSON.stringify(responses),
+        questionImagesJSON: JSON.stringify(questionImages),
+        questionRemarksJSON: JSON.stringify(questionRemarks),
+        signaturesJSON: JSON.stringify(signatures),
+        metaJSON: JSON.stringify(meta)
+      });
+      
+      await fetch(DRAFT_ENDPOINT, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+      });
+      
+      // Update local draft list
+      const draftMetadata: DraftMetadata = {
+        id: draftId,
+        timestamp,
+        storeName: meta.storeName || 'Unsaved',
+        storeId: meta.storeId || '',
+        qaName: meta.qaName || 'Unknown',
+        completionPercentage
+      };
+      
+      const existingDraftIndex = drafts.findIndex(d => d.id === draftId);
+      let updatedDrafts;
+      if (existingDraftIndex >= 0) {
+        updatedDrafts = [...drafts];
+        updatedDrafts[existingDraftIndex] = draftMetadata;
+      } else {
+        updatedDrafts = [...drafts, draftMetadata];
+      }
+      setDrafts(updatedDrafts);
       setCurrentDraftId(draftId);
-      setShowDraftList(false);
+      
       hapticFeedback.success();
-    } catch (e) {
-      alert('Failed to load draft');
+      alert('Draft saved successfully to Google Sheets! You can resume it later.');
+    } catch (error) {
+      console.error('Failed to save draft:', error);
+      alert('Failed to save draft. Please check your connection and try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
   
-  const deleteDraft = (draftId: string) => {
+  const loadDraft = async (draftId: string) => {
+    if (!DRAFT_ENDPOINT) {
+      alert('Draft endpoint not configured. Cannot load draft.');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${DRAFT_ENDPOINT}?action=loadDraft&draftId=${encodeURIComponent(draftId)}`);
+      const data = await response.json();
+      
+      if (data.success && data.data?.draft) {
+        const draft = data.data.draft;
+        setResponses(draft.responses || {});
+        setMeta(draft.meta || {});
+        setQuestionImages(draft.questionImages || {});
+        setQuestionRemarks(draft.questionRemarks || {});
+        setSignatures(draft.signatures || { auditor: '', sm: '' });
+        setCurrentDraftId(draftId);
+        setShowDraftList(false);
+        hapticFeedback.success();
+      } else {
+        alert('Failed to load draft: ' + (data.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Failed to load draft:', error);
+      alert('Failed to load draft. Please check your connection and try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const deleteDraft = async (draftId: string) => {
     if (!confirm('Are you sure you want to delete this draft?')) return;
     
-    // Remove draft data
-    localStorage.removeItem(`qa_draft_${draftId}`);
-    
-    // Remove from draft list
-    const updatedDrafts = drafts.filter(d => d.id !== draftId);
-    setDrafts(updatedDrafts);
-    localStorage.setItem('qa_drafts', JSON.stringify(updatedDrafts));
-    
-    // If we're currently viewing this draft, clear it
-    if (currentDraftId === draftId) {
-      setCurrentDraftId(null);
+    if (!DRAFT_ENDPOINT) {
+      alert('Draft endpoint not configured. Cannot delete draft.');
+      return;
     }
     
-    hapticFeedback.success();
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        action: 'deleteDraft',
+        draftId: draftId
+      });
+      
+      await fetch(DRAFT_ENDPOINT, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+      });
+      
+      // Remove from local draft list
+      const updatedDrafts = drafts.filter(d => d.id !== draftId);
+      setDrafts(updatedDrafts);
+      
+      // If we're currently viewing this draft, clear it
+      if (currentDraftId === draftId) {
+        setCurrentDraftId(null);
+      }
+      
+      hapticFeedback.success();
+      alert('Draft deleted successfully.');
+    } catch (error) {
+      console.error('Failed to delete draft:', error);
+      alert('Failed to delete draft. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const startNewChecklist = () => {
@@ -937,13 +1015,19 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-2">
             <button
-              onClick={() => setShowDraftList(!showDraftList)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+              onClick={() => {
+                setShowDraftList(!showDraftList);
+                if (!showDraftList) {
+                  loadDraftsFromSheet();
+                }
+              }}
+              disabled={draftsLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Drafts {drafts.length > 0 && `(${drafts.length})`}
+              {draftsLoading ? 'Loading...' : `Drafts ${drafts.length > 0 ? `(${drafts.length})` : ''}`}
             </button>
             
             <button
@@ -980,9 +1064,21 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       {showDraftList && (
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6 border-2 border-blue-500">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100">
-              📋 Saved Drafts
-            </h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100">
+                📋 Saved Drafts
+              </h2>
+              <button
+                onClick={loadDraftsFromSheet}
+                disabled={draftsLoading}
+                className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
+                title="Refresh drafts"
+              >
+                <svg className={`w-4 h-4 ${draftsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            </div>
             <button
               onClick={() => setShowDraftList(false)}
               className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
@@ -993,7 +1089,12 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
             </button>
           </div>
           
-          {drafts.length === 0 ? (
+          {draftsLoading ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="text-gray-600 dark:text-slate-400 mt-2">Loading drafts...</p>
+            </div>
+          ) : drafts.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-600 dark:text-slate-400">No saved drafts</p>
               <p className="text-sm text-gray-500 dark:text-slate-500 mt-2">

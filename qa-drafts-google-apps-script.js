@@ -21,7 +21,7 @@
  */
 
 // Configuration - UPDATE THESE
-const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE'; // Get from Sheet URL
+const SPREADSHEET_ID = '1cXxIz-Yd2xKKqEcuNsmGXHr2TUkBs_8Auh0Jm9ySaoY'; // Get from Sheet URL
 const DRAFT_SHEET_NAME = 'QA_Drafts';
 
 function doGet(e) {
@@ -59,34 +59,48 @@ function doPost(e) {
 }
 
 /**
- * Get all drafts for a specific QA auditor
+ * Get all drafts (removed QA ID restriction - shows all drafts)
  */
 function getDrafts(qaId) {
-  if (!qaId) {
-    return createResponse(false, 'QA ID is required');
-  }
-  
   const sheet = getOrCreateSheet();
   const data = sheet.getDataRange().getValues();
   
-  // Skip header row
-  const drafts = [];
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    if (row[1] === qaId) { // Match QA Auditor ID (Column B)
-      drafts.push({
-        id: row[0],
-        qaId: row[1],
-        qaName: row[2],
-        storeId: row[3],
-        storeName: row[4],
-        amId: row[5],
-        amName: row[6],
-        timestamp: row[7],
-        completionPercentage: row[8]
-      });
-    }
+  // Log for debugging
+  Logger.log('getDrafts called - returning ALL drafts');
+  Logger.log('Total rows in sheet: ' + data.length);
+  
+  // Determine starting row - check if row 1 is headers or data
+  let startRow = 1; // Default: skip first row (headers)
+  if (data.length > 0 && data[0][0] && data[0][0] !== 'Draft ID' && String(data[0][0]).startsWith('draft_')) {
+    // Row 1 contains draft data (no headers)
+    startRow = 0;
+    Logger.log('No headers detected - reading from row 1');
+  } else {
+    Logger.log('Headers detected - skipping row 1');
   }
+  
+  // Return ALL drafts
+  const drafts = [];
+  for (let i = startRow; i < data.length; i++) {
+    const row = data[i];
+    
+    // Skip empty rows or header rows
+    if (!row[0] || row[0] === 'Draft ID') continue;
+    
+    drafts.push({
+      id: row[0],
+      qaId: row[1],
+      qaName: row[2],
+      storeId: row[3],
+      storeName: row[4],
+      amId: row[5],
+      amName: row[6],
+      timestamp: row[7],
+      completionPercentage: row[8]
+    });
+  }
+  
+  Logger.log('Returning ' + drafts.length + ' total drafts');
   
   return createResponse(true, 'Drafts retrieved successfully', { drafts });
 }
@@ -142,12 +156,12 @@ function saveDraft(params) {
   const sheet = getOrCreateSheet();
   const data = sheet.getDataRange().getValues();
   
-  // Parse JSON data
-  const responses = params.responses || '{}';
-  const questionImages = params.questionImages || '{}';
-  const questionRemarks = params.questionRemarks || '{}';
-  const signatures = params.signatures || '{"auditor":"","sm":""}';
-  const meta = params.meta || '{}';
+  // Parse JSON data - frontend sends with "JSON" suffix
+  const responses = params.responsesJSON || '{}';
+  const questionImages = params.questionImagesJSON || '{}';
+  const questionRemarks = params.questionRemarksJSON || '{}';
+  const signatures = params.signaturesJSON || '{"auditor":"","sm":""}';
+  const meta = params.metaJSON || '{}';
   
   // Create row data
   const timestamp = new Date().toLocaleString('en-GB', { hour12: false });
@@ -202,14 +216,22 @@ function deleteDraft(draftId) {
   const sheet = getOrCreateSheet();
   const data = sheet.getDataRange().getValues();
   
-  // Find and delete draft
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === draftId) {
+  Logger.log('Deleting draft: ' + draftId);
+  Logger.log('Total rows: ' + data.length);
+  
+  // Find and delete draft - check all rows including row 1
+  for (let i = 0; i < data.length; i++) {
+    const currentDraftId = String(data[i][0]).trim();
+    Logger.log('Row ' + (i + 1) + ' Draft ID: "' + currentDraftId + '"');
+    
+    if (currentDraftId === draftId) {
       sheet.deleteRow(i + 1); // Sheet rows are 1-indexed
+      Logger.log('Deleted row ' + (i + 1));
       return createResponse(true, 'Draft deleted successfully');
     }
   }
   
+  Logger.log('Draft not found');
   return createResponse(false, 'Draft not found');
 }
 
