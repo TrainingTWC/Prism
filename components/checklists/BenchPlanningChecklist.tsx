@@ -164,7 +164,8 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
       } else {
         // Candidate not found in the list
         setCandidateData(null);
-        setNotEligible(true);
+        // Don't set notEligible immediately - wait to see if they have manager candidates
+        // setNotEligible(true);
       }
     } catch (error) {
       console.error('Error loading candidate data:', error);
@@ -183,6 +184,17 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
       loadManagerCandidates(userId);
     }
   }, [userId]);
+  
+  // After both data loads complete, determine eligibility
+  useEffect(() => {
+    // Only set notEligible if:
+    // 1. User is not a candidate (no candidateData)
+    // 2. User is not a manager (no managerCandidates)
+    // 3. Loading is complete
+    if (!loading && !loadingCandidates && !candidateData && managerCandidates.length === 0 && userId) {
+      setNotEligible(true);
+    }
+  }, [loading, loadingCandidates, candidateData, managerCandidates, userId]);
   
   // Fetch assessment questions when assessment is unlocked
   useEffect(() => {
@@ -213,6 +225,8 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
       } else {
         setUserType('manager');
       }
+      // Clear the not eligible flag since they're a valid manager
+      setNotEligible(false);
     }
   }, [managerCandidates, candidateData, userRole]);
   

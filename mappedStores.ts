@@ -13,55 +13,49 @@ const FALLBACK_STORES = [
   { name: 'Emerald Borivali', id: 'S076', region: 'West', hrbpId: 'H3603', amId: 'H1575' }
 ];
 
-// Create stores array from the comprehensive TWC mapping data
+// Create stores array from the static comprehensive mapping files.
 const createStoresFromMapping = async () => {
   try {
-    // Use comprehensive_store_mapping.json as the ULTIMATE source of truth
     const base = (import.meta as any).env?.BASE_URL || '/';
-    let response;
-    let mappingData;
-
+    let response: Response;
     try {
-      console.log('🔍 Loading comprehensive_store_mapping.json as source of truth...');
       response = await fetch(`${base}comprehensive_store_mapping.json`);
-      if (response.ok) {
-        mappingData = await response.json();
-        console.log('✅ Loaded comprehensive store mapping:', mappingData.length, 'entries');
-      } else {
-        throw new Error('Comprehensive mapping not found');
-      }
-    } catch (error1) {
-      console.log('⚠️ comprehensive_store_mapping.json not found, trying fallback...');
-      // Fallback to twc_store_mapping.json
+      if (!response.ok) throw new Error('Comprehensive mapping not found');
+    } catch {
       try {
-        response = await fetch(`${base}twc_store_mapping.json`);
-        if (response.ok) {
-          mappingData = await response.json();
-          console.log('✅ Loaded TWC store mapping (fallback)');
-        } else {
-          throw new Error('TWC mapping not found');
+        response = await fetch(`${base}latest_store_mapping.json`);
+        if (!response.ok) throw new Error('Latest mapping not found');
+      } catch {
+        try {
+          response = await fetch(`${base}twc_store_mapping.json`);
+          if (!response.ok) throw new Error('TWC mapping not found');
+        } catch {
+          response = await fetch(`${base}hr_mapping.json`);
         }
-      } catch (error2) {
-        // Final fallback to hr_mapping.json
-        console.log('⚠️ TWC mapping not found, using hr_mapping.json...');
-        response = await fetch(`${base}hr_mapping.json`);
-        mappingData = await response.json();
-        console.log('✅ Loaded HR mapping (final fallback)');
       }
     }
+
+    const mappingData = await response.json();
+    if (!Array.isArray(mappingData)) {
+      throw new Error('Static mapping response is not an array');
+    }
+    console.log('✅ Loaded store mapping from static JSON:', mappingData.length, 'stores');
     
-    const storeMap = new Map();
-    const amMap = new Map(); // Track unique Area Managers
+    const normalizeId = (value: any) => String(value || '').trim().toUpperCase();
+    const storeMap = new Map<string, any>();
+    const amMap = new Map<string, any>(); // Track unique Area Managers
     
     mappingData.forEach((item: any) => {
-      const storeId = item['Store ID'] || item.storeId;
-      const storeName = item['Store Name'] || item.locationName;
-      const region = item['Region'] || item.region;
-      const amId = item['AM'] || item['Area Manager ID'] || item.amId;
+      const storeIdRaw = item['Store ID'] || item.storeId || item.StoreID || item.store_id;
+      const storeId = normalizeId(storeIdRaw);
+      const storeName = item['Store Name'] || item.storeName || item.locationName || item.name;
+      const region = item['Region'] || item.Region || item.region;
+      const amId = normalizeId(item['AM'] || item.AM || item['AM ID'] || item['Area Manager ID'] || item.amId || item.areaManagerId);
       
+      if (!storeId) return;
       if (!storeMap.has(storeId)) {
         // determine hrbpId from the mapping; override for North region to Siddhant (H3728)
-        let derivedHrbp = item['HRBP'] || item['HRBP ID'] || item.hrbpId || null;
+        let derivedHrbp = item['HRBP'] || item['HRBP ID'] || item.hrbpId || item.HRBP || null;
         try {
           // normalize region string and if North, give full North region to H3728 as requested
           if (typeof region === 'string' && region.trim().toLowerCase() === 'north') {
@@ -80,16 +74,17 @@ const createStoresFromMapping = async () => {
           regionalHrId: item['Regional HR ID'] || item.regionalHrId,
           hrHeadId: item['HR Head'] || item['HR Head ID'] || item.hrHeadId,
           lmsHeadId: item['E-Learning Specialist'] || item['LMS Head ID'] || item.lmsHeadId,
-          trainer: item['Trainer'] || item.trainer,
-          trainerId: item['Trainer ID'] || item.trainerId,
+          trainer: item['Trainer Name'] || item['Trainer'] || item.trainerName || item.trainer,
+          trainerId: normalizeId(item['Trainer ID'] || item.trainerId || item.trainer_id || item.Trainer),
           trainingHead: item['Training Head'] || item.trainingHead
         });
         
         // Track Area Manager for this store
         if (amId) {
+          const prev = amMap.get(amId);
           amMap.set(amId, {
             id: amId,
-            stores: [...(amMap.get(amId)?.stores || []), storeId]
+            stores: [...(prev?.stores || []), storeId]
           });
         }
       }

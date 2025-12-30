@@ -399,27 +399,28 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   useEffect(() => {
     const loadMappingData = async () => {
       try {
-  const base = (import.meta as any).env?.BASE_URL || '/';
-  // Try comprehensive_store_mapping.json first (ULTIMATE SOURCE OF TRUTH)
-  let response;
-  try {
-    response = await fetch(`${base}comprehensive_store_mapping.json`);
-    if (!response.ok) throw new Error('Comprehensive mapping not found');
-  } catch {
-    // Fallback to hr_mapping.json if comprehensive is not available
-    console.warn('Falling back to hr_mapping.json');
-    response = await fetch(`${base}hr_mapping.json`);
-  }
+        const base = (import.meta as any).env?.BASE_URL || '/';
+        let response: Response;
+
+        // Try comprehensive mapping first
+        try {
+          response = await fetch(`${base}comprehensive_store_mapping.json`);
+          if (!response.ok) throw new Error('Comprehensive mapping not found');
+        } catch {
+          console.warn('Falling back to hr_mapping.json');
+          response = await fetch(`${base}hr_mapping.json`);
+        }
+
         const mappingData = await response.json();
         setHrMappingData(mappingData);
-        
+        setCompStoreMapping(Array.isArray(mappingData) ? mappingData : []);
+
         // Extract unique stores
         const storeMap = new Map();
         const amMap = new Map();
         const hrMap = new Map();
-        
-        mappingData.forEach((item: any) => {
-          // Handle both comprehensive_store_mapping.json and hr_mapping.json formats
+
+        (Array.isArray(mappingData) ? mappingData : []).forEach((item: any) => {
           const storeId = item['Store ID'] || item.storeId;
           const storeName = item['Store Name'] || item.locationName;
           const region = item.Region || item.region;
@@ -428,27 +429,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           const regionalHrId = item['Regional Training Manager'] || item.regionalHrId;
           const hrHeadId = item['HR Head'] || item.hrHeadId;
           const lmsHeadId = item['E-Learning Specialist'] || item.lmsHeadId;
-          
-          // Stores
+
           if (storeId && !storeMap.has(storeId)) {
-            storeMap.set(storeId, {
-              name: storeName,
-              id: storeId,
-              region: region
-            });
+            storeMap.set(storeId, { name: storeName, id: storeId, region });
           }
-          
-          // Area Managers
+
           if (amId && !amMap.has(amId)) {
-            // Find the AM name from constants or use ID
-            const amFromConstants = AREA_MANAGERS.find(am => am.id.toLowerCase() === amId.toLowerCase());
-            amMap.set(amId, {
-              name: amFromConstants?.name || `AM ${amId}`,
-              id: amId
-            });
+            const amFromConstants = AREA_MANAGERS.find(am => String(am.id).toLowerCase() === String(amId).toLowerCase());
+            amMap.set(amId, { name: amFromConstants?.name || `AM ${amId}`, id: amId });
           }
-          
-          // HR Personnel (HRBP, Regional HR, HR Head)
+
           [
             { id: hrbpId, type: 'HRBP' },
             { id: regionalHrId, type: 'Regional HR' },
@@ -456,121 +446,40 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             { id: lmsHeadId, type: 'LMS Head' }
           ].forEach(({ id, type }) => {
             if (id && !hrMap.has(id)) {
-              const hrFromConstants = HR_PERSONNEL.find(hr => hr.id.toLowerCase() === id.toLowerCase());
-              hrMap.set(id, {
-                name: hrFromConstants?.name || `${type} ${id}`,
-                id: id
-              });
+              const hrFromConstants = HR_PERSONNEL.find(hr => String(hr.id).toLowerCase() === String(id).toLowerCase());
+              hrMap.set(id, { name: hrFromConstants?.name || `${type} ${id}`, id });
             }
           });
         });
-        
+
         const stores = Array.from(storeMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
         const areaManagers = Array.from(amMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
-  const hrPersonnel = Array.from(hrMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
-        
-        // Also try to load comprehensive store mapping and merge stores
-        try {
-          const compResp = await fetch(`${base}comprehensive_store_mapping.json`);
-          console.log('Dashboard - Fetching comprehensive mapping from:', `${base}comprehensive_store_mapping.json`);
-          if (compResp.ok) {
-            const comp = await compResp.json();
-            setCompStoreMapping(comp);
-            console.log('Dashboard - Comprehensive mapping loaded, entries:', comp.length);
-            
-            // Merge stores from comprehensive mapping into storeMap
-            comp.forEach((row: any) => {
-              const storeId = row['Store ID'] || row.storeId || row.StoreID || row.store_id;
-              const storeName = row['Store Name'] || row.storeName || row.name;
-              const region = row.Region || row.region;
-              
-              if (storeId && storeName && !storeMap.has(storeId)) {
-                storeMap.set(storeId, {
-                  name: storeName,
-                  id: storeId,
-                  region: region
-                });
-              }
-            });
-            
-            // Rebuild stores array with comprehensive mapping included
-            const mergedStores = Array.from(storeMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
-            console.log(`Dashboard - Merged stores from comprehensive mapping: ${mergedStores.length} total stores`);
-            setAllStores(mergedStores);
-            setAllAreaManagers(areaManagers);
-            
-            // Build comprehensive HR list for HR dashboard (HRBP, Regional HR, HR Head)
-            const allHrIds = new Set<string>();
-            
-            // Add HRBPs from comprehensive mapping
-            comp.forEach((row: any) => {
-              if (row.HRBP) allHrIds.add(String(row.HRBP).toUpperCase());
-              if (row['HR Head']) allHrIds.add(String(row['HR Head']).toUpperCase());
-            });
-            
-            // Add all HR personnel from constants (includes Regional HR like Pooja)
-            HR_PERSONNEL.forEach((hr: any) => {
-              if (hr.id) allHrIds.add(String(hr.id).toUpperCase());
-            });
-            
-            console.log('Dashboard - All HR IDs found:', Array.from(allHrIds));
+        const hrPersonnel = Array.from(hrMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
 
-            const allHrArr: any[] = [];
-            allHrIds.forEach((hrId) => {
-              const found = HR_PERSONNEL.find((h: any) => String(h.id).toUpperCase() === hrId);
-              if (found) {
-                allHrArr.push({ id: hrId, name: found.name });
-              }
-            });
-            allHrArr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
-            console.log('Dashboard - Built comprehensive HR list:', allHrArr);
-            setAllHRPersonnel(allHrArr);
-            
-            // Build Trainer list for Training/Operations/QA dashboards
-            const trainerIds = new Set<string>();
-            comp.forEach((row: any) => {
-              if (row.Trainer) {
-                // Handle comma-separated trainer IDs
-                const trainers = String(row.Trainer).split(',').map(id => id.trim().toUpperCase());
-                trainers.forEach(id => trainerIds.add(id));
-              }
-            });
-            console.log('Dashboard - Trainer IDs found:', Array.from(trainerIds));
-            
-            const trainersArr: any[] = [];
-            trainerIds.forEach((trainerId) => {
-              const found = TRAINER_PERSONNEL.find((t: any) => String(t.id).toUpperCase() === trainerId);
-              const name = found?.name || trainerId;
-              trainersArr.push({ id: trainerId, name });
-            });
-            trainersArr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
-            console.log('Dashboard - Built Trainer list:', trainersArr);
-            setAllTrainers(trainersArr);
-            
-            // If no trainers found, fallback to TRAINER_PERSONNEL constants
-            if (trainersArr.length === 0) {
-              console.warn('Dashboard - No trainers found in comprehensive mapping, using TRAINER_PERSONNEL constants');
-              setAllTrainers(TRAINER_PERSONNEL);
-            }
-          } else {
-            // Fallback: use HR personnel names where trainer ids appear
-            console.log('Dashboard - Using fallback HR personnel for trainers');
-            const fallbackTrainers = Array.from(new Set(Array.from(hrMap.values()).map((h:any)=>h.id))).map((id:any)=>({ id, name: (HR_PERSONNEL.find(x=>x.id===id)?.name || id) }));
-            console.log('Dashboard - Fallback trainers:', fallbackTrainers);
-            setAllTrainers(fallbackTrainers);
-          }
-        } catch (err) {
-          // On any error, fallback to using HR personnel constants
-          console.log('Dashboard - Error loading comprehensive mapping, using HR fallback:', err);
-          const fallbackTrainers = Array.from(new Set(Array.from(hrMap.values()).map((h:any)=>h.id))).map((id:any)=>({ id, name: (HR_PERSONNEL.find(x=>x.id===id)?.name || id) }));
-          console.log('Dashboard - Error fallback trainers:', fallbackTrainers);
-          setAllTrainers(fallbackTrainers);
-        }
-        
-        console.log(`Dashboard loaded ${stores.length} stores, ${areaManagers.length} AMs, ${hrPersonnel.length} HR personnel from mapping data`);
+        setAllStores(stores);
+        setAllAreaManagers(areaManagers);
+        setAllHRPersonnel(hrPersonnel);
+
+        // Build Trainer list for Training/Operations/QA dashboards (from mapping rows)
+        const trainerIds = new Set<string>();
+        (Array.isArray(mappingData) ? mappingData : []).forEach((row: any) => {
+          const rawTrainer = row.Trainer || row['Trainer'] || row['Trainer ID'] || row.trainerId || row.trainer_id;
+          if (!rawTrainer) return;
+          String(rawTrainer).split(',').map((id: string) => id.trim().toUpperCase()).filter(Boolean).forEach((id: string) => trainerIds.add(id));
+        });
+
+        const trainersArr: any[] = [];
+        trainerIds.forEach((trainerId) => {
+          const found = TRAINER_PERSONNEL.find((t: any) => String(t.id).toUpperCase() === trainerId);
+          const name = found?.name || trainerId;
+          trainersArr.push({ id: trainerId, name });
+        });
+        trainersArr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        setAllTrainers(trainersArr.length ? trainersArr : TRAINER_PERSONNEL);
+
+        console.log(`Dashboard loaded ${stores.length} stores, ${areaManagers.length} AMs, ${hrPersonnel.length} HR personnel from static mapping`);
       } catch (error) {
         console.warn('Dashboard could not load mapping data:', error);
-        // Fallback to constants
         setAllStores([
           { name: 'Defence Colony', id: 'S027' },
           { name: 'Khan Market', id: 'S037' },
@@ -579,9 +488,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         ]);
         setAllAreaManagers(AREA_MANAGERS);
         setAllHRPersonnel(HR_PERSONNEL);
+        setAllTrainers(TRAINER_PERSONNEL);
+        setHrMappingData([]);
+        setCompStoreMapping([]);
       }
     };
-    
+
     loadMappingData();
   }, []);
 

@@ -1,26 +1,32 @@
 /**
- * Utility functions for loading and processing comprehensive store mapping data
- * This ensures all components use the comprehensive_store_mapping.json as the source of truth
+ * Utility functions for loading and processing store mapping data.
+ *
+ * Store→AM mapping source of truth (for now): comprehensive_store_mapping.json
  */
 
 export interface ComprehensiveMapping {
   'Store ID': string;
   'Store Name': string;
-  'Region': string;
-  'Menu': string;
-  'Store Type': string;
-  'Concept': string;
-  'HRBP': string;
-  'Trainer': string;
-  'AM': string;
-  'E-Learning Specialist': string;
-  'Training Head': string;
-  'HR Head': string;
+  'Region'?: string;
+  'Menu'?: string;
+  'Store Type'?: string;
+  'Concept'?: string;
+  'HRBP'?: string;
+  'Trainer'?: string;
+  'Trainer ID'?: string;
+  'Trainer Name'?: string;
+  'AM'?: string;
+  'AM Name'?: string;
+  'E-Learning Specialist'?: string;
+  'Training Head'?: string;
+  'HR Head'?: string;
 }
 
 import { HR_PERSONNEL } from '../constants';
 
 let comprehensiveMappingCache: ComprehensiveMapping[] | null = null;
+
+const normalizeId = (value: any) => String(value || '').trim().toUpperCase();
 
 /**
  * Load comprehensive store mapping - the ultimate source of truth
@@ -32,19 +38,55 @@ export const loadComprehensiveMapping = async (): Promise<ComprehensiveMapping[]
 
   try {
     const base = (import.meta as any).env?.BASE_URL || '/';
-    console.log('🔍 Loading comprehensive_store_mapping.json...');
-    
-    const response = await fetch(`${base}comprehensive_store_mapping.json`);
-    if (!response.ok) {
-      throw new Error(`Failed to load: ${response.status}`);
+
+    let response: Response;
+    try {
+      response = await fetch(`${base}comprehensive_store_mapping.json`);
+      if (!response.ok) throw new Error('Comprehensive mapping not found');
+    } catch {
+      // Preserve historical fallbacks used elsewhere in the app
+      try {
+        response = await fetch(`${base}latest_store_mapping.json`);
+        if (!response.ok) throw new Error('Latest mapping not found');
+      } catch {
+        try {
+          response = await fetch(`${base}twc_store_mapping.json`);
+          if (!response.ok) throw new Error('TWC mapping not found');
+        } catch {
+          response = await fetch(`${base}hr_mapping.json`);
+        }
+      }
     }
 
-    comprehensiveMappingCache = await response.json();
-    console.log('✅ Comprehensive mapping loaded:', comprehensiveMappingCache!.length, 'stores');
-    
+    const rows = await response.json();
+    const arr = Array.isArray(rows) ? rows : [];
+
+    // Normalize key fields used across the app.
+    comprehensiveMappingCache = arr.map((row: any) => {
+      const storeId = normalizeId(row['Store ID'] || row.storeId || row.StoreID || row.store_id);
+      const storeName = row['Store Name'] || row.storeName || row.locationName || row.name || '';
+      const amId = normalizeId(row.AM || row['AM'] || row['AM ID'] || row['Area Manager ID'] || row.amId || row.areaManagerId);
+      const amName = row['AM Name'] || row.amName || row.areaManagerName;
+
+      const trainerId = normalizeId(row['Trainer ID'] || row.trainerId || row.trainer_id || row.Trainer);
+      const trainerName = row['Trainer Name'] || row.trainerName || row.trainer;
+
+      return {
+        ...row,
+        'Store ID': storeId,
+        'Store Name': storeName,
+        'AM': amId || row.AM || row['AM'],
+        'AM Name': amName,
+        'Trainer': trainerId || row.Trainer || row['Trainer'],
+        'Trainer ID': trainerId,
+        'Trainer Name': trainerName,
+      } as ComprehensiveMapping;
+    });
+
+    console.log('✅ Store mapping loaded from static mapping:', comprehensiveMappingCache!.length, 'stores');
     return comprehensiveMappingCache!;
   } catch (error) {
-    console.error('❌ Failed to load comprehensive mapping:', error);
+    console.error('❌ Failed to load store mapping:', error);
     return [];
   }
 };
@@ -62,19 +104,20 @@ export const getAreaManagersFromMapping = async () => {
   const amMap = new Map<string, { id: string; name: string; storeCount: number; regions: Set<string> }>();
   
   mapping.forEach(store => {
-    const amId = store.AM;
-    if (amId && amId !== 'N/A' && amId !== '') {
+    const amId = normalizeId((store as any).AM);
+    if (amId && amId !== 'N/A') {
       if (!amMap.has(amId)) {
+        const preferredName = (store as any)['AM Name'];
         amMap.set(amId, {
           id: amId,
-          name: getAMName(amId),
+          name: preferredName || getAMName(amId),
           storeCount: 0,
           regions: new Set()
         });
       }
       const am = amMap.get(amId)!;
       am.storeCount++;
-      am.regions.add(store.Region);
+      am.regions.add((store as any).Region || (store as any).region || 'Unknown');
     }
   });
 

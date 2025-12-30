@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { TrainingAuditSubmission } from '../services/dataService';
-import comprehensiveStoreMapping from '../public/comprehensive_store_mapping.json';
+import { useComprehensiveMapping } from '../hooks/useComprehensiveMapping';
 import trainerMapping from '../trainerMapping.json';
 import { AREA_MANAGERS as DEFAULT_AREA_MANAGERS } from '../constants';
 import { useConfig } from '../contexts/ConfigContext';
@@ -13,8 +13,6 @@ interface TrainingHealthBreakdownModalProps {
   trendsData?: any[]; // Historical data from Monthly_Trends sheet
 }
 
-// Create lookup maps
-const storeMapping = new Map(comprehensiveStoreMapping.map(store => [store['Store ID'], store]));
 const trainerNameMapping = new Map(trainerMapping.map(t => [t['Trainer ID']?.toLowerCase(), t.Trainer]));
 
 // Add additional trainer mappings not in trainerMapping.json
@@ -22,22 +20,44 @@ trainerNameMapping.set('h3595', 'Bhawna');
 
 export default function TrainingHealthBreakdownModal({ isOpen, onClose, submissions, trendsData = [] }: TrainingHealthBreakdownModalProps) {
   const { config } = useConfig();
+  const { mapping: comprehensiveStoreMapping } = useComprehensiveMapping();
   const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
-  const amNameMapping = useMemo(() => new Map(AREA_MANAGERS.map(am => [am.id, am.name])), [AREA_MANAGERS]);
+  const normalizeId = (v: any) => String(v || '').trim().toUpperCase();
 
-  function getStoreDetails(storeId: string) {
-    const store = storeMapping.get(storeId);
+  const amNameMapping = useMemo(() => {
+    const entries: Array<[string, string]> = (AREA_MANAGERS || [])
+      .map((am: any) => [normalizeId(am?.id), String(am?.name || '')] as [string, string])
+      .filter(([id, name]) => Boolean(id) && Boolean(name));
+    return new Map<string, string>(entries);
+  }, [AREA_MANAGERS]);
+
+  const storeMapping = useMemo(() => {
+    const map = new Map<string, any>();
+    (comprehensiveStoreMapping || []).forEach((store: any) => {
+      const id = normalizeId(store?.['Store ID'] || store?.storeId || store?.StoreID || store?.store_id);
+      if (id) map.set(id, store);
+    });
+    return map;
+  }, [comprehensiveStoreMapping]);
+
+  function getStoreDetails(storeId: string): { region: string; areaManager: string; trainer: string } {
+    const store = storeMapping.get(normalizeId(storeId));
     if (!store) {
       console.log('⚠️ Store not found in mapping:', storeId);
     }
     
-    const amId = store?.AM || 'Unknown';
-    const trainerId = store?.Trainer || 'Unknown';
+    const amId = normalizeId(store?.AM || store?.['AM'] || store?.['AM ID'] || store?.amId || store?.areaManagerId) || 'Unknown';
+    const trainerId = normalizeId(store?.Trainer || store?.['Trainer'] || store?.['Trainer ID'] || store?.trainerId || store?.trainer_id) || 'Unknown';
+    const trainerName = store?.['Trainer Name'] || store?.trainerName || store?.trainer;
+
+    const region = String(store?.Region || store?.region || 'Unknown');
+    const areaManager = String(amNameMapping.get(amId) || amId || 'Unknown');
+    const trainer = String(trainerName || trainerNameMapping.get(String(trainerId).toLowerCase()) || trainerId || 'Unknown');
     
     return {
-      region: store?.Region || 'Unknown',
-      areaManager: amNameMapping.get(amId) || amId,
-      trainer: trainerNameMapping.get(trainerId.toLowerCase()) || trainerId
+      region,
+      areaManager,
+      trainer
     };
   }
 

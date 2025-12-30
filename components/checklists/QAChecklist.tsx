@@ -29,6 +29,15 @@ interface Store {
   region?: string;
 }
 
+interface DraftMetadata {
+  id: string;
+  timestamp: string;
+  storeName: string;
+  storeId: string;
+  qaName: string;
+  completionPercentage: number;
+}
+
 interface QAChecklistProps {
   userRole: UserRole;
   onStatsUpdate: (stats: { completed: number; total: number; score: number }) => void;
@@ -57,6 +66,14 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   const [questionImages, setQuestionImages] = useState<Record<string, string[]>>(() => {
     try {
       return JSON.parse(localStorage.getItem('qa_images') || '{}');
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const [questionRemarks, setQuestionRemarks] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('qa_remarks') || '{}');
     } catch (e) {
       return {};
     }
@@ -106,6 +123,15 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [showDraftList, setShowDraftList] = useState(false);
+  const [drafts, setDrafts] = useState<DraftMetadata[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('qa_drafts') || '[]');
+    } catch (e) {
+      return [];
+    }
+  });
   
   // Load comprehensive mapping data
   const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
@@ -186,6 +212,15 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       }
     }
   }, [questionImages]);
+
+  // Save per-question remarks to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('qa_remarks', JSON.stringify(questionRemarks));
+    } catch (e) {
+      console.error('Failed to save remarks:', e);
+    }
+  }, [questionRemarks]);
 
   // Save signatures to localStorage whenever they change
   useEffect(() => {
@@ -268,6 +303,119 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
   const handleTextResponse = (questionId: string, value: string) => {
     setResponses(prev => ({ ...prev, [questionId]: value }));
+  };
+
+  // Draft management functions
+  const saveDraft = () => {
+    const draftId = currentDraftId || `draft_${Date.now()}`;
+    const timestamp = new Date().toLocaleString('en-GB', { hour12: false });
+    
+    // Calculate completion percentage
+    const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
+    const answeredQuestions = Object.keys(responses).filter(key => 
+      responses[key] && responses[key] !== '' && !key.includes('_remarks')
+    ).length;
+    const completionPercentage = Math.round((answeredQuestions / totalQuestions) * 100);
+    
+    // Save draft data
+    const draftData = {
+      responses,
+      meta,
+      questionImages,
+      questionRemarks,
+      signatures
+    };
+    localStorage.setItem(`qa_draft_${draftId}`, JSON.stringify(draftData));
+    
+    // Update or add draft metadata
+    const existingDraftIndex = drafts.findIndex(d => d.id === draftId);
+    const draftMetadata: DraftMetadata = {
+      id: draftId,
+      timestamp,
+      storeName: meta.storeName || 'Unsaved',
+      storeId: meta.storeId || '',
+      qaName: meta.qaName || 'Unknown',
+      completionPercentage
+    };
+    
+    let updatedDrafts;
+    if (existingDraftIndex >= 0) {
+      updatedDrafts = [...drafts];
+      updatedDrafts[existingDraftIndex] = draftMetadata;
+    } else {
+      updatedDrafts = [...drafts, draftMetadata];
+    }
+    
+    setDrafts(updatedDrafts);
+    localStorage.setItem('qa_drafts', JSON.stringify(updatedDrafts));
+    setCurrentDraftId(draftId);
+    
+    hapticFeedback.success();
+    alert('Draft saved successfully! You can resume it later.');
+  };
+  
+  const loadDraft = (draftId: string) => {
+    try {
+      const draftData = JSON.parse(localStorage.getItem(`qa_draft_${draftId}`) || '{}');
+      setResponses(draftData.responses || {});
+      setMeta(draftData.meta || {});
+      setQuestionImages(draftData.questionImages || {});
+      setQuestionRemarks(draftData.questionRemarks || {});
+      setSignatures(draftData.signatures || { auditor: '', sm: '' });
+      setCurrentDraftId(draftId);
+      setShowDraftList(false);
+      hapticFeedback.success();
+    } catch (e) {
+      alert('Failed to load draft');
+    }
+  };
+  
+  const deleteDraft = (draftId: string) => {
+    if (!confirm('Are you sure you want to delete this draft?')) return;
+    
+    // Remove draft data
+    localStorage.removeItem(`qa_draft_${draftId}`);
+    
+    // Remove from draft list
+    const updatedDrafts = drafts.filter(d => d.id !== draftId);
+    setDrafts(updatedDrafts);
+    localStorage.setItem('qa_drafts', JSON.stringify(updatedDrafts));
+    
+    // If we're currently viewing this draft, clear it
+    if (currentDraftId === draftId) {
+      setCurrentDraftId(null);
+    }
+    
+    hapticFeedback.success();
+  };
+  
+  const startNewChecklist = () => {
+    if (!confirm('Start a new checklist? Current progress will be cleared unless you save it as a draft first.')) return;
+    
+    // Clear current checklist data from localStorage
+    localStorage.removeItem('qa_resp');
+    localStorage.removeItem('qa_meta');
+    localStorage.removeItem('qa_images');
+    localStorage.removeItem('qa_remarks');
+    localStorage.removeItem('qa_signatures');
+    
+    // Reset all state
+    setResponses({});
+    setMeta({
+      qaName: '',
+      qaId: '',
+      amName: '',
+      amId: '',
+      storeName: '',
+      storeId: ''
+    });
+    setQuestionImages({});
+    setQuestionRemarks({});
+    setSignatures({ auditor: '', sm: '' });
+    setCurrentDraftId(null);
+    setSubmitted(false);
+    
+    hapticFeedback.success();
   };
 
   const handleSubmit = async () => {
@@ -384,7 +532,11 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         // Add row identifier for updates (using submissionTime as unique ID)
         rowId: editMode && existingSubmission?.submissionTime ? existingSubmission.submissionTime : '',
         // responses may contain non-string values; ensure we stringify them
-        ...Object.fromEntries(Object.entries(responses).map(([k, v]) => [k, String(v)]))
+        ...Object.fromEntries(Object.entries(responses).map(([k, v]) => [k, String(v)])),
+        // Add question remarks with _remark suffix
+        ...Object.fromEntries(Object.entries(questionRemarks).map(([k, v]) => [`${k}_remark`, String(v)])),
+        // Add image counts with _imageCount suffix
+        ...Object.fromEntries(Object.entries(questionImages).map(([k, v]) => [`${k}_imageCount`, String(v.length)]))
       };
 
       console.log('QA Survey data being sent:', params);
@@ -400,6 +552,23 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       });
 
       console.log('QA Survey submitted successfully');
+      
+      // Delete draft if submission was successful
+      if (currentDraftId) {
+        localStorage.removeItem(`qa_draft_${currentDraftId}`);
+        const updatedDrafts = drafts.filter(d => d.id !== currentDraftId);
+        setDrafts(updatedDrafts);
+        localStorage.setItem('qa_drafts', JSON.stringify(updatedDrafts));
+        setCurrentDraftId(null);
+      }
+      
+      // Clear current checklist data from localStorage
+      localStorage.removeItem('qa_resp');
+      localStorage.removeItem('qa_meta');
+      localStorage.removeItem('qa_images');
+      localStorage.removeItem('qa_remarks');
+      localStorage.removeItem('qa_signatures');
+      
       setSubmitted(true);
       
     } catch (error) {
@@ -410,60 +579,63 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     }
   };
 
-  const handleImageUpload = (questionId: string, file: File) => {
-    // Compress and resize image to reduce storage size
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        // Create canvas for compression
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+  const handleImageUpload = (questionId: string, files: FileList) => {
+    // Process multiple files
+    Array.from(files).forEach(file => {
+      // Compress and resize image to reduce storage size
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          // Create canvas for compression
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
 
-        // Calculate new dimensions (max 1200px width/height)
-        const maxDimension = 1200;
-        let width = img.width;
-        let height = img.height;
+          // Calculate new dimensions (max 1200px width/height)
+          const maxDimension = 1200;
+          let width = img.width;
+          let height = img.height;
 
-        if (width > height && width > maxDimension) {
-          height = (height * maxDimension) / width;
-          width = maxDimension;
-        } else if (height > maxDimension) {
-          width = (width * maxDimension) / height;
-          height = maxDimension;
-        }
+          if (width > height && width > maxDimension) {
+            height = (height * maxDimension) / width;
+            width = maxDimension;
+          } else if (height > maxDimension) {
+            width = (width * maxDimension) / height;
+            height = maxDimension;
+          }
 
-        canvas.width = width;
-        canvas.height = height;
+          canvas.width = width;
+          canvas.height = height;
 
-        // Draw and compress image (0.7 quality for JPEG)
-        ctx.drawImage(img, 0, 0, width, height);
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          // Draw and compress image (0.7 quality for JPEG)
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
 
-        // Update state with compressed image
-        setQuestionImages(prev => {
-          try {
-            const newImages = {
-              ...prev,
-              [questionId]: [...(prev[questionId] || []), compressedBase64]
-            };
-            // Test if it fits in localStorage
-            const testString = JSON.stringify(newImages);
-            if (testString.length > 5000000) { // ~5MB limit
-              alert('Storage limit reached. Please remove some images before adding more.');
+          // Update state with compressed image
+          setQuestionImages(prev => {
+            try {
+              const newImages = {
+                ...prev,
+                [questionId]: [...(prev[questionId] || []), compressedBase64]
+              };
+              // Test if it fits in localStorage
+              const testString = JSON.stringify(newImages);
+              if (testString.length > 5000000) { // ~5MB limit
+                alert('Storage limit reached. Please remove some images before adding more.');
+                return prev;
+              }
+              return newImages;
+            } catch (error) {
+              alert('Failed to add image. Storage limit may be reached.');
               return prev;
             }
-            return newImages;
-          } catch (error) {
-            alert('Failed to add image. Storage limit may be reached.');
-            return prev;
-          }
-        });
+          });
+        };
+        img.src = e.target?.result as string;
       };
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    });
   };
 
   const removeImage = (questionId: string, imageIndex: number) => {
@@ -711,13 +883,145 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-4 sm:p-6 border border-orange-200 dark:border-orange-800">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
-          🔍 Quality Assurance Assessment
-        </h1>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400">
-          Comprehensive quality and safety assessment covering zero tolerance, maintenance, operations, and hygiene standards.
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
+              🔍 Quality Assurance Assessment
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400">
+              Comprehensive quality and safety assessment covering zero tolerance, maintenance, operations, and hygiene standards.
+            </p>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={() => setShowDraftList(!showDraftList)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Drafts {drafts.length > 0 && `(${drafts.length})`}
+            </button>
+            
+            <button
+              onClick={saveDraft}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              Save Draft
+            </button>
+            
+            <button
+              onClick={startNewChecklist}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New
+            </button>
+          </div>
+        </div>
+        
+        {/* Current Draft Indicator */}
+        {currentDraftId && (
+          <div className="mt-3 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-md text-sm text-blue-800 dark:text-blue-200">
+            📝 Currently editing draft from {drafts.find(d => d.id === currentDraftId)?.timestamp || 'Unknown'}
+          </div>
+        )}
       </div>
+
+      {/* Draft List Modal */}
+      {showDraftList && (
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6 border-2 border-blue-500">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100">
+              📋 Saved Drafts
+            </h2>
+            <button
+              onClick={() => setShowDraftList(false)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          {drafts.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600 dark:text-slate-400">No saved drafts</p>
+              <p className="text-sm text-gray-500 dark:text-slate-500 mt-2">
+                Click "Save Draft" to save your progress
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {drafts.map(draft => (
+                <div
+                  key={draft.id}
+                  className={`p-4 border rounded-lg ${
+                    currentDraftId === draft.id
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
+                  } transition-colors`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-gray-900 dark:text-slate-100">
+                          {draft.storeName} {draft.storeId && `(${draft.storeId})`}
+                        </h3>
+                        {currentDraftId === draft.id && (
+                          <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-slate-400">
+                        Auditor: {draft.qaName}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">
+                        {draft.timestamp}
+                      </p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="flex-1 bg-gray-200 dark:bg-slate-700 rounded-full h-2">
+                          <div
+                            className="bg-green-500 h-2 rounded-full transition-all"
+                            style={{ width: `${draft.completionPercentage}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-gray-700 dark:text-slate-300">
+                          {draft.completionPercentage}%
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => loadDraft(draft.id)}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+                      >
+                        Load
+                      </button>
+                      <button
+                        onClick={() => deleteDraft(draft.id)}
+                        className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Audit Information */}
       <div id="audit-information" className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
@@ -849,18 +1153,32 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         </h2>
         
         <div className="space-y-6 sm:space-y-8">
-          {sections.map((section, sectionIndex) => (
+          {sections.map((section, sectionIndex) => {
+            // Generate section prefix for serial numbers (ZT, S, M, etc.)
+            const sectionPrefix = section.id === 'ZeroTolerance' ? 'ZT' : 
+                                 section.id === 'Store' ? 'S' : 
+                                 section.id === 'Maintenance' ? 'M' : 
+                                 section.id === 'A' ? 'A' : 
+                                 section.id === 'HR' ? 'HR' : 
+                                 section.id.substring(0, 2).toUpperCase();
+            
+            // Ensure options exist, fallback to default
+            const sectionOptions = section.options || (section.id === 'ZeroTolerance' ? ['compliant', 'non-compliant'] : ['compliant', 'partially-compliant', 'not-compliant', 'na']);
+            
+            return (
             <div key={section.id} className="border-l-4 border-orange-500 pl-3 sm:pl-4">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3 sm:mb-4 text-orange-700 dark:text-orange-300">
                 {section.title}
               </h3>
               
               <div className="space-y-4">
-                {section.items.map((item, itemIndex) => (
+                {section.items?.map((item, itemIndex) => {
+                  const serialNumber = `${sectionPrefix}-${itemIndex + 1}`;
+                  return (
                   <div key={item.id} className="p-3 sm:p-4 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                     <div className="flex items-start gap-2 sm:gap-3 mb-3">
-                      <span className="inline-flex items-center justify-center w-7 h-7 sm:w-6 sm:h-6 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-xs font-medium flex-shrink-0">
-                        {itemIndex + 1}
+                      <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-md text-xs font-bold flex-shrink-0">
+                        {serialNumber}
                       </span>
                       <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-slate-100 leading-relaxed flex-1">
                         {item.q}
@@ -869,7 +1187,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                     
                     {/* Response Options - Stacked on mobile, wrapped on desktop */}
                     <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3 mb-3 pl-0 sm:pl-9">
-                      {section.options.map(option => (
+                      {sectionOptions.map(option => (
                         <label key={option} className="flex items-center gap-2 sm:gap-2 cursor-pointer p-2 sm:p-0 rounded hover:bg-gray-100 dark:hover:bg-slate-700 sm:hover:bg-transparent transition-colors min-h-[44px] sm:min-h-0">
                           <input
                             type="radio"
@@ -893,21 +1211,21 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                     {/* Image Upload Section - Multiple Images Support */}
                     <div className="pl-0 sm:pl-9">
                       <div className="space-y-3">
-                        {/* Upload Buttons - Always Visible */}
+                        {/* Upload Buttons - Always Visible with MULTIPLE selection */}
                         <div className="flex flex-col sm:flex-row gap-2">
                           <label className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
-                            Camera
+                            📷 Camera
                             <input
                               type="file"
                               accept="image/*"
                               capture="environment"
                               onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleImageUpload(`${section.id}_${item.id}`, file);
+                                const files = e.target.files;
+                                if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
                                 e.target.value = ''; // Reset input to allow same file again
                               }}
                               className="hidden"
@@ -918,13 +1236,14 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            Gallery
+                            🖼️ Gallery (Multiple)
                             <input
                               type="file"
                               accept="image/*"
+                              multiple
                               onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleImageUpload(`${section.id}_${item.id}`, file);
+                                const files = e.target.files;
+                                if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
                                 e.target.value = ''; // Reset input to allow same file again
                               }}
                               className="hidden"
@@ -960,26 +1279,28 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                           </div>
                         )}
                       </div>
+
+                      {/* Per-Question Remarks - Inline after each point */}
+                      <div className="mt-3">
+                        <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                          💬 Comments / NC Description for {serialNumber}
+                        </label>
+                        <textarea
+                          value={questionRemarks[`${section.id}_${item.id}`] || ''}
+                          onChange={(e) => setQuestionRemarks(prev => ({ ...prev, [`${section.id}_${item.id}`]: e.target.value }))}
+                          placeholder="Add comments or describe non-compliance for this point..."
+                          rows={2}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        />
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {/* Section Remarks */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                  Section Remarks
-                </label>
-                <textarea
-                  value={responses[`${section.id}_remarks`] || ''}
-                  onChange={(e) => handleTextResponse(`${section.id}_remarks`, e.target.value)}
-                  placeholder="Add any remarks for this section (optional)"
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400"
-                />
+                  );
+                })}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

@@ -417,11 +417,18 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   const [selectedTrainerIndex, setSelectedTrainerIndex] = useState(-1);
   const [selectedStoreIndex, setSelectedStoreIndex] = useState(-1);
 
-  // Get unique AMs from constants (same as HR Checklist), Trainers and Stores from HR mapping
-  const uniqueAMs = AREA_MANAGERS.map(am => ({
-    name: am.name,
-    id: am.id
-  }));
+  const normalizeId = (v: any) => (v || '').toString().trim().toUpperCase();
+
+  // Get unique AMs (dedupe by normalized ID)
+  const uniqueAMs = (() => {
+    const byId = new Map<string, { name: string; id: string }>();
+    AREA_MANAGERS.forEach((am: any) => {
+      const id = normalizeId(am.id);
+      if (!id) return;
+      if (!byId.has(id)) byId.set(id, { name: am.name, id });
+    });
+    return Array.from(byId.values());
+  })();
 
   // Build trainers list from comprehensive store mapping - ULTIMATE SOURCE OF TRUTH
   const trainerNameOverrides: Record<string, string> = {
@@ -439,13 +446,14 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     H701: 'Mallika M'
   };
 
+  const rows = Array.isArray(compStoreMapping) ? (compStoreMapping as any[]) : [];
+
   const uniqueTrainers = (() => {
-    // Use comprehensive store mapping as the ULTIMATE source of truth
-    const allIds = (compStoreMapping as any[])
-      .map((r: any) => r.Trainer)
+    const allIds = rows
+      .map((r: any) => r.Trainer || r['Trainer'] || r['Trainer ID'] || r.trainerId || r.trainer_id)
       .filter(Boolean)
-      .flatMap((trainer: string) => trainer.split(',').map(id => id.trim())); // Split comma-separated IDs
-    const ids = Array.from(new Set(allIds));
+      .flatMap((trainer: string) => String(trainer).split(',').map(id => normalizeId(id)));
+    const ids = Array.from(new Set(allIds)).filter(Boolean);
     const trainers = ids.map((id: string) => ({
       id,
       name: trainerNameOverrides[id] || id
@@ -453,21 +461,18 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     return trainers.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
   })();
 
-  // Extract stores from comprehensive store mapping as the ULTIMATE source of truth
   const uniqueStores = (() => {
-    const stores = (compStoreMapping as any[]).map((row: any) => ({
-      name: row['Store Name'],
-      id: row['Store ID']
+    const stores = rows.map((row: any) => ({
+      name: row['Store Name'] || row.storeName || row.name,
+      id: normalizeId(row['Store ID'] || row.storeId || row.StoreID || row.store_id)
     }));
     return stores
-      .filter(store => store.name && store.id) // Remove empty names/IDs
-      .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
+      .filter((store: any) => store.name && store.id)
+      .sort((a: any, b: any) => a.name.localeCompare(b.name));
   })();
 
   // Cascading filter functions for dropdown searches
-  
   // 1. Area Managers filtered by selected trainer (if any)
-  const normalizeId = (v: any) => (v || '').toString().trim().toUpperCase();
 
   const filteredAMs = uniqueAMs.filter(am => {
     // Audits can be done by anybody, so AM list should not be restricted by auditor.
@@ -496,13 +501,23 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     // If AM is selected, use comprehensive mapping to find stores for that AM
     try {
       const amIdNorm = normalizeId(meta.amId);
-      const storesForAM = Array.from(new Set((compStoreMapping as any[])
-        .filter((r: any) => normalizeId(r.AM) === amIdNorm)
-        .map((r: any) => ({ name: r['Store Name'], id: r['Store ID'] }))
-        .filter((s: any) => s.name || s.id)
-        .map((s: any) => ({ name: s.name, id: s.id }))
-      ));
-      const storeUnderAM = storesForAM.some((s: any) => normalizeId(s.name) === normalizeId(store.name) || normalizeId(s.id) === normalizeId(store.id));
+      const storesForAM = Array.from(
+        new Set(
+          rows
+            .filter((r: any) => normalizeId(r.AM || r['AM'] || r['AM ID'] || r['Area Manager ID'] || r.amId || r.areaManagerId) === amIdNorm)
+            .map((r: any) => ({
+              name: r['Store Name'] || r.storeName || r.name,
+              id: normalizeId(r['Store ID'] || r.storeId || r.StoreID || r.store_id)
+            }))
+            .filter((s: any) => s.name && s.id)
+            .map((s: any) => `${s.id}::${s.name}`)
+        )
+      ).map((key: string) => {
+        const [id, name] = key.split('::');
+        return { id, name };
+      });
+
+      const storeUnderAM = storesForAM.some((s: any) => normalizeId(s.id) === normalizeId(store.id));
       return matchesSearch && storeUnderAM;
     } catch (e) {
       // If error, only show stores that match search
@@ -512,48 +527,40 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
   // Auto-fill function with cascading filters (same as HR Checklist)
   const autoFillFields = (field: string, value: string) => {
-    let mappingItem = null;
+    let mappingItem: any = null;
     
     switch (field) {
       case 'trainer':
-        // Find trainer in comprehensive mapping ONLY (TOP LEVEL - clears AM and Store)
-        mappingItem = (compStoreMapping as any[]).find((item: any) => 
-          item.Trainer === value || item.Trainer === value.toUpperCase()
-        );
-        if (mappingItem) {
+        // Top-level selection: set trainer and clear dependent fields.
+        {
+          const trainerId = normalizeId(value);
           setMeta(prev => ({
             ...prev,
             trainerName: value,
-            trainerId: mappingItem['Trainer'] || '',
+            trainerId,
             mappedTrainerName: '',
             mappedTrainerId: '',
-            // Clear dependent fields when trainer changes
             amName: '',
             amId: '',
             storeName: '',
             storeId: ''
-            // MOD remains as user input - not auto-populated
           }));
         }
         break;
         
       case 'am':
         // Find AM from constants (MIDDLE LEVEL - clears Store only)
-        const amFromConstants = AREA_MANAGERS.find(am => am.name === value || am.id === value);
-        if (amFromConstants) {
-          // Find stores for this AM from comprehensive store mapping
-          mappingItem = (compStoreMapping as any[]).find((item: any) => item.AM === amFromConstants.id);
-          if (mappingItem) {
+        {
+          const am = uniqueAMs.find((a: any) => a.name === value || normalizeId(a.id) === normalizeId(value));
+          if (am) {
             setMeta(prev => ({
               ...prev,
-              amName: amFromConstants.name,
-              amId: amFromConstants.id,
+              amName: am.name,
+              amId: am.id,
               mappedTrainerName: '',
               mappedTrainerId: '',
-              // Clear dependent store when AM changes
               storeName: '',
               storeId: ''
-              // MOD remains as user input - not auto-populated
             }));
           }
         }
@@ -561,25 +568,34 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         
       case 'store':
         // Find store in comprehensive store mapping ONLY
-        mappingItem = (compStoreMapping as any[]).find((item: any) =>
-          item['Store ID'] === value || item['Store Name'] === value
-        );
-        if (mappingItem) {
-          // Get the AM info for this store
-          const amFromStoreMapping = AREA_MANAGERS.find(am => am.id === mappingItem.AM);
-          // Get trainer name from our overrides
-          const trainerName = trainerNameOverrides[mappingItem.Trainer] || mappingItem.Trainer;
-          setMeta(prev => ({
-            ...prev,
-            storeName: mappingItem['Store Name'] || '',
-            storeId: mappingItem['Store ID'] || '',
-            amName: amFromStoreMapping?.name || '',
-            amId: amFromStoreMapping?.id || '',
-            // Keep auditor as-is; record store-mapped trainer separately for dashboards/autofill
-            mappedTrainerName: trainerName,
-            mappedTrainerId: mappingItem.Trainer || ''
-            // MOD remains as user input - not auto-populated
-          }));
+        {
+          const valueNorm = normalizeId(value);
+          mappingItem = rows.find((item: any) => {
+            const sid = normalizeId(item['Store ID'] || item.storeId || item.StoreID || item.store_id);
+            const sname = String(item['Store Name'] || item.storeName || item.name || '').trim();
+            return sid === valueNorm || sname === value;
+          });
+
+          if (mappingItem) {
+            const storeId = normalizeId(mappingItem['Store ID'] || mappingItem.storeId || mappingItem.StoreID || mappingItem.store_id);
+            const storeName = mappingItem['Store Name'] || mappingItem.storeName || mappingItem.name || '';
+
+            const storeAmId = normalizeId(mappingItem.AM || mappingItem['AM'] || mappingItem['AM ID'] || mappingItem['Area Manager ID'] || mappingItem.amId || mappingItem.areaManagerId);
+            const amFromStoreMapping = uniqueAMs.find((am: any) => normalizeId(am.id) === storeAmId);
+
+            const trainerId = normalizeId(mappingItem.Trainer || mappingItem['Trainer'] || mappingItem['Trainer ID'] || mappingItem.trainerId || mappingItem.trainer_id);
+            const trainerName = trainerNameOverrides[trainerId] || trainerId;
+
+            setMeta(prev => ({
+              ...prev,
+              storeName,
+              storeId,
+              amName: amFromStoreMapping?.name || '',
+              amId: amFromStoreMapping?.id || '',
+              mappedTrainerName: trainerName,
+              mappedTrainerId: trainerId || ''
+            }));
+          }
         }
         break;
     }
@@ -1861,7 +1877,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                             {subsectionName}
                           </h4>
                           <div className="space-y-2">
-                            {items.map((item, itemIndex) => (
+                            {(items as SectionItem[]).map((item, itemIndex) => (
                               <div key={item.id} className="p-2 sm:p-3 border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors rounded">
                                 <div className="flex items-start gap-2">
                                   <span className="inline-flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
@@ -1989,7 +2005,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                             {subsectionName}
                           </h4>
                           <div className="space-y-2 sm:space-y-3">
-                            {items.map((item, itemIndex) => (
+                            {(items as SectionItem[]).map((item, itemIndex) => (
                               <div key={item.id} className="p-2 sm:p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                                 <div className="flex items-start gap-2 sm:gap-3">
                                   <span className="inline-flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
@@ -2117,7 +2133,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                             {subsectionName}
                           </h4>
                           <div className="space-y-2 sm:space-y-3">
-                            {items.map((item, itemIndex) => (
+                            {(items as SectionItem[]).map((item, itemIndex) => (
                               <div key={item.id} className="p-2 sm:p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                                 <div className="flex items-start gap-2 sm:gap-3">
                                   <span className="inline-flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">

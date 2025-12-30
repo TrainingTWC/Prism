@@ -47,19 +47,23 @@ export async function fetchEmployeeDirectory(options?: {
     const from = page * pageSize;
     const to = from + pageSize - 1;
 
+    // Try to fetch all columns first, then filter what we need
+    // This handles different column name cases in the table
     let query = supabase
       .from(table)
-      .select('employee_Code, EmpName, Employee_Status, "Store Code"')
+      .select('*')
       .range(from, to);
 
     if (onlyExisting) {
-      query = query.eq('Employee_Status', 'Existing');
+      // Try both variations of the Employee_Status column
+      query = query.or('Employee_Status.eq.Existing,employee_status.eq.Existing');
     }
 
     const { data, error } = await query;
     
     if (error) {
       console.warn('[Supabase] fetchEmployeeDirectory failed:', error.message);
+      console.warn('[Supabase] Error details:', error);
       break;
     }
 
@@ -76,22 +80,30 @@ export async function fetchEmployeeDirectory(options?: {
     rowsReturned: allData.length, 
     pages: page,
     table,
-    onlyExisting 
+    onlyExisting,
+    firstRow: allData[0] // Log first row to see column structure
   });
 
   const byId: Record<string, EmployeeRow> = {};
   const nameById: Record<string, string> = {};
 
   for (const row of allData) {
-    if (!row?.employee_Code) continue;
-    const key = normalizeId(row.employee_Code);
+    // Handle different possible column name variations
+    const employeeCode = row?.employee_Code || row?.employee_code || row?.Employee_Code || row?.['Employee Code'];
+    const empName = row?.EmpName || row?.empname || row?.Empname || row?.['Employee Name'];
+    const employeeStatus = row?.Employee_Status || row?.employee_status || row?.['Employee Status'];
+    const storeCode = row?.['Store Code'] || row?.store_code || row?.Store_Code;
+    
+    if (!employeeCode) continue;
+    
+    const key = normalizeId(employeeCode);
     byId[key] = {
-      employee_code: row.employee_Code,
-      empname: row.EmpName,
-      employee_status: row.Employee_Status,
-      store_code: row['Store Code']
+      employee_code: employeeCode,
+      empname: empName,
+      employee_status: employeeStatus,
+      store_code: storeCode
     } as EmployeeRow;
-    nameById[key] = row.EmpName || row.employee_Code;
+    nameById[key] = empName || employeeCode;
   }
 
   return { byId, nameById };
