@@ -8,7 +8,7 @@ import { QA_SECTIONS } from '../../config/qaQuestions';
 import { useComprehensiveMapping, useAreaManagers, useStoreDetails } from '../../hooks/useComprehensiveMapping';
 
 // Google Sheets endpoint for logging data - Updated to capture all 116 questions
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbynHit5Eu2-5UOqtuScqVuxOA0QvAPpbwyZPPYsq4_v3MlskfNxoisJX2wW1MrC7HW23A/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw-loq3hmKFETYAU9Oe_hBTZs4maJS_Mh9tHG0jtd_qUTHf5kF4Rasxe8L4je9xcxWNJA/exec';
 
 interface SurveyResponse {
   [key: string]: string;
