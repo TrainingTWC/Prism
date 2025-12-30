@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AUTH_CONFIG, RoleConfig } from '../config/auth';
 
-export type UserRole = 'operations' | 'hr' | 'qa' | 'training' | 'finance' | 'forms' | 'campus-hiring' | 'bench-planning' | 'admin' | 'editor';
+export type UserRole = 'operations' | 'hr' | 'qa' | 'training' | 'finance' | 'forms' | 'campus-hiring' | 'bench-planning' | 'shlp' | 'admin' | 'editor';
 
 interface Employee {
   code: string;

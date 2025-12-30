@@ -245,8 +245,8 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
   };
 
   const handleSubmit = async () => {
-    if (!metadata.empName || !metadata.empId || !metadata.store || !metadata.amId || !metadata.trainerIds) {
-      alert('Please fill in all employee information fields before submitting.');
+    if (!metadata.empName || !metadata.empId || !metadata.store || !metadata.amId || !metadata.trainerIds || !metadata.auditorName) {
+      alert('Please fill in all required fields including auditor name before submitting.');
       return;
     }
 
@@ -273,6 +273,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         empName: metadata.empName,
         empId: metadata.empId,
         store: metadata.store,
+        auditorName: metadata.auditorName,
         // Keep existing keys as IDs (dashboards/mapping)
         am: metadata.amId,
         trainer: metadata.trainerIds,
@@ -320,7 +321,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         // Clear form after successful submission
         setResponses({});
         setQuestionRemarks({});
-        setMetadata({ empName: '', empId: '', store: '', amId: '', trainerIds: '', amName: '', trainerNames: '' });
+        setMetadata({ empName: '', empId: '', store: '', amId: '', trainerIds: '', amName: '', trainerNames: '', auditorName: '' });
         
         setTimeout(() => {
           setShowSuccess(false);
@@ -516,6 +517,20 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
               readOnly
               className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 dark:text-slate-100 cursor-not-allowed"
               placeholder="Select store first"
+            />
+          </div>
+
+          <div className="space-y-2 md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+              Auditor Name *
+            </label>
+            <input
+              type="text"
+              value={metadata.auditorName}
+              onChange={(e) => setMetadata(prev => ({ ...prev, auditorName: e.target.value }))}
+              className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-slate-700 dark:text-slate-100"
+              placeholder="Enter auditor name"
+              required
             />
           </div>
         </div>

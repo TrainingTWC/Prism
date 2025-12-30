@@ -24,7 +24,7 @@ function doPost(e) {
     if (sheet.getLastRow() === 0) {
       Logger.log('Creating header row');
       var header = [
-        'Server Timestamp', 'Submission Time', 'Employee Name', 'Employee ID', 'Store', 'Area Manager', 'Trainer',
+        'Server Timestamp', 'Submission Time', 'Employee Name', 'Employee ID', 'Store', 'Area Manager', 'Trainer', 'Auditor Name',
         // Store Readiness (1-4)
         'SHLP_1', 'SHLP_2', 'SHLP_3', 'SHLP_4',
         // Product Quality & Standards (5-9)
@@ -70,6 +70,7 @@ function doPost(e) {
       params.store || '',
       params.am || '',
       params.trainer || '',
+      params.auditorName || '',
       // Store Readiness (1-4)
       params.SHLP_1 || '', params.SHLP_2 || '', params.SHLP_3 || '', params.SHLP_4 || '',
       // Product Quality & Standards (5-9)

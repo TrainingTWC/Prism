@@ -78,6 +78,11 @@ export const AUTH_CONFIG: AuthConfig = {
       permissions: ['bench-planning'],
       dashboardAccess: [] // No dashboard access - checklist only, role-based access within module
     },
+    shlp: {
+      password: 'SHLP2025!',
+      permissions: ['shlp'],
+      dashboardAccess: [] // No dashboard access - checklist only
+    },
     admin: {
       password: 'AdminView2024!',
       permissions: ['operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'bench-planning', 'dashboard'],
