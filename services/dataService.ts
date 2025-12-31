@@ -14,7 +14,7 @@ const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwa-49e0qKFJ1ld
 const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzSibBicC4B5_naPxgrbNP4xSK49de2R02rI9wnAKG3QOJvuwYrUOYLiBg_9XNqAhS5ig/exec';
 
 // QA Assessment endpoint - UPDATED URL (Data fetched from Google Sheets)
-const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbythMmyeF6TWRx1Q2Icy9XfB9z1UVYFwau02u7BEr3GgabMIomF1lkAyCx1xq0BAA1LIQ/exec';
+const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbySmkzshiMNIBPOBtSJWTtG-8BJdnM__7nW5Qsfdv7K5ygCPdCn--mt_TFNATlOYQqT4w/exec';
 
 // Finance Audit endpoint - UPDATED URL (Data fetched from Google Sheets)
 const FINANCE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx1WaaEoUTttanmWGS8me3HZNhuqaxVHoPdWN3AdI0i4bLQmHFRztj133Vh8SaoVb2iwg/exec';

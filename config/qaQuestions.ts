@@ -46,7 +46,7 @@ export const QA_SECTIONS: QASection[] = [
   {
     id: 'Store',
     title: 'Store',
-    maxScore: 155,
+    maxScore: 188,
     options: ['compliant', 'partially-compliant', 'not-compliant', 'na'],
     items: [
       { id: 'S_1', q: 'No junk material, wastage, unused & dump materials found in or around the store.', w: 2 },
@@ -131,7 +131,7 @@ export const QA_SECTIONS: QASection[] = [
       { id: 'S_80', q: 'Color-coded microfiber cloths used as per area.', w: 2 },
       { id: 'S_81', q: 'Frozen products thawed per SOP.', w: 2 },
       { id: 'S_82', q: 'Glue pads and rodent boxes inspected and replaced as needed.', w: 2 },
-      { id: 'S_83', q: 'Smallware cleaned every 3 hours.', w: 1 },
+      { id: 'S_83', q: 'Smallware cleaned every 3 hours.', w: 2 },
       { id: 'S_84', q: 'Food dial-in checklist updated.', w: 2 },
       { id: 'S_85', q: 'FSSAI & FSDB displayed visibly and valid.', w: 2 },
       { id: 'S_86', q: 'Person in charge holds valid FOSTAC certification.', w: 2 },
@@ -159,20 +159,20 @@ export const QA_SECTIONS: QASection[] = [
   {
     id: 'Maintenance',
     title: 'Maintenance',
-    maxScore: 17,
+    maxScore: 22,
     options: ['compliant', 'partially-compliant', 'not-compliant', 'na'],
     items: [
       { id: 'M_1', q: 'Windows opening to external environment kept closed and fitted with insect mesh.', w: 2 },
       { id: 'M_2', q: 'No wall, floor, door, or ceiling damage.', w: 2 },
       { id: 'M_3', q: 'No unsecured electrical wires.', w: 2 },
       { id: 'M_4', q: 'Lighting above food/packaging areas covered and clean.', w: 2 },
-      { id: 'M_5', q: 'Fire extinguishers in working condition and not expired.', w: 1 },
+      { id: 'M_5', q: 'Fire extinguishers in working condition and not expired.', w: 2 },
       { id: 'M_6', q: 'No pest entry points (wall holes, drains, ceiling gaps, etc.).', w: 2 },
       { id: 'M_7', q: 'Pest-o-flash placed properly (max height 6 ft, away from food areas).', w: 2 },
-      { id: 'M_8', q: 'Equipment maintenance file checked.', w: 1 },
-      { id: 'M_9', q: 'RO water service records available.', w: 1 },
-      { id: 'M_10', q: 'Plumbing and fixtures maintained.', w: 1 },
-      { id: 'M_11', q: 'Freezer, FDU, and chillers in good working condition.', w: 1 }
+      { id: 'M_8', q: 'Equipment (RO, Coffee Machine, Freezer etc.) Maintenance file checked.', w: 2 },
+      { id: 'M_9', q: 'RO water service records available.', w: 2 },
+      { id: 'M_10', q: 'Plumbing and fixtures maintained.', w: 2 },
+      { id: 'M_11', q: 'Freezer, FDU, and chillers in good working condition.', w: 2 }
     ]
   },
   {

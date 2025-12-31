@@ -127,9 +127,25 @@ async function loadImage(url: string): Promise<string> {
 function resolveSubmissionValue(submission: any, fieldPrefix: string, questionId: string) {
   if (!submission) return undefined;
   
+  // Map field prefixes to section names
+  const prefixToSection: Record<string, string> = {
+    'ZT': 'ZeroTolerance',
+    'S': 'Store',
+    'A': 'A',
+    'M': 'Maintenance',
+    'HR': 'HR'
+  };
+  
   // Try direct match first (e.g., "S_1")
   const directKey = `${fieldPrefix}_${questionId}`;
   if (submission[directKey] !== undefined) return submission[directKey];
+  
+  // Try with section prefix (e.g., "Store_S_1")
+  const sectionName = prefixToSection[fieldPrefix];
+  if (sectionName) {
+    const sectionKey = `${sectionName}_${fieldPrefix}_${questionId}`;
+    if (submission[sectionKey] !== undefined) return submission[sectionKey];
+  }
   
   // Try with colon format from Google Sheets (e.g., "S_1: Description")
   const colonKeys = Object.keys(submission).filter(k => k.startsWith(`${directKey}:`));
@@ -199,6 +215,12 @@ export const buildQAPDF = async (
   options: ReportOptions = {}, 
   questionImages: Record<string, string[]> = {}
 ) => {
+  console.log('🖼️ Building QA PDF with images:', Object.keys(questionImages).length, 'image sets');
+  console.log('📸 Image keys:', Object.keys(questionImages));
+  if (Object.keys(questionImages).length > 0) {
+    console.log('📷 Sample image key:', Object.keys(questionImages)[0], '- Images:', questionImages[Object.keys(questionImages)[0]]?.length || 0);
+  }
+  
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   let y = 15;
   const first = submissions[0] || {} as any;
@@ -297,10 +319,16 @@ export const buildQAPDF = async (
   // Overall performance summary
   const computed = computeOverall(first);
   const totalFromSheet = (first.totalScore !== undefined && first.maxScore !== undefined);
-  const total = totalFromSheet ? Number(first.totalScore) : computed.total;
+  let total = totalFromSheet ? Number(first.totalScore) : computed.total;
   const max = totalFromSheet ? Number(first.maxScore) : computed.max;
-  const pct = max > 0 ? Math.round((total / max) * 100) : 0;
   const zeroToleranceFailed = computed.zeroToleranceFailed;
+  
+  // If Zero Tolerance failed, total score must be 0
+  if (zeroToleranceFailed) {
+    total = 0;
+  }
+  
+  const pct = max > 0 ? Math.round((total / max) * 100) : 0;
 
   // Draw summary cards
   const cardHeight = 42;
@@ -354,7 +382,7 @@ export const buildQAPDF = async (
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(185, 28, 28);
-    doc.text('⚠ ZERO TOLERANCE VIOLATION - Audit Failed', 18, y + 10);
+    doc.text('! ZERO TOLERANCE VIOLATION - Audit Failed', 18, y + 10);
     y += 22;
   }
 
@@ -424,6 +452,7 @@ export const buildQAPDF = async (
             display = 'Not Compliant';
           }
         }
+        // Always add to section score - sections show actual performance
         sections[section.id].score += numeric;
       } else if (isNA(ans)) {
         display = 'NA';
@@ -439,10 +468,17 @@ export const buildQAPDF = async (
       });
     });
 
-    // Check for remarks field
-    const remarksKey = `${prefix}_remarks`;
+    // Check for remarks field - try multiple formats
+    const remarksKey = `${section.id}_remarks`;
+    const altRemarksKey = `${section.title.replace(/\s+/g, '')} Remarks`;
+    const simpleRemarksKey = `${prefix}_remarks`;
+    
     if (sub[remarksKey]) {
       sections[section.id].remarks = sub[remarksKey];
+    } else if (sub[altRemarksKey]) {
+      sections[section.id].remarks = sub[altRemarksKey];
+    } else if (sub[simpleRemarksKey]) {
+      sections[section.id].remarks = sub[simpleRemarksKey];
     }
   });
 
@@ -456,6 +492,7 @@ export const buildQAPDF = async (
   // Build summary table data with percentages for progress bars
   const summaryData = Object.keys(sections).map(secKey => {
     const sec = sections[secKey];
+    // Show actual section scores - only overall is affected by ZT failure
     const sectionPercentage = sec.maxScore > 0 ? Math.round((sec.score / sec.maxScore) * 100) : 0;
     const questions = sec.rows.length;
     return {
@@ -586,8 +623,8 @@ export const buildQAPDF = async (
     doc.text(scoreLabel, scoreX, y + 8);
     y += 18;
 
-    // Table of questions
-    const tableRows = sec.rows.map(r => [r.question, r.answer, String(r.score), String(r.maxScore)]);
+    // Table of questions with serial numbers
+    const tableRows = sec.rows.map((r, idx) => [`Q${idx + 1}. ${r.question}`, r.answer, String(r.score), String(r.maxScore)]);
     autoTable(doc as any, {
       startY: y,
       head: [['Question', 'Response', 'Score', 'Max']],
@@ -629,11 +666,25 @@ export const buildQAPDF = async (
     });
     y = (doc as any).lastAutoTable.finalY + 6;
     
-    // Render images for questions in this section
+    // Render images for each question with proper organization
     sec.rows.forEach((rowData, rowIndex) => {
       if (rowData.questionId) {
-        const imageKey = rowData.questionId; // e.g., "ZeroTolerance_ZT1"
-        const images = questionImages[imageKey];
+        // Try multiple image key formats
+        const imageKey = rowData.questionId;
+        let images = questionImages[imageKey];
+        
+        if (!images || images.length === 0) {
+          const altKey = imageKey.replace(/_([A-Z]+)_/, '_$1');
+          images = questionImages[altKey];
+        }
+        
+        if (!images || images.length === 0) {
+          const parts = rowData.id.split('_');
+          if (parts.length >= 2) {
+            const sectionImageKey = `${sec.title.replace(/\s+/g, '')}_${rowData.id}`;
+            images = questionImages[sectionImageKey];
+          }
+        }
         
         if (images && images.length > 0) {
           // Check if we need a new page
@@ -642,19 +693,18 @@ export const buildQAPDF = async (
             y = 20;
           }
           
-          // Question label
+          // Question label with better formatting
           doc.setFontSize(9);
           doc.setFont('helvetica', 'bold');
-          doc.setTextColor(51, 65, 85);
-          const questionLabel = `Q${rowIndex + 1}: ${rowData.question.substring(0, 80)}${rowData.question.length > 80 ? '...' : ''}`;
-          doc.text(questionLabel, 14, y);
-          y += 6;
+          doc.setTextColor(59, 130, 246);
+          doc.text(`Images for Q${rowIndex + 1}:`, 14, y);
+          y += 5;
           
-          // Layout images in a grid (3 per row)
-          const imagesPerRow = 3;
-          const imageWidth = 55; // Width for each image
-          const imageHeight = 40; // Height for each image
-          const spacing = 5;
+          // Smaller, more compact image layout
+          const imagesPerRow = 5;
+          const imageWidth = 32;
+          const imageHeight = 24;
+          const spacing = 3;
           const startX = 14;
           
           images.forEach((base64Image, idx) => {
@@ -662,7 +712,7 @@ export const buildQAPDF = async (
               const col = idx % imagesPerRow;
               const row = Math.floor(idx / imagesPerRow);
               
-              // Check if we need a new page for this row of images
+              // Check if we need a new page for this row
               if (row > 0 && col === 0 && y + imageHeight > 270) {
                 doc.addPage();
                 y = 20;
@@ -674,33 +724,27 @@ export const buildQAPDF = async (
               // Add image
               doc.addImage(base64Image, 'JPEG', x, currentY, imageWidth, imageHeight);
               
-              // Draw border around image
-              doc.setDrawColor(226, 232, 240);
-              doc.setLineWidth(0.3);
+              // Draw border
+              doc.setDrawColor(203, 213, 225);
+              doc.setLineWidth(0.5);
               doc.rect(x, currentY, imageWidth, imageHeight);
               
-              // Add image counter badge
-              doc.setFontSize(7);
-              doc.setTextColor(255, 255, 255);
-              doc.setFillColor(59, 130, 246);
-              doc.roundedRect(x + 2, currentY + 2, 14, 6, 1, 1, 'F');
-              doc.text(`${idx + 1}/${images.length}`, x + 9, currentY + 5.5, { align: 'center' });
             } catch (err) {
               console.warn('Could not add image to PDF:', err);
             }
           });
           
-          // Update y position to account for images
+          // Update y position
           const totalRows = Math.ceil(images.length / imagesPerRow);
-          y += (imageHeight + spacing) * totalRows + spacing;
+          y += (imageHeight + spacing) * totalRows + 4;
         }
       }
     });
 
     // Display section remarks if they exist
     if (sec.remarks && sec.remarks.trim()) {
-      const remarksLines = doc.splitTextToSize(sec.remarks, 160);
-      const remarksHeight = Math.max(18, (remarksLines.length * 4) + 12);
+      const remarksLines = doc.splitTextToSize(sec.remarks, 170);
+      const remarksHeight = Math.max(18, (remarksLines.length * 5) + 12);
       const pageBottomLimit = 285;
       
       if (y + remarksHeight + 20 > pageBottomLimit) {
@@ -716,8 +760,9 @@ export const buildQAPDF = async (
       doc.setTextColor(146, 64, 14);
       doc.text('Remarks:', 18, y + 8);
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
       doc.setTextColor(51, 65, 85);
-      doc.text(remarksLines, 18, y + 14);
+      doc.text(remarksLines, 18, y + 14, { maxWidth: 170 });
       y += remarksHeight + 8;
     }
   });

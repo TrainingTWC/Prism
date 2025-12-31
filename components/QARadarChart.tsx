@@ -27,10 +27,10 @@ interface QARadarChartProps {
 }
 
 const QA_SECTIONS = [
-  { id: 'ZT', name: 'Zero Tolerance', questions: 6, prefix: 'ZT' },
+  { id: 'ZeroTolerance', name: 'Zero Tolerance', questions: 6, prefix: 'ZT' },
   { id: 'Store', name: 'Store', questions: 94, prefix: 'S' },
   { id: 'A', name: 'QA', questions: 3, prefix: 'A' },
-  { id: 'M', name: 'Maintenance', questions: 11, prefix: 'M' },
+  { id: 'Maintenance', name: 'Maintenance', questions: 11, prefix: 'M' },
   { id: 'HR', name: 'HR', questions: 2, prefix: 'HR' }
 ];
 

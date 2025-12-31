@@ -2501,13 +2501,20 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         // Retrieve question images from the submission data (if available) or localStorage
         let questionImages: Record<string, string[]> = {};
         try {
+          console.log('🔍 Attempting to load question images...');
           // First, try to get images from the submission data (for downloaded reports)
           if (reportData.length > 0) {
             const firstRecord = reportData[0] as any;
+            console.log('📊 First record keys:', Object.keys(firstRecord));
+            console.log('🔑 Checking for questionImagesJSON or Question Images JSON...');
+            
             if (firstRecord.questionImagesJSON || firstRecord['Question Images JSON']) {
               const imagesJSON = firstRecord.questionImagesJSON || firstRecord['Question Images JSON'];
+              console.log('✅ Found images JSON in submission:', typeof imagesJSON, imagesJSON?.substring(0, 100));
               questionImages = JSON.parse(imagesJSON);
-              console.log('Loaded images from submission data');
+              console.log('✅ Loaded images from submission data:', Object.keys(questionImages).length, 'image sets');
+            } else {
+              console.warn('⚠️ No questionImagesJSON field found in submission data');
             }
           }
           
@@ -2516,12 +2523,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             const storedImages = localStorage.getItem('qa_images');
             if (storedImages) {
               questionImages = JSON.parse(storedImages);
-              console.log('Loaded images from localStorage');
+              console.log('✅ Loaded images from localStorage:', Object.keys(questionImages).length, 'image sets');
+            } else {
+              console.warn('⚠️ No images in localStorage either');
             }
           }
         } catch (error) {
-          console.warn('Could not load question images:', error);
+          console.error('❌ Could not load question images:', error);
         }
+        
+        console.log('📸 Final question images object:', Object.keys(questionImages).length, 'image sets');
         
         const pdf = await buildQAPDF(reportData as any, meta, { title: 'QA Assessment Report' }, questionImages);
         pdf.save(fileName);

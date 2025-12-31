@@ -8,10 +8,10 @@ interface QASectionScoresInfographicProps {
 
 // Section mapping for QA - Updated to match new 116-question structure
 const QA_SECTIONS = [
-  { id: 'ZT', name: 'Zero Tolerance', questions: 6, prefix: 'ZT_' },
+  { id: 'ZeroTolerance', name: 'Zero Tolerance', questions: 6, prefix: 'ZT_' },
   { id: 'Store', name: 'Store Operations', questions: 94, prefix: 'S_' },
   { id: 'A', name: 'QA', questions: 3, prefix: 'A_' },
-  { id: 'M', name: 'Maintenance', questions: 11, prefix: 'M_' },
+  { id: 'Maintenance', name: 'Maintenance', questions: 11, prefix: 'M_' },
   { id: 'HR', name: 'HR', questions: 2, prefix: 'HR_' }
 ];
 
@@ -48,19 +48,8 @@ const QASectionScoresInfographic: React.FC<QASectionScoresInfographicProps> = ({
                 
                 // Find all fields for this section
                 let sectionFields = allKeys.filter(k => {
-                    // Extract the short code from the header (e.g., "ZT_1:" becomes "ZT_")
-                    if (section.id === 'ZT') {
-                        return k.startsWith('ZT_');
-                    } else if (section.id === 'Store') {
-                        return k.startsWith('S_') && !k.startsWith('Store') && k.includes(':');
-                    } else if (section.id === 'A') {
-                        return k.startsWith('A_') && k.includes(':');
-                    } else if (section.id === 'M') {
-                        return k.startsWith('M_') && k.includes(':');
-                    } else if (section.id === 'HR') {
-                        return k.startsWith('HR_') && k.includes(':');
-                    }
-                    return false;
+                    // Match format like "ZT_1: description" or "S_1: description"
+                    return k.startsWith(section.prefix) && k.includes(':') && !k.toLowerCase().includes('remark');
                 }).sort(); // Sort to maintain order
                 
                 if (submissionIndex === 0) {
@@ -84,7 +73,7 @@ const QASectionScoresInfographic: React.FC<QASectionScoresInfographicProps> = ({
                         maxPossibleScore++;
                         
                         // Zero Tolerance: compliant = 1, non-compliant = 0
-                        if (section.id === 'ZT') {
+                        if (section.id === 'ZeroTolerance') {
                             if (responseStr === 'compliant') {
                                 sectionScore++;
                             }
@@ -92,7 +81,7 @@ const QASectionScoresInfographic: React.FC<QASectionScoresInfographicProps> = ({
                             // Other sections: compliant = 1, partially-compliant = 0.5, not-compliant = 0
                             if (responseStr === 'compliant') {
                                 sectionScore++;
-                            } else if (responseStr === 'partially-compliant') {
+                            } else if (responseStr === 'partially-compliant' || responseStr.includes('partial')) {
                                 sectionScore += 0.5;
                             }
                         }

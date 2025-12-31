@@ -6,9 +6,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
 import { QA_SECTIONS } from '../../config/qaQuestions';
 import { useComprehensiveMapping, useAreaManagers, useStoreDetails } from '../../hooks/useComprehensiveMapping';
+import ImageEditor from '../ImageEditor';
 
 // Google Sheets endpoint for logging data - Updated to capture all 116 questions
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw-loq3hmKFETYAU9Oe_hBTZs4maJS_Mh9tHG0jtd_qUTHf5kF4je9xcxWNJA/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbySmkzshiMNIBPOBtSJWTtG-8BJdnM__7nW5Qsfdv7K5ygCPdCn--mt_TFNATlOYQqT4w/exec';
 
 // Google Sheets endpoint for draft management
 const DRAFT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxCtm2UGYSLsR6ZhJ9jxr_pHBwU3dVnJQhqg1VQ1asrf7aX4rW6rxopGKlrOvgXr-QShg/exec';
@@ -24,6 +25,7 @@ interface SurveyMeta {
   amId: string;
   storeName: string;
   storeId: string;
+  city: string;
 }
 
 interface Store {
@@ -51,8 +53,10 @@ interface QAChecklistProps {
 const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, editMode = false, existingSubmission }) => {
   const { config, loading: configLoading } = useConfig();
   
-  // Use comprehensive QA sections from qaQuestions.ts
-  const sections = config?.CHECKLISTS?.QA || QA_SECTIONS;
+  // Always use QA_SECTIONS from qaQuestions.ts (all 116 questions)
+  const sections = QA_SECTIONS;
+  
+  console.log(`📋 QA Checklist: Loaded ${sections.length} sections with ${sections.reduce((sum, s) => sum + s.items.length, 0)} total questions`);
   
   const [responses, setResponses] = useState<SurveyResponse>(() => {
     // If in edit mode, populate from existing submission
@@ -99,7 +103,8 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         amName: existingSubmission.amName || '',
         amId: existingSubmission.amId || '',
         storeName: existingSubmission.storeName || '',
-        storeId: existingSubmission.storeId || ''
+        storeId: existingSubmission.storeId || '',
+        city: existingSubmission.city || ''
       };
     }
     
@@ -118,7 +123,8 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       amName: (stored as any).amName || '',
       amId: (stored as any).amId || '',
       storeName: (stored as any).storeName || '',
-      storeId: (stored as any).storeId || ''
+      storeId: (stored as any).storeId || '',
+      city: (stored as any).city || ''
     };
   });
 
@@ -130,6 +136,9 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   const [showDraftList, setShowDraftList] = useState(false);
   const [drafts, setDrafts] = useState<DraftMetadata[]>([]);
   const [draftsLoading, setDraftsLoading] = useState(false);
+  
+  // Image editor state
+  const [editingImage, setEditingImage] = useState<{ questionId: string; imageIndex: number; imageData: string } | null>(null);
   
   // Load comprehensive mapping data
   const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
@@ -305,11 +314,11 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
             totalScore += item.w;
           }
         } else {
-          // Other sections: compliant = full, partially-compliant = half, not-compliant = 0
+          // Other sections: compliant = full, partially-compliant = half (rounded down), not-compliant = 0
           if (response === 'compliant') {
             totalScore += item.w;
           } else if (response === 'partially-compliant') {
-            totalScore += item.w / 2;
+            totalScore += Math.floor(item.w / 2);
           }
         }
       });
@@ -386,6 +395,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         storeName: meta.storeName || '',
         amId: meta.amId || '',
         amName: meta.amName || '',
+        city: meta.city || '',
         timestamp: timestamp,
         completionPercentage: completionPercentage.toString(),
         responsesJSON: JSON.stringify(responses),
@@ -546,7 +556,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       return;
     }
 
-    const requiredFields = ['qaName', 'qaId', 'amName', 'amId', 'storeName', 'storeId'];
+    const requiredFields = ['qaName', 'qaId', 'amName', 'amId', 'storeName', 'storeId', 'city'];
     const missingFields = requiredFields.filter(field => !meta[field as keyof SurveyMeta]);
     
     if (missingFields.length > 0) {
@@ -582,11 +592,11 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
               totalScore += item.w;
             }
           } else {
-            // Other sections: compliant = full, partially-compliant = half, not-compliant = 0
+            // Other sections: compliant = full, partially-compliant = half (rounded down), not-compliant = 0
             if (response === 'compliant') {
               totalScore += item.w;
             } else if (response === 'partially-compliant') {
-              totalScore += item.w / 2;
+              totalScore += Math.floor(item.w / 2);
             }
           }
         });
@@ -638,6 +648,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         amId: meta.amId || '',
         storeName: meta.storeName || '',
         storeID: String(correctedStoreId || ''),
+        city: meta.city || '',
         region: String(detectedRegion || 'Unknown'),
         totalScore: String(totalScore),
         maxScore: String(maxScore),
@@ -658,19 +669,34 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         questionImagesJSON: JSON.stringify(questionImages)
       };
 
-      console.log('QA Survey data being sent:', params);
+      console.log('QA Survey data being sent (size:', JSON.stringify(params).length, 'bytes)');
 
       const bodyString = new URLSearchParams(params).toString();
-      const response = await fetch(LOG_ENDPOINT, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: bodyString
-      });
-
-      console.log('QA Survey submitted successfully');
+      
+      // Use fetch with a timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      try {
+        const response = await fetch(LOG_ENDPOINT, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: bodyString,
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        console.log('QA Survey submitted successfully');
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          console.log('Request timeout - but data likely submitted (no-cors mode)');
+        } else {
+          throw err;
+        }
+      }
       
       // Delete draft if submission was successful
       if (currentDraftId) {
@@ -711,8 +737,8 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
           const ctx = canvas.getContext('2d');
           if (!ctx) return;
 
-          // Calculate new dimensions (max 1200px width/height)
-          const maxDimension = 1200;
+          // Calculate new dimensions (max 800px width/height for faster processing)
+          const maxDimension = 800;
           let width = img.width;
           let height = img.height;
 
@@ -727,9 +753,9 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
           canvas.width = width;
           canvas.height = height;
 
-          // Draw and compress image (0.7 quality for JPEG)
+          // Draw and compress image (0.6 quality for smaller size and faster upload)
           ctx.drawImage(img, 0, 0, width, height);
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
 
           // Update state with compressed image
           setQuestionImages(prev => {
@@ -767,6 +793,20 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       }
       return updated;
     });
+  };
+
+  const handleSaveEditedImage = (editedImageData: string) => {
+    if (!editingImage) return;
+    
+    setQuestionImages(prev => {
+      const updated = { ...prev };
+      const images = [...(updated[editingImage.questionId] || [])];
+      images[editingImage.imageIndex] = editedImageData;
+      updated[editingImage.questionId] = images;
+      return updated;
+    });
+    
+    setEditingImage(null);
   };
 
   // State to store last coordinates for smooth curve drawing
@@ -1285,6 +1325,33 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
               </div>
             )}
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+              City
+            </label>
+            <select
+              value={meta.city}
+              onChange={(e) => handleMetaChange('city', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+            >
+              <option value="">Select City</option>
+              <option value="bangalore">Bangalore</option>
+              <option value="mangalore">Mangalore</option>
+              <option value="mysore">Mysore</option>
+              <option value="pune">Pune</option>
+              <option value="mumbai">Mumbai</option>
+              <option value="thane">Thane</option>
+              <option value="ahemdabad">Ahemdabad</option>
+              <option value="delhi ncr">Delhi NCR</option>
+              <option value="chandigarh">Chandigarh</option>
+              <option value="panchkula">Panchkula</option>
+              <option value="agra">Agra</option>
+              <option value="hyderabad">Hyderabad</option>
+              <option value="chennai">Chennai</option>
+              <option value="coonoor">Coonoor</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -1403,6 +1470,18 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                                   alt={`Upload ${idx + 1}`} 
                                   className="w-full h-48 object-cover rounded-lg border-2 border-gray-300 dark:border-slate-600"
                                 />
+                                {/* Edit Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingImage({ questionId: `${section.id}_${item.id}`, imageIndex: idx, imageData: image })}
+                                  className="absolute top-2 left-2 p-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                  title="Edit image"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </button>
+                                {/* Delete Button */}
                                 <button
                                   type="button"
                                   onClick={() => removeImage(`${section.id}_${item.id}`, idx)}
@@ -1413,6 +1492,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                   </svg>
                                 </button>
+                                {/* Image Counter */}
                                 <div className="absolute bottom-2 left-2 px-2 py-1 bg-black bg-opacity-60 text-white text-xs rounded">
                                   {idx + 1} of {questionImages[`${section.id}_${item.id}`].length}
                                 </div>
@@ -1581,9 +1661,18 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
           disabled={isLoading}
           className="px-4 sm:px-6 py-3 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 disabled:bg-orange-400 text-white rounded-lg font-medium transition-colors order-1 sm:order-2 min-h-[52px] text-base sm:text-base"
         >
-          {isLoading ? (editMode ? 'Updating...' : 'Submitting...') : (editMode ? '� Update Assessment' : '�📤 Submit Assessment')}
+          {isLoading ? (editMode ? 'Updating...' : 'Submitting...') : (editMode ? '🔄 Update Assessment' : '📤 Submit Assessment')}
         </button>
       </div>
+
+      {/* Image Editor Modal */}
+      {editingImage && (
+        <ImageEditor
+          imageBase64={editingImage.imageData}
+          onSave={handleSaveEditedImage}
+          onCancel={() => setEditingImage(null)}
+        />
+      )}
     </div>
   );
 };

@@ -90,6 +90,9 @@ function doGet(e) {
           case 'Store ID':
             submission.storeId = value || '';
             break;
+          case 'City':
+            submission.city = value || '';
+            break;
           case 'Region':
             submission.region = value || '';
             break;
@@ -205,12 +208,13 @@ function doPost(e) {
       params.amId || '',                           // F: Area Manager ID
       params.storeName || '',                      // G: Store Name
       params.storeID || '',                        // H: Store ID
-      params.region || '',                         // I: Region
+      params.city || '',                           // I: City
+      params.region || '',                         // J: Region
       
       // Scoring Information
-      parseFloat(params.totalScore) || 0,          // J: Total Score
-      parseFloat(params.maxScore) || 0,            // K: Max Score
-      parseFloat(params.scorePercentage) || 0,     // L: Score Percentage
+      parseFloat(params.totalScore) || 0,          // K: Total Score
+      parseFloat(params.maxScore) || 0,            // L: Max Score
+      parseFloat(params.scorePercentage) || 0,     // M: Score Percentage
       
       // Zero Tolerance Section (6 questions)
       params.ZeroTolerance_ZT_1 || '',            // M: ZT_1
@@ -275,7 +279,10 @@ function doPost(e) {
       
       // Signatures
       params.auditorSignature || '',              // Auditor Signature (Base64)
-      params.smSignature || ''                    // Store Manager Signature (Base64)
+      params.smSignature || '',                   // Store Manager Signature (Base64)
+      
+      // Question Images JSON
+      params.questionImagesJSON || ''             // Store all images as JSON for PDF generation
     ];
     
     Logger.log('Row data prepared with ' + rowData.length + ' fields');
@@ -340,12 +347,13 @@ function setupQAHeaders(sheet) {
     'Area Manager ID',                          // F
     'Store Name',                               // G
     'Store ID',                                // H
-    'Region',                                  // I
+    'City',                                    // I
+    'Region',                                  // J
     
     // Scoring Information
-    'Total Score',                             // J
-    'Max Score',                               // K
-    'Score Percentage',                        // L
+    'Total Score',                             // K
+    'Max Score',                               // L
+    'Score Percentage',                        // M
     
     // Zero Tolerance Section (6 questions)
     'ZT_1: No expired food products',          // M
@@ -480,7 +488,10 @@ function setupQAHeaders(sheet) {
     
     // Signatures
     'Auditor Signature',
-    'Store Manager Signature'
+    'Store Manager Signature',
+    
+    // Question Images
+    'Question Images JSON'
   ];
   
   Logger.log('Total headers: ' + headers.length);
@@ -700,12 +711,13 @@ function updateSubmission(sheet, params) {
       params.amId || '',                           // F: Area Manager ID
       params.storeName || '',                      // G: Store Name
       params.storeID || '',                        // H: Store ID
-      params.region || '',                         // I: Region
+      params.city || '',                           // I: City
+      params.region || '',                         // J: Region
       
       // Scoring Information
-      parseFloat(params.totalScore) || 0,          // J: Total Score
-      parseFloat(params.maxScore) || 0,            // K: Max Score
-      parseFloat(params.scorePercentage) || 0,     // L: Score Percentage
+      parseFloat(params.totalScore) || 0,          // K: Total Score
+      parseFloat(params.maxScore) || 0,            // L: Max Score
+      parseFloat(params.scorePercentage) || 0,     // M: Score Percentage
       
       // Zero Tolerance Section (6 questions)
       params.ZeroTolerance_ZT_1 || '',            // M: ZT_1
@@ -766,7 +778,14 @@ function updateSubmission(sheet, params) {
       // HR Section (2 questions)
       params.HR_HR_1 || '',                       // HR_1
       params.HR_HR_2 || '',                       // HR_2
-      params.HR_remarks || ''                     // HR Remarks
+      params.HR_remarks || '',                    // HR Remarks
+      
+      // Signatures (preserve from update or add new)
+      params.auditorSignature || '',              // Auditor Signature (Base64)
+      params.smSignature || '',                   // Store Manager Signature (Base64)
+      
+      // Question Images JSON
+      params.questionImagesJSON || ''             // Store all images as JSON for PDF generation
     ];
     
     Logger.log('Row data prepared with ' + rowData.length + ' fields');

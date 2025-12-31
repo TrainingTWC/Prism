@@ -25,18 +25,87 @@ export interface ComprehensiveMapping {
 import { HR_PERSONNEL } from '../constants';
 
 let comprehensiveMappingCache: ComprehensiveMapping[] | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes cache
 
 const normalizeId = (value: any) => String(value || '').trim().toUpperCase();
 
 /**
  * Load comprehensive store mapping - the ultimate source of truth
+ * Now fetches from Google Apps Script endpoint for real-time data
+ * Cache expires after 2 minutes to ensure new stores appear promptly
  */
 export const loadComprehensiveMapping = async (): Promise<ComprehensiveMapping[]> => {
-  if (comprehensiveMappingCache) {
-    return comprehensiveMappingCache;
+  // Check if cache is valid (exists and not expired)
+  const now = Date.now();
+  const cacheIsValid = comprehensiveMappingCache && (now - cacheTimestamp) < CACHE_DURATION;
+  
+  if (cacheIsValid) {
+    console.log('✅ Using cached store mapping (expires in', Math.round((CACHE_DURATION - (now - cacheTimestamp)) / 1000), 'seconds)');
+    return comprehensiveMappingCache!;
   }
 
   try {
+    // First, try to load from Google Apps Script endpoint (single source of truth)
+    const storeMappingUrl = import.meta.env.VITE_STORE_MAPPING_SCRIPT_URL;
+    
+    if (storeMappingUrl) {
+      try {
+        console.log('📡 Fetching fresh store mapping from Google Sheets endpoint...');
+        const response = await fetch(`${storeMappingUrl}?action=getStoreMapping`);
+        if (response.ok) {
+          const result = await response.json();
+          console.log('📦 Google Sheets API Response:', result);
+          
+          // Check if the API call was successful
+          if (result.success === false) {
+            console.error('❌ Google Sheets API error:', result.message);
+            throw new Error(result.message);
+          }
+          
+          // Handle the response format from Google Apps Script
+          // The script returns { success: true, message: "...", data: [...] }
+          const rows = result.data || result;
+          const arr = Array.isArray(rows) ? rows : [];
+          
+          console.log('📊 Store data array length:', arr.length);
+          if (arr.length > 0) {
+            console.log('📝 Sample store data:', arr[0]);
+            comprehensiveMappingCache = arr.map((row: any) => {
+              const storeId = normalizeId(row['Store ID'] || row.storeId || row.StoreID || row.store_id);
+              const storeName = row['Store Name'] || row.storeName || row.locationName || row.name || '';
+              const amId = normalizeId(row.AM || row['AM'] || row['AM ID'] || row['Area Manager ID'] || row.amId || row.areaManagerId);
+              const amName = row['AM Name'] || row.amName || row.areaManagerName;
+
+              const trainerId = normalizeId(row['Trainer ID'] || row.trainerId || row.trainer_id || row.Trainer);
+              const trainerName = row['Trainer Name'] || row.trainerName || row.trainer;
+
+              return {
+                ...row,
+                'Store ID': storeId,
+                'Store Name': storeName,
+                'AM': amId || row.AM || row['AM'],
+                'AM Name': amName,
+                'Trainer': trainerId || row.Trainer || row['Trainer'],
+                'Trainer ID': trainerId,
+                'Trainer Name': trainerName,
+              } as ComprehensiveMapping;
+            });
+            
+            cacheTimestamp = Date.now(); // Update cache timestamp
+            console.log('✅ Store mapping loaded from Google Sheets:', comprehensiveMappingCache!.length, 'stores');
+            console.log('📋 Sample normalized store:', comprehensiveMappingCache![0]);
+            return comprehensiveMappingCache!;
+          } else {
+            console.warn('⚠️ Google Sheets returned empty array');
+          }
+        }
+      } catch (endpointError) {
+        console.warn('⚠️ Could not load from Google Sheets endpoint, falling back to static file:', endpointError);
+      }
+    }
+
+    // Fallback to static JSON files
     const base = (import.meta as any).env?.BASE_URL || '/';
 
     let response: Response;
@@ -83,6 +152,7 @@ export const loadComprehensiveMapping = async (): Promise<ComprehensiveMapping[]
       } as ComprehensiveMapping;
     });
 
+    cacheTimestamp = Date.now(); // Update cache timestamp
     console.log('✅ Store mapping loaded from static mapping:', comprehensiveMappingCache!.length, 'stores');
     return comprehensiveMappingCache!;
   } catch (error) {
