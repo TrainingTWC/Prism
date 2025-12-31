@@ -114,8 +114,8 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     } catch(e) {}
     
     const urlParams = new URLSearchParams(window.location.search);
-    const qaId = urlParams.get('qaId') || urlParams.get('qa_id') || (stored as any).qaId || '';
-    const qaName = urlParams.get('qaName') || urlParams.get('qa_name') || (stored as any).qaName || '';
+    const qaId = urlParams.get('EMPID') || urlParams.get('qaId') || urlParams.get('qa_id') || (stored as any).qaId || '';
+    const qaName = urlParams.get('name') || urlParams.get('qaName') || urlParams.get('qa_name') || (stored as any).qaName || '';
     
     return {
       qaName: qaName,
