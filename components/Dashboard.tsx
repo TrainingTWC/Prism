@@ -136,7 +136,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     trainer: '',
     hrPerson: '', // Separate filter for HR personnel
     health: '',
-    month: '' // Month filter for HR dashboard (YYYY-MM format)
+    month: '', // Month filter for HR dashboard (YYYY-MM format)
+    employee: '' // Employee filter for SHLP dashboard
   });
 
   // Leaderboard view toggle state
@@ -1001,6 +1002,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       }
       
       // Apply filters
+      if (filters.employee && submission['Employee ID'] !== filters.employee) {
+        return false;
+      }
+
       if (filters.region) {
         // Filter by region based on store mapping
         const storeData = compStoreMapping?.find((s: any) => s['Store ID'] === submission.Store);
@@ -2214,7 +2219,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   };
 
   const resetFilters = () => {
-    setFilters({ region: '', store: '', am: '', trainer: '', hrPerson: '', health: '', month: '' });
+    setFilters({ region: '', store: '', am: '', trainer: '', hrPerson: '', health: '', month: '', employee: '' });
   };
 
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -3536,6 +3541,107 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       showNotificationMessage('Excel Downloaded', 'success');
     } catch (error) {
       console.error('Error generating Excel:', error);
+      alert('Error generating Excel report. Please try again.');
+      hapticFeedback.error();
+      showNotificationMessage('Error generating Excel', 'error');
+    }
+  };
+
+  // Generate Excel report for SHLP Dashboard
+  const generateSHLPExcelReport = () => {
+    try {
+      console.log('Starting SHLP Excel generation...');
+      hapticFeedback.confirm();
+
+      if (!filteredSHLPData || filteredSHLPData.length === 0) {
+        alert('No SHLP certification data available to export');
+        hapticFeedback.error();
+        return;
+      }
+
+      // Prepare data in Google Sheet format
+      const excelData = filteredSHLPData.map(submission => {
+        const excelRow: any = {
+          'Submission Time': submission['Submission Time'] || '',
+          'Employee Name': submission['Employee Name'] || '',
+          'Employee ID': submission['Employee ID'] || '',
+          'Store': submission.Store || '',
+          'Auditor Name': submission['Auditor Name'] || '',
+          'Area Manager': submission['Area Manager'] || '',
+          'Trainer': submission.Trainer || '',
+        };
+
+        // Add all question scores (SHLP_1 to SHLP_35)
+        for (let i = 1; i <= 35; i++) {
+          const questionKey = `SHLP_${i}`;
+          excelRow[`Question ${i}`] = (submission as any)[questionKey] || '';
+          excelRow[`Question ${i} Remarks`] = (submission as any)[`${questionKey}_remarks`] || '';
+        }
+
+        // Add section scores
+        excelRow['Store Readiness Score'] = (submission as any).Store_Readiness_Score || '';
+        excelRow['Product Quality Score'] = (submission as any).Product_Quality_Score || '';
+        excelRow['Cash & Admin Score'] = (submission as any).Cash_Admin_Score || '';
+        excelRow['Team Management Score'] = (submission as any).Team_Management_Score || '';
+        excelRow['Operations Score'] = (submission as any).Operations_Score || '';
+        excelRow['Safety Score'] = (submission as any).Safety_Score || '';
+        excelRow['Shift Closing Score'] = (submission as any).Shift_Closing_Score || '';
+        excelRow['Business Acumen Score'] = (submission as any).Business_Score || '';
+        excelRow['Overall Score'] = (submission as any).Overall_Score || '';
+        excelRow['Overall Percentage'] = submission.Overall_Percentage || '';
+
+        return excelRow;
+      });
+
+      // Create workbook and worksheet
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'SHLP Certifications');
+
+      // Auto-size columns
+      const maxWidths: { [key: number]: number } = {};
+      const headers = Object.keys(excelData[0] || {});
+      
+      headers.forEach((header, colIndex) => {
+        maxWidths[colIndex] = header.length;
+      });
+
+      excelData.forEach(row => {
+        headers.forEach((header, colIndex) => {
+          const cellValue = String(row[header as keyof typeof row] || '');
+          maxWidths[colIndex] = Math.max(maxWidths[colIndex] || 0, cellValue.length);
+        });
+      });
+
+      worksheet['!cols'] = headers.map((_, i) => ({ 
+        wch: Math.min(maxWidths[i] + 2, 50) // Max width of 50 characters
+      }));
+
+      // Generate filename with date and filter info
+      let filenamePart = 'All';
+      if (filters.employee && employeeDirectory?.byId) {
+        const emp = employeeDirectory.byId[filters.employee];
+        filenamePart = emp?.empname || filters.employee;
+      } else if (filters.region) {
+        filenamePart = filters.region;
+      } else if (filters.store) {
+        filenamePart = filters.store;
+      } else if (filters.am) {
+        filenamePart = filters.am;
+      } else if (filters.trainer) {
+        filenamePart = filters.trainer;
+      }
+
+      const fileName = `SHLP_Certifications_${filenamePart}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Download file
+      XLSX.writeFile(workbook, fileName);
+
+      console.log('SHLP Excel generated successfully');
+      hapticFeedback.ultraStrong();
+      showNotificationMessage('Excel Downloaded', 'success');
+    } catch (error) {
+      console.error('Error generating SHLP Excel:', error);
       alert('Error generating Excel report. Please try again.');
       hapticFeedback.error();
       showNotificationMessage('Error generating Excel', 'error');
@@ -6117,6 +6223,25 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700 mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">SHLP Dashboard Filters</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Employee Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Employee</label>
+                    <select
+                      value={filters.employee}
+                      onChange={(e) => setFilters(prev => ({ ...prev, employee: e.target.value }))}
+                      className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm"
+                    >
+                      <option value="">All Employees</option>
+                      {employeeDirectory?.byId && Object.values(employeeDirectory.byId)
+                        .sort((a: any, b: any) => (a.empname || '').localeCompare(b.empname || ''))
+                        .map((emp: any) => (
+                          <option key={emp.employee_code} value={emp.employee_code}>
+                            {emp.empname} ({emp.employee_code})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
                   {/* Region Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Region</label>
@@ -6142,7 +6267,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                     >
                       <option value="">All Stores</option>
                       {availableStores.map(store => (
-                        <option key={store.storeId} value={store.storeId}>{store.storeId} - {store.city}</option>
+                        <option key={store.id} value={store.id}>{store.id} - {store.name}</option>
                       ))}
                     </select>
                   </div>
@@ -6178,6 +6303,19 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                   </div>
                 </div>
 
+                {/* Download Excel Button for SHLP */}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={generateSHLPExcelReport}
+                    disabled={!filteredSHLPData || filteredSHLPData.length === 0}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download Excel
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
