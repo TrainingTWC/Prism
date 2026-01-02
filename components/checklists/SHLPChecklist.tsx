@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UserRole } from '../../roleMapping';
 import { CheckCircle } from 'lucide-react';
 import LoadingOverlay from '../LoadingOverlay';
@@ -43,6 +43,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
   // Employee search state
   const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false);
   const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
+  const employeeDropdownRef = useRef<HTMLDivElement>(null);
 
   type SectionScores = {
     Store_Readiness: number;
@@ -115,6 +116,25 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
       handleStoreChange(storeId);
     }
   };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(event.target as Node)) {
+        setEmployeeSearchOpen(false);
+      }
+    };
+
+    if (employeeSearchOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [employeeSearchOpen]);
 
   // SHLP sections and questions
   const sections = [
@@ -404,7 +424,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2 relative">
+          <div className="space-y-2 relative" ref={employeeDropdownRef}>
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
               Employee (Search by Name or ID) *
             </label>
