@@ -10,20 +10,23 @@ interface DashboardFiltersProps {
   // Legacy HR personnel list (kept for fallback). Prefer `trainers` for authoritative trainer list.
   hrPersonnel: HRPerson[];
   trainers?: { id: string; name: string }[];
+  employeeDirectory?: any; // Employee directory for SHLP employee filter
   filters: {
     region: string;
     store: string;
     am: string;
     trainer: string;
     hrPerson: string; // Separate filter for HR personnel
+    employee?: string; // Employee filter for SHLP dashboard
     // store health filter - '', 'Needs Attention', 'Brewing', 'Perfect Shot'
     health?: string;
     month?: string; // Month filter (YYYY-MM format)
   };
-  onFilterChange: (filterName: 'region' | 'store' | 'am' | 'trainer' | 'hrPerson' | 'health' | 'month', value: string) => void;
+  onFilterChange: (filterName: 'region' | 'store' | 'am' | 'trainer' | 'hrPerson' | 'health' | 'month' | 'employee', value: string) => void;
   onReset: () => void;
   onDownload?: () => void;
   onDownloadExcel?: () => void;
+  onDownloadSHLPExcel?: () => void;
   isGenerating?: boolean;
   dashboardType?: string; // Add dashboard type to customize labels
 }
@@ -231,11 +234,13 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   areaManagers,
   hrPersonnel,
   trainers,
+  employeeDirectory,
   filters,
   onFilterChange,
   onReset,
   onDownload,
   onDownloadExcel,
+  onDownloadSHLPExcel,
   isGenerating = false,
   dashboardType = 'training', // Default to training for backward compatibility
 }) => {
@@ -353,6 +358,23 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             />
           )}
 
+          {/* Employee Filter - Only show on SHLP dashboard */}
+          {dashboardType === 'shlp' && employeeDirectory?.byId && (
+            <SearchableFilter
+              label="Employee"
+              value={filters.employee || ''}
+              onChange={(value) => onFilterChange('employee', value)}
+              placeholder="All Employees"
+              options={Object.values(employeeDirectory.byId)
+                .sort((a: any, b: any) => (a.empname || '').localeCompare(b.empname || ''))
+                .map((emp: any) => ({ 
+                  value: emp.employee_code, 
+                  label: `${emp.empname} (${emp.employee_code})`,
+                  id: emp.employee_code 
+                }))}
+            />
+          )}
+
           {/* HR Filter - Only show on HR dashboard */}
           {dashboardType === 'hr' && effectiveHRPersonnel.length > 0 && (
             <SearchableFilter
@@ -457,7 +479,24 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
               />
             </div>
           )}
-
+          {/* Employee - Show on SHLP dashboard, searchable */}
+          {dashboardType === 'shlp' && employeeDirectory?.byId && (
+            <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+              <SearchableFilter
+                label="Employee"
+                value={filters.employee || ''}
+                onChange={(value) => onFilterChange('employee', value)}
+                placeholder="All Employees"
+                options={Object.values(employeeDirectory.byId)
+                  .sort((a: any, b: any) => (a.empname || '').localeCompare(b.empname || ''))
+                  .map((emp: any) => ({ 
+                    value: emp.employee_code, 
+                    label: `${emp.empname} (${emp.employee_code})`,
+                    id: emp.employee_code 
+                  }))}
+              />
+            </div>
+          )}
           {/* HR Filter - Only show on HR dashboard */}
           {dashboardType === 'hr' && effectiveHRPersonnel.length > 0 && (
             <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
@@ -555,6 +594,20 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
               Download Excel
             </button>
           )}
+
+          {/* Download SHLP Excel Button - Only show for SHLP dashboard */}
+          {dashboardType === 'shlp' && onDownloadSHLPExcel && (
+            <button
+              onClick={() => { if (typeof onDownloadSHLPExcel === 'function') onDownloadSHLPExcel(); }}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-all duration-200 text-sm sm:text-base hover:shadow-lg flex items-center justify-center gap-2"
+              aria-label="Download SHLP Excel report"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+              Download Excel
+            </button>
+          )}
         </div>
       </div>
 
@@ -602,6 +655,20 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             onClick={() => { if (typeof onDownloadExcel === 'function') onDownloadExcel(); }}
             className="flex-1 inline-flex items-center justify-center gap-2 py-3 px-3 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-transform duration-150 transform hover:scale-105"
             aria-label="Download Excel report"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+              <path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V3zM3 9a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" />
+            </svg>
+            <span className="text-sm">Excel</span>
+          </button>
+        )}
+
+        {/* Excel Download Button for Mobile - Only show for SHLP dashboard */}
+        {dashboardType === 'shlp' && onDownloadSHLPExcel && (
+          <button
+            onClick={() => { if (typeof onDownloadSHLPExcel === 'function') onDownloadSHLPExcel(); }}
+            className="flex-1 inline-flex items-center justify-center gap-2 py-3 px-3 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-transform duration-150 transform hover:scale-105"
+            aria-label="Download SHLP Excel report"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
               <path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V3zM3 9a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" />

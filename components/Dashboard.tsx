@@ -3977,11 +3977,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               hrPersonnel={allHRPersonnel && allHRPersonnel.length > 0 ? allHRPersonnel : availableHRPersonnel}
               // Pass trainers for Trainer filter
               trainers={allTrainers && allTrainers.length > 0 ? allTrainers : undefined}
+              // Pass employee directory for SHLP employee filter
+              employeeDirectory={employeeDirectory}
               filters={filters}
               onFilterChange={handleFilterChange}
               onReset={resetFilters}
               onDownload={generatePDFReport}
               onDownloadExcel={generateExcelReport}
+              onDownloadSHLPExcel={generateSHLPExcelReport}
               isGenerating={isGenerating}
               dashboardType={dashboardType}
             />
@@ -6219,105 +6222,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           {/* SHLP Dashboard Content */}
           {dashboardType === 'shlp' && (
             <>
-              {/* Enhanced SHLP Filters */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700 mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">SHLP Dashboard Filters</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Employee Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Employee</label>
-                    <select
-                      value={filters.employee}
-                      onChange={(e) => setFilters(prev => ({ ...prev, employee: e.target.value }))}
-                      className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm"
-                    >
-                      <option value="">All Employees</option>
-                      {employeeDirectory?.byId && Object.values(employeeDirectory.byId)
-                        .sort((a: any, b: any) => (a.empname || '').localeCompare(b.empname || ''))
-                        .map((emp: any) => (
-                          <option key={emp.employee_code} value={emp.employee_code}>
-                            {emp.empname} ({emp.employee_code})
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-
-                  {/* Region Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Region</label>
-                    <select
-                      value={filters.region}
-                      onChange={(e) => setFilters(prev => ({ ...prev, region: e.target.value, store: '', am: '' }))}
-                      className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm"
-                    >
-                      <option value="">All Regions</option>
-                      {availableRegions.map(region => (
-                        <option key={region} value={region}>{region}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  {/* Store Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Store</label>
-                    <select
-                      value={filters.store}
-                      onChange={(e) => setFilters(prev => ({ ...prev, store: e.target.value }))}
-                      className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm"
-                    >
-                      <option value="">All Stores</option>
-                      {availableStores.map(store => (
-                        <option key={store.id} value={store.id}>{store.id} - {store.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  {/* Area Manager Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Area Manager</label>
-                    <select
-                      value={filters.am}
-                      onChange={(e) => setFilters(prev => ({ ...prev, am: e.target.value }))}
-                      className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm"
-                    >
-                      <option value="">All Area Managers</option>
-                      {availableAreaManagers.map(am => (
-                        <option key={am.id} value={am.id}>{am.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  {/* Trainer Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Trainer</label>
-                    <select
-                      value={filters.trainer}
-                      onChange={(e) => setFilters(prev => ({ ...prev, trainer: e.target.value }))}
-                      className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm"
-                    >
-                      <option value="">All Trainers</option>
-                      {availableTrainers.map(trainer => (
-                        <option key={trainer.id} value={trainer.id}>{trainer.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Download Excel Button for SHLP */}
-                <div className="mt-4 flex justify-end">
-                  <button
-                    onClick={generateSHLPExcelReport}
-                    disabled={!filteredSHLPData || filteredSHLPData.length === 0}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Download Excel
-                  </button>
-                </div>
-              </div>
-
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* SHLP Submissions List */}
                 <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
