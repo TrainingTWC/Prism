@@ -1,18 +1,14 @@
-import { supabase } from './supabaseClient';
+// Google Sheets-based employee directory service
+// Replaces Supabase with Google Apps Script endpoint
 
 export type EmployeeRow = {
   employee_code: string;
   empname: string;
-  employee_status?: string | null;
-  region?: string | null;
-  location?: string | null;
-  city?: string | null;
-  state?: string | null;
-  official_email?: string | null;
-  store_code?: string | null;
+  date_of_joining?: string | null;
   designation?: string | null;
-  tenure?: string | null;
-  join_date?: string | null;
+  location?: string | null;
+  category?: string | null;
+  store_code?: string | null;
 };
 
 export type EmployeeDirectory = {
@@ -20,91 +16,63 @@ export type EmployeeDirectory = {
   nameById: Record<string, string>;
 };
 
-const DEFAULT_TABLE = 'employee_master';
+// Google Apps Script endpoint URL
+const EMPLOYEE_API_URL = import.meta.env.VITE_EMPLOYEE_DIRECTORY_URL || '';
 
 function normalizeId(id: string): string {
   return (id || '').toString().trim().toUpperCase();
 }
 
-export async function fetchEmployeeDirectory(options?: {
-  table?: string;
-  onlyExisting?: boolean;
-}): Promise<EmployeeDirectory> {
-  if (!supabase) {
+export async function fetchEmployeeDirectory(): Promise<EmployeeDirectory> {
+  if (!EMPLOYEE_API_URL) {
+    console.warn('[Employee Directory] No API URL configured. Set VITE_EMPLOYEE_DIRECTORY_URL in .env');
     return { byId: {}, nameById: {} };
   }
 
-  const table = options?.table || (import.meta.env.VITE_SUPABASE_EMPLOYEE_TABLE as string | undefined) || DEFAULT_TABLE;
-  const onlyExisting = options?.onlyExisting ?? true;
-
-  // Fetch all records using pagination (Supabase has 1000 row default limit)
-  const allData: any[] = [];
-  const pageSize = 1000;
-  let page = 0;
-  let hasMore = true;
-
-  while (hasMore) {
-    const from = page * pageSize;
-    const to = from + pageSize - 1;
-
-    // Try to fetch all columns first, then filter what we need
-    // This handles different column name cases in the table
-    let query = supabase
-      .from(table)
-      .select('*')
-      .range(from, to);
-
-    if (onlyExisting) {
-      // Try both variations of the Employee_Status column
-      query = query.or('Employee_Status.eq.Existing,employee_status.eq.Existing');
-    }
-
-    const { data, error } = await query;
+  try {
+    console.log('[Employee Directory] Fetching from Google Sheets:', EMPLOYEE_API_URL);
     
-    if (error) {
-      console.warn('[Supabase] fetchEmployeeDirectory failed:', error.message);
-      console.warn('[Supabase] Error details:', error);
-      break;
+    const response = await fetch(EMPLOYEE_API_URL);
+    
+    if (!response.ok) {
+      console.error('[Employee Directory] HTTP error:', response.status, response.statusText);
+      return { byId: {}, nameById: {} };
+    }
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      console.error('[Employee Directory] API error:', data.error);
+      return { byId: {}, nameById: {} };
+    }
+    
+    const employees = data.employees || [];
+    console.log('[Employee Directory] Received', employees.length, 'employees');
+    
+    const byId: Record<string, EmployeeRow> = {};
+    const nameById: Record<string, string> = {};
+
+    for (const emp of employees) {
+      if (!emp.employee_code) continue;
+      
+      const key = normalizeId(emp.employee_code);
+      byId[key] = {
+        employee_code: emp.employee_code,
+        empname: emp.empname || '',
+        date_of_joining: emp.date_of_joining,
+        designation: emp.designation,
+        location: emp.location,
+        category: emp.category,
+        store_code: emp.store_code
+      };
+      nameById[key] = emp.empname || emp.employee_code;
     }
 
-    if (data && data.length > 0) {
-      allData.push(...data);
-      hasMore = data.length === pageSize; // Continue if we got a full page
-      page++;
-    } else {
-      hasMore = false;
-    }
+    console.log('[Employee Directory] Processed', Object.keys(byId).length, 'unique employees');
+    return { byId, nameById };
+    
+  } catch (error) {
+    console.error('[Employee Directory] Fetch failed:', error);
+    return { byId: {}, nameById: {} };
   }
-
-  console.log('[Supabase] fetchEmployeeDirectory:', { 
-    rowsReturned: allData.length, 
-    pages: page,
-    table,
-    onlyExisting,
-    firstRow: allData[0] // Log first row to see column structure
-  });
-
-  const byId: Record<string, EmployeeRow> = {};
-  const nameById: Record<string, string> = {};
-
-  for (const row of allData) {
-    // Handle different possible column name variations
-    const employeeCode = row?.employee_Code || row?.employee_code || row?.Employee_Code || row?.['Employee Code'];
-    const empName = row?.EmpName || row?.empname || row?.Empname || row?.['Employee Name'];
-    const employeeStatus = row?.Employee_Status || row?.employee_status || row?.['Employee Status'];
-    const storeCode = row?.['Store Code'] || row?.store_code || row?.Store_Code;
-    
-    if (!employeeCode) continue;
-    
-    const key = normalizeId(employeeCode);
-    byId[key] = {
-      employee_code: employeeCode,
-      empname: empName,
-      employee_status: employeeStatus,
-      store_code: storeCode
-    } as EmployeeRow;
-    nameById[key] = empName || employeeCode;
-  }
-
-  return { byId, nameById };
 }
