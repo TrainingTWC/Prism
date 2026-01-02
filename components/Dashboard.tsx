@@ -156,6 +156,28 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const trainerFilterId = normalizeId(filters.trainer);
   const hrPersonFilterId = normalizeId(filters.hrPerson);
 
+  // Helper function to get employee name from ID
+  const getEmployeeName = (employeeId: string): string => {
+    if (!employeeId) return '';
+    const key = normalizeId(employeeId);
+    return employeeDirectory.nameById[key] || employeeId;
+  };
+
+  // Helper function to convert trainer IDs to names
+  const getTrainerNames = (trainerIds: string): string => {
+    if (!trainerIds) return '';
+    const ids = trainerIds.split(',').map(id => id.trim()).filter(Boolean);
+    const names = ids.map(id => getEmployeeName(id) || id);
+    return names.join(', ');
+  };
+
+  // Helper function to get AM name
+  const getAMName = (amId: string): string => {
+    if (!amId) return '';
+    const amFromConfig = AREA_MANAGERS.find(am => am.id === amId);
+    return amFromConfig?.name || getEmployeeName(amId) || amId;
+  };
+
   // Monthly Trends data for Training Dashboard
   const { rows: trendsData, loading: trendsLoading } = useTrendsData();
 
@@ -6269,10 +6291,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                 {submission.Store}
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
-                                {submission['Area Manager']}
+                                {getAMName(submission['Area Manager'])}
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
-                                {submission.Trainer}
+                                {getTrainerNames(submission.Trainer)}
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${

@@ -60,7 +60,7 @@ export interface SHLPSubmission {
   Overall_Percentage: string;
 }
 
-const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwKfwJY4fQqxcc2uQYgRrLkIKSgkd7Ft4H9cyqrOK55MameHrNMWdLPraoEyUiQiu8PBg/exec';
+const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzmfn6LXRXqidjqYdUjYHIkDOzXf2pJ9N-Pm1lGJqn1bddyob_wLKjdncuWjnKZKtuanA/exec';
 
 export const fetchSHLPData = async (): Promise<SHLPSubmission[]> => {
   try {

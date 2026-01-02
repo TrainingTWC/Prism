@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../../roleMapping';
 import { QUESTIONS as DEFAULT_QUESTIONS, AREA_MANAGERS as DEFAULT_AREA_MANAGERS, HR_PERSONNEL as DEFAULT_HR_PERSONNEL, SENIOR_HR_ROLES, NORTH_REGION_HRBPS, NORTH_REGION_AMS } from '../../constants';
 import { Question, Choice, Store } from '../../types';
 import { hapticFeedback } from '../../utils/haptics';
 import LoadingOverlay from '../LoadingOverlay';
-import { STORES_PROMISE, MAPPED_STORES } from '../../mappedStores';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
+import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
+import { useComprehensiveMapping } from '../../hooks/useComprehensiveMapping';
 
 // Google Sheets endpoint for logging data
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKMVh-lnNBnINskIqD10CnQHvGsW_R2SLASGSdBDN9lTGj1gznlNbHORQ/exec';
@@ -33,11 +34,16 @@ interface HRChecklistProps {
 
 const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) => {
   const { config, loading: configLoading } = useConfig();
+  const { directory: employeeDirectory, loading: employeeLoading } = useEmployeeDirectory();
+  const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
   
   // Use config data if available, otherwise fall back to hardcoded constants
   const QUESTIONS = config?.QUESTIONS || DEFAULT_QUESTIONS;
   const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
   const HR_PERSONNEL = config?.HR_PERSONNEL || DEFAULT_HR_PERSONNEL;
+  
+  // Use comprehensive mapping as store data source (same as SHLP)
+  const allStores = comprehensiveMapping || [];
   
   const [responses, setResponses] = useState<SurveyResponse>(() => {
     try { 
@@ -54,7 +60,8 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     } catch(e) {}
     
     const urlParams = new URLSearchParams(window.location.search);
-    const hrId = urlParams.get('hrId') || urlParams.get('hr_id') || (stored as any).hrId || '';
+    // Support both hrId and EMPID parameters
+    let hrId = urlParams.get('hrId') || urlParams.get('hr_id') || urlParams.get('EMPID') || urlParams.get('empid') || (stored as any).hrId || '';
     const hrName = urlParams.get('hrName') || urlParams.get('hr_name') || (stored as any).hrName || '';
     
     const findHRById = (id: string) => {
@@ -94,15 +101,19 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
 
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [allStores, setAllStores] = useState<Store[]>([]);
   const [filteredStoresByHR, setFilteredStoresByHR] = useState<Store[]>([]);
   
   const [amSearchTerm, setAmSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
   const [showAmDropdown, setShowAmDropdown] = useState(false);
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [selectedAmIndex, setSelectedAmIndex] = useState(-1);
   const [selectedStoreIndex, setSelectedStoreIndex] = useState(-1);
+  const [selectedEmployeeIndex, setSelectedEmployeeIndex] = useState(-1);
+  
+  const employeeDropdownRef = useRef<HTMLDivElement>(null);
 
   // Autofill HR fields when user role is hr
   useEffect(() => {
@@ -115,27 +126,8 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     }
   }, [authUserRole, employeeData]);
 
-  // Load stores from STORES_PROMISE (normalized mapping with runtime overrides)
-  useEffect(() => {
-    console.log('[HRChecklist] Loading stores from STORES_PROMISE...');
-    
-    // Immediately set MAPPED_STORES as fallback so UI is responsive
-    if (MAPPED_STORES && MAPPED_STORES.length > 0) {
-      console.log(`[HRChecklist] Setting fallback stores from MAPPED_STORES: ${MAPPED_STORES.length} stores`);
-      setAllStores(MAPPED_STORES as any[]);
-    }
-    
-    // Then load the full async mapping
-    STORES_PROMISE.then(stores => {
-      console.log(`[HRChecklist] Async stores loaded: ${stores.length} stores`);
-      setAllStores(stores as any[]);
-    }).catch(err => {
-      console.error('[HRChecklist] Failed to load stores:', err);
-      // Keep using MAPPED_STORES fallback
-    });
-  }, []);
-
-  // Filter stores by HR
+  // When HR changes, filter stores and auto-populate AM
+  // Source of truth: Store Mapping (23-column Google Sheet)
   useEffect(() => {
     const filterStoresByHR = () => {
       if (!meta.hrId || allStores.length === 0) {
@@ -146,39 +138,43 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
       try {
         console.log(`[HRChecklist] Filtering stores for HR ${meta.hrId} from ${allStores.length} total stores`);
         
-        // Filter stores where the HR is assigned (check hrbpId, regionalHrId, hrHeadId)
-        // Case-insensitive comparison for HR IDs
         const normalizedHrId = meta.hrId.toUpperCase();
-        const hrStores = allStores.filter((store: any) => 
-          (store.hrbpId && store.hrbpId.toUpperCase() === normalizedHrId) ||
-          (store.regionalHrId && store.regionalHrId.toUpperCase() === normalizedHrId) ||
-          (store.hrHeadId && store.hrHeadId.toUpperCase() === normalizedHrId)
-        );
         
-        console.log(`[HRChecklist] Found ${hrStores.length} stores for HR ${meta.hrId}`);
+        // Find stores where HR matches any of: HRBP 1/2/3, Regional HR, HR Head
+        const hrStores = allStores.filter((store: any) => {
+          const hrbp1 = (store['HRBP 1'] || store.hrbpId || '').toString().toUpperCase();
+          const hrbp2 = (store['HRBP 2'] || '').toString().toUpperCase();
+          const hrbp3 = (store['HRBP 3'] || '').toString().toUpperCase();
+          const regionalHr = (store['Regional HR'] || store.regionalHrId || '').toString().toUpperCase();
+          const hrHead = (store['HR Head'] || store.hrHeadId || '').toString().toUpperCase();
+          
+          return hrbp1 === normalizedHrId || 
+                 hrbp2 === normalizedHrId || 
+                 hrbp3 === normalizedHrId || 
+                 regionalHr === normalizedHrId || 
+                 hrHead === normalizedHrId;
+        });
+        
+        console.log(`[HRChecklist] Found ${hrStores.length} stores for HR ${meta.hrId} from Store Mapping`);
         setFilteredStoresByHR(hrStores);
         
         // Auto-populate AM if stores are available and AM not yet set
         if (hrStores.length > 0 && !meta.amId) {
           const firstStore = hrStores[0] as any;
-          if (firstStore.amId) {
-            // Case-insensitive AM lookup
-            const amPerson = AREA_MANAGERS.find(am => 
-              am.id.toUpperCase() === firstStore.amId.toUpperCase()
-            );
-            
-            if (amPerson) {
-              console.log(`[HRChecklist] Auto-filling AM: ${amPerson.name} (${amPerson.id})`);
-              setMeta(prev => ({
-                ...prev,
-                amId: amPerson.id,
-                amName: amPerson.name
-              }));
-            }
+          const amId = (firstStore.amId || firstStore['AM'] || '').toString();
+          const amName = (firstStore.amName || firstStore['AM Name'] || amId).toString();
+          
+          if (amId) {
+            console.log(`[HRChecklist] ✓ Auto-filled AM from Store Mapping: ${amName} (${amId})`);
+            setMeta(prev => ({
+              ...prev,
+              amId: amId,
+              amName: amName
+            }));
           }
         }
       } catch (error) {
-        console.warn('Could not filter stores by HR:', error);
+        console.error('[HRChecklist] Error filtering stores by HR:', error);
         setFilteredStoresByHR([]);
       }
     };
@@ -186,87 +182,57 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     filterStoresByHR();
   }, [meta.hrId, allStores]);
 
+  // Get available AMs for the selected HR from Store Mapping (Google Sheets)
+  // Single source of truth: Store Mapping (23-column structure)
   const availableAreaManagers = useMemo(() => {
-    console.log('🔍 [HRChecklist] availableAreaManagers recalculating. meta.hrId:', meta.hrId, 'allStores.length:', allStores.length);
+    console.log('🔍 [HRChecklist] Calculating available AMs from Store Mapping');
+    console.log('[HRChecklist] Selected HR:', meta.hrId, 'Stores loaded:', allStores.length);
     
-    // If no HR is selected, show all accessible AMs
+    if (allStores.length === 0) {
+      console.warn('[HRChecklist] No stores loaded yet');
+      return [];
+    }
+    
+    // If no HR selected, return empty (HR must be selected first)
     if (!meta.hrId) {
-      return AREA_MANAGERS.filter(am => canAccessAM(userRole, am.id));
+      console.log('[HRChecklist] No HR selected');
+      return [];
     }
     
-    // If HR is a senior role, show all accessible AMs
-    if (SENIOR_HR_ROLES.includes(meta.hrId)) {
-      const allAccessibleAMs = AREA_MANAGERS.filter(am => canAccessAM(userRole, am.id));
-      return allAccessibleAMs;
-    }
-    
-    // SPECIAL CASE: North Region HRBPs - all North HRBPs should see ALL North AMs
-    // This ensures full regional visibility for the North team
-    if (NORTH_REGION_HRBPS.includes(meta.hrId)) {
-      const northAMs = AREA_MANAGERS.filter(am => NORTH_REGION_AMS.includes(am.id));
-      console.log(`[HRChecklist] HR ${meta.hrId} is a North HRBP with access to all ${northAMs.length} North Area Managers:`, northAMs);
-      return northAMs;
-    }
-    
-    // NEW: Use AM_HR_MAPPING from config if available
-    if (config?.AM_HR_MAPPING) {
-      console.log('📍 [HRChecklist] Using AM_HR_MAPPING from config for HR:', meta.hrId);
-      const amsForThisHr: typeof AREA_MANAGERS = [];
-      Object.entries(config.AM_HR_MAPPING).forEach(([amId, hrMapping]: [string, any]) => {
-        // Check if this AM is mapped to the selected HR (as hrbp, hr2, or hr3)
-        if (hrMapping.hrbp === meta.hrId || hrMapping.hr2 === meta.hrId || hrMapping.hr3 === meta.hrId) {
-          const amPerson = AREA_MANAGERS.find(am => am.id === amId);
-          if (amPerson) {
-            amsForThisHr.push(amPerson);
-          }
-        }
-      });
-      
-      if (amsForThisHr.length > 0) {
-        console.log(`📍 [HRChecklist] Found ${amsForThisHr.length} AMs for HR ${meta.hrId} from AM_HR_MAPPING:`, amsForThisHr);
-        return amsForThisHr;
-      } else {
-        console.log(`⚠️ [HRChecklist] No AMs found in AM_HR_MAPPING for HR ${meta.hrId}, falling back to store mapping`);
-      }
-    } else {
-      console.log('⚠️ [HRChecklist] config.AM_HR_MAPPING not available yet, using store mapping');
-    }
-    
-    // Derive AM IDs from normalized mapping (allStores). Use `allStores` when
-    // available; fall back to the immediate `MAPPED_STORES` export so the UI can
-    // populate AMs even before async mapping loading completes.
-    const hrAreaManagerIds = new Set<string>();
-    const sourceStores = (allStores && allStores.length > 0) ? allStores : MAPPED_STORES || [];
-    
-    console.log('[HRChecklist] Source stores used:', sourceStores.length, 'stores');
-    
-    // Case-insensitive comparison for HR IDs
     const normalizedHrId = meta.hrId.toUpperCase();
-    sourceStores.forEach((s: any) => {
-      const matchesHR = 
-        (s.hrbpId && s.hrbpId.toUpperCase() === normalizedHrId) ||
-        (s.regionalHrId && s.regionalHrId.toUpperCase() === normalizedHrId) ||
-        (s.hrHeadId && s.hrHeadId.toUpperCase() === normalizedHrId);
+    const amMap = new Map<string, { id: string; name: string }>();
+    
+    // Find all AMs associated with this HR's stores
+    allStores.forEach((store: any) => {
+      const hrbp1 = (store['HRBP 1'] || store.hrbpId || '').toString().toUpperCase();
+      const hrbp2 = (store['HRBP 2'] || '').toString().toUpperCase();
+      const hrbp3 = (store['HRBP 3'] || '').toString().toUpperCase();
+      const regionalHr = (store['Regional HR'] || store.regionalHrId || '').toString().toUpperCase();
+      const hrHead = (store['HR Head'] || store.hrHeadId || '').toString().toUpperCase();
       
-      if (matchesHR && s.amId) {
-        hrAreaManagerIds.add(s.amId);
+      // Check if this store belongs to the selected HR
+      const matchesHR = hrbp1 === normalizedHrId || 
+                       hrbp2 === normalizedHrId || 
+                       hrbp3 === normalizedHrId || 
+                       regionalHr === normalizedHrId || 
+                       hrHead === normalizedHrId;
+      
+      if (matchesHR) {
+        // Extract AM from this store
+        const amId = (store.amId || store['AM'] || '').toString().trim();
+        const amName = (store.amName || store['AM Name'] || amId).toString().trim();
+        
+        if (amId) {
+          amMap.set(amId.toUpperCase(), { id: amId, name: amName });
+        }
       }
     });
     
-    // First, pick matching AM objects from AREA_MANAGERS
-    const presentAMs = AREA_MANAGERS.filter(am => hrAreaManagerIds.has(am.id));
-    
-    // If mapping references AM IDs that are not present in AREA_MANAGERS, create
-    // lightweight placeholders so the dropdown isn't empty
-    const missingIds = Array.from(hrAreaManagerIds).filter(id => !AREA_MANAGERS.some(am => am.id === id));
-    const missingAMs = missingIds.map(id => ({ id, name: id } as any));
-    
-    const result = [...presentAMs, ...missingAMs];
-    console.log(`[HRChecklist] Found ${result.length} Area Managers for HR ${meta.hrId}:`, result);
-    console.log('[HRChecklist] Derived AM IDs:', Array.from(hrAreaManagerIds));
+    const result = Array.from(amMap.values());
+    console.log(`[HRChecklist] ✓ Found ${result.length} AMs for HR ${meta.hrId} from Store Mapping:`, result);
     
     return result;
-  }, [userRole, meta.hrId, allStores, MAPPED_STORES, config, AREA_MANAGERS]);
+  }, [meta.hrId, allStores]);
 
   const availableStores = useMemo(() => {
     // If AM is selected, filter stores by AM
@@ -312,6 +278,141 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
       store.id.toLowerCase().includes(storeSearchTerm.toLowerCase())
     );
   }, [availableStores, storeSearchTerm]);
+
+  // Filter employees for dropdown - only show employees from HR's region
+  const filteredEmployees = useMemo(() => {
+    const employees = Object.values(employeeDirectory.byId);
+    
+    // Get HR's region from their stores
+    let hrRegion = '';
+    if (meta.hrId && allStores.length > 0) {
+      const normalizedHrId = meta.hrId.toUpperCase();
+      const hrStore = allStores.find((store: any) => 
+        (store.hrbpId && store.hrbpId.toUpperCase() === normalizedHrId) ||
+        (store['HRBP 1'] && store['HRBP 1'].toString().toUpperCase() === normalizedHrId) ||
+        (store['HRBP 2'] && store['HRBP 2'].toString().toUpperCase() === normalizedHrId) ||
+        (store['HRBP 3'] && store['HRBP 3'].toString().toUpperCase() === normalizedHrId) ||
+        (store.regionalHrId && store.regionalHrId.toUpperCase() === normalizedHrId) ||
+        (store['Regional HR'] && store['Regional HR'].toString().toUpperCase() === normalizedHrId)
+      );
+      
+      if (hrStore) {
+        hrRegion = (hrStore.region || hrStore['Region'] || '').toString().toUpperCase();
+        console.log(`[HRChecklist] HR ${meta.hrId} manages region: ${hrRegion}`);
+      }
+    }
+    
+    // Filter employees by region if HR region is identified
+    let regionFilteredEmployees = employees;
+    if (hrRegion) {
+      regionFilteredEmployees = employees.filter(emp => {
+        if (!emp.store_code) return false;
+        const empStore = allStores.find((s: any) => 
+          s.id === emp.store_code || s['Store ID'] === emp.store_code
+        );
+        if (!empStore) return false;
+        const storeRegion = (empStore.region || empStore['Region'] || '').toString().toUpperCase();
+        return storeRegion === hrRegion;
+      });
+      console.log(`[HRChecklist] Filtered to ${regionFilteredEmployees.length} employees in ${hrRegion} region`);
+    }
+    
+    // Apply search term filter
+    if (!employeeSearchTerm) return regionFilteredEmployees.slice(0, 50);
+    
+    const searchLower = employeeSearchTerm.toLowerCase();
+    return regionFilteredEmployees.filter(emp =>
+      emp.empname?.toLowerCase().includes(searchLower) ||
+      emp.employee_code?.toLowerCase().includes(searchLower)
+    ).slice(0, 50);
+  }, [employeeDirectory, employeeSearchTerm, meta.hrId, allStores]);
+
+  // Auto-fill store and AM when employee is selected
+  // SAME APPROACH AS SHLP - using comprehensiveMapping (Store Mapping Google Sheet)
+  const handleEmployeeSelect = (emp: any) => {
+    console.log('=====================================');
+    console.log('[HRChecklist] 👤 Employee selected:', emp.empname, emp.employee_code);
+    console.log('[HRChecklist] 📍 Employee store_code:', emp.store_code);
+    
+    // Set employee details from EMP. Master
+    handleMetaChange('empName', emp.empname || '');
+    handleMetaChange('empId', emp.employee_code || '');
+    
+    // Auto-fill store and AM from employee's store_code
+    if (emp.store_code) {
+      const storeId = emp.store_code.toString().trim();
+      console.log('[HRChecklist] 🔍 Looking for Store ID:', storeId);
+      
+      // SAME LOGIC AS SHLP: Find store in comprehensive mapping
+      const normalize = (v: any) => (v ?? '').toString().trim();
+      const selectedStore = allStores.find(s => normalize(s['Store ID']) === normalize(storeId));
+      
+      if (selectedStore) {
+        console.log('[HRChecklist] ✅ Found store:', selectedStore['Store ID'], selectedStore['Store Name']);
+        console.log('[HRChecklist] Store data:', {
+          'Store ID': selectedStore['Store ID'],
+          'Store Name': selectedStore['Store Name'],
+          'AM': selectedStore['AM'],
+          'AM Name': selectedStore['AM Name']
+        });
+        
+        // Auto-fill Store from Store Mapping
+        const storeName = (selectedStore['Store Name'] || '').toString().trim();
+        handleMetaChange('storeId', storeId);
+        handleMetaChange('storeName', storeName);
+        console.log('[HRChecklist] ✓ Store auto-filled:', storeId, storeName);
+        
+        // SAME AS SHLP: Get AM directly from store mapping
+        const amId = (selectedStore['AM'] || '').toString().trim();
+        const amName = (selectedStore['AM Name'] || '').toString().trim() || amId;
+        
+        console.log('[HRChecklist] ✅ AM from Store Mapping:');
+        console.log('  - AM ID:', amId);
+        console.log('  - AM Name:', amName);
+        
+        if (amId) {
+          handleMetaChange('amId', amId);
+          handleMetaChange('amName', amName);
+          console.log('[HRChecklist] ✅ FINAL AM SET:', amName, '(' + amId + ')');
+        } else {
+          console.error('[HRChecklist] ❌ No AM found in Store Mapping for this store!');
+        }
+        console.log('=====================================');
+      } else {
+        console.error('[HRChecklist] ❌ Store NOT FOUND in Store Mapping!');
+        console.error('[HRChecklist] Looking for Store ID:', storeId);
+        console.error('[HRChecklist] Available Store IDs:', allStores.slice(0, 20).map((s: any) => 
+          (s.id || s['Store ID'] || '').toString().trim().toUpperCase()
+        ).join(', '));
+        console.log('=====================================');
+      }
+    } else {
+      console.warn('[HRChecklist] ⚠️ Employee has no store_code in EMP. Master');
+      console.log('=====================================');
+    }
+    
+    setEmployeeSearchTerm('');
+    setShowEmployeeDropdown(false);
+  };
+
+  // Close employee dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(event.target as Node)) {
+        setShowEmployeeDropdown(false);
+      }
+    };
+
+    if (showEmployeeDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showEmployeeDropdown]);
 
   // Save responses to localStorage and update stats
   useEffect(() => {
@@ -538,46 +639,31 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
 
   const resetSurvey = () => {
     if (confirm('Are you sure you want to reset the survey? All responses will be lost.')) {
-      // Preserve HR name and ID from URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const hrId = urlParams.get('hrId') || urlParams.get('hr_id') || '';
-      const hrName = urlParams.get('hrName') || urlParams.get('hr_name') || '';
-      
-      const findHRById = (id: string) => {
-        if (!id) return null;
-        return HR_PERSONNEL.find(hr => hr.id === id || hr.id.toLowerCase() === id.toLowerCase());
-      };
-      
-      let finalHrName = hrName;
-      let finalHrId = hrId;
-      
-      if (hrId) {
-        const hrPerson = findHRById(hrId);
-        if (hrPerson) {
-          finalHrName = hrPerson.name;
-          finalHrId = hrPerson.id;
-        }
-      } else if (hrName && !hrId) {
-        const hrPerson = HR_PERSONNEL.find(hr => hr.name === hrName);
-        if (hrPerson) {
-          finalHrId = hrPerson.id;
-        }
-      }
+      // Preserve ONLY HR name and ID (stays intact across resets)
+      // Reset: Employee, AM, and Store details (user can choose new employee)
+      console.log('[HRChecklist] Resetting survey - preserving HR:', meta.hrId, meta.hrName);
       
       setResponses({});
       setMeta({
-        hrName: finalHrName,
-        hrId: finalHrId,
-        amName: '',
-        amId: '',
-        empName: '',
-        empId: '',
-        storeName: '',
-        storeId: ''
+        hrName: meta.hrName, // ✓ Preserved
+        hrId: meta.hrId,     // ✓ Preserved
+        amName: '',          // ✗ Reset
+        amId: '',            // ✗ Reset
+        empName: '',         // ✗ Reset (user selects new employee)
+        empId: '',           // ✗ Reset
+        storeName: '',       // ✗ Reset
+        storeId: ''          // ✗ Reset
       });
       setSubmitted(false);
+      
+      // Clear employee search state
+      setEmployeeSearchTerm('');
+      setShowEmployeeDropdown(false);
+      
       localStorage.removeItem('hr_resp');
       localStorage.removeItem('hr_meta');
+      
+      console.log('[HRChecklist] ✓ Survey reset complete - HR details preserved');
     }
   };
 
@@ -657,56 +743,53 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
             </label>
             <input
               type="text"
-              value={amSearchTerm || (meta.amId ? meta.amName.split(' ')[0] : '')}
-              onChange={(e) => {
-                setAmSearchTerm(e.target.value);
-                setShowAmDropdown(true);
-                setSelectedAmIndex(-1);
-              }}
-              onFocus={() => setShowAmDropdown(true)}
-              onBlur={() => setTimeout(() => setShowAmDropdown(false), 200)}
-              placeholder="Search Area Manager..."
+              value={meta.amName && meta.amId ? `${meta.amName} (${meta.amId})` : ''}
+              readOnly
+              placeholder="Auto-filled from employee selection"
               required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 cursor-not-allowed"
             />
-            
-            {showAmDropdown && filteredAreaManagers.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                {filteredAreaManagers.map((am, index) => (
-                  <button
-                    key={am.id}
-                    onClick={() => {
-                      handleMetaChange('amId', am.id);
-                      handleMetaChange('amName', am.name);
-                      // Reset store selection when AM changes
-                      handleMetaChange('storeId', '');
-                      handleMetaChange('storeName', '');
-                      setAmSearchTerm('');
-                      setShowAmDropdown(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${
-                      index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                    }`}
-                  >
-                    {am.name.split(' ')[0]}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               Employee Name *
             </label>
-            <input
-              type="text"
-              value={meta.empName}
-              onChange={(e) => handleMetaChange('empName', e.target.value)}
-              placeholder="Enter employee name"
-              required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-            />
+            <div className="relative" ref={employeeDropdownRef}>
+              <input
+                type="text"
+                value={employeeSearchTerm || meta.empName}
+                onChange={(e) => {
+                  setEmployeeSearchTerm(e.target.value);
+                  setShowEmployeeDropdown(true);
+                  setSelectedEmployeeIndex(-1);
+                }}
+                onFocus={() => setShowEmployeeDropdown(true)}
+                placeholder="Search employee..."
+                required
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+              />
+              
+              {showEmployeeDropdown && filteredEmployees.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                  {filteredEmployees.map((emp, index) => (
+                    <button
+                      key={emp.employee_code}
+                      type="button"
+                      onClick={() => handleEmployeeSelect(emp)}
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${
+                        index === selectedEmployeeIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                      }`}
+                    >
+                      <div className="font-medium">{emp.empname}</div>
+                      <div className="text-xs text-gray-500 dark:text-slate-400">
+                        {emp.employee_code} {emp.store_code ? `• Store: ${emp.store_code}` : ''}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
@@ -717,9 +800,10 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
               type="text"
               value={meta.empId}
               onChange={(e) => handleMetaChange('empId', e.target.value)}
-              placeholder="Enter employee ID"
+              placeholder="Auto-filled from employee selection"
+              readOnly
               required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 cursor-not-allowed"
             />
           </div>
 
@@ -730,39 +814,12 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
               </label>
               <input
                 type="text"
-                value={storeSearchTerm || (meta.storeId ? `${meta.storeName} (${meta.storeId})` : '')}
-                onChange={(e) => {
-                  setStoreSearchTerm(e.target.value);
-                  setShowStoreDropdown(true);
-                  setSelectedStoreIndex(-1);
-                }}
-                onFocus={() => setShowStoreDropdown(true)}
-                onBlur={() => setTimeout(() => setShowStoreDropdown(false), 200)}
-                placeholder="Search Store..."
+                value={meta.storeName ? `${meta.storeName} (${meta.storeId})` : ''}
+                readOnly
+                placeholder="Auto-filled from employee selection"
                 required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 cursor-not-allowed"
               />
-              
-              {showStoreDropdown && filteredStores.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                  {filteredStores.map((store, index) => (
-                    <button
-                      key={store.id}
-                      onClick={() => {
-                        handleMetaChange('storeId', store.id);
-                        handleMetaChange('storeName', store.name);
-                        setStoreSearchTerm('');
-                        setShowStoreDropdown(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${
-                        index === selectedStoreIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                      }`}
-                    >
-                      {store.name} ({store.id})
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         </div>

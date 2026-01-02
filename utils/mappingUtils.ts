@@ -75,17 +75,23 @@ export const loadComprehensiveMapping = async (): Promise<ComprehensiveMapping[]
               const storeId = normalizeId(row['Store ID'] || row.storeId || row.StoreID || row.store_id);
               const storeName = row['Store Name'] || row.storeName || row.locationName || row.name || '';
               const amId = normalizeId(row.AM || row['AM'] || row['AM ID'] || row['Area Manager ID'] || row.amId || row.areaManagerId);
-              const amName = row['AM Name'] || row.amName || row.areaManagerName;
+              const amName = row['AM Name'] || row.amName || row.areaManagerName || '';
 
               const trainerId = normalizeId(row['Trainer ID'] || row.trainerId || row.trainer_id || row.Trainer);
-              const trainerName = row['Trainer Name'] || row.trainerName || row.trainer;
+              const trainerName = row['Trainer Name'] || row.trainerName || row.trainer || '';
 
               return {
                 ...row,
+                // Normalized properties
                 'Store ID': storeId,
                 'Store Name': storeName,
                 'AM': amId || row.AM || row['AM'],
                 'AM Name': amName,
+                // Also set camelCase versions for easier access
+                id: storeId,
+                name: storeName,
+                amId: amId,
+                amName: amName,
                 'Trainer': trainerId || row.Trainer || row['Trainer'],
                 'Trainer ID': trainerId,
                 'Trainer Name': trainerName,

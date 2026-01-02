@@ -2,15 +2,19 @@
  * STORE MAPPING GOOGLE APPS SCRIPT
  * 
  * This script serves store mapping data from Google Sheets to the Prism Dashboard.
- * It provides Area Manager assignments, store details, HR assignments, and regional info.
+ * It provides Area Manager assignments, store details, HR assignments, trainer assignments, and regional info.
  * 
- * Sheet Structure:
- * Columns: Store ID | Store Name | AM ID | AM Name | Region | HRBP ID | HRBP Name | Regional HR ID | Regional HR Name | HR Head ID | HR Head Name
+ * Sheet Structure (Extended - 23 columns):
+ * Columns: Store ID | Store Name | AM ID | AM Name | Region | 
+ *          HRBP 1 ID | HRBP 1 Name | HRBP 2 ID | HRBP 2 Name | HRBP 3 ID | HRBP 3 Name |
+ *          Trainer 1 ID | Trainer 1 Name | Trainer 2 ID | Trainer 2 Name | Trainer 3 ID | Trainer 3 Name |
+ *          Regional Trainer ID | Regional Trainer name |
+ *          Regional HR ID | Regional HR Name | HR Head ID | HR Head Name
  * 
  * Setup:
  * 1. Create a Google Sheet with a tab named "Store_Mapping"
  * 2. Add the columns above as headers in row 1
- * 3. Fill in your store data
+ * 3. Fill in your store data (HRBP 2, HRBP 3, Trainer 2, Trainer 3 can be empty if not applicable)
  * 4. Deploy this script as a Web App
  * 5. Set VITE_STORE_MAPPING_SCRIPT_URL in your .env file
  */
@@ -63,7 +67,11 @@ function getStoreMapping() {
       return createResponse(true, 'No store data found', []);
     }
     
-    // Headers: Store ID, Store Name, AM ID, AM Name, Region, HRBP ID, HRBP Name, Regional HR ID, Regional HR Name, HR Head ID, HR Head Name
+    // Headers: Store ID, Store Name, AM ID, AM Name, Region, 
+    //          HRBP 1 ID, HRBP 1 Name, HRBP 2 ID, HRBP 2 Name, HRBP 3 ID, HRBP 3 Name,
+    //          Trainer 1 ID, Trainer 1 Name, Trainer 2 ID, Trainer 2 Name, Trainer 3 ID, Trainer 3 Name,
+    //          Regional Trainer ID, Regional Trainer name,
+    //          Regional HR ID, Regional HR Name, HR Head ID, HR Head Name
     const stores = [];
     
     for (let i = 1; i < data.length; i++) {
@@ -78,12 +86,36 @@ function getStoreMapping() {
         'AM': row[2] ? row[2].toString().trim() : '',
         'AM Name': row[3] ? row[3].toString().trim() : '',
         'Region': row[4] ? row[4].toString().trim() : '',
+        
+        // Multiple HRBPs (up to 3)
+        'HRBP 1': row[5] ? row[5].toString().trim() : '',
+        'HRBP 1 Name': row[6] ? row[6].toString().trim() : '',
+        'HRBP 2': row[7] ? row[7].toString().trim() : '',
+        'HRBP 2 Name': row[8] ? row[8].toString().trim() : '',
+        'HRBP 3': row[9] ? row[9].toString().trim() : '',
+        'HRBP 3 Name': row[10] ? row[10].toString().trim() : '',
+        
+        // Multiple Trainers (up to 3)
+        'Trainer 1': row[11] ? row[11].toString().trim() : '',
+        'Trainer 1 Name': row[12] ? row[12].toString().trim() : '',
+        'Trainer 2': row[13] ? row[13].toString().trim() : '',
+        'Trainer 2 Name': row[14] ? row[14].toString().trim() : '',
+        'Trainer 3': row[15] ? row[15].toString().trim() : '',
+        'Trainer 3 Name': row[16] ? row[16].toString().trim() : '',
+        
+        // Regional Trainer
+        'Regional Trainer': row[17] ? row[17].toString().trim() : '',
+        'Regional Trainer Name': row[18] ? row[18].toString().trim() : '',
+        
+        // Regional HR and HR Head
+        'Regional HR': row[19] ? row[19].toString().trim() : '',
+        'Regional HR Name': row[20] ? row[20].toString().trim() : '',
+        'HR Head': row[21] ? row[21].toString().trim() : '',
+        'HR Head Name': row[22] ? row[22].toString().trim() : '',
+        
+        // Legacy field for backward compatibility (uses HRBP 1)
         'HRBP': row[5] ? row[5].toString().trim() : '',
-        'HRBP Name': row[6] ? row[6].toString().trim() : '',
-        'Regional HR': row[7] ? row[7].toString().trim() : '',
-        'Regional HR Name': row[8] ? row[8].toString().trim() : '',
-        'HR Head': row[9] ? row[9].toString().trim() : '',
-        'HR Head Name': row[10] ? row[10].toString().trim() : ''
+        'HRBP Name': row[6] ? row[6].toString().trim() : ''
       };
       
       stores.push(store);
@@ -122,12 +154,36 @@ function getStoreById(storeId) {
           'AM': row[2] ? row[2].toString().trim() : '',
           'AM Name': row[3] ? row[3].toString().trim() : '',
           'Region': row[4] ? row[4].toString().trim() : '',
+          
+          // Multiple HRBPs
+          'HRBP 1': row[5] ? row[5].toString().trim() : '',
+          'HRBP 1 Name': row[6] ? row[6].toString().trim() : '',
+          'HRBP 2': row[7] ? row[7].toString().trim() : '',
+          'HRBP 2 Name': row[8] ? row[8].toString().trim() : '',
+          'HRBP 3': row[9] ? row[9].toString().trim() : '',
+          'HRBP 3 Name': row[10] ? row[10].toString().trim() : '',
+          
+          // Multiple Trainers
+          'Trainer 1': row[11] ? row[11].toString().trim() : '',
+          'Trainer 1 Name': row[12] ? row[12].toString().trim() : '',
+          'Trainer 2': row[13] ? row[13].toString().trim() : '',
+          'Trainer 2 Name': row[14] ? row[14].toString().trim() : '',
+          'Trainer 3': row[15] ? row[15].toString().trim() : '',
+          'Trainer 3 Name': row[16] ? row[16].toString().trim() : '',
+          
+          // Regional Trainer
+          'Regional Trainer': row[17] ? row[17].toString().trim() : '',
+          'Regional Trainer Name': row[18] ? row[18].toString().trim() : '',
+          
+          // Regional HR and HR Head
+          'Regional HR': row[19] ? row[19].toString().trim() : '',
+          'Regional HR Name': row[20] ? row[20].toString().trim() : '',
+          'HR Head': row[21] ? row[21].toString().trim() : '',
+          'HR Head Name': row[22] ? row[22].toString().trim() : '',
+          
+          // Legacy fields
           'HRBP': row[5] ? row[5].toString().trim() : '',
-          'HRBP Name': row[6] ? row[6].toString().trim() : '',
-          'Regional HR': row[7] ? row[7].toString().trim() : '',
-          'Regional HR Name': row[8] ? row[8].toString().trim() : '',
-          'HR Head': row[9] ? row[9].toString().trim() : '',
-          'HR Head Name': row[10] ? row[10].toString().trim() : ''
+          'HRBP Name': row[6] ? row[6].toString().trim() : ''
         };
         return createResponse(true, 'Store found', store);
       }
@@ -167,12 +223,36 @@ function getStoresByAM(amId) {
           'AM': row[2] ? row[2].toString().trim() : '',
           'AM Name': row[3] ? row[3].toString().trim() : '',
           'Region': row[4] ? row[4].toString().trim() : '',
+          
+          // Multiple HRBPs
+          'HRBP 1': row[5] ? row[5].toString().trim() : '',
+          'HRBP 1 Name': row[6] ? row[6].toString().trim() : '',
+          'HRBP 2': row[7] ? row[7].toString().trim() : '',
+          'HRBP 2 Name': row[8] ? row[8].toString().trim() : '',
+          'HRBP 3': row[9] ? row[9].toString().trim() : '',
+          'HRBP 3 Name': row[10] ? row[10].toString().trim() : '',
+          
+          // Multiple Trainers
+          'Trainer 1': row[11] ? row[11].toString().trim() : '',
+          'Trainer 1 Name': row[12] ? row[12].toString().trim() : '',
+          'Trainer 2': row[13] ? row[13].toString().trim() : '',
+          'Trainer 2 Name': row[14] ? row[14].toString().trim() : '',
+          'Trainer 3': row[15] ? row[15].toString().trim() : '',
+          'Trainer 3 Name': row[16] ? row[16].toString().trim() : '',
+          
+          // Regional Trainer
+          'Regional Trainer': row[17] ? row[17].toString().trim() : '',
+          'Regional Trainer Name': row[18] ? row[18].toString().trim() : '',
+          
+          // Regional HR and HR Head
+          'Regional HR': row[19] ? row[19].toString().trim() : '',
+          'Regional HR Name': row[20] ? row[20].toString().trim() : '',
+          'HR Head': row[21] ? row[21].toString().trim() : '',
+          'HR Head Name': row[22] ? row[22].toString().trim() : '',
+          
+          // Legacy fields
           'HRBP': row[5] ? row[5].toString().trim() : '',
-          'HRBP Name': row[6] ? row[6].toString().trim() : '',
-          'Regional HR': row[7] ? row[7].toString().trim() : '',
-          'Regional HR Name': row[8] ? row[8].toString().trim() : '',
-          'HR Head': row[9] ? row[9].toString().trim() : '',
-          'HR Head Name': row[10] ? row[10].toString().trim() : ''
+          'HRBP Name': row[6] ? row[6].toString().trim() : ''
         };
         stores.push(store);
       }
@@ -212,12 +292,36 @@ function getStoresByRegion(region) {
           'AM': row[2] ? row[2].toString().trim() : '',
           'AM Name': row[3] ? row[3].toString().trim() : '',
           'Region': row[4] ? row[4].toString().trim() : '',
+          
+          // Multiple HRBPs
+          'HRBP 1': row[5] ? row[5].toString().trim() : '',
+          'HRBP 1 Name': row[6] ? row[6].toString().trim() : '',
+          'HRBP 2': row[7] ? row[7].toString().trim() : '',
+          'HRBP 2 Name': row[8] ? row[8].toString().trim() : '',
+          'HRBP 3': row[9] ? row[9].toString().trim() : '',
+          'HRBP 3 Name': row[10] ? row[10].toString().trim() : '',
+          
+          // Multiple Trainers
+          'Trainer 1': row[11] ? row[11].toString().trim() : '',
+          'Trainer 1 Name': row[12] ? row[12].toString().trim() : '',
+          'Trainer 2': row[13] ? row[13].toString().trim() : '',
+          'Trainer 2 Name': row[14] ? row[14].toString().trim() : '',
+          'Trainer 3': row[15] ? row[15].toString().trim() : '',
+          'Trainer 3 Name': row[16] ? row[16].toString().trim() : '',
+          
+          // Regional Trainer
+          'Regional Trainer': row[17] ? row[17].toString().trim() : '',
+          'Regional Trainer Name': row[18] ? row[18].toString().trim() : '',
+          
+          // Regional HR and HR Head
+          'Regional HR': row[19] ? row[19].toString().trim() : '',
+          'Regional HR Name': row[20] ? row[20].toString().trim() : '',
+          'HR Head': row[21] ? row[21].toString().trim() : '',
+          'HR Head Name': row[22] ? row[22].toString().trim() : '',
+          
+          // Legacy fields
           'HRBP': row[5] ? row[5].toString().trim() : '',
-          'HRBP Name': row[6] ? row[6].toString().trim() : '',
-          'Regional HR': row[7] ? row[7].toString().trim() : '',
-          'Regional HR Name': row[8] ? row[8].toString().trim() : '',
-          'HR Head': row[9] ? row[9].toString().trim() : '',
-          'HR Head Name': row[10] ? row[10].toString().trim() : ''
+          'HRBP Name': row[6] ? row[6].toString().trim() : ''
         };
         stores.push(store);
       }

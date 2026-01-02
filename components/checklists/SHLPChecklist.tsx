@@ -8,8 +8,8 @@ import { useConfig } from '../../contexts/ConfigContext';
 import { getTrainerName } from '../../utils/trainerMapping';
 import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 
-// Google Sheets endpoint for SHLP data logging
-const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwKfwJY4fQqxcc2uQYgRrLkIKSgkd7Ft4H9cyqrOK55MameHrNMWdLPraoEyUiQiu8PBg/exec';
+// Google Sheets endpoint for SHLP data logging (updated with AM Name and Trainer Names columns)
+const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzmfn6LXRXqidjqYdUjYHIkDOzXf2pJ9N-Pm1lGJqn1bddyob_wLKjdncuWjnKZKtuanA/exec';
 
 interface SHLPChecklistProps {
   userRole: UserRole;
@@ -71,22 +71,27 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
     const normalize = (v: any) => (v ?? '').toString().trim();
     const selectedStore = availableStores.find(s => normalize(s['Store ID']) === normalize(storeId));
     if (selectedStore) {
+      // Get AM Name directly from store mapping (column 3 - AM Name)
       const amId = (selectedStore['AM'] || '').toString().trim();
-      const amName = (AREA_MANAGERS.find(am => am.id === amId)?.name || getEmployeeName(amId) || '').toString();
+      const amName = (selectedStore['AM Name'] || '').toString().trim() || 
+                     (AREA_MANAGERS.find(am => am.id === amId)?.name) || 
+                     getEmployeeName(amId) || 
+                     amId; // Fallback to ID only if name absolutely not found
 
-      const trainerIdsList = ((selectedStore['Trainer'] || '') as string)
-        .split(',')
-        .map(t => t.trim())
-        .filter(Boolean);
-      const trainerNamesList = trainerIdsList.map(id => getEmployeeName(id) || getTrainerName(id));
+      // Get Trainer 1 ID and Name directly from store mapping (new 23-column structure)
+      const trainer1Id = (selectedStore['Trainer 1'] || '').toString().trim();
+      const trainer1Name = (selectedStore['Trainer 1 Name'] || '').toString().trim() || 
+                          getEmployeeName(trainer1Id) || 
+                          getTrainerName(trainer1Id) || 
+                          trainer1Id; // Fallback to ID if name not found
 
       setMetadata(prev => ({
         ...prev,
         store: storeId,
         amId,
         amName,
-        trainerIds: trainerIdsList.join(','),
-        trainerNames: trainerNamesList.join(', ')
+        trainerIds: trainer1Id, // Use Trainer 1
+        trainerNames: trainer1Name // Display Trainer 1 name
       }));
     } else {
       setMetadata(prev => ({
@@ -521,7 +526,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
             </label>
             <input
               type="text"
-              value={metadata.amName ? metadata.amName.split(' ')[0] : metadata.amId}
+              value={metadata.amName || ''}
               readOnly
               className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 dark:text-slate-100 cursor-not-allowed"
               placeholder="Select store first"
@@ -534,7 +539,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
             </label>
             <input
               type="text"
-              value={metadata.trainerNames || metadata.trainerIds}
+              value={metadata.trainerNames || ''}
               readOnly
               className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 dark:text-slate-100 cursor-not-allowed"
               placeholder="Select store first"
