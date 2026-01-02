@@ -334,15 +334,19 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     console.log('[HRChecklist] 👤 Employee selected:', emp.empname, emp.employee_code);
     console.log('[HRChecklist] 📍 Employee full data:', emp);
     
-    // Set employee details from EMP. Master
-    handleMetaChange('empName', emp.empname || '');
-    handleMetaChange('empId', emp.employee_code || '');
-    
-    // Auto-fill store and AM from employee's store_code
+    // Check if employee has store_code
     if (!emp.store_code) {
       console.error('[HRChecklist] ❌ Employee has NO store_code in EMP. Master!');
       console.error('[HRChecklist] Employee must have store_code to auto-fill store and AM');
       console.log('=====================================');
+      
+      // Set employee info only
+      setMeta(prev => ({
+        ...prev,
+        empName: emp.empname || '',
+        empId: emp.employee_code || ''
+      }));
+      
       setEmployeeSearchTerm('');
       setShowEmployeeDropdown(false);
       return;
@@ -362,40 +366,41 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
       console.error('[HRChecklist] First 10 Store IDs in mapping:', 
         allStores.slice(0, 10).map((s: any) => s['Store ID']).join(', '));
       console.log('=====================================');
+      
+      // Set employee info only
+      setMeta(prev => ({
+        ...prev,
+        empName: emp.empname || '',
+        empId: emp.employee_code || ''
+      }));
+      
       setEmployeeSearchTerm('');
       setShowEmployeeDropdown(false);
       return;
     }
     
     console.log('[HRChecklist] ✅ Found store:', selectedStore['Store ID'], selectedStore['Store Name']);
-    console.log('[HRChecklist] Store data:', {
-      'Store ID': selectedStore['Store ID'],
-      'Store Name': selectedStore['Store Name'],
-      'AM': selectedStore['AM'],
-      'AM Name': selectedStore['AM Name']
-    });
     
-    // Auto-fill Store from Store Mapping
+    // Get store and AM data
     const storeName = (selectedStore['Store Name'] || '').toString().trim();
-    handleMetaChange('storeId', storeId);
-    handleMetaChange('storeName', storeName);
-    console.log('[HRChecklist] ✓ Store auto-filled:', storeId, storeName);
-    
-    // SAME AS SHLP: Get AM directly from store mapping
     const amId = (selectedStore['AM'] || '').toString().trim();
     const amName = (selectedStore['AM Name'] || '').toString().trim() || amId;
     
-    console.log('[HRChecklist] ✅ AM from Store Mapping:');
-    console.log('  - AM ID:', amId);
-    console.log('  - AM Name:', amName);
+    console.log('[HRChecklist] Store data:', { storeId, storeName });
+    console.log('[HRChecklist] AM data:', { amId, amName });
     
-    if (amId) {
-      handleMetaChange('amId', amId);
-      handleMetaChange('amName', amName);
-      console.log('[HRChecklist] ✅ FINAL AM SET:', amName, '(' + amId + ')');
-    } else {
-      console.error('[HRChecklist] ❌ No AM found in Store Mapping for this store!');
-    }
+    // SINGLE STATE UPDATE - set everything at once like SHLP does
+    setMeta(prev => ({
+      ...prev,
+      empName: emp.empname || '',
+      empId: emp.employee_code || '',
+      storeId: storeId,
+      storeName: storeName,
+      amId: amId,
+      amName: amName
+    }));
+    
+    console.log('[HRChecklist] ✅ ALL FIELDS SET:', { storeName, storeId, amName, amId });
     console.log('=====================================');
     
     setEmployeeSearchTerm('');
