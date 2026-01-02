@@ -10,6 +10,7 @@ type Tool = 'pen' | 'circle' | 'arrow' | 'text' | 'none';
 
 const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [tool, setTool] = useState<Tool>('pen');
   const [color, setColor] = useState('#FF0000');
@@ -22,16 +23,20 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const previewCanvas = previewCanvasRef.current;
+    if (!canvas || !previewCanvas) return;
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const previewCtx = previewCanvas.getContext('2d');
+    if (!ctx || !previewCtx) return;
 
     const img = new Image();
     img.onload = () => {
       // Set canvas size to image size
       canvas.width = img.width;
       canvas.height = img.height;
+      previewCanvas.width = img.width;
+      previewCanvas.height = img.height;
       ctx.drawImage(img, 0, 0);
       // Save initial state
       saveToHistory();
@@ -133,16 +138,40 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
 
   const handleMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    if (!isDrawing || tool !== 'pen') return;
-
     const point = getCanvasPoint(e);
     if (!point) return;
 
-    const ctx = canvasRef.current?.getContext('2d');
-    if (!ctx) return;
+    if (tool === 'pen' && isDrawing) {
+      const ctx = canvasRef.current?.getContext('2d');
+      if (!ctx) return;
+      ctx.lineTo(point.x, point.y);
+      ctx.stroke();
+    } else if ((tool === 'circle' || tool === 'arrow') && isDrawing && startPos) {
+      // Show preview on overlay canvas
+      const previewCanvas = previewCanvasRef.current;
+      const canvas = canvasRef.current;
+      const previewCtx = previewCanvas?.getContext('2d');
+      const ctx = canvas?.getContext('2d');
+      if (!previewCanvas || !canvas || !previewCtx || !ctx) return;
 
-    ctx.lineTo(point.x, point.y);
-    ctx.stroke();
+      // Clear preview canvas
+      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      
+      // Draw preview
+      previewCtx.strokeStyle = color;
+      previewCtx.lineWidth = lineWidth;
+      previewCtx.lineCap = 'round';
+      previewCtx.lineJoin = 'round';
+
+      if (tool === 'circle') {
+        const radius = Math.sqrt(Math.pow(point.x - startPos.x, 2) + Math.pow(point.y - startPos.y, 2));
+        previewCtx.beginPath();
+        previewCtx.arc(startPos.x, startPos.y, radius, 0, 2 * Math.PI);
+        previewCtx.stroke();
+      } else if (tool === 'arrow') {
+        drawArrow(previewCtx, startPos.x, startPos.y, point.x, point.y);
+      }
+    }
   };
 
   const handleEnd = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -156,11 +185,17 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
     }
 
     const ctx = canvasRef.current?.getContext('2d');
-    if (!ctx) return;
+    const previewCtx = previewCanvasRef.current?.getContext('2d');
+    if (!ctx || !previewCtx) return;
+
+    // Clear preview canvas
+    previewCtx.clearRect(0, 0, previewCanvasRef.current!.width, previewCanvasRef.current!.height);
 
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
     ctx.fillStyle = 'transparent';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
 
     switch (tool) {
       case 'circle':
@@ -229,147 +264,211 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full h-full sm:max-w-6xl sm:max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 dark:border-slate-700">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">✏️ Edit Image</h3>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800 border-b border-gray-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Image Editor</h3>
+              <p className="text-xs text-gray-500 dark:text-slate-400 hidden sm:block">Draw, annotate, and enhance your image</p>
+            </div>
+          </div>
           <button
             onClick={onCancel}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            className="p-2 hover:bg-white/50 dark:hover:bg-slate-700/50 rounded-xl transition-all duration-200 group"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-gray-600 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 p-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-slate-700">
           {/* Tools */}
-          <div className="flex gap-1">
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl p-1.5 shadow-sm border border-gray-200 dark:border-slate-700">
             <button
               onClick={() => setTool('pen')}
-              className={`p-2 rounded-lg transition-colors ${tool === 'pen' ? 'bg-blue-500 text-white' : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-600'}`}
-              title="Pen"
+              className={`group relative p-2.5 sm:p-3 rounded-lg transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center ${
+                tool === 'pen' 
+                  ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30 scale-105' 
+                  : 'text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white'
+              }`}
             >
-              ✏️
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">Pen</span>
             </button>
             <button
               onClick={() => setTool('circle')}
-              className={`p-2 rounded-lg transition-colors ${tool === 'circle' ? 'bg-blue-500 text-white' : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-600'}`}
-              title="Circle"
+              className={`group relative p-2.5 sm:p-3 rounded-lg transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center ${
+                tool === 'circle' 
+                  ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30 scale-105' 
+                  : 'text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white'
+              }`}
             >
-              ⭕
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" strokeWidth={2} />
+              </svg>
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">Circle</span>
             </button>
             <button
               onClick={() => setTool('arrow')}
-              className={`p-2 rounded-lg transition-colors ${tool === 'arrow' ? 'bg-blue-500 text-white' : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-600'}`}
-              title="Arrow"
+              className={`group relative p-2.5 sm:p-3 rounded-lg transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center ${
+                tool === 'arrow' 
+                  ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30 scale-105' 
+                  : 'text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white'
+              }`}
             >
-              ➡️
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">Arrow</span>
             </button>
             <button
               onClick={() => setTool('text')}
-              className={`p-2 rounded-lg transition-colors ${tool === 'text' ? 'bg-blue-500 text-white' : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-600'}`}
-              title="Text"
+              className={`group relative p-2.5 sm:p-3 rounded-lg transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center ${
+                tool === 'text' 
+                  ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30 scale-105' 
+                  : 'text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white'
+              }`}
             >
-              📝
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">Text</span>
             </button>
           </div>
 
+          {/* Divider */}
+          <div className="hidden sm:block w-px h-10 bg-gray-300 dark:bg-slate-600"></div>
+
           {/* Color Picker */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 dark:text-slate-400">Color:</label>
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              className="w-10 h-10 rounded cursor-pointer border border-gray-300 dark:border-slate-600"
-            />
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl px-3 py-2 shadow-sm border border-gray-200 dark:border-slate-700">
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 hidden sm:inline">Color</label>
+            <div className="relative group">
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="w-12 h-12 rounded-lg cursor-pointer border-2 border-gray-300 dark:border-slate-600 transition-all hover:scale-105"
+              />
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg opacity-0 group-hover:opacity-20 transition-opacity pointer-events-none"></div>
+            </div>
           </div>
 
           {/* Line Width */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 dark:text-slate-400">Size:</label>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={lineWidth}
-              onChange={(e) => setLineWidth(Number(e.target.value))}
-              className="w-24"
-            />
-            <span className="text-sm text-gray-600 dark:text-slate-400">{lineWidth}px</span>
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl px-3 py-2 shadow-sm border border-gray-200 dark:border-slate-700 flex-1 sm:flex-initial">
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 hidden sm:inline whitespace-nowrap">Thickness</label>
+            <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+              <input
+                type="range"
+                min="2"
+                max="12"
+                value={lineWidth}
+                onChange={(e) => setLineWidth(Number(e.target.value))}
+                className="w-full sm:w-24 h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                style={{
+                  background: `linear-gradient(to right, rgb(59, 130, 246) 0%, rgb(59, 130, 246) ${((lineWidth - 2) / 10) * 100}%, rgb(229, 231, 235) ${((lineWidth - 2) / 10) * 100}%, rgb(229, 231, 235) 100%)`
+                }}
+              />
+              <span className="text-sm font-semibold text-gray-700 dark:text-slate-300 min-w-[32px] text-center bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded-md">{lineWidth}</span>
+            </div>
           </div>
 
+          {/* Divider */}
+          <div className="hidden sm:block w-px h-10 bg-gray-300 dark:bg-slate-600"></div>
+
           {/* Undo/Redo */}
-          <div className="flex gap-1 ml-auto">
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl p-1.5 shadow-sm border border-gray-200 dark:border-slate-700 ml-auto">
             <button
               onClick={undo}
               disabled={historyStep <= 0}
-              className="p-2 bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Undo"
+              className="group relative p-2.5 sm:p-3 text-gray-600 dark:text-slate-400 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
-              ↶
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">Undo</span>
             </button>
             <button
               onClick={redo}
               disabled={historyStep >= history.length - 1}
-              className="p-2 bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Redo"
+              className="group relative p-2.5 sm:p-3 text-gray-600 dark:text-slate-400 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
-              ↷
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
+              </svg>
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">Redo</span>
             </button>
           </div>
         </div>
 
         {/* Canvas Container */}
-        <div className="flex-1 overflow-auto p-4 bg-gray-100 dark:bg-slate-900">
-          <div className="flex items-center justify-center min-h-full">
-            <canvas
-              ref={canvasRef}
-              onMouseDown={handleStart}
-              onMouseMove={handleMove}
-              onMouseUp={handleEnd}
-              onMouseLeave={handleEnd}
-              onTouchStart={handleStart}
-              onTouchMove={handleMove}
-              onTouchEnd={handleEnd}
-              className="max-w-full max-h-full shadow-lg cursor-crosshair touch-none"
-              style={{ maxHeight: 'calc(90vh - 250px)' }}
-            />
+        <div className="flex-1 overflow-auto p-3 sm:p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-900 dark:to-slate-800">
+          <div className="flex items-center justify-center min-h-full relative">
+            <div className="relative max-w-full max-h-full rounded-xl overflow-hidden shadow-2xl ring-1 ring-black/5">
+              <canvas
+                ref={canvasRef}
+                className="max-w-full max-h-full bg-white"
+                style={{ maxHeight: 'calc(100vh - 280px)', touchAction: 'none' }}
+              />
+              <canvas
+                ref={previewCanvasRef}
+                onMouseDown={handleStart}
+                onMouseMove={handleMove}
+                onMouseUp={handleEnd}
+                onMouseLeave={handleEnd}
+                onTouchStart={handleStart}
+                onTouchMove={handleMove}
+                onTouchEnd={handleEnd}
+                className="absolute top-0 left-0 max-w-full max-h-full cursor-crosshair"
+                style={{ maxHeight: 'calc(100vh - 280px)', touchAction: 'none', pointerEvents: 'auto' }}
+              />
+            </div>
           </div>
         </div>
 
         {/* Text Input Modal */}
         {textPosition && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 max-w-md w-full mx-4">
-              <h4 className="text-lg font-semibold mb-3 text-gray-900 dark:text-slate-100">Add Text</h4>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-20">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-slate-700">
+              <h4 className="text-lg font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+                <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Add Text
+              </h4>
               <input
                 type="text"
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
-                placeholder="Enter text..."
+                placeholder="Enter your text..."
                 autoFocus
-                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 mb-3"
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all mb-4"
               />
-              <div className="flex gap-2">
-                <button
-                  onClick={addText}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                >
-                  Add
-                </button>
+              <div className="flex gap-3">
                 <button
                   onClick={() => {
                     setTextPosition(null);
                     setTextInput('');
                   }}
-                  className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 dark:bg-slate-600 dark:hover:bg-slate-500 text-gray-900 dark:text-slate-100 rounded-lg transition-colors"
+                  className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-900 dark:text-white rounded-xl transition-all font-medium"
                 >
                   Cancel
+                </button>
+                <button
+                  onClick={addText}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl transition-all font-medium shadow-lg shadow-blue-500/30"
+                >
+                  Add Text
                 </button>
               </div>
             </div>
@@ -377,17 +476,20 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
         )}
 
         {/* Footer Actions */}
-        <div className="flex gap-3 p-4 border-t border-gray-200 dark:border-slate-700">
+        <div className="flex gap-3 p-3 sm:p-4 bg-gray-50 dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 dark:bg-slate-600 dark:hover:bg-slate-500 text-gray-900 dark:text-slate-100 rounded-lg transition-colors font-medium"
+            className="flex-1 px-6 py-3 bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-900 dark:text-white rounded-xl transition-all font-medium border border-gray-200 dark:border-slate-600"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium"
+            className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl transition-all font-medium shadow-lg shadow-green-500/30 flex items-center justify-center gap-2"
           >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
             Save Changes
           </button>
         </div>
