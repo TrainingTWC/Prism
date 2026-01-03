@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Settings, GraduationCap, CheckCircle, DollarSign, ArrowLeft, Home, Brain, FileText, Calendar } from 'lucide-react';
+import { Users, Settings, GraduationCap, CheckCircle, DollarSign, ArrowLeft, Home, Brain, FileText, Calendar, Trophy, Coffee, BarChart3 } from 'lucide-react';
 import { UserRole } from '../roleMapping';
 import { useAuth } from '../contexts/AuthContext';
 import HRChecklist from './checklists/HRChecklist';
@@ -12,16 +12,20 @@ import FormsChecklist from './checklists/FormsChecklist';
 import TrainerCalendarChecklist from './checklists/TrainerCalendarChecklist';
 import SHLPChecklist from './checklists/SHLPChecklist';
 import BenchPlanningChecklist from './checklists/BenchPlanningChecklist';
+import BrewLeagueRegionRound from './checklists/BrewLeagueRegionRound';
+import BrewLeagueDashboard from './checklists/BrewLeagueDashboard';
 
 interface ChecklistsAndSurveysProps {
   userRole: UserRole;
 }
 
-type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning';
+type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning' | 'brew-league';
+type BrewLeagueSubType = 'store' | 'am' | 'region' | 'dashboard';
 
 const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole }) => {
   const { userRole: authUserRole, hasPermission } = useAuth();
   const [activeChecklist, setActiveChecklist] = useState<ChecklistType | null>(null);
+  const [brewLeagueSubSection, setBrewLeagueSubSection] = useState<BrewLeagueSubType | null>(null);
   const [checklistStats, setChecklistStats] = useState({
     hr: { completed: 0, total: 0, score: 0 },
     operations: { completed: 0, total: 0, score: 0 },
@@ -32,7 +36,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     'campus-hiring': { completed: 0, total: 0, score: 0 },
     forms: { completed: 0, total: 0, score: 0 },
     'trainer-calendar': { completed: 0, total: 0, score: 0 },
-    'bench-planning': { completed: 0, total: 0, score: 0 }
+    'bench-planning': { completed: 0, total: 0, score: 0 },
+    'brew-league': { completed: 0, total: 0, score: 0 }
   });
 
   // Get auditor info from URL parameters
@@ -66,7 +71,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
       { id: 'campus-hiring' as ChecklistType, label: 'Campus Hiring', icon: Brain, color: 'bg-indigo-500' },
       { id: 'forms' as ChecklistType, label: 'Forms & Surveys', icon: FileText, color: 'bg-teal-500' },
       { id: 'trainer-calendar' as ChecklistType, label: 'Trainer Calendar', icon: Calendar, color: 'bg-purple-600' },
-      { id: 'bench-planning' as ChecklistType, label: 'Bench Planning', icon: Users, color: 'bg-violet-600' }
+      { id: 'bench-planning' as ChecklistType, label: 'Bench Planning', icon: Users, color: 'bg-violet-600' },
+      { id: 'brew-league' as ChecklistType, label: 'Brew League', icon: Trophy, color: 'bg-amber-600' }
     ];
 
     // For admin or editor role with Full Access, show all checklists
@@ -92,7 +98,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     { id: 'campus-hiring' as ChecklistType, label: 'Campus Hiring', icon: Brain, color: 'bg-indigo-500' },
     { id: 'forms' as ChecklistType, label: 'Forms & Surveys', icon: FileText, color: 'bg-teal-500' },
     { id: 'trainer-calendar' as ChecklistType, label: 'Trainer Calendar', icon: Calendar, color: 'bg-purple-600' },
-    { id: 'bench-planning' as ChecklistType, label: 'Bench Planning', icon: Users, color: 'bg-violet-600' }
+    { id: 'bench-planning' as ChecklistType, label: 'Bench Planning', icon: Users, color: 'bg-violet-600' },
+    { id: 'brew-league' as ChecklistType, label: 'Brew League', icon: Trophy, color: 'bg-amber-600' }
   ];
 
   const updateChecklistStats = (type: ChecklistType, stats: { completed: number; total: number; score: number }) => {
@@ -109,10 +116,137 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
 
   const handleBackToOverview = () => {
     setActiveChecklist(null);
+    setBrewLeagueSubSection(null);
+  };
+
+  const handleBackToBrewLeague = () => {
+    setBrewLeagueSubSection(null);
   };
 
   const renderActiveChecklist = () => {
     if (!activeChecklist) return null;
+
+    // Handle Brew League subsections
+    if (activeChecklist === 'brew-league' && !brewLeagueSubSection) {
+      return (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+              <Trophy className="w-8 h-8 text-amber-600" />
+              Brew League
+            </h2>
+            <p className="text-gray-600 dark:text-slate-400 mb-6">
+              Select the competition round to begin evaluation.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => setBrewLeagueSubSection('store')}
+              className="group p-6 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-amber-400 dark:hover:border-amber-400 bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all duration-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-amber-500 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <Coffee className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                  Store Round
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400">
+                  Store-level competition scoresheet
+                </p>
+                <span className="mt-4 text-sm text-amber-600 dark:text-amber-400 font-medium">
+                  Coming Soon
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setBrewLeagueSubSection('am')}
+              className="group p-6 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-amber-400 dark:hover:border-amber-400 bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all duration-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-amber-600 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <Users className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                  AM Round
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400">
+                  Area Manager level competition scoresheet
+                </p>
+                <span className="mt-4 text-sm text-amber-600 dark:text-amber-400 font-medium">
+                  Coming Soon
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setBrewLeagueSubSection('region')}
+              className="group p-6 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-amber-400 dark:hover:border-amber-400 bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all duration-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-amber-700 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <Trophy className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                  Region Round
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400">
+                  Regional competition scoresheet
+                </p>
+                <span className="mt-4 text-sm text-amber-600 dark:text-amber-400 font-medium group-hover:text-amber-700 dark:group-hover:text-amber-300">
+                  Open →
+                </span>
+              </div>
+            </button>
+          </div>
+
+          {/* Dashboard Button */}
+          <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-lg shadow-lg p-6">
+            <button
+              onClick={() => setBrewLeagueSubSection('dashboard')}
+              className="w-full group flex items-center justify-between p-6 bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-200 border-2 border-white/30 hover:border-white/50"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center">
+                  <BarChart3 className="w-7 h-7 text-amber-600" />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-xl font-bold text-white mb-1">View Dashboard</h3>
+                  <p className="text-amber-100 text-sm">Performance analytics and leaderboards</p>
+                </div>
+              </div>
+              <div className="text-white text-2xl group-hover:translate-x-2 transition-transform duration-200">
+                →
+              </div>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Render Brew League subsection
+    if (activeChecklist === 'brew-league' && brewLeagueSubSection) {
+      if (brewLeagueSubSection === 'dashboard') {
+        return <BrewLeagueDashboard />;
+      }
+      if (brewLeagueSubSection === 'region') {
+        return <BrewLeagueRegionRound />;
+      }
+      // Placeholders for other rounds
+      return (
+        <div className="text-center py-12">
+          <Trophy className="w-16 h-16 text-amber-600 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+            {brewLeagueSubSection === 'store' ? 'Store Round' : 'AM Round'}
+          </h3>
+          <p className="text-gray-600 dark:text-slate-400">
+            Coming soon! This scoresheet will be available shortly.
+          </p>
+        </div>
+      );
+    }
 
     const commonProps = {
       userRole,
@@ -173,9 +307,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                 {/* Hide back button for campus-hiring and bench-planning roles */}
                 {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && (
                   <button
-                    onClick={handleBackToOverview}
+                    onClick={brewLeagueSubSection ? handleBackToBrewLeague : handleBackToOverview}
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                    aria-label="Back to checklists overview"
+                    aria-label={brewLeagueSubSection ? "Back to Brew League" : "Back to checklists overview"}
                   >
                     <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-slate-400" />
                   </button>
@@ -193,10 +327,26 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                         <span>Checklists</span>
                       </button>
                       <span className="text-gray-400 dark:text-slate-500">/</span>
+                      {brewLeagueSubSection && (
+                        <>
+                          <button
+                            onClick={handleBackToBrewLeague}
+                            className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
+                          >
+                            {getChecklistLabel(activeChecklist)}
+                          </button>
+                          <span className="text-gray-400 dark:text-slate-500">/</span>
+                        </>
+                      )}
                     </>
                   )}
                   <span className="text-gray-900 dark:text-slate-100 font-medium">
-                    {getChecklistLabel(activeChecklist)}
+                    {brewLeagueSubSection 
+                      ? brewLeagueSubSection === 'store' ? 'Store Round' 
+                        : brewLeagueSubSection === 'am' ? 'AM Round' 
+                        : 'Region Round'
+                      : getChecklistLabel(activeChecklist)
+                    }
                   </span>
                 </nav>
               </div>

@@ -4194,7 +4194,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                       </div>
                       <div>
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white">Connect Targets</h3>
-                        <p className="text-sm text-gray-500 dark:text-slate-400">3 connects per HRBP per day • {(stats as any).numHRBPs} active HRBP{(stats as any).numHRBPs !== 1 ? 's' : ''}</p>
+                        <p className="text-sm text-gray-500 dark:text-slate-400">
+                          3 connects per HRBP per day • {(stats as any).numHRBPs} active HRBP{(stats as any).numHRBPs !== 1 ? 's' : ''}
+                          {filters.month && (
+                            <span className="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs font-medium">
+                              {(() => {
+                                const [year, month] = filters.month.split('-');
+                                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                return `${monthNames[parseInt(month) - 1]} ${year}`;
+                              })()}
+                            </span>
+                          )}
+                        </p>
                       </div>
                     </div>
 
@@ -4420,7 +4431,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white">HRBP Leaderboard</h3>
-                      <p className="text-sm text-gray-500 dark:text-slate-400">9 HRBPs</p>
+                      <p className="text-sm text-gray-500 dark:text-slate-400">
+                        9 HRBPs
+                        {filters.month && (
+                          <span className="ml-2 px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded text-xs font-medium">
+                            {(() => {
+                              const [year, month] = filters.month.split('-');
+                              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                              return `${monthNames[parseInt(month) - 1]} ${year}`;
+                            })()}
+                          </span>
+                        )}
+                      </p>
                     </div>
                   </div>
                   

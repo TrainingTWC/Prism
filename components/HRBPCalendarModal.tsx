@@ -367,28 +367,59 @@ const HRBPCalendarModal: React.FC<HRBPCalendarModalProps> = ({ hrbp, submissions
                   Survey Details
                 </h5>
                 <div className="max-h-48 sm:max-h-64 overflow-y-auto space-y-2">
-                  {selectedDay.submissions.map((sub, idx) => (
-                    <div 
-                      key={idx}
-                      className="bg-white dark:bg-slate-800 rounded-lg p-2 sm:p-3 flex items-center justify-between"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {sub.storeName || 'Unknown Store'}
+                  {selectedDay.submissions.map((sub, idx) => {
+                    // Parse and format the date/time
+                    let formattedDateTime = 'Date N/A';
+                    try {
+                      const parsedDate = parseDate(sub.submissionTime);
+                      if (parsedDate && !isNaN(parsedDate.getTime())) {
+                        formattedDateTime = parsedDate.toLocaleDateString('en-GB', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric'
+                        });
+                        
+                        // Try to extract time if available in original string
+                        if (sub.submissionTime.includes(',')) {
+                          const timePart = sub.submissionTime.split(',')[1]?.trim();
+                          if (timePart) {
+                            formattedDateTime += ` • ${timePart}`;
+                          }
+                        } else if (sub.submissionTime.includes('T')) {
+                          // ISO format with time
+                          const timeMatch = sub.submissionTime.match(/T(\d{2}):(\d{2})/);
+                          if (timeMatch) {
+                            formattedDateTime += ` • ${timeMatch[1]}:${timeMatch[2]}`;
+                          }
+                        }
+                      }
+                    } catch (e) {
+                      formattedDateTime = sub.submissionTime || 'Date N/A';
+                    }
+                    
+                    return (
+                      <div 
+                        key={idx}
+                        className="bg-white dark:bg-slate-800 rounded-lg p-2 sm:p-3 flex items-center justify-between"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {sub.storeName || 'Unknown Store'}
+                          </div>
+                          <div className="text-[10px] sm:text-xs text-gray-500 dark:text-slate-400">
+                            {formattedDateTime}
+                          </div>
                         </div>
-                        <div className="text-[10px] sm:text-xs text-gray-500 dark:text-slate-400">
-                          {sub.submissionTime.split(',')[1]?.trim() || 'Time N/A'}
+                        <div className={`text-xs sm:text-sm font-bold px-2 sm:px-3 py-1 rounded-full flex-shrink-0 ml-2 ${
+                          (sub.percent || 0) >= 80 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                          (sub.percent || 0) >= 60 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
+                          'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                        }`}>
+                          {sub.percent || 0}%
                         </div>
                       </div>
-                      <div className={`text-xs sm:text-sm font-bold px-2 sm:px-3 py-1 rounded-full flex-shrink-0 ml-2 ${
-                        (sub.percent || 0) >= 80 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
-                        (sub.percent || 0) >= 60 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
-                        'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                      }`}>
-                        {sub.percent || 0}%
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
