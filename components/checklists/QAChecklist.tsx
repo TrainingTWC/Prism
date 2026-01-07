@@ -1400,10 +1400,10 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                             className="w-5 h-5 sm:w-4 sm:h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500 flex-shrink-0"
                           />
                           <span className="text-sm sm:text-sm text-gray-700 dark:text-slate-300 font-medium">
-                            {option === 'compliant' ? 'Compliant' : 
-                             option === 'partially-compliant' ? 'Partially Compliant' :
-                             option === 'not-compliant' ? 'Not Compliant' :
-                             option === 'non-compliant' ? 'Non-Compliant' :
+                            {option === 'compliant' ? 'Compliance' : 
+                             option === 'partially-compliant' ? 'Partial Compliance' :
+                             option === 'not-compliant' ? 'Non-Compliance' :
+                             option === 'non-compliant' ? 'Non-Compliance' :
                              'N/A'}
                           </span>
                         </label>
