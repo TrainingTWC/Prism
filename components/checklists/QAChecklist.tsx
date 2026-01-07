@@ -625,6 +625,9 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       }
 
       // Prepare data for Google Sheets
+      console.log('📝 Question Remarks being submitted:', questionRemarks);
+      console.log('📝 Total remarks count:', Object.keys(questionRemarks).length);
+      
       const params: Record<string, string> = {
         submissionTime: editMode && existingSubmission?.submissionTime 
           ? existingSubmission.submissionTime 
@@ -654,7 +657,9 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         // Add image counts with _imageCount suffix
         ...Object.fromEntries(Object.entries(questionImages).map(([k, v]) => [`${k}_imageCount`, String(v.length)])),
         // Add all images as JSON (for PDF generation from dashboard)
-        questionImagesJSON: JSON.stringify(questionImages)
+        questionImagesJSON: JSON.stringify(questionImages),
+        // Add all question remarks as JSON (for proper storage and PDF generation)
+        questionRemarksJSON: JSON.stringify(questionRemarks)
       };
 
       const bodyString = new URLSearchParams(params).toString();
