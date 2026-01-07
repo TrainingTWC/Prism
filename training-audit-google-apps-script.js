@@ -63,6 +63,8 @@ function doPost(e) {
     console.log('MOD from form: ' + (params.mod || 'not provided'));
     console.log('Trainer Name from form: ' + (params.trainerName || 'not provided'));
     console.log('Trainer ID from form: ' + (params.trainerId || 'not provided'));
+    console.log('AM Name from form: ' + (params.amName || 'not provided'));
+    console.log('AM ID from form: ' + (params.amId || 'not provided'));
     
     // Log store mapping info
     console.log('=== STORE MAPPING INFO ===');
@@ -77,31 +79,28 @@ function doPost(e) {
     console.log('TSA_Coffee_Score_remarks: ' + (params.TSA_Coffee_Score_remarks || 'not provided'));
     console.log('TSA_CX_Score_remarks: ' + (params.TSA_CX_Score_remarks || 'not provided'));
     
-    // Auto-populate ONLY region from store mapping - MOD must remain user input
-    if (storeInfo.region) {
-      params.region = storeInfo.region;
-      console.log('Region set from store mapping: ' + params.region);
-    } else {
-      console.log('No region found in store mapping, keeping form value: ' + (params.region || 'empty'));
-    }
+    // IMPORTANT: Always use Store_mapping sheet as the ONLY source of truth for:
+    // - Region
+    // - Trainer Name and ID
+    // - AM Name and ID
     
-    // Auto-populate other store-related fields from mapping
+    // Auto-populate from store mapping - these override form values
+    params.region = storeInfo.region || params.region || '';
     params.storeName = storeInfo.storeName || params.storeName || '';
-    params.amId = storeInfo.amId || params.amId || '';
+    params.trainerName = storeInfo.trainerName || storeInfo.trainer || '';
+    params.trainerId = storeInfo.trainerId || '';
+    params.amName = storeInfo.amName || '';
+    params.amId = storeInfo.amId || '';
     params.hrbpId = storeInfo.hrbpId || params.hrbpId || '';
     params.regionalHrId = storeInfo.regionalHrId || params.regionalHrId || '';
     params.hrHeadId = storeInfo.hrHeadId || params.hrHeadId || '';
     params.lmsHeadId = storeInfo.lmsHeadId || params.lmsHeadId || '';
     
-    // Auto-populate trainer info from mapping if not provided by form
-    if (!params.trainerName && storeInfo.trainer) {
-      params.trainerName = storeInfo.trainer;
-      console.log('Trainer name set from store mapping: ' + params.trainerName);
-    }
-    if (!params.trainerId && storeInfo.trainerId) {
-      params.trainerId = storeInfo.trainerId;
-      console.log('Trainer ID set from store mapping: ' + params.trainerId);
-    }
+    console.log('Region set from store mapping: ' + params.region);
+    console.log('Trainer name set from store mapping: ' + params.trainerName);
+    console.log('Trainer ID set from store mapping: ' + params.trainerId);
+    console.log('AM name set from store mapping: ' + params.amName);
+    console.log('AM ID set from store mapping: ' + params.amId);
     
     // MOD field MUST ONLY come from form input - never from store mapping
     // Keep original MOD value from form, do not override
@@ -113,6 +112,8 @@ function doPost(e) {
     console.log('Final MOD: ' + (params.mod || 'not set'));
     console.log('Final Trainer Name: ' + (params.trainerName || 'not set'));
     console.log('Final Trainer ID: ' + (params.trainerId || 'not set'));
+    console.log('Final AM Name: ' + (params.amName || 'not set'));
+    console.log('Final AM ID: ' + (params.amId || 'not set'));
 
     var header = [
       'Server Timestamp', 'Submission Time', 'Trainer Name', 'Trainer ID',
@@ -452,14 +453,16 @@ function getStoreMapping() {
       if (storeId) {
         mappingObject[storeId] = {
           storeName: store['Store Name'] || store['locationName'] || store['store_name'] || '',
-          amId: store['Area Manager ID'] || store['areaManagerId'] || store['area_manager_id'] || '',
-          hrbpId: store['HRBP ID'] || store['hrbpId'] || store['hrbp_id'] || '',
-          regionalHrId: store['Regional HR ID'] || store['regionalHrId'] || store['regional_hr_id'] || '',
+          amId: store['AM'] || store['Area Manager ID'] || store['areaManagerId'] || store['area_manager_id'] || '',
+          amName: store['AM Name'] || store['Area Manager Name'] || store['areaManagerName'] || store['area_manager_name'] || '',
+          hrbpId: store['HRBP 1'] || store['HRBP ID'] || store['hrbpId'] || store['hrbp_id'] || '',
+          regionalHrId: store['Regional HR'] || store['Regional HR ID'] || store['regionalHrId'] || store['regional_hr_id'] || '',
           region: store['Region'] || store['region'] || '',
-          hrHeadId: store['HR Head ID'] || store['hrHeadId'] || store['hr_head_id'] || '',
+          hrHeadId: store['HR Head'] || store['HR Head ID'] || store['hrHeadId'] || store['hr_head_id'] || '',
           lmsHeadId: store['LMS Head ID'] || store['lmsHeadId'] || store['lms_head_id'] || '',
-          trainer: store['Trainer'] || store['trainer'] || '',
-          trainerId: store['Trainer ID'] || store['trainerId'] || store['trainer_id'] || ''
+          trainer: store['Trainer 1 Name'] || store['Trainer'] || store['trainer'] || '',
+          trainerId: store['Trainer 1'] || store['Trainer ID'] || store['trainerId'] || store['trainer_id'] || '',
+          trainerName: store['Trainer 1 Name'] || store['Trainer Name'] || store['trainerName'] || store['trainer_name'] || ''
         };
       }
     }
@@ -484,20 +487,20 @@ function getFallbackStoreMapping() {
   console.log('Using fallback store mapping with essential store data');
   var fallbackMapping = {
     // North Region Stores - Essential mappings
-    'S192': {storeName: 'Bhutani City Centre Noida', amId: 'H1766', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S027': {storeName: 'Defence Colony', amId: 'H1766', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S037': {storeName: 'Khan Market', amId: 'H1766', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S049': {storeName: 'Connaught Place', amId: 'H1766', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S055': {storeName: 'Kalkaji', amId: 'H1766', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S039': {storeName: 'Sector 07', amId: 'H2396', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S042': {storeName: 'Sector 35', amId: 'H2396', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S062': {storeName: 'Panchkula', amId: 'H2396', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S122': {storeName: 'Jubilee Walk Mohali', amId: 'H2396', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S024': {storeName: 'Deer Park', amId: 'H535', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S035': {storeName: 'GK 1', amId: 'H535', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S072': {storeName: 'Kailash Colony', amId: 'H535', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S142': {storeName: 'Green Park', amId: 'H535', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S171': {storeName: 'Omaxe World Street', amId: 'H535', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
+    'S192': {storeName: 'Bhutani City Centre Noida', amId: 'H1766', amName: 'Naresh Kumar Sharma', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
+    'S027': {storeName: 'Defence Colony', amId: 'H1766', amName: 'Naresh Kumar Sharma', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
+    'S037': {storeName: 'Khan Market', amId: 'H1766', amName: 'Naresh Kumar Sharma', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
+    'S049': {storeName: 'Connaught Place', amId: 'H1766', amName: 'Naresh Kumar Sharma', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
+    'S055': {storeName: 'Kalkaji', amId: 'H1766', amName: 'Naresh Kumar Sharma', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
+    'S039': {storeName: 'Sector 07', amId: 'H2396', amName: 'Amit Kumar', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
+    'S042': {storeName: 'Sector 35', amId: 'H2396', amName: 'Amit Kumar', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
+    'S062': {storeName: 'Panchkula', amId: 'H2396', amName: 'Amit Kumar', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
+    'S122': {storeName: 'Jubilee Walk Mohali', amId: 'H2396', amName: 'Amit Kumar', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
+    'S024': {storeName: 'Deer Park', amId: 'H535', amName: 'Aman Vij', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169', trainerName: 'Hema'},
+    'S035': {storeName: 'GK 1', amId: 'H535', amName: 'Aman Vij', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
+    'S072': {storeName: 'Kailash Colony', amId: 'H535', amName: 'Aman Vij', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
+    'S142': {storeName: 'Green Park', amId: 'H535', amName: 'Aman Vij', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169', trainerName: 'Hema'},
+    'S171': {storeName: 'Omaxe World Street', amId: 'H535', amName: 'Aman Vij', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
     'S172': {storeName: 'Faridabad Sec 14', amId: 'H535', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
     'S197': {storeName: 'DLF Saltstayz', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
     'S198': {storeName: 'DLF Star Tower', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
@@ -686,7 +689,7 @@ function getStoreInfo(storeId) {
   
   if (!storeId) {
     console.log('No storeId provided, returning empty object');
-    return { region: '', storeName: '', amId: '', hrbpId: '', regionalHrId: '', hrHeadId: '', lmsHeadId: '', trainer: '', trainerId: '' };
+    return { region: '', storeName: '', amId: '', amName: '', hrbpId: '', regionalHrId: '', hrHeadId: '', lmsHeadId: '', trainer: '', trainerId: '', trainerName: '' };
   }
   
   try {
@@ -704,7 +707,7 @@ function getStoreInfo(storeId) {
       if (similarStores.length > 0) {
         console.log('Similar store IDs found: ' + similarStores.join(', '));
       }
-      return { region: 'Unknown', storeName: '', amId: '', hrbpId: '', regionalHrId: '', hrHeadId: '', lmsHeadId: '', trainer: '', trainerId: '' };
+      return { region: 'Unknown', storeName: '', amId: '', amName: '', hrbpId: '', regionalHrId: '', hrHeadId: '', lmsHeadId: '', trainer: '', trainerId: '', trainerName: '' };
     }
     
     // Ensure we return a clean object with all expected fields
@@ -712,12 +715,14 @@ function getStoreInfo(storeId) {
       region: storeInfo.region || 'Unknown',
       storeName: storeInfo.storeName || '',
       amId: storeInfo.amId || '',
+      amName: storeInfo.amName || '',
       hrbpId: storeInfo.hrbpId || '',
       regionalHrId: storeInfo.regionalHrId || '',
       hrHeadId: storeInfo.hrHeadId || '',
       lmsHeadId: storeInfo.lmsHeadId || '',
       trainer: storeInfo.trainer || '',
-      trainerId: storeInfo.trainerId || ''
+      trainerId: storeInfo.trainerId || '',
+      trainerName: storeInfo.trainerName || storeInfo.trainer || ''
       // Notably NO 'mod' field - MOD must be user input only
     };
     
@@ -726,6 +731,6 @@ function getStoreInfo(storeId) {
     
   } catch (error) {
     console.log('Error in getStoreInfo: ' + error.toString());
-    return { region: 'Error', storeName: '', amId: '', hrbpId: '', regionalHrId: '', hrHeadId: '', lmsHeadId: '', trainer: '', trainerId: '' };
+    return { region: 'Error', storeName: '', amId: '', amName: '', hrbpId: '', regionalHrId: '', hrHeadId: '', lmsHeadId: '', trainer: '', trainerId: '', trainerName: '' };
   }
 }
