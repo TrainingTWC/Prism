@@ -623,51 +623,58 @@ export const buildQAPDF = async (
     doc.text(scoreLabel, scoreX, y + 8);
     y += 18;
 
-    // Table of questions with serial numbers
-    const tableRows = sec.rows.map((r, idx) => [`Q${idx + 1}. ${r.question}`, r.answer, String(r.score), String(r.maxScore)]);
-    autoTable(doc as any, {
-      startY: y,
-      head: [['Question', 'Response', 'Score', 'Max']],
-      body: tableRows,
-      styles: { fontSize: 9, cellPadding: 3 },
-      headStyles: { fillColor: [248, 250, 252], textColor: [51, 65, 85], fontStyle: 'bold' },
-      columnStyles: {
-        0: { cellWidth: 95 },
-        1: { cellWidth: 40, halign: 'center' },
-        2: { cellWidth: 20, halign: 'center' },
-        3: { cellWidth: 20, halign: 'center' }
-      },
-      didParseCell: (data: any) => {
-        if (data.section === 'body') {
-          if (data.column.index === 1) {
-            const text = String(data.cell.raw).toLowerCase();
-            if (text === 'compliant') {
-              data.cell.styles.textColor = [34, 197, 94];
-              data.cell.styles.fillColor = [240, 253, 244];
-              data.cell.styles.fontStyle = 'bold';
-            } else if (text === 'non-compliant' || text === 'not compliant') {
-              data.cell.styles.textColor = [239, 68, 68];
-              data.cell.styles.fillColor = [254, 242, 242];
-              data.cell.styles.fontStyle = 'bold';
-            } else if (text === 'partially compliant') {
-              data.cell.styles.textColor = [245, 158, 11];
-              data.cell.styles.fillColor = [254, 252, 232];
-              data.cell.styles.fontStyle = 'bold';
+    // Render each question individually with its images
+    sec.rows.forEach((rowData, rowIndex) => {
+      // Check if we need a new page before question
+      if (y > 250) {
+        doc.addPage();
+        y = 20;
+      }
+
+      // Render single question table
+      const tableRows = [[`Q${rowIndex + 1}. ${rowData.question}`, rowData.answer, String(rowData.score), String(rowData.maxScore)]];
+      autoTable(doc as any, {
+        startY: y,
+        head: [['Question', 'Response', 'Score', 'Max']],
+        body: tableRows,
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [248, 250, 252], textColor: [51, 65, 85], fontStyle: 'bold' },
+        columnStyles: {
+          0: { cellWidth: 95 },
+          1: { cellWidth: 40, halign: 'center' },
+          2: { cellWidth: 20, halign: 'center' },
+          3: { cellWidth: 20, halign: 'center' }
+        },
+        didParseCell: (data: any) => {
+          if (data.section === 'body') {
+            if (data.column.index === 1) {
+              const text = String(data.cell.raw).toLowerCase();
+              if (text === 'compliant') {
+                data.cell.styles.textColor = [34, 197, 94];
+                data.cell.styles.fillColor = [240, 253, 244];
+                data.cell.styles.fontStyle = 'bold';
+              } else if (text === 'non-compliant' || text === 'not compliant') {
+                data.cell.styles.textColor = [239, 68, 68];
+                data.cell.styles.fillColor = [254, 242, 242];
+                data.cell.styles.fontStyle = 'bold';
+              } else if (text === 'partially compliant') {
+                data.cell.styles.textColor = [245, 158, 11];
+                data.cell.styles.fillColor = [254, 252, 232];
+                data.cell.styles.fontStyle = 'bold';
+              }
             }
-          }
-          if (data.column.index === 2) {
-            const scoreNum = Number(data.cell.raw);
-            if (!isNaN(scoreNum) && scoreNum > 0) {
-              data.cell.styles.textColor = [34, 197, 94];
+            if (data.column.index === 2) {
+              const scoreNum = Number(data.cell.raw);
+              if (!isNaN(scoreNum) && scoreNum > 0) {
+                data.cell.styles.textColor = [34, 197, 94];
+              }
             }
           }
         }
-      }
-    });
-    y = (doc as any).lastAutoTable.finalY + 6;
-    
-    // Render images for each question with proper organization
-    sec.rows.forEach((rowData, rowIndex) => {
+      });
+      y = (doc as any).lastAutoTable.finalY + 2;
+
+      // Render images for this question immediately below it
       if (rowData.questionId) {
         // Try multiple image key formats
         const imageKey = rowData.questionId;
@@ -687,18 +694,11 @@ export const buildQAPDF = async (
         }
         
         if (images && images.length > 0) {
-          // Check if we need a new page
+          // Check if we need a new page for images
           if (y > 250) {
             doc.addPage();
             y = 20;
           }
-          
-          // Question label with better formatting
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(59, 130, 246);
-          doc.text(`Images for Q${rowIndex + 1}:`, 14, y);
-          y += 5;
           
           // Smaller, more compact image layout
           const imagesPerRow = 5;
@@ -736,9 +736,12 @@ export const buildQAPDF = async (
           
           // Update y position
           const totalRows = Math.ceil(images.length / imagesPerRow);
-          y += (imageHeight + spacing) * totalRows + 4;
+          y += (imageHeight + spacing) * totalRows + 2;
         }
       }
+
+      // Add small spacing between questions
+      y += 4;
     });
 
     // Display section remarks if they exist
