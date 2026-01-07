@@ -458,13 +458,25 @@ export const buildQAPDF = async (
         display = 'NA';
       }
 
+      // Get per-question remark
+      const questionRemarkKey = `${section.id}_${questionId}_remark`;
+      const altRemarkKey = `${prefix}_${questionId}_remark`;
+      let questionRemark = '';
+      
+      if (sub[questionRemarkKey]) {
+        questionRemark = String(sub[questionRemarkKey]).trim();
+      } else if (sub[altRemarkKey]) {
+        questionRemark = String(sub[altRemarkKey]).trim();
+      }
+
       sections[section.id].rows.push({
         id: item.id,
         questionId: `${section.id}_${questionId}`, // Add full question ID for image lookup
         question: item.q,
         answer: display,
         score: numeric,
-        maxScore: item.w
+        maxScore: item.w,
+        remark: questionRemark // Add per-question remark
       });
     });
 
@@ -673,6 +685,27 @@ export const buildQAPDF = async (
         }
       });
       y = (doc as any).lastAutoTable.finalY + 2;
+
+      // Render per-question remark immediately below question
+      if (rowData.remark && rowData.remark.trim()) {
+        // Check if we need a new page for remark
+        if (y > 265) {
+          doc.addPage();
+          y = 20;
+        }
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(107, 114, 128); // gray-500
+        doc.text('💬 Comment:', 18, y + 4);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(55, 65, 81); // gray-700
+        const remarkLines = doc.splitTextToSize(rowData.remark, 160);
+        doc.text(remarkLines, 40, y + 4);
+        
+        y += (remarkLines.length * 4) + 3;
+      }
 
       // Render images for this question immediately below it
       if (rowData.questionId) {
