@@ -5909,10 +5909,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               <QASectionScoresInfographic submissions={filteredQAData || []} />
 
               {/* QA Submissions List with Edit */}
-              {filteredQAData && filteredQAData.length > 0 && filteredQAData.length <= 20 && (
+              {filteredQAData && filteredQAData.length > 0 && (
                 <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Recent Submissions ({filteredQAData.length})
+                    Recent Submissions ({filteredQAData.length > 50 ? 'Showing 50 of ' + filteredQAData.length : filteredQAData.length})
                   </h3>
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
@@ -5936,7 +5936,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                        {filteredQAData.map((submission, index) => (
+                        {filteredQAData.slice(0, 50).map((submission, index) => (
                           <tr key={index} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
                             <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                               {submission.submissionTime ? (() => {
