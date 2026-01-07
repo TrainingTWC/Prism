@@ -27,6 +27,8 @@ interface TrainingMeta {
   amId: string;
   trainerName: string;
   trainerId: string;
+  auditorName: string;
+  auditorId: string;
   // Trainer mapped to the selected store (designated trainer). Used for dashboards/autofill.
   mappedTrainerName: string;
   mappedTrainerId: string;
@@ -325,6 +327,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       amId: (stored as any).amId || '',
       trainerName: finalTrainerName,
       trainerId: finalTrainerId,
+      auditorName: (stored as any).auditorName || '',
+      auditorId: (stored as any).auditorId || '',
       mappedTrainerName: (stored as any).mappedTrainerName || '',
       mappedTrainerId: (stored as any).mappedTrainerId || '',
       storeName: (stored as any).storeName || '',
@@ -474,12 +478,15 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     }
   }, [responses, onStatsUpdate]);
   const [trainerSearchTerm, setTrainerSearchTerm] = useState('');
+  const [auditorSearchTerm, setAuditorSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
   const [showAmDropdown, setShowAmDropdown] = useState(false);
   const [showTrainerDropdown, setShowTrainerDropdown] = useState(false);
+  const [showAuditorDropdown, setShowAuditorDropdown] = useState(false);
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   const [selectedAmIndex, setSelectedAmIndex] = useState(-1);
   const [selectedTrainerIndex, setSelectedTrainerIndex] = useState(-1);
+  const [selectedAuditorIndex, setSelectedAuditorIndex] = useState(-1);
   const [selectedStoreIndex, setSelectedStoreIndex] = useState(-1);
 
   const normalizeId = (v: any) => (v || '').toString().trim().toUpperCase();
@@ -664,6 +671,13 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     trainerSearchTerm === '' || 
     (trainer.name as string).toLowerCase().includes(trainerSearchTerm.toLowerCase()) ||
     (trainer.id as string).toLowerCase().includes(trainerSearchTerm.toLowerCase())
+  );
+
+  // 2a. Auditors - same list as trainers but separate filter
+  const filteredAuditors = uniqueTrainers.filter(auditor => 
+    auditorSearchTerm === '' || 
+    (auditor.name as string).toLowerCase().includes(auditorSearchTerm.toLowerCase()) ||
+    (auditor.id as string).toLowerCase().includes(auditorSearchTerm.toLowerCase())
   );
 
   // 2b. MOD employees filtered by search term
@@ -1484,7 +1498,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     // Check if all required meta fields are filled
     const missingFields: string[] = [];
     if (!meta.storeName || !meta.storeId) missingFields.push('Store Location');
-    if (!meta.trainerName || !meta.trainerId) missingFields.push('Trainer (Auditor)');
+    if (!meta.trainerName || !meta.trainerId) missingFields.push('Trainer');
+    if (!meta.auditorName || !meta.auditorId) missingFields.push('Auditor');
     if (!meta.amName || !meta.amId) missingFields.push('Area Manager');
     if (!meta.mod) missingFields.push('MOD (Manager on Duty)');
 
@@ -1560,6 +1575,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         timestamp: new Date().toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
         trainerName: dashboardTrainerName,
         trainerId: dashboardTrainerId,
+        auditorName: meta.auditorName,
+        auditorId: meta.auditorId,
         amName: meta.amName,
         amId: meta.amId,
         storeName: meta.storeName,
@@ -1638,6 +1655,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       amId: '',
       trainerName: '',
       trainerId: '',
+      auditorName: '',
+      auditorId: '',
       mappedTrainerName: '',
       mappedTrainerId: '',
       storeName: '',
@@ -1656,6 +1675,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       amId: '',
       trainerName: '',
       trainerId: '',
+      auditorName: '',
+      auditorId: '',
       mappedTrainerName: '',
       mappedTrainerId: '',
       storeName: '',
@@ -1914,6 +1935,52 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                   ))
                 ) : (
                   <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No trainers found</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+              Auditor
+            </label>
+            <input
+              type="text"
+              value={auditorSearchTerm || (meta.auditorId ? `${meta.auditorName || 'Loading...'} (${meta.auditorId})` : '')}
+              onChange={(e) => {
+                setAuditorSearchTerm(e.target.value);
+                setShowAuditorDropdown(true);
+                setSelectedAuditorIndex(-1);
+              }}
+              onFocus={() => setShowAuditorDropdown(true)}
+              onBlur={() => setTimeout(() => setShowAuditorDropdown(false), 200)}
+              placeholder="Search Auditor (can be same as Trainer)..."
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+            />
+            
+            {showAuditorDropdown && (
+              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                {uniqueTrainers.length === 0 ? (
+                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No auditors found</div>
+                ) : filteredAuditors.length > 0 ? (
+                  filteredAuditors.map((auditor, index) => (
+                    <button
+                      key={auditor.id}
+                      onClick={() => {
+                        handleMetaChange('auditorId', auditor.id as string);
+                        handleMetaChange('auditorName', auditor.name as string);
+                        setAuditorSearchTerm('');
+                        setShowAuditorDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
+                        index === selectedAuditorIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                      }`}
+                    >
+                      <div className="truncate">{auditor.name} ({auditor.id})</div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No auditors found</div>
                 )}
               </div>
             )}

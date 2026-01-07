@@ -13,6 +13,7 @@ import { Submission, Store } from '../types';
 import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission } from '../services/dataService';
 import { fetchSHLPData, SHLPSubmission } from '../services/shlpDataService';
 import { hapticFeedback } from '../utils/haptics';
+import { loadComprehensiveMapping } from '../utils/mappingUtils';
 import StatCard from './StatCard';
 import Loader from './Loader';
 import SkeletonLoader from './SkeletonLoader';
@@ -449,38 +450,29 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     }
   }, []);
 
-  // Load stores, area managers, and HR personnel from comprehensive_store_mapping.json
+  // Load stores, area managers, and HR personnel from Google Sheets store mapping
   useEffect(() => {
     const loadMappingData = async () => {
       try {
-        const base = (import.meta as any).env?.BASE_URL || '/';
-        let response: Response;
-
-        // Try comprehensive mapping first
-        try {
-          response = await fetch(`${base}comprehensive_store_mapping.json`);
-          if (!response.ok) throw new Error('Comprehensive mapping not found');
-        } catch {
-          console.warn('Falling back to hr_mapping.json');
-          response = await fetch(`${base}hr_mapping.json`);
-        }
-
-        const mappingData = await response.json();
+        // Load from Google Sheets API via mappingUtils
+        const mappingData = await loadComprehensiveMapping();
+        
         setHrMappingData(mappingData);
-        setCompStoreMapping(Array.isArray(mappingData) ? mappingData : []);
+        setCompStoreMapping(mappingData);
 
         // Extract unique stores
         const storeMap = new Map();
         const amMap = new Map();
         const hrMap = new Map();
 
-        (Array.isArray(mappingData) ? mappingData : []).forEach((item: any) => {
+        mappingData.forEach((item: any) => {
           const storeId = item['Store ID'] || item.storeId;
           const storeName = item['Store Name'] || item.locationName;
           const region = item.Region || item.region;
-          const amId = item.AM || item.areaManagerId;
-          const hrbpId = item.HRBP || item.hrbpId;
-          const regionalHrId = item['Regional Training Manager'] || item.regionalHrId;
+          const amId = item['AM'] || item.amId;
+          const amName = item['AM Name'] || item.amName;
+          const hrbpId = item['HRBP'] || item.hrbpId;
+          const regionalHrId = item['Regional HR'] || item.regionalHrId;
           const hrHeadId = item['HR Head'] || item.hrHeadId;
           const lmsHeadId = item['E-Learning Specialist'] || item.lmsHeadId;
 
@@ -489,8 +481,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           }
 
           if (amId && !amMap.has(amId)) {
-            const amFromConstants = AREA_MANAGERS.find(am => String(am.id).toLowerCase() === String(amId).toLowerCase());
-            amMap.set(amId, { name: amFromConstants?.name || `AM ${amId}`, id: amId });
+            // Use AM Name from Google Sheets if available, otherwise try constants
+            const finalAmName = amName || AREA_MANAGERS.find(am => String(am.id).toLowerCase() === String(amId).toLowerCase())?.name || `AM ${amId}`;
+            amMap.set(amId, { name: finalAmName, id: amId });
           }
 
           [
@@ -514,37 +507,52 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         setAllAreaManagers(areaManagers);
         setAllHRPersonnel(hrPersonnel);
 
-        // Build Trainer list for Training/Operations/QA dashboards (from mapping rows)
-        const trainerIds = new Set<string>();
-        (Array.isArray(mappingData) ? mappingData : []).forEach((row: any) => {
-          const rawTrainer = row.Trainer || row['Trainer'] || row['Trainer ID'] || row.trainerId || row.trainer_id;
-          if (!rawTrainer) return;
-          String(rawTrainer).split(',').map((id: string) => id.trim().toUpperCase()).filter(Boolean).forEach((id: string) => trainerIds.add(id));
+        // Build Trainer list from Google Sheets store mapping
+        const trainerMap = new Map<string, string>();
+        mappingData.forEach((row: any) => {
+          // Get Trainer 1, 2, 3 from Google Sheets
+          const trainer1Id = row['Trainer 1'] || row['Trainer 1 ID'];
+          const trainer1Name = row['Trainer 1 Name'];
+          const trainer2Id = row['Trainer 2'] || row['Trainer 2 ID'];
+          const trainer2Name = row['Trainer 2 Name'];
+          const trainer3Id = row['Trainer 3'] || row['Trainer 3 ID'];
+          const trainer3Name = row['Trainer 3 Name'];
+          
+          if (trainer1Id && trainer1Name) trainerMap.set(String(trainer1Id).trim().toUpperCase(), trainer1Name);
+          if (trainer2Id && trainer2Name) trainerMap.set(String(trainer2Id).trim().toUpperCase(), trainer2Name);
+          if (trainer3Id && trainer3Name) trainerMap.set(String(trainer3Id).trim().toUpperCase(), trainer3Name);
         });
 
         const trainersArr: any[] = [];
-        trainerIds.forEach((trainerId) => {
-          const found = TRAINER_PERSONNEL.find((t: any) => String(t.id).toUpperCase() === trainerId);
-          const name = found?.name || trainerId;
-          trainersArr.push({ id: trainerId, name });
+        trainerMap.forEach((name, id) => {
+          trainersArr.push({ id, name });
         });
         trainersArr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
         setAllTrainers(trainersArr.length ? trainersArr : TRAINER_PERSONNEL);
-
-        console.log(`Dashboard loaded ${stores.length} stores, ${areaManagers.length} AMs, ${hrPersonnel.length} HR personnel from static mapping`);
       } catch (error) {
-        console.warn('Dashboard could not load mapping data:', error);
-        setAllStores([
-          { name: 'Defence Colony', id: 'S027' },
-          { name: 'Khan Market', id: 'S037' },
-          { name: 'UB City', id: 'S007' },
-          { name: 'Koramangala 1', id: 'S001' }
-        ]);
-        setAllAreaManagers(AREA_MANAGERS);
-        setAllHRPersonnel(HR_PERSONNEL);
-        setAllTrainers(TRAINER_PERSONNEL);
-        setHrMappingData([]);
-        setCompStoreMapping([]);
+        console.error('❌ Dashboard could not load mapping data from Google Sheets:', error);
+        
+        // Fallback to local JSON
+        try {
+          const base = (import.meta as any).env?.BASE_URL || '/';
+          const response = await fetch(`${base}comprehensive_store_mapping.json`);
+          const mappingData = await response.json();
+          setHrMappingData(mappingData);
+          setCompStoreMapping(Array.isArray(mappingData) ? mappingData : []);
+        } catch (fallbackError) {
+          console.error('❌ Fallback also failed:', fallbackError);
+          setAllStores([
+            { name: 'Defence Colony', id: 'S027' },
+            { name: 'Khan Market', id: 'S037' },
+            { name: 'UB City', id: 'S007' },
+            { name: 'Koramangala 1', id: 'S001' }
+          ]);
+          setAllAreaManagers(AREA_MANAGERS);
+          setAllHRPersonnel(HR_PERSONNEL);
+          setAllTrainers(TRAINER_PERSONNEL);
+          setHrMappingData([]);
+          setCompStoreMapping([]);
+        }
       }
     };
 
@@ -2314,22 +2322,24 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           const firstRecord = reportData[0] as any;
           meta.trainerName = firstRecord.trainerName || firstRecord.trainer_name || '';
           meta.trainerId = firstRecord.trainerId || firstRecord.trainer_id || '';
+          meta.auditorName = firstRecord.auditorName || firstRecord.auditor_name || '';
+          meta.auditorId = firstRecord.auditorId || firstRecord.auditor_id || '';
           // Capture MOD from single record if present
           if (firstRecord.mod) meta.mod = firstRecord.mod;
         } else if (reportData.length > 0) {
           meta.trainerName = 'Multiple Trainers';
           meta.trainerId = '';
+          meta.auditorName = 'Multiple Auditors';
+          meta.auditorId = '';
         }
         
         // AM filter
         if (filters.am) {
           const am = AREA_MANAGERS.find(a => a.id === filters.am);
           meta.amName = am?.name || filters.am;
-          meta.auditorName = am?.name || filters.am;
         } else if (reportData.length > 0 && reportData.length === 1) {
           const firstRecord = reportData[0] as any;
           meta.amName = firstRecord.amName || firstRecord.am_name || '';
-          meta.auditorName = firstRecord.amName || firstRecord.am_name || 'N/A';
           if (firstRecord.mod) meta.mod = firstRecord.mod;
         }
         
@@ -5014,25 +5024,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         today.setHours(0, 0, 0, 0);
 
                         // First, initialize ALL stores from comprehensive mapping (whether audited or not)
-                        console.log('Comprehensive store mapping count:', compStoreMapping.length);
                         compStoreMapping.forEach((storeData: any) => {
                           const storeId = storeData['Store ID'];
                           if (!storeId) return;
                           
-                          // Get AM name and trainer name directly from store mapping
-                          const amName = storeData['AM Name'] || storeData['Area Manager Name'] || storeData.amName || 'Unknown';
+                          // Use AM Name and Trainer 1 Name directly from Google Sheets store mapping
+                          const amName = storeData['AM Name'] || storeData.amName || 'Unknown';
                           const trainerName = storeData['Trainer 1 Name'] || storeData['Trainer Name'] || storeData.trainerName || 'Unknown';
-                          
-                          // Debug stores showing Unknown
-                          if (storeId === 'S005' || storeId === 'S006' || storeId === 'S009' || storeId === 'S021') {
-                            console.log(`Store ${storeId} mapping:`, {
-                              'Store Name': storeData['Store Name'],
-                              'AM Name': storeData['AM Name'],
-                              'Trainer 1 Name': storeData['Trainer 1 Name'],
-                              amName,
-                              trainerName
-                            });
-                          }
                           
                           storeAudits.set(storeId, {
                             storeId,
@@ -5048,8 +5046,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           });
                         });
 
-                        console.log('  - Total stores in mapping:', storeAudits.size);
-
                         // Now, update stores that have actual audit data (ONLY update audit fields, keep mapping data)
                         filteredTrainingData.forEach(submission => {
                           const storeId = submission.storeId;
@@ -5062,7 +5058,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           if (!submissionDateStr) {
                             // No date provided - default to September 1, 2025
                             submissionDate = new Date('2025-09-01');
-                            console.log(`No date for store ${storeId}, defaulting to September 2025`);
                           } else {
                             submissionDate = new Date(submissionDateStr);
                             
@@ -5070,7 +5065,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                             if (isNaN(submissionDate.getTime())) {
                               // Invalid date - default to September 2025
                               submissionDate = new Date('2025-09-01');
-                              console.warn(`Invalid date for store ${storeId}:`, submissionDateStr, '- defaulting to September 2025');
                             }
                           }
 

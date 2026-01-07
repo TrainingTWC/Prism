@@ -300,11 +300,13 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
   // Simplified metadata row (compact single-line)
   const metaY = y + 8;
   const dateStr = metadata.date || first.submissionTime || first.date || '';
-  const auditor = metadata.trainerName || first.trainerName || first.auditor || '';
+  const trainer = metadata.trainerName || first.trainerName || '';
+  const auditor = metadata.auditorName || first.auditorName || '';
   const sid = metadata.storeId || first.storeId || '';
   const mod = (metadata.mod || first.mod || first.MOD) || '';
   const metaLine = [] as string[];
   if (dateStr) metaLine.push(`${dateStr}`);
+  if (trainer) metaLine.push(`Trainer: ${trainer}`);
   if (auditor) metaLine.push(`Auditor: ${auditor}`);
   if (sid) metaLine.push(`Store: ${sid}`);
   if (mod) metaLine.push(`MOD: ${mod}`);
