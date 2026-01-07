@@ -66,7 +66,6 @@ import QARegionPerformanceInfographic from './QARegionPerformanceInfographic';
 import QAAuditorPerformanceInfographic from './QAAuditorPerformanceInfographic';
 import QAScoreDistributionChart from './QAScoreDistributionChart';
 import QASectionScoresInfographic from './QASectionScoresInfographic';
-import QARadarChart from './QARadarChart';
 import QAAMPerformanceInfographic from './QAAMPerformanceInfographic';
 import QAAverageScoreChart from './QAAverageScoreChart';
 import QAEditModal from './QAEditModal';
@@ -149,6 +148,52 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   // Connect Targets Modal state
   const [showConnectTargetsModal, setShowConnectTargetsModal] = useState(false);
+
+  // Helper to parse DD/MM/YYYY date format from Google Sheets
+  const parseSheetDate = (dateStr: string): Date | null => {
+    if (!dateStr) return null;
+    try {
+      // Handle ISO format (2026-06-01T10:12:31.000Z)
+      // Note: ISO dates from Google Sheets with DD/MM/YYYY have month/day swapped
+      if (dateStr.includes('T') || dateStr.includes('Z')) {
+        const isoDate = new Date(dateStr);
+        // Swap month and day since source was DD/MM/YYYY but ISO treats it as YYYY-MM-DD
+        const day = isoDate.getMonth() + 1; // What ISO thought was month is actually day
+        const month = isoDate.getDate() - 1; // What ISO thought was day is actually month (0-indexed)
+        const year = isoDate.getFullYear();
+        return new Date(year, month, day);
+      }
+      
+      // Handle DD/MM/YYYY HH:mm:ss format
+      const parts = dateStr.trim().split(' ');
+      const dateParts = parts[0].split('/');
+      
+      if (dateParts.length === 3) {
+        const day = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10) - 1; // Months are 0-indexed
+        const year = parseInt(dateParts[2], 10);
+        
+        const date = new Date(year, month, day);
+        
+        // Add time if available
+        if (parts.length > 1) {
+          const timeParts = parts[1].split(':');
+          if (timeParts.length >= 2) {
+            date.setHours(parseInt(timeParts[0], 10));
+            date.setMinutes(parseInt(timeParts[1], 10));
+            if (timeParts.length > 2) {
+              date.setSeconds(parseInt(timeParts[2], 10));
+            }
+          }
+        }
+        
+        return date;
+      }
+    } catch (e) {
+      console.error('Error parsing date:', dateStr, e);
+    }
+    return null;
+  };
   const [connectTargetsModalType, setConnectTargetsModalType] = useState<'week' | 'month' | 'region' | 'store' | 'am' | 'daily'>('week');
 
   // Normalized trainer filter id for robust comparisons (handle h3595 vs H3595 etc.)
@@ -249,9 +294,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   // Training detail modal handlers
   const handleRegionClick = (region: string) => {
-    console.log('handleRegionClick called with region:', region);
-    console.log('filteredTrainingData:', filteredTrainingData?.length || 0);
-    
     // Original modal functionality
     setTrainingDetailFilter({
       type: 'region',
@@ -282,7 +324,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   };
 
   const handleScoreRangeClick = (minScore: number, maxScore: number, label: string) => {
-    console.log('Score range clicked:', label);
     setTrainingDetailFilter({
       type: 'scoreRange',
       value: `${minScore}-${maxScore}`,
@@ -308,11 +349,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const handleTotalSubmissionsClick = async () => {
     // Ensure training data is loaded before showing the modal
     if (!trainingData || trainingData.length === 0) {
-      console.log('Training data not loaded, fetching now...');
       try {
         const data = await fetchTrainingData();
         setTrainingData(data);
-        console.log('✅ Loaded Training data for Total Submissions modal:', data.length);
       } catch (err) {
         console.error('❌ Failed to load Training data:', err);
         return; // Don't open modal if data loading fails
@@ -338,7 +377,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   // HR detail modal handlers
   const handleHRRegionClick = (region: string, label: string) => {
-    console.log('HR Region clicked - showing all regions');
     setHRDetailFilter({
       type: 'region',
       value: 'all',
@@ -348,7 +386,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   };
 
   const handleHRAMClick = (amName: string, amId: string) => {
-    console.log('HR AM clicked - showing all AMs');
     setHRDetailFilter({
       type: 'region',
       value: 'all',
@@ -358,7 +395,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   };
 
   const handleHRPersonClick = (hrName: string, hrId: string) => {
-    console.log('HR Person clicked - showing all HRs');
     setHRDetailFilter({
       type: 'region',
       value: 'all',
@@ -374,7 +410,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   // HR stat card click handlers
   const handleHRTotalSubmissionsClick = () => {
-    console.log('HR Total Submissions clicked');
     setHRDetailFilter({
       type: 'region',
       value: 'all',
@@ -384,7 +419,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   };
 
   const handleHRStoresCoveredClick = () => {
-    console.log('HR Stores Covered clicked');
     setHRDetailFilter({
       type: 'region',
       value: 'all',
@@ -412,9 +446,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         am: amId || prev.am,
         region: region || prev.region
       }));
-      console.log('Dashboard filters auto-populated from URL');
-    } else {
-      console.log('Skipping auto-filter population - no dashboardFilter param');
     }
   }, []);
 
@@ -540,128 +571,88 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       if ((targetDashboard === 'hr' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.hr || isRefresh)) {
         loadPromises.push(
           fetchSubmissions().then(data => {
-            console.log('✅ Loaded HR survey data:', data.length, 'submissions');
             setSubmissions(data);
             setDataLoadedFlags(prev => ({ ...prev, hr: true }));
           }).catch(err => {
             console.error('❌ Failed to load HR data:', err);
           })
         );
-      } else if (targetDashboard === 'hr' && dataLoadedFlags.hr) {
-        console.log('♻️ Using cached HR data');
       }
       
       // Load AM Operations data ONLY if currently viewing Operations dashboard OR consolidated view
       if ((targetDashboard === 'operations' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.operations || isRefresh)) {
         loadPromises.push(
           fetchAMOperationsData().then(data => {
-            console.log('✅ Loaded AM Operations data:', data.length, 'submissions');
             setAMOperationsData(data);
             setDataLoadedFlags(prev => ({ ...prev, operations: true }));
           }).catch(err => {
             console.error('❌ Failed to load AM Operations data:', err);
           })
         );
-      } else if (targetDashboard === 'operations' && dataLoadedFlags.operations) {
-        console.log('♻️ Using cached Operations data');
       }
       
       // Load Training Audit data ONLY if currently viewing Training dashboard OR consolidated view
       if ((targetDashboard === 'training' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.training || isRefresh)) {
         loadPromises.push(
           fetchTrainingData().then(data => {
-            console.log('✅ Dashboard: Loaded Training Audit data:', {
-              totalSubmissions: data.length,
-              sample: data?.[0],
-              fields: data?.[0] ? Object.keys(data[0]) : [],
-              submissionTimes: data.slice(0, 3).map(d => d.submissionTime),
-              scores: data.slice(0, 3).map(d => d.percentageScore)
-            });
             setTrainingData(data);
             setDataLoadedFlags(prev => ({ ...prev, training: true }));
           }).catch(err => {
             console.error('❌ Dashboard: Failed to load Training data:', err);
           })
         );
-      } else if (targetDashboard === 'training' && dataLoadedFlags.training) {
-        console.log('♻️ Using cached Training data');
       }
       
       // Load QA Assessment data ONLY if currently viewing QA dashboard OR consolidated view
       if ((targetDashboard === 'qa' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.qa || isRefresh)) {
         loadPromises.push(
           fetchQAData().then(data => {
-            console.log('✅ Loaded QA Assessment data:', data.length, 'submissions');
-            if (data.length > 0) {
-              console.log('QA data sample:', data[0]);
-            }
             setQAData(data);
             setDataLoadedFlags(prev => ({ ...prev, qa: true }));
           }).catch(err => {
             console.error('❌ Failed to load QA data:', err);
           })
         );
-      } else if (targetDashboard === 'qa' && dataLoadedFlags.qa) {
-        console.log('♻️ Using cached QA data');
       }
       
       // Load Finance Audit data ONLY if currently viewing Finance dashboard OR consolidated view
       if ((targetDashboard === 'finance' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.finance || isRefresh)) {
         loadPromises.push(
           fetchFinanceData().then(data => {
-            console.log('✅ Loaded Finance Audit data:', data.length, 'submissions');
-            if (data.length > 0) {
-              console.log('Finance data sample:', data[0]);
-            }
             setFinanceData(data);
             setDataLoadedFlags(prev => ({ ...prev, finance: true }));
           }).catch(err => {
             console.error('❌ Failed to load Finance data:', err);
           })
         );
-      } else if (targetDashboard === 'finance' && dataLoadedFlags.finance) {
-        console.log('♻️ Using cached Finance data');
       }
       
       // Load Campus Hiring data if viewing campus hiring dashboard or admin consolidated view
       if ((targetDashboard === 'campus-hiring' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.campusHiring || isRefresh)) {
         loadPromises.push(
           fetchCampusHiringData().then(data => {
-            console.log('✅ Loaded Campus Hiring data:', data.length, 'submissions');
-            if (data.length > 0) {
-              console.log('Campus Hiring data sample:', data[0]);
-            }
             setCampusHiringData(data);
             setDataLoadedFlags(prev => ({ ...prev, campusHiring: true }));
           }).catch(err => {
             console.error('❌ Failed to load Campus Hiring data:', err);
           })
         );
-      } else if (dataLoadedFlags.campusHiring) {
-        console.log('♻️ Using cached Campus Hiring data');
       }
       
       // Load SHLP data ONLY if currently viewing SHLP dashboard OR consolidated view
       if ((targetDashboard === 'shlp' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.shlp || isRefresh)) {
         loadPromises.push(
           fetchSHLPData().then(data => {
-            console.log('✅ Loaded SHLP data:', data.length, 'submissions');
-            if (data.length > 0) {
-              console.log('SHLP data sample:', data[0]);
-            }
             setSHLPData(data);
             setDataLoadedFlags(prev => ({ ...prev, shlp: true }));
           }).catch(err => {
             console.error('❌ Failed to load SHLP data:', err);
           })
         );
-      } else if (dataLoadedFlags.shlp) {
-        console.log('♻️ Using cached SHLP data');
       }
       
       // If no promises to load, we're using all cached data
       if (loadPromises.length === 0) {
-        console.log('All data loaded from cache - no network requests needed!');
         setLoading(false);
         setRefreshing(false);
         return;
@@ -672,10 +663,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       
       setError(null);
       setLastRefresh(new Date());
-      
-      if (isRefresh) {
-        console.log('Data refreshed from Google Sheets');
-      }
     } catch (err) {
       setError('Failed to load submission data.');
       console.error(err);
@@ -728,7 +715,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           .map((mapping: any) => mapping['Store ID'] || mapping.storeId || mapping.StoreID || mapping.store_id);
         
         stores = stores.filter(store => amStoreIds.includes(store.id));
-        console.log(`Found ${stores.length} stores for AM ${filters.am} (comprehensive mapping):`, stores);
       } else if (hrMappingData.length > 0) {
         // Get stores that belong to this Area Manager from HR mapping
         const amStoreIds = hrMappingData
@@ -736,12 +722,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           .map((mapping: any) => mapping.storeId);
         
         stores = stores.filter(store => amStoreIds.includes(store.id));
-        console.log(`Found ${stores.length} stores for AM ${filters.am} (HR mapping):`, stores);
       }
     }
     // If Trainer is selected but no AM, show stores under that Trainer using comprehensive mapping
     else if (trainerFilterId && compStoreMapping && compStoreMapping.length > 0) {
-      console.log('Filtering Stores for Trainer via comprehensive mapping:', trainerFilterId);
       const trainerStoreIds = compStoreMapping
         .filter((m: any) => {
           // Handle comma-separated trainer IDs
@@ -751,10 +735,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         .map((m: any) => (m['Store ID'] || m.storeId || m.StoreID || m.store_id));
       const uniqueIds = new Set(trainerStoreIds.filter(Boolean));
       stores = stores.filter(store => uniqueIds.has(store.id));
-      console.log(`Found ${stores.length} stores for Trainer ${trainerFilterId}:`, stores);
     }
     
-    console.log(`Available stores for ${dashboardType} dashboard:`, stores.length);
     return stores;
   }, [filters.region, filters.am, filters.trainer, userRole, allStores, hrMappingData, compStoreMapping, dashboardType]);
 
@@ -768,7 +750,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     
     // If HR is selected, filter AMs based on HR mapping
     if (trainerFilterId) {
-      console.log('Filtering Area Managers for Trainer via comprehensive mapping:', trainerFilterId);
       // If comp mapping available, use it to find AM IDs
       if (compStoreMapping && compStoreMapping.length > 0) {
         const amIds = new Set<string>();
@@ -1582,7 +1563,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         const totalSubmissions = rawFiltered.length;
         const uniqueStores = new Set(rawFiltered.map((r: any) => r.storeId || r.storeID || r.store_id)).size;
   const uniqueTrainers = new Set(rawFiltered.map((r: any) => normalizeId(r.trainerId) || normalizeId(r.trainer_id) || normalizeId(r.trainer) || normalizeId(r.hrId))).size;
-        console.log('📊 Training stats (with filters):', { totalSubmissions, uniqueStores, uniqueTrainers, filterApplied: filters });
 
         // Determine per-store latest and previous scores using cutoffs so each store contributes once
         const parseTime = (t: any) => {
@@ -1672,14 +1652,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
       // No filters: fall back to Monthly_Trends aggregated view (preserves historical monthly totals)
       if (!trendsData || trendsLoading) {
-        console.log('📊 Training stats - trendsData status:', { hasTrendsData: !!trendsData, trendsLoading, trendsDataLength: trendsData?.length || 0 });
         return null;
       }
 
       // Filter to only percentage rows to avoid double counting
       // Each submission has 2 rows: one for 'score' and one for 'percentage'
       const percentageRows = trendsData.filter((r: any) => (r.metric_name || '').toLowerCase() === 'percentage');
-      console.log('📊 Training stats (no filters):', { totalTrendsRows: trendsData.length, percentageRows: percentageRows.length });
 
       const totalSubmissions = percentageRows.length;
 
@@ -1708,12 +1686,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
       // Get unique stores from the trends data
       const uniqueStores = latestPerStore.size;
-      console.log('📊 Training stats calculation (using latest per store):', { 
-        totalStores: uniqueStores, 
-        avgScore: Math.round(avgScore), 
-        totalHistoricalRecords: totalSubmissions,
-        latestScoresCount: latestScores.length
-      });
 
       // For unique employees/trainers, we need to use the actual training data
       // since Monthly_Trends doesn't have trainer information
@@ -1789,20 +1761,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         uniqueStores
       };
       
-      console.log('📊 Training stats result (no filters):', statsResult);
       return statsResult;
     }
     
     // For Operations dashboard, use AM Operations data
     if (dashboardType === 'operations') {
-      console.log('📊 Operations stats calculation:', {
-        filteredAMOperations: filteredAMOperations?.length || 0,
-        sample: filteredAMOperations?.[0],
-        sampleScore: filteredAMOperations?.[0]?.percentageScore,
-        sampleScoreType: typeof filteredAMOperations?.[0]?.percentageScore,
-        parsedScore: parseFloat(filteredAMOperations?.[0]?.percentageScore || '0')
-      });
-      
       if (!filteredAMOperations) return null;
 
       const totalSubmissions = filteredAMOperations.length;
@@ -1811,7 +1774,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       const scores = filteredAMOperations.map((s, idx) => {
         const rawScore = s.percentageScore || '0';
         const parsed = parseFloat(rawScore);
-        console.log(`Score ${idx}:`, { raw: rawScore, type: typeof rawScore, parsed, isNaN: isNaN(parsed) });
         return parsed;
       });
       
@@ -1828,7 +1790,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         uniqueStores
       };
       
-      console.log('📊 Operations stats result:', result);
       return result;
     }
     
@@ -1842,12 +1803,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     
     // Calculate total employees from Supabase directory - only if fully loaded
     const totalEmployees = (!employeeLoading && employeeDirectory?.byId) ? Object.keys(employeeDirectory.byId).length : 0;
-    console.log('📊 HR Stats Debug:', { 
-      totalEmployees, 
-      employeeDirectoryExists: !!employeeDirectory, 
-      byIdKeys: employeeDirectory?.byId ? Object.keys(employeeDirectory.byId).length : 0,
-      employeeLoading 
-    });
     
     // IMPORTANT: If employee directory is not loaded, we cannot calculate accurate percentages
     // Show a warning and use surveyed employees as the denominator
@@ -1892,10 +1847,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     const employeesPerAM: { [key: string]: number } = {};
     
     if (employeeDirectory?.byId) {
-      const sampleEmployees = Object.values(employeeDirectory.byId).slice(0, 3);
-      console.log('🔍 Raw employee objects:', sampleEmployees);
-      console.log('🔍 Employee object keys:', Object.keys(sampleEmployees[0] || {}));
-      
       Object.values(employeeDirectory.byId).forEach((emp: any) => {
         const storeCode = String(emp.store_code || '').trim();
         
@@ -2061,19 +2012,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       byAM[amId].connects = byAM[amId].employees.size;
     });
     
-    console.log('👔 AM breakdown debug:', {
-      totalAMs: Object.keys(byAM).length,
-      amsWithEmployees: Object.values(byAM).filter(a => a.totalEmployees > 0).length,
-      amsWithSubmissions: Object.values(byAM).filter(a => a.submissions > 0).length,
-      sampleAMs: Object.entries(byAM).slice(0, 5).map(([id, data]) => ({
-        id,
-        name: data.amName,
-        employees: data.totalEmployees,
-        connects: data.connects,
-        submissions: data.submissions
-      }))
-    });
-
     // Time-based tracking (3 connects per day per HRBP)
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -2261,7 +2199,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const generatePDFReport = async () => {
     setIsGenerating(true);
     try {
-      console.log('Starting PDF generation...');
       // Strong haptic feedback when starting PDF generation
       hapticFeedback.confirm();
       
@@ -2528,20 +2465,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         // Retrieve question images from the submission data (if available) or localStorage
         let questionImages: Record<string, string[]> = {};
         try {
-          console.log('🔍 Attempting to load question images...');
           // First, try to get images from the submission data (for downloaded reports)
           if (reportData.length > 0) {
             const firstRecord = reportData[0] as any;
-            console.log('📊 First record keys:', Object.keys(firstRecord));
-            console.log('🔑 Checking for questionImagesJSON or Question Images JSON...');
             
             if (firstRecord.questionImagesJSON || firstRecord['Question Images JSON']) {
               const imagesJSON = firstRecord.questionImagesJSON || firstRecord['Question Images JSON'];
-              console.log('✅ Found images JSON in submission:', typeof imagesJSON, imagesJSON?.substring(0, 100));
               questionImages = JSON.parse(imagesJSON);
-              console.log('✅ Loaded images from submission data:', Object.keys(questionImages).length, 'image sets');
-            } else {
-              console.warn('⚠️ No questionImagesJSON field found in submission data');
             }
           }
           
@@ -2550,16 +2480,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             const storedImages = localStorage.getItem('qa_images');
             if (storedImages) {
               questionImages = JSON.parse(storedImages);
-              console.log('✅ Loaded images from localStorage:', Object.keys(questionImages).length, 'image sets');
-            } else {
-              console.warn('⚠️ No images in localStorage either');
             }
           }
         } catch (error) {
           console.error('❌ Could not load question images:', error);
         }
-        
-        console.log('📸 Final question images object:', Object.keys(questionImages).length, 'image sets');
         
         const pdf = await buildQAPDF(reportData as any, meta, { title: 'QA Assessment Report' }, questionImages);
         pdf.save(fileName);
@@ -2834,7 +2759,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       // For individual submission reports (when filtered to specific store/employee)
       if (reportData.length === 1) {
         const submission = reportData[0];
-        console.log('Single submission data:', submission);
         
         // Determine which question set to use based on dashboard type
         let questionsToUse = QUESTIONS; // Default to HR questions
@@ -3424,7 +3348,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       } else {
         doc.save(`${filename}_${Date.now()}.pdf`);
       }
-      console.log('PDF generated successfully');
       // Ultra-strong success haptic for PDF completion (like premium apps)
       hapticFeedback.ultraStrong();
       // Show success notification overlay
@@ -3442,7 +3365,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   const generateExcelReport = () => {
     try {
-      console.log('Starting Excel generation...');
       hapticFeedback.confirm();
 
       // Only support Excel export for HR dashboard
@@ -3558,7 +3480,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       // Download file
       XLSX.writeFile(workbook, fileName);
 
-      console.log('Excel generated successfully');
       hapticFeedback.ultraStrong();
       showNotificationMessage('Excel Downloaded', 'success');
     } catch (error) {
@@ -3572,7 +3493,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   // Generate Excel report for SHLP Dashboard
   const generateSHLPExcelReport = () => {
     try {
-      console.log('Starting SHLP Excel generation...');
       hapticFeedback.confirm();
 
       if (!filteredSHLPData || filteredSHLPData.length === 0) {
@@ -3659,7 +3579,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       // Download file
       XLSX.writeFile(workbook, fileName);
 
-      console.log('SHLP Excel generated successfully');
       hapticFeedback.ultraStrong();
       showNotificationMessage('Excel Downloaded', 'success');
     } catch (error) {
@@ -3988,7 +3907,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       )}
 
       {dashboardType !== 'campus-hiring' && dashboardType !== 'trainer-calendar' && (() => {
-        console.log(`Dashboard - Passing to filters - trainers:`, allTrainers?.length || 0, 'stores:', availableStores.length, 'AMs:', availableAreaManagers.length);
         return (
           <div>
             <DashboardFilters
@@ -4978,6 +4896,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                         >
                           <option value="all">All Status</option>
+                          <option value="never-audited">No audit done</option>
                           <option value="overdue">Overdue</option>
                           <option value="due-soon">Due Soon</option>
                           <option value="on-track">On Track</option>
@@ -4995,6 +4914,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                         >
                           <option value="all">All Health</option>
+                          <option value="never-audited">No audit done</option>
                           <option value="needs-attention">Needs Attention</option>
                           <option value="brewing">Brewing</option>
                           <option value="perfect-shot">Perfect Shot</option>
@@ -5012,7 +4932,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                         >
                           <option value="all">All Regions</option>
-                          {Array.from(new Set(filteredTrainingData.map(s => s.region).filter(Boolean))).sort().map(region => (
+                          {Array.from(new Set(compStoreMapping.map((s: any) => s['Region'] || s.region).filter(Boolean))).sort().map(region => (
                             <option key={region} value={region}>{region}</option>
                           ))}
                         </select>
@@ -5029,7 +4949,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                         >
                           <option value="all">All AMs</option>
-                          {Array.from(new Set(filteredTrainingData.map(s => s.amName).filter(Boolean))).sort().map(am => (
+                          {Array.from(new Set(compStoreMapping.map((s: any) => s['AM Name']).filter(Boolean))).sort().map(am => (
                             <option key={am} value={am}>{am}</option>
                           ))}
                         </select>
@@ -5046,8 +4966,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                         >
                           <option value="all">All Trainers</option>
-                          {Array.from(new Set(filteredTrainingData.map(s => s.trainerName).filter(Boolean))).sort().map(trainer => (
-                            <option key={trainer} value={trainer}>{trainer}</option>
+                          {allTrainers.map(trainer => (
+                            <option key={trainer.id} value={trainer.name}>{trainer.name}</option>
                           ))}
                         </select>
                       </div>
@@ -5065,6 +4985,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                               Area Manager
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                              Trainer
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                               Health Status
@@ -5085,29 +5008,70 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                           {(() => {
-                        // Calculate audit coverage for ALL stores (not just those with audits)
+                        // Calculate audit coverage for ALL stores from comprehensive store mapping
                         const storeAudits = new Map();
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
 
-                        console.log('🔍 Audit Coverage Debug:');
-                        console.log('  - filteredTrainingData entries:', filteredTrainingData.length);
+                        // First, initialize ALL stores from comprehensive mapping (whether audited or not)
+                        console.log('Comprehensive store mapping count:', compStoreMapping.length);
+                        compStoreMapping.forEach((storeData: any) => {
+                          const storeId = storeData['Store ID'];
+                          if (!storeId) return;
+                          
+                          // Get AM name and trainer name directly from store mapping
+                          const amName = storeData['AM Name'] || storeData['Area Manager Name'] || storeData.amName || 'Unknown';
+                          const trainerName = storeData['Trainer 1 Name'] || storeData['Trainer Name'] || storeData.trainerName || 'Unknown';
+                          
+                          // Debug stores showing Unknown
+                          if (storeId === 'S005' || storeId === 'S006' || storeId === 'S009' || storeId === 'S021') {
+                            console.log(`Store ${storeId} mapping:`, {
+                              'Store Name': storeData['Store Name'],
+                              'AM Name': storeData['AM Name'],
+                              'Trainer 1 Name': storeData['Trainer 1 Name'],
+                              amName,
+                              trainerName
+                            });
+                          }
+                          
+                          storeAudits.set(storeId, {
+                            storeId,
+                            storeName: storeData['Store Name'] || storeId,
+                            region: storeData['Region'] || 'Unknown',
+                            amName: amName,
+                            trainerName: trainerName,
+                            lastAuditDate: null,
+                            healthStatus: 'No audit done',
+                            auditInterval: 30, // Default interval
+                            percentage: 0,
+                            hasAudit: false
+                          });
+                        });
 
-                        // Process actual audit data first
+                        console.log('  - Total stores in mapping:', storeAudits.size);
+
+                        // Now, update stores that have actual audit data (ONLY update audit fields, keep mapping data)
                         filteredTrainingData.forEach(submission => {
                           const storeId = submission.storeId;
                           if (!storeId) return;
 
-                          // Parse submission date and validate
+                          // Parse submission date - if no date, assume September 2025
+                          let submissionDate: Date;
                           const submissionDateStr = submission.submissionTime || submission.timestamp;
-                          if (!submissionDateStr) return; // Skip if no date
                           
-                          const submissionDate = new Date(submissionDateStr);
-                          
-                          // Check if date is valid
-                          if (isNaN(submissionDate.getTime())) {
-                            console.warn('Invalid date for submission:', submissionDateStr);
-                            return; // Skip invalid dates
+                          if (!submissionDateStr) {
+                            // No date provided - default to September 1, 2025
+                            submissionDate = new Date('2025-09-01');
+                            console.log(`No date for store ${storeId}, defaulting to September 2025`);
+                          } else {
+                            submissionDate = new Date(submissionDateStr);
+                            
+                            // Check if date is valid
+                            if (isNaN(submissionDate.getTime())) {
+                              // Invalid date - default to September 2025
+                              submissionDate = new Date('2025-09-01');
+                              console.warn(`Invalid date for store ${storeId}:`, submissionDateStr, '- defaulting to September 2025');
+                            }
                           }
 
                           const percentage = parseFloat(submission.percentageScore || '0');
@@ -5125,14 +5089,47 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
                           const existingStore = storeAudits.get(storeId);
                           
+                          // If store doesn't exist in mapping, look it up and create entry
+                          if (!existingStore) {
+                            const mappingStore = compStoreMapping.find((s: any) => s['Store ID'] === storeId);
+                            if (mappingStore) {
+                              const amName = mappingStore['AM Name'] || 'Unknown';
+                              const trainerName = mappingStore['Trainer 1 Name'] || 'Unknown';
+                              
+                              storeAudits.set(storeId, {
+                                storeId,
+                                storeName: mappingStore['Store Name'] || storeId,
+                                region: mappingStore['Region'] || 'Unknown',
+                                amName: amName,
+                                trainerName: trainerName,
+                                lastAuditDate: submissionDate,
+                                healthStatus,
+                                auditInterval,
+                                percentage,
+                                hasAudit: true
+                              });
+                            } else {
+                              // Store not in mapping - create with unknown values
+                              storeAudits.set(storeId, {
+                                storeId,
+                                storeName: storeId,
+                                region: 'Unknown',
+                                amName: 'Unknown',
+                                trainerName: 'Unknown',
+                                lastAuditDate: submissionDate,
+                                healthStatus,
+                                auditInterval,
+                                percentage,
+                                hasAudit: true
+                              });
+                            }
+                          }
                           // Update if this is the first audit OR if this submission is newer
-                          if (!existingStore || submissionDate > existingStore.lastAuditDate) {
+                          // IMPORTANT: Keep store name, region, AM, trainer from mapping (existingStore)
+                          else if (!existingStore.lastAuditDate || submissionDate > existingStore.lastAuditDate) {
                             storeAudits.set(storeId, {
-                              storeId,
-                              storeName: submission.storeName || storeId,
-                              region: submission.region || 'Unknown',
-                              amName: submission.amName || 'Unknown',
-                              trainerName: submission.trainerName || 'Unknown',
+                              ...existingStore, // Keep all mapping data (store name, region, AM, trainer)
+                              // Only update audit-related fields
                               lastAuditDate: submissionDate,
                               healthStatus,
                               auditInterval,
@@ -5146,28 +5143,36 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
                         // Calculate due dates and status for ALL stores
                         let auditCoverage = Array.from(storeAudits.values()).map(store => {
-                          let nextDue: Date;
-                          let daysRemaining: number;
+                          let nextDue: Date | null = null;
+                          let daysRemaining: number = 0;
                           let status: string;
                           let statusColor: string;
                           
-                          // All stores in this list have audits (we only add stores with audit data now)
-                          const lastAudit = store.lastAuditDate;
-                          nextDue = new Date(lastAudit);
-                          nextDue.setDate(nextDue.getDate() + store.auditInterval);
-                          
-                          const diffTime = nextDue.getTime() - today.getTime();
-                          daysRemaining = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                          
-                          status = 'On Track';
-                          statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-                          
-                          if (daysRemaining < 0) {
-                            status = 'Overdue';
-                            statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-                          } else if (daysRemaining <= 7) {
-                            status = 'Due Soon';
-                            statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+                          // Check if store has audit data
+                          if (!store.hasAudit || !store.lastAuditDate) {
+                            // Store has no audit done
+                            status = 'No audit done';
+                            statusColor = 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+                            daysRemaining = -999; // Large negative number for sorting
+                          } else {
+                            // Store has audit data - calculate next due date
+                            const lastAudit = store.lastAuditDate;
+                            nextDue = new Date(lastAudit);
+                            nextDue.setDate(nextDue.getDate() + store.auditInterval);
+                            
+                            const diffTime = nextDue.getTime() - today.getTime();
+                            daysRemaining = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                            
+                            status = 'On Track';
+                            statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+                            
+                            if (daysRemaining < 0) {
+                              status = 'Overdue';
+                              statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+                            } else if (daysRemaining <= 7) {
+                              status = 'Due Soon';
+                              statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+                            }
                           }
 
                           return {
@@ -5182,7 +5187,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         // Apply filters
                         if (auditCoverageFilters.status !== 'all') {
                           auditCoverage = auditCoverage.filter(audit => {
-                            if (auditCoverageFilters.status === 'overdue') return audit.status === 'Overdue' || audit.status === 'Never Audited';
+                            if (auditCoverageFilters.status === 'never-audited') return audit.status === 'No audit done';
+                            if (auditCoverageFilters.status === 'overdue') return audit.status === 'Overdue';
                             if (auditCoverageFilters.status === 'due-soon') return audit.status === 'Due Soon';
                             if (auditCoverageFilters.status === 'on-track') return audit.status === 'On Track';
                             return true;
@@ -5191,6 +5197,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
                         if (auditCoverageFilters.health !== 'all') {
                           auditCoverage = auditCoverage.filter(audit => {
+                            if (auditCoverageFilters.health === 'never-audited') return audit.healthStatus === 'No audit done';
                             if (auditCoverageFilters.health === 'needs-attention') return audit.healthStatus === 'Needs Attention';
                             if (auditCoverageFilters.health === 'brewing') return audit.healthStatus === 'Brewing';
                             if (auditCoverageFilters.health === 'perfect-shot') return audit.healthStatus === 'Perfect Shot';
@@ -5210,10 +5217,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           auditCoverage = auditCoverage.filter(audit => audit.trainerName === auditCoverageFilters.trainer);
                         }
 
-                        // Sort by days remaining (never audited first, then overdue, then ascending)
+                        // Sort by days remaining (no audit done first, then overdue, then ascending)
                         auditCoverage.sort((a, b) => {
-                          if (a.status === 'Never Audited' && b.status !== 'Never Audited') return -1;
-                          if (a.status !== 'Never Audited' && b.status === 'Never Audited') return 1;
+                          if (a.status === 'No audit done' && b.status !== 'No audit done') return -1;
+                          if (a.status !== 'No audit done' && b.status === 'No audit done') return 1;
                           if (a.daysRemaining < 0 && b.daysRemaining >= 0) return -1;
                           if (a.daysRemaining >= 0 && b.daysRemaining < 0) return 1;
                           return a.daysRemaining - b.daysRemaining;
@@ -5222,7 +5229,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         if (auditCoverage.length === 0) {
                           return (
                             <tr>
-                              <td colSpan={8} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                              <td colSpan={9} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                                 No audit data available for selected filters
                               </td>
                             </tr>
@@ -5241,17 +5248,20 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                             <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
                               {audit.amName}
                             </td>
+                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                              {audit.trainerName}
+                            </td>
                             <td className="px-4 py-3 text-sm">
                               <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
                                 audit.healthStatus === 'Perfect Shot'
                                   ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                                   : audit.healthStatus === 'Brewing'
                                   ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
-                                  : audit.healthStatus === 'Never Audited'
+                                  : audit.healthStatus === 'No audit done'
                                   ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
                                   : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                               }`}>
-                                {audit.healthStatus === 'Never Audited' ? 'Never Audited' : `${audit.healthStatus} (${audit.percentage}%)`}
+                                {audit.healthStatus === 'No audit done' ? 'No audit done' : `${audit.healthStatus} (${audit.percentage}%)`}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-900 dark:text-white whitespace-nowrap">
@@ -5264,7 +5274,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                               )}
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {audit.status === 'Never Audited' ? (
+                              {audit.status === 'No audit done' ? (
                                 <span className="text-red-600 dark:text-red-400 font-semibold">Immediate</span>
                               ) : (
                                 audit.nextDue.toLocaleDateString('en-GB', { 
@@ -5281,13 +5291,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                             </td>
                             <td className="px-4 py-3 text-sm">
                               <span className={`font-semibold ${
-                                audit.status === 'Never Audited' || audit.daysRemaining < 0
+                                audit.status === 'No audit done' || audit.daysRemaining < 0
                                   ? 'text-red-600 dark:text-red-400'
                                   : audit.daysRemaining <= 7
                                   ? 'text-yellow-600 dark:text-yellow-400'
                                   : 'text-green-600 dark:text-green-400'
                               }`}>
-                                {audit.status === 'Never Audited' 
+                                {audit.status === 'No audit done' 
                                   ? 'Not Started'
                                   : audit.daysRemaining < 0 
                                   ? `${Math.abs(audit.daysRemaining)} days overdue`
@@ -5465,8 +5475,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         
                         // Process trendsData (historical monthly trends from Google Sheets)
                         if (trendsData && trendsData.length > 0) {
-                          console.log('📊 Processing trendsData:', trendsData.length, 'rows');
-                          
                           trendsData.forEach((row: any) => {
                             const storeId = row.store_id;
                             const storeName = row.store_name;
@@ -5605,7 +5613,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         const storeRows = Array.from(storeMonthlyAudits.values()).map(store => {
                           const monthlyStatus = new Map();
                           let previousAudit: any = null;
-                          let latestHealthStatus = 'Never Audited';
+                          let latestHealthStatus = 'No audit done';
                           let hasAnyAudit = false;
 
                           months.forEach((month, monthIndex) => {
@@ -5665,7 +5673,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           
                           // If no audits at all, set health status
                           if (!hasAnyAudit) {
-                            latestHealthStatus = 'Never Audited';
+                            latestHealthStatus = 'No audit done';
                           }
 
                           return { ...store, monthlyStatus, latestHealthStatus };
@@ -5785,7 +5793,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
                                   </div>
                                 );
-                                tooltip = 'NEVER AUDITED - Immediate action required';
+                                tooltip = 'NO AUDIT DONE - Immediate action required';
                               } else {
                                 iconElement = (
                                   <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
@@ -5905,10 +5913,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               </div>
               
               <QASectionScoresInfographic submissions={filteredQAData || []} />
-              
-              <div className="grid grid-cols-1 gap-6">
-                <QARadarChart submissions={filteredQAData || []} />
-              </div>
 
               {/* QA Submissions List with Edit */}
               {filteredQAData && filteredQAData.length > 0 && filteredQAData.length <= 20 && (
@@ -5941,13 +5945,20 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                         {filteredQAData.map((submission, index) => (
                           <tr key={index} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
                             <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                              {submission.submissionTime ? 
-                                new Date(submission.submissionTime).toLocaleDateString('en-US', { 
-                                  month: 'short', 
-                                  day: 'numeric', 
-                                  year: 'numeric' 
-                                }) 
-                                : 'N/A'}
+                              {submission.submissionTime ? (() => {
+                                const date = parseSheetDate(submission.submissionTime);
+                                if (date) {
+                                  const day = date.getDate();
+                                  const month = date.toLocaleDateString('en-US', { month: 'short' });
+                                  const year = date.getFullYear();
+                                  const suffix = day === 1 || day === 21 || day === 31 ? 'st' 
+                                    : day === 2 || day === 22 ? 'nd' 
+                                    : day === 3 || day === 23 ? 'rd' 
+                                    : 'th';
+                                  return `${month} ${day}${suffix} ${year}`;
+                                }
+                                return submission.submissionTime;
+                              })() : 'N/A'}
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
                               <div>{submission.storeName || 'N/A'}</div>

@@ -1602,41 +1602,29 @@ const RoleMappingEditor: React.FC<{ config: any; setJson: (s: string) => void; s
 // Store Health Export Component
 const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; saving: boolean; onSave: () => void }> = ({ config }) => {
   const [loading, setLoading] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  // Default to current month or previous month if it's early in the month
+  const now = new Date();
+  const defaultMonth = now.getDate() < 5 && now.getMonth() > 0 
+    ? `${now.getFullYear()}-${String(now.getMonth()).padStart(2, '0')}` // Previous month
+    : now.toISOString().slice(0, 7); // Current month
+  const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
   const [downloadFormat, setDownloadFormat] = useState('xlsx');
   const [auditData, setAuditData] = useState<any[]>([]);
   const [allStores, setAllStores] = useState<any[]>([]);
 
-  // Fetch monthly trends data from Google Sheets
-  const fetchMonthlyTrends = async () => {
+  // Fetch training audit submissions from Google Sheets
+  const fetchTrainingAudits = async () => {
     try {
       const url = 'https://script.google.com/macros/s/AKfycbytDw7gOZXNJdJ-oS_G347Xj9NiUxBRmPfmwRZgQ3SbKqZ2OQ2D0j5nNm91vxMOrlwRQg/exec';
-      console.log('📡 Fetching Monthly_Trends data...');
+      console.log('📡 Fetching Training Audit submissions...');
       const response = await fetch(url);
       const data = await response.json();
       const rows = data.rows || [];
       
-      // Process and normalize the data
-      const processed = rows.map((row: any) => {
-        let period = row.observed_period;
-        
-        // Convert date strings to YYYY-MM format
-        if (typeof period === 'string' && period.includes('/')) {
-          const match = period.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-          if (match) {
-            const month = match[1].padStart(2, '0');
-            const year = match[3];
-            period = `${year}-${month}`;
-          }
-        }
-        
-        return { ...row, observed_period: period };
-      });
-      
-      console.log('✅ Fetched monthly trends:', processed.length, 'entries');
-      return processed;
+      console.log('✅ Fetched training audits:', rows.length, 'entries');
+      return rows;
     } catch (error) {
-      console.error('❌ Error fetching monthly trends:', error);
+      console.error('❌ Error fetching training audits:', error);
       return [];
     }
   };
@@ -1646,6 +1634,7 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
     const fetchAllData = async () => {
       console.log('🔄 StoreHealthExport: Starting data fetch for month:', selectedMonth);
       setLoading(true);
+      
       try {
         // Helper function to normalize store IDs for comparison
         const normalizeStoreId = (id: string): string => {
@@ -1664,58 +1653,96 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
         console.log('✅ Loaded store mapping:', storeMapping.length, 'stores');
         setAllStores(storeMapping);
 
-        // Fetch monthly trends data instead of raw training data
-        console.log('📡 StoreHealthExport: Calling fetchMonthlyTrends()...');
-        const trendsData = await fetchMonthlyTrends();
-        
-        console.log('✅ StoreHealthExport: Monthly trends data received:', {
-          totalEntries: trendsData.length
-        });
+        // Try to fetch training audit submissions
+        let audits: any[] = [];
+        try {
+          console.log('📡 StoreHealthExport: Calling fetchTrainingAudits()...');
+          audits = await fetchTrainingAudits();
+          console.log('✅ StoreHealthExport: Training audit data received:', {
+            totalEntries: audits.length
+          });
+        } catch (auditError) {
+          console.warn('⚠️ Could not fetch training audits, continuing without audit data:', auditError);
+          audits = [];
+        }
         
         // Build a map of latest audits by store for the selected month
-        // Use normalized store IDs as keys
         const latestAuditsByStore = new Map();
         
-        trendsData.forEach((entry: any) => {
-          const storeId = entry.store_id;
+        audits.forEach((audit: any) => {
+          const storeId = audit.store_id;
           if (!storeId) return;
           
           const normalizedId = normalizeStoreId(storeId);
-          const entryMonth = entry.observed_period;
           
-          // Only use data for the selected month exactly
-          if (entryMonth === selectedMonth) {
-            console.log('🔍 Processing monthly trend entry:', {
+          // Parse submission time to get month
+          const submissionDate = new Date(audit.submission_time);
+          if (isNaN(submissionDate.getTime())) return;
+          
+          const auditMonth = `${submissionDate.getFullYear()}-${String(submissionDate.getMonth() + 1).padStart(2, '0')}`;
+          
+          // Only use data for the selected month
+          if (auditMonth === selectedMonth) {
+            console.log('🔍 Processing training audit entry:', {
               originalStoreId: storeId,
               normalizedStoreId: normalizedId,
-              percentage: entry.percentage_score,
-              month: entryMonth
+              percentage: audit.percentage_score,
+              month: auditMonth,
+              mod: audit.mod
             });
             
-            latestAuditsByStore.set(normalizedId, {
-              percent: entry.percentage_score,
-              auditMonth: entryMonth
-            });
+            // Check if this is the latest audit for this store in this month
+            const existing = latestAuditsByStore.get(normalizedId);
+            if (!existing || new Date(audit.submission_time) > new Date(existing.submissionTime)) {
+              latestAuditsByStore.set(normalizedId, {
+                percent: audit.percentage_score,
+                auditMonth: auditMonth,
+                submissionTime: audit.submission_time,
+                mod: audit.mod || ''
+              });
+            }
           }
         });
 
         console.log('📋 Audit map contains', latestAuditsByStore.size, 'unique stores for month:', selectedMonth);
 
-        // Merge store mapping with audit data
+        // Try to get trainer names from employee directory
+        let employeeMap = new Map();
+        try {
+          const employeeDirectoryUrl = 'https://script.google.com/macros/s/AKfycbyFzPW5sWW7dEsDL7v6TL-yNVEgK1LMJXK6_iEWKJj9VF3FxHTrVvVOi3iRvG8pV-aBSQ/exec';
+          const employeeResponse = await fetch(employeeDirectoryUrl);
+          const employeeData = await employeeResponse.json();
+          employeeData.rows?.forEach((emp: any) => {
+            if (emp.employee_code) {
+              employeeMap.set(emp.employee_code, emp.empname);
+            }
+          });
+          console.log('✅ Loaded employee directory:', employeeMap.size, 'employees');
+        } catch (empError) {
+          console.warn('⚠️ Could not fetch employee directory, using IDs only:', empError);
+        }
+
+        // Merge store mapping with audit data - ALWAYS return all stores
         const mergedData = storeMapping.map((store: any) => {
           const normalizedStoreId = normalizeStoreId(store['Store ID']);
           const audit = latestAuditsByStore.get(normalizedStoreId);
+          
           const amId = store.AM;
-          const amName = AM_ID_TO_NAME[amId] || amId;
+          const amName = AM_ID_TO_NAME[amId] || employeeMap.get(amId) || amId || '';
+          
+          // Get trainer name from first trainer ID in the Trainer field
+          const trainerIds = store['Trainer'] ? store['Trainer'].split(',')[0].trim() : '';
+          const trainerName = employeeMap.get(trainerIds) || trainerIds || '';
           
           return {
             storeID: store['Store ID'],
             storeName: store['Store Name'],
             region: store['Region'],
             amName: amName,
-            trainerName: store['Trainer'] || 'N/A',
-            percent: audit ? audit.percent : null,
-            auditMonth: audit ? audit.auditMonth : 'No Audit'
+            mmName: audit ? audit.mod : '', // MM = MOD from training audit
+            trainerName: trainerName,
+            percent: audit ? parseFloat(audit.percent) : null,
+            auditMonth: audit ? audit.auditMonth : null
           };
         });
         
@@ -1738,25 +1765,26 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
   const downloadStoreHealth = () => {
     setLoading(true);
     
-    // Prepare data
-    const headers = ['Store ID', 'Store Name', 'Region', 'AM', 'Trainer', 'Audit Percentage', 'Health', 'Last Audit Date'];
+    // Prepare data - matching exact screenshot format
+    const headers = ['Store ID', 'Store Name', 'Region', 'AM', 'MM', 'Trainer', 'Audit Percentage', 'Audit Month', 'Health'];
     
     // Map audit data to required format
     const rows = auditData.map((store: any) => {
       const auditScore = store.percent !== null ? parseFloat(store.percent) : null;
-      // Store health logic from Training Audit Dashboard
+      
+      // Store health logic
       let health = 'No Audit';
       if (auditScore !== null) {
         health = auditScore < 56 ? 'Needs Attention' : 
                  auditScore < 81 ? 'Brewing' : 'Perfect Shot';
       }
 
-      // Format last audit date (show month-year or 'No Audit')
-      let lastAuditDate = 'No Audit';
-      if (store.auditMonth && store.auditMonth !== 'No Audit') {
+      // Format audit month for display (e.g., "Nov. 2025")
+      let auditMonthDisplay = '';
+      if (store.auditMonth) {
         const [year, month] = store.auditMonth.split('-');
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        lastAuditDate = `${monthNames[parseInt(month) - 1]} ${year}`;
+        const monthNames = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.', 'Jul.', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];
+        auditMonthDisplay = `${monthNames[parseInt(month) - 1]} ${year}`;
       }
 
       return [
@@ -1764,10 +1792,11 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
         store.storeName,
         store.region,
         store.amName,
-        store.trainerName,
-        auditScore !== null ? auditScore.toFixed(1) : 'N/A',
-        health,
-        lastAuditDate
+        store.mmName || '-', // MM (MOD)
+        store.trainerName || '-',
+        auditScore !== null ? Math.round(auditScore) : '', // Rounded percentage as integer
+        auditMonthDisplay,
+        health
       ];
     });
 
@@ -1778,15 +1807,55 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
         
         // Set column widths
         ws['!cols'] = [
-          { wch: 12 },  // Store ID
-          { wch: 25 },  // Store Name
+          { wch: 10 },  // Store ID
+          { wch: 30 },  // Store Name
           { wch: 10 },  // Region
           { wch: 15 },  // AM
-          { wch: 15 },  // Trainer
-          { wch: 15 },  // Audit Percentage
-          { wch: 18 },  // Health
-          { wch: 18 }   // Last Audit Date
+          { wch: 15 },  // MM
+          { wch: 25 },  // Trainer
+          { wch: 16 },  // Audit Percentage
+          { wch: 15 },  // Audit Month
+          { wch: 18 }   // Health
         ];
+        
+        // Apply formatting to cells
+        const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+        
+        // Format header row (bold, centered)
+        for (let col = range.s.c; col <= range.e.c; col++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+          if (!ws[cellAddress]) continue;
+          ws[cellAddress].s = {
+            font: { bold: true },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            fill: { fgColor: { rgb: 'D3D3D3' } }
+          };
+        }
+        
+        // Apply background colors based on Health column (column I, index 8)
+        for (let row = 1; row <= range.e.r; row++) {
+          const healthCell = ws[XLSX.utils.encode_cell({ r: row, c: 8 })];
+          if (!healthCell || !healthCell.v) continue;
+          
+          const health = String(healthCell.v);
+          let fillColor = '';
+          
+          if (health === 'Perfect Shot') {
+            fillColor = '92D050'; // Green
+          } else if (health === 'Brewing') {
+            fillColor = 'FFC000'; // Amber/Orange
+          } else if (health === 'Needs Attention') {
+            fillColor = 'FF0000'; // Red
+          }
+          
+          if (fillColor) {
+            healthCell.s = {
+              fill: { fgColor: { rgb: fillColor } },
+              font: { bold: true },
+              alignment: { horizontal: 'center' }
+            };
+          }
+        }
         
         // Create workbook and add worksheet
         const wb = XLSX.utils.book_new();
@@ -1889,30 +1958,32 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">Store Name</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">Region</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">AM</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">MM</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">Trainer</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">Audit %</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">Audit Month</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">Health</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-slate-300 uppercase tracking-wider">Last Audit</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
             {loading ? (
             <tr>
-              <td colSpan={8} className="px-4 py-8 text-center">
+              <td colSpan={9} className="px-4 py-8 text-center">
                 <div className="animate-spin w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-2"></div>
                 <p className="text-gray-500 dark:text-slate-400">Loading store health data...</p>
               </td>
             </tr>
           ) : auditData.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+              <td colSpan={9} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                 No store data available.
               </td>
             </tr>
           ) : (
             auditData.slice(0, 10).map((store: any) => {
               const auditScore = store.percent !== null ? parseFloat(store.percent) : null;
-              // Store health logic from Training Audit Dashboard
+              
+              // Store health logic
               let health = 'No Audit';
               let healthColor = 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
               
@@ -1924,12 +1995,12 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
                              'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
               }
 
-              // Format last audit date
-              let lastAuditDate = 'No Audit';
-              if (store.auditMonth && store.auditMonth !== 'No Audit') {
+              // Format audit month
+              let auditMonthDisplay = '';
+              if (store.auditMonth) {
                 const [year, month] = store.auditMonth.split('-');
-                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                lastAuditDate = `${monthNames[parseInt(month) - 1]} ${year}`;
+                const monthNames = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.', 'Jul.', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];
+                auditMonthDisplay = `${monthNames[parseInt(month) - 1]} ${year}`;
               }
               
               return (
@@ -1942,14 +2013,15 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
                     </span>
                   </td>
                   <td className="px-4 py-3">{store.amName}</td>
-                  <td className="px-4 py-3">{store.trainerName}</td>
-                  <td className="px-4 py-3 font-medium">{auditScore !== null ? auditScore.toFixed(1) + '%' : 'N/A'}</td>
+                  <td className="px-4 py-3">{store.mmName || '-'}</td>
+                  <td className="px-4 py-3">{store.trainerName || '-'}</td>
+                  <td className="px-4 py-3 font-medium">{auditScore !== null ? Math.round(auditScore) : ''}</td>
+                  <td className="px-4 py-3 text-xs">{auditMonthDisplay}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${healthColor}`}>
                       {health}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs">{lastAuditDate}</td>
                 </tr>
               );
             })

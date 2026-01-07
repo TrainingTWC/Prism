@@ -9,7 +9,7 @@ import { useComprehensiveMapping, useAreaManagers, useStoreDetails } from '../..
 import ImageEditor from '../ImageEditor';
 
 // Google Sheets endpoint for logging data - Updated to capture all 116 questions
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbySmkzshiMNIBPOBtSJWTtG-8BJdnM__7nW5Qsfdv7K5ygCPdCn--mt_TFNATlOYQqT4w/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxBhQbh7210ZW3XXUypyW_BISG5_Y9sj1dDcIVM40d9jN-UXNRvFWS-ks8xO9TtkoeE/exec';
 
 // Google Sheets endpoint for draft management
 const DRAFT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxCtm2UGYSLsR6ZhJ9jxr_pHBwU3dVnJQhqg1VQ1asrf7aX4rW6rxopGKlrOvgXr-QShg/exec';
@@ -55,8 +55,6 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   
   // Always use QA_SECTIONS from qaQuestions.ts (all 116 questions)
   const sections = QA_SECTIONS;
-  
-  console.log(`📋 QA Checklist: Loaded ${sections.length} sections with ${sections.reduce((sum, s) => sum + s.items.length, 0)} total questions`);
   
   const [responses, setResponses] = useState<SurveyResponse>(() => {
     // If in edit mode, populate from existing submission
@@ -180,14 +178,12 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   // Function to load drafts from Google Sheets
   const loadDraftsFromSheet = async () => {
     if (!DRAFT_ENDPOINT || !meta.qaId) {
-      console.log('Cannot load drafts: endpoint or QA ID missing', { DRAFT_ENDPOINT, qaId: meta.qaId });
       return;
     }
     
     setDraftsLoading(true);
     try {
       const url = `${DRAFT_ENDPOINT}?action=getDrafts&qaId=${encodeURIComponent(meta.qaId)}`;
-      console.log('Loading drafts from:', url);
       
       const response = await fetch(url, {
         method: 'GET',
@@ -196,19 +192,14 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         }
       });
       
-      console.log('Response status:', response.status, response.statusText);
-      console.log('Response ok:', response.ok);
-      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('Drafts response:', data);
       
       if (data.success && data.drafts) {
         setDrafts(data.drafts);
-        console.log(`✅ Loaded ${data.drafts.length} drafts:`, data.drafts);
       } else {
         console.warn('⚠️ No drafts found or error:', data.message || data);
         setDrafts([]);
@@ -239,7 +230,6 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
             amId: am.id,
             amName: am.name
           }));
-          console.log(`✅ Auto-filled AM ${am.name} (${am.id}) for store ${store['Store Name']}`);
         }
       }
     }
@@ -603,8 +593,6 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       });
       
       const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100 * 100) / 100 : 0;
-      
-      console.log(`📊 Score Calculation: ${totalScore}/${maxScore} = ${scorePercentage}%`);
 
       // Detect region and correct store ID from comprehensive mapping
       let detectedRegion = '';
@@ -630,7 +618,6 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
           if (storeMapping) {
             detectedRegion = storeMapping.Region || '';
             correctedStoreId = storeMapping['Store ID'];
-            console.log(`✅ Store ${meta.storeName} mapped to region: ${detectedRegion}`);
           }
         }
       } catch (error) {
@@ -657,8 +644,9 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         smSignature: signatures.sm || '',
         // Add action parameter for update mode
         action: editMode ? 'update' : 'create',
-        // Add row identifier for updates (using submissionTime as unique ID)
-        rowId: editMode && existingSubmission?.submissionTime ? existingSubmission.submissionTime : '',
+        // Add row identifier for updates - MUST match Google Sheets format (DD/MM/YYYY HH:mm:ss)
+        // Keep the original format from Google Sheets
+        rowId: editMode && existingSubmission?.submissionTime ? String(existingSubmission.submissionTime) : '',
         // responses may contain non-string values; ensure we stringify them
         ...Object.fromEntries(Object.entries(responses).map(([k, v]) => [k, String(v)])),
         // Add question remarks with _remark suffix
@@ -669,18 +657,15 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         questionImagesJSON: JSON.stringify(questionImages)
       };
 
-      console.log('QA Survey data being sent (size:', JSON.stringify(params).length, 'bytes)');
-
       const bodyString = new URLSearchParams(params).toString();
       
       // Use fetch with a timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
       
       try {
         const response = await fetch(LOG_ENDPOINT, {
           method: 'POST',
-          mode: 'no-cors',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
@@ -688,11 +673,10 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
           signal: controller.signal
         });
         clearTimeout(timeoutId);
-        console.log('QA Survey submitted successfully');
       } catch (err: any) {
         clearTimeout(timeoutId);
         if (err.name === 'AbortError') {
-          console.log('Request timeout - but data likely submitted (no-cors mode)');
+          // Request timeout - but data likely submitted
         } else {
           throw err;
         }
@@ -715,6 +699,15 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       localStorage.removeItem('qa_signatures');
       
       setSubmitted(true);
+      
+      // If in edit mode, show success message and allow parent to handle modal close
+      if (editMode) {
+        alert(editMode ? 'Assessment updated successfully!' : 'Assessment submitted successfully!');
+        // Small delay to allow alert to show before modal closes
+        setTimeout(() => {
+          window.location.reload(); // Reload to show updated data
+        }, 500);
+      }
       
     } catch (error) {
       console.error('Error submitting QA survey:', error);

@@ -77,8 +77,13 @@ export const loadComprehensiveMapping = async (): Promise<ComprehensiveMapping[]
               const amId = normalizeId(row.AM || row['AM'] || row['AM ID'] || row['Area Manager ID'] || row.amId || row.areaManagerId);
               const amName = row['AM Name'] || row.amName || row.areaManagerName || '';
 
-              const trainerId = normalizeId(row['Trainer ID'] || row.trainerId || row.trainer_id || row.Trainer);
-              const trainerName = row['Trainer Name'] || row.trainerName || row.trainer || '';
+              // Preserve all trainer columns (using exact Google Sheet column names: "Trainer 1 ID", etc.)
+              const trainer1Id = normalizeId(row['Trainer 1 ID'] || row['Trainer 1'] || row.Trainer || row['Trainer ID'] || row.trainerId || '');
+              const trainer1Name = row['Trainer 1 Name'] || row['Trainer Name'] || row.trainerName || '';
+              const trainer2Id = normalizeId(row['Trainer 2 ID'] || row['Trainer 2'] || '');
+              const trainer2Name = row['Trainer 2 Name'] || '';
+              const trainer3Id = normalizeId(row['Trainer 3 ID'] || row['Trainer 3'] || '');
+              const trainer3Name = row['Trainer 3 Name'] || '';
 
               return {
                 ...row,
@@ -92,9 +97,21 @@ export const loadComprehensiveMapping = async (): Promise<ComprehensiveMapping[]
                 name: storeName,
                 amId: amId,
                 amName: amName,
-                'Trainer': trainerId || row.Trainer || row['Trainer'],
-                'Trainer ID': trainerId,
-                'Trainer Name': trainerName,
+                // Preserve all trainer columns from Google Sheets (using exact column names)
+                'Trainer 1 ID': trainer1Id || row['Trainer 1 ID'] || row['Trainer 1'],
+                'Trainer 1 Name': trainer1Name,
+                'Trainer 2 ID': trainer2Id || row['Trainer 2 ID'] || row['Trainer 2'],
+                'Trainer 2 Name': trainer2Name,
+                'Trainer 3 ID': trainer3Id || row['Trainer 3 ID'] || row['Trainer 3'],
+                'Trainer 3 Name': trainer3Name,
+                // Also preserve without "ID" suffix for backwards compatibility
+                'Trainer 1': trainer1Id,
+                'Trainer 2': trainer2Id,
+                'Trainer 3': trainer3Id,
+                // Legacy compatibility
+                'Trainer': trainer1Id || row.Trainer,
+                'Trainer ID': trainer1Id,
+                'Trainer Name': trainer1Name,
               } as ComprehensiveMapping;
             });
             

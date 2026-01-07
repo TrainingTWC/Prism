@@ -63,11 +63,19 @@ function extractResponses(submission: any): Record<string, string> {
   
   // Extract all question responses from the submission
   Object.keys(submission).forEach(key => {
-    // Map field names that start with section prefixes
-    if (key.startsWith('ZT_') || 
-        key.startsWith('S_') || 
+    // Skip metadata fields
+    if (key === 'submissionTime' || key === 'qaName' || key === 'qaId' || 
+        key === 'amName' || key === 'amId' || key === 'storeName' || 
+        key === 'storeId' || key === 'region' || key === 'totalScore' || 
+        key === 'maxScore' || key === 'scorePercentage') {
+      return;
+    }
+    
+    // Map field names that start with section prefixes or contain question patterns
+    if (key.startsWith('ZT_') || key.startsWith('ZeroTolerance_') ||
+        key.startsWith('S_') || key.startsWith('Store_') ||
         key.startsWith('A_') || 
-        key.startsWith('M_') || 
+        key.startsWith('M_') || key.startsWith('Maintenance_') ||
         key.startsWith('HR_') ||
         key.includes('_remarks')) {
       
@@ -77,17 +85,28 @@ function extractResponses(submission: any): Record<string, string> {
       
       const fieldName = key.split(':')[0].trim(); // Remove description after colon if present
       
+      // If already in correct format (has section prefix), use as-is
+      if (key.startsWith('ZeroTolerance_') || key.startsWith('Store_') || 
+          key.startsWith('Maintenance_') || key.startsWith('HR_HR_') ||
+          (key.startsWith('A_') && key.includes('_'))) {
+        responses[fieldName] = submission[key];
+      }
       // Map to correct format for checklist
-      if (fieldName.startsWith('ZT_')) {
-        responses[`ZeroTolerance_${fieldName}`] = submission[key];
+      else if (fieldName.startsWith('ZT_')) {
+        const mappedKey = `ZeroTolerance_${fieldName}`;
+        responses[mappedKey] = submission[key];
       } else if (fieldName.startsWith('S_')) {
-        responses[`Store_${fieldName}`] = submission[key];
+        const mappedKey = `Store_${fieldName}`;
+        responses[mappedKey] = submission[key];
       } else if (fieldName.startsWith('A_')) {
-        responses[`A_${fieldName}`] = submission[key];
+        responses[fieldName] = submission[key];
       } else if (fieldName.startsWith('M_')) {
-        responses[`Maintenance_${fieldName}`] = submission[key];
+        const mappedKey = `Maintenance_${fieldName}`;
+        responses[mappedKey] = submission[key];
       } else if (fieldName.startsWith('HR_')) {
-        responses[`HR_${fieldName}`] = submission[key];
+        // HR section needs HR_ prefix: HR_1 -> HR_HR_1
+        const mappedKey = `HR_${fieldName}`;
+        responses[mappedKey] = submission[key];
       } else if (key.includes('_remarks')) {
         // Extract section name from remarks key
         const sectionMatch = key.match(/^(\w+)_remarks/);
@@ -104,7 +123,8 @@ function extractResponses(submission: any): Record<string, string> {
             'HR': 'HR'
           };
           const fullSection = sectionMap[section] || section;
-          responses[`${fullSection}_remarks`] = submission[key];
+          const mappedKey = `${fullSection}_remarks`;
+          responses[mappedKey] = submission[key];
         }
       }
     }

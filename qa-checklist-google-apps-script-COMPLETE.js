@@ -672,6 +672,7 @@ function updateSubmission(sheet, params) {
   try {
     Logger.log('=== UPDATE SUBMISSION Started ===');
     Logger.log('Looking for submission with timestamp: ' + params.rowId);
+    Logger.log('rowId type: ' + typeof params.rowId);
     
     // Get all data from sheet
     const data = sheet.getDataRange().getValues();
@@ -681,18 +682,40 @@ function updateSubmission(sheet, params) {
     let targetRowIndex = -1;
     for (let i = 1; i < data.length; i++) {
       const submissionTime = data[i][1]; // Column B - Submission Time
-      if (submissionTime === params.rowId) {
+      const submissionTimeStr = String(submissionTime);
+      
+      Logger.log('Row ' + i + ' submission time: "' + submissionTimeStr + '"');
+      
+      // Try exact match first
+      if (submissionTimeStr === params.rowId) {
         targetRowIndex = i + 1; // +1 because sheet rows are 1-indexed
-        Logger.log('Found matching submission at row: ' + targetRowIndex);
+        Logger.log('Found exact match at row: ' + targetRowIndex);
         break;
+      }
+      
+      // Try comparing as dates if exact match fails
+      try {
+        // Convert both to Date objects for comparison
+        const sheetDate = new Date(submissionTime);
+        const paramDate = new Date(params.rowId);
+        
+        // Compare timestamps (ignore milliseconds)
+        if (Math.abs(sheetDate.getTime() - paramDate.getTime()) < 2000) { // Within 2 seconds
+          targetRowIndex = i + 1;
+          Logger.log('Found date match at row: ' + targetRowIndex);
+          break;
+        }
+      } catch (e) {
+        // Ignore date parsing errors
       }
     }
     
     if (targetRowIndex === -1) {
       Logger.log('ERROR: Could not find submission with timestamp: ' + params.rowId);
+      Logger.log('Checked ' + (data.length - 1) + ' rows');
       return ContentService.createTextOutput(JSON.stringify({
         status: 'error',
-        message: 'Submission not found'
+        message: 'Submission not found. Please try again or contact support.'
       })).setMimeType(ContentService.MimeType.JSON);
     }
     

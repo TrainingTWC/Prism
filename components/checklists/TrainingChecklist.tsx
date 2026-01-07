@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GraduationCap, Calendar as CalendarIcon, ClipboardCheck } from 'lucide-react';
 import { AREA_MANAGERS as DEFAULT_AREA_MANAGERS } from '../../constants';
 import { hapticFeedback } from '../../utils/haptics';
-import compStoreMapping from '../../src/comprehensive_store_mapping.json';
 import { useConfig } from '../../contexts/ConfigContext';
+import { useComprehensiveMapping } from '../../hooks/useComprehensiveMapping';
+import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 import TrainingCalendar from './TrainingCalendar';
 
 interface Store {
@@ -110,8 +111,7 @@ const SECTIONS = [
     id: 'TSA_Food', 
     title: 'TSA - Food Training Skill Assessment', 
     items: [
-      {id: 'FOOD_EMP_NAME', q: 'EMP. name', w: 0, section: 'Employee Information', type: 'text'},
-      {id: 'FOOD_EMP_ID', q: 'EMP. ID', w: 0, section: 'Employee Information', type: 'text'},
+      {id: 'FOOD_EMPLOYEE', q: 'Employee Name and ID', w: 0, section: 'Employee Information', type: 'employee'},
       // Personal Hygiene
       {id: 'PH_1', q: 'Well-groomed as per TWC standards (uniform, nails, hair)', w: 1, section: 'Personal Hygiene'},
       {id: 'PH_2', q: 'Washed and sanitized hands every 30 mins', w: 1, section: 'Personal Hygiene'},
@@ -149,8 +149,7 @@ const SECTIONS = [
     id: 'TSA_Coffee', 
     title: 'TSA - Coffee Training Skill Assessment', 
     items: [
-      {id: 'COFFEE_EMP_NAME', q: 'EMP. name', w: 0, section: 'Employee Information', type: 'text'},
-      {id: 'COFFEE_EMP_ID', q: 'EMP. ID', w: 0, section: 'Employee Information', type: 'text'},
+      {id: 'COFFEE_EMPLOYEE', q: 'Employee Name and ID', w: 0, section: 'Employee Information', type: 'employee'},
       // Personal Hygiene
       {id: 'PH_1', q: 'Well-groomed as per TWC standards (uniform, nails, hair)', w: 1, section: 'Personal Hygiene'},
       {id: 'PH_2', q: 'Washed and sanitized hands', w: 1, section: 'Personal Hygiene'},
@@ -204,8 +203,7 @@ const SECTIONS = [
     id: 'TSA_CX', 
     title: 'TSA: Customer Experience', 
     items: [
-      {id: 'CX_EMP_NAME', q: 'EMP. name', w: 0, section: 'Employee Information', type: 'text'},
-      {id: 'CX_EMP_ID', q: 'EMP. ID', w: 0, section: 'Employee Information', type: 'text'},
+      {id: 'CX_EMPLOYEE', q: 'Employee Name and ID', w: 0, section: 'Employee Information', type: 'employee'},
       
       // Section 1: Personal Hygiene (3 Points)
       {id: 'CX_PH_1', q: 'Grooming & Hygiene: Well-groomed as per TWC standards (uniform, nails, hair)', w: 1, section: 'Personal Hygiene'},
@@ -278,7 +276,12 @@ interface TrainingChecklistProps {
 
 const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) => {
   const { config, loading: configLoading } = useConfig();
+  const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
+  const { directory: employeeDirectory, loading: employeeLoading } = useEmployeeDirectory();
   const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
+  
+  // Use comprehensive mapping as data source (Google Sheets)
+  const allStores = comprehensiveMapping || [];
   
   // Use config data if available, otherwise fall back to hardcoded SECTIONS
   const sections = config?.CHECKLISTS?.TRAINING || SECTIONS;
@@ -298,14 +301,30 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     } catch(e) {}
     
     const urlParams = new URLSearchParams(window.location.search);
-    const trainerId = urlParams.get('trainerId') || urlParams.get('id') || urlParams.get('hrId') || (stored as any).trainerId || '';
-    const trainerName = urlParams.get('trainerName') || urlParams.get('name') || urlParams.get('hrName') || (stored as any).trainerName || '';
+    // Support multiple URL parameter names for trainer ID
+    const trainerIdFromURL = urlParams.get('trainerId') || urlParams.get('trainer_id') || urlParams.get('id') || urlParams.get('hrId') || urlParams.get('EMPID') || '';
+    const trainerNameFromURL = urlParams.get('trainerName') || urlParams.get('trainer_name') || urlParams.get('name') || urlParams.get('hrName') || '';
+    
+    // If trainer is in URL, use it; otherwise use stored value
+    const finalTrainerId = trainerIdFromURL || (stored as any).trainerId || '';
+    
+    // IMPORTANT: If trainer ID from URL is different from stored, clear the stored name
+    // This ensures we look up the correct name from Google Sheets for the new trainer
+    let finalTrainerName = '';
+    if (trainerIdFromURL) {
+      // URL has trainer ID - only use URL name if provided, otherwise leave empty for lookup
+      finalTrainerName = trainerNameFromURL || '';
+    } else {
+      // No URL trainer - use stored values
+      finalTrainerName = (stored as any).trainerName || '';
+    }
+    // Note: Trainer name will be looked up from Google Sheets in useEffect if empty
     
     return {
       amName: (stored as any).amName || '',
       amId: (stored as any).amId || '',
-      trainerName: trainerName,
-      trainerId: trainerId,
+      trainerName: finalTrainerName,
+      trainerId: finalTrainerId,
       mappedTrainerName: (stored as any).mappedTrainerName || '',
       mappedTrainerId: (stored as any).mappedTrainerId || '',
       storeName: (stored as any).storeName || '',
@@ -316,11 +335,57 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
   const [isTrainerIdFromURL, setIsTrainerIdFromURL] = useState<boolean>(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    return !!(urlParams.get('trainerId') || urlParams.get('id') || urlParams.get('hrId'));
+    return !!(urlParams.get('trainerId') || urlParams.get('trainer_id') || urlParams.get('id') || urlParams.get('hrId') || urlParams.get('EMPID'));
   });
+
+  // Auto-lookup trainer name from Google Sheets when mapping loads
+  useEffect(() => {
+    // Only lookup if we have trainer ID and either no name, name equals ID, or name is "#N/A" (needs lookup)
+    if (meta.trainerId && allStores.length > 0 && (!meta.trainerName || meta.trainerName === meta.trainerId || meta.trainerName === '#N/A' || meta.trainerName.startsWith('#N/A'))) {
+      const normalizedTrainerId = normalizeId(meta.trainerId);
+      
+      // Look for trainer name in the store mapping (using exact Google Sheet column names)
+      const storeWithTrainer = allStores.find((store: any) => {
+        const trainer1Id = normalizeId(store['Trainer 1 ID'] || store['Trainer 1'] || store.Trainer || '');
+        const trainer2Id = normalizeId(store['Trainer 2 ID'] || store['Trainer 2'] || '');
+        const trainer3Id = normalizeId(store['Trainer 3 ID'] || store['Trainer 3'] || '');
+        return trainer1Id === normalizedTrainerId || trainer2Id === normalizedTrainerId || trainer3Id === normalizedTrainerId;
+      });
+      
+      if (storeWithTrainer) {
+        const trainer1Id = normalizeId(storeWithTrainer['Trainer 1 ID'] || storeWithTrainer['Trainer 1'] || storeWithTrainer.Trainer || '');
+        const trainer2Id = normalizeId(storeWithTrainer['Trainer 2 ID'] || storeWithTrainer['Trainer 2'] || '');
+        const trainer3Id = normalizeId(storeWithTrainer['Trainer 3 ID'] || storeWithTrainer['Trainer 3'] || '');
+        
+        let trainerName = '';
+        if (trainer1Id === normalizedTrainerId) {
+          trainerName = storeWithTrainer['Trainer 1 Name'] || '';
+        } else if (trainer2Id === normalizedTrainerId) {
+          trainerName = storeWithTrainer['Trainer 2 Name'] || '';
+        } else if (trainer3Id === normalizedTrainerId) {
+          trainerName = storeWithTrainer['Trainer 3 Name'] || '';
+        }
+        
+        if (trainerName) {
+          setMeta(prev => ({
+            ...prev,
+            trainerName
+          }));
+        }
+      }
+    }
+  }, [meta.trainerId, meta.trainerName, allStores]);
 
   // Add state for dropdown handling
   const [amSearchTerm, setAmSearchTerm] = useState('');
+  const [modSearchTerm, setModSearchTerm] = useState('');
+  const [showModDropdown, setShowModDropdown] = useState(false);
+  const [selectedModIndex, setSelectedModIndex] = useState(-1);
+  
+  // State for employee dropdowns in TSA sections
+  const [employeeSearchTerms, setEmployeeSearchTerms] = useState<Record<string, string>>({});
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState<Record<string, boolean>>({});
+  const [selectedEmployeeIndex, setSelectedEmployeeIndex] = useState<Record<string, number>>({});
   
   // Calculate and update stats whenever responses change
   useEffect(() => {
@@ -430,39 +495,152 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     return Array.from(byId.values());
   })();
 
-  // Build trainers list from comprehensive store mapping - ULTIMATE SOURCE OF TRUTH
-  const trainerNameOverrides: Record<string, string> = {
-    H1278: 'Viraj Vijay Mahamunkar',
-    H1697: 'Sheldon Antonio Xavier DSouza', 
-    H1761: 'Mahadev Nayak',
-    H2155: 'Jagruti Narendra Bhanushali',
-    H2595: 'Kailash Singh',
-    H3247: 'Thatikonda Sunil Kumar',
-    H3252: 'Priyanka Pankajkumar Gupta',
-    H3595: 'Bhawna',
-    H3603: 'Manasi',
-    H3728: 'Siddhant',
-    H3786: 'Oviya',
-    H701: 'Mallika M'
-  };
-
-  const rows = Array.isArray(compStoreMapping) ? (compStoreMapping as any[]) : [];
-
+  // Build trainers list from comprehensive store mapping - Google Sheets only
   const uniqueTrainers = (() => {
-    const allIds = rows
-      .map((r: any) => r.Trainer || r['Trainer'] || r['Trainer ID'] || r.trainerId || r.trainer_id)
-      .filter(Boolean)
-      .flatMap((trainer: string) => String(trainer).split(',').map(id => normalizeId(id)));
-    const ids = Array.from(new Set(allIds)).filter(Boolean);
-    const trainers = ids.map((id: string) => ({
+    const trainerMap = new Map<string, string>();
+    
+    // Collect all trainers with their names from the store mapping (using exact Google Sheet column names)
+    allStores.forEach((store: any) => {
+      // Trainer 1
+      const trainer1Id = normalizeId(store['Trainer 1 ID'] || store['Trainer 1'] || store.Trainer || '');
+      const trainer1Name = store['Trainer 1 Name'] || '';
+      if (trainer1Id && !trainerMap.has(trainer1Id)) {
+        trainerMap.set(trainer1Id, trainer1Name || trainer1Id);
+      }
+      
+      // Trainer 2
+      const trainer2Id = normalizeId(store['Trainer 2 ID'] || store['Trainer 2'] || '');
+      const trainer2Name = store['Trainer 2 Name'] || '';
+      if (trainer2Id && !trainerMap.has(trainer2Id)) {
+        trainerMap.set(trainer2Id, trainer2Name || trainer2Id);
+      }
+      
+      // Trainer 3
+      const trainer3Id = normalizeId(store['Trainer 3 ID'] || store['Trainer 3'] || '');
+      const trainer3Name = store['Trainer 3 Name'] || '';
+      if (trainer3Id && !trainerMap.has(trainer3Id)) {
+        trainerMap.set(trainer3Id, trainer3Name || trainer3Id);
+      }
+    });
+    
+    const trainers = Array.from(trainerMap.entries()).map(([id, name]) => ({
       id,
-      name: trainerNameOverrides[id] || id
+      name
     }));
+    
     return trainers.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
   })();
 
+  // Filter MOD list - only Store Manager, Assistant Store Manager, Shift Supervisor
+  // Also filter by region if a store is selected
+  const modEmployees = (() => {
+    const allowedDesignations = [
+      'store manager',
+      'assistant store manager',
+      'shift supervisor',
+      'store head',
+      'assistant manager'
+    ];
+    
+    // Get the region from the selected store
+    let selectedStoreRegion = '';
+    if (meta.storeId) {
+      const selectedStore = allStores.find((store: any) => {
+        const storeId = normalizeId(store['Store ID'] || store.storeId || store.StoreID || store.store_id);
+        return storeId === normalizeId(meta.storeId);
+      });
+      if (selectedStore) {
+        selectedStoreRegion = selectedStore['Region'] || selectedStore.region || '';
+      }
+    }
+    
+    // Build a set of store IDs in the same region
+    const storeIdsInRegion = new Set<string>();
+    if (selectedStoreRegion) {
+      allStores.forEach((store: any) => {
+        const storeRegion = (store['Region'] || store.region || '').toLowerCase().trim();
+        if (storeRegion === selectedStoreRegion.toLowerCase().trim()) {
+          const storeCode = normalizeId(store['Store ID'] || store.storeId || store.StoreID || store.store_id);
+          storeIdsInRegion.add(storeCode);
+        }
+      });
+    }
+    
+    const employees = Object.values(employeeDirectory.byId)
+      .filter((emp: any) => {
+        const designation = (emp.designation || '').toLowerCase().trim();
+        const hasAllowedDesignation = allowedDesignations.some(allowed => designation.includes(allowed));
+        
+        // If no store selected yet, show all managers
+        if (!selectedStoreRegion) {
+          return hasAllowedDesignation;
+        }
+        
+        // Filter by region - check if employee's store_code is in the same region
+        const empStoreCode = normalizeId(emp.store_code || emp.location || '');
+        const isInSameRegion = storeIdsInRegion.has(empStoreCode);
+        
+        return hasAllowedDesignation && isInSameRegion;
+      })
+      .map((emp: any) => ({
+        id: emp.employee_code,
+        name: emp.empname,
+        designation: emp.designation,
+        location: emp.location
+      }));
+    
+    return employees.sort((a: any, b: any) => a.name.localeCompare(b.name));
+  })();
+
+  // All employees for TSA sections - filtered by region if store selected
+  const allEmployeesForTSA = (() => {
+    // Get the region from the selected store
+    let selectedStoreRegion = '';
+    if (meta.storeId) {
+      const selectedStore = allStores.find((store: any) => {
+        const storeId = normalizeId(store['Store ID'] || store.storeId || store.StoreID || store.store_id);
+        return storeId === normalizeId(meta.storeId);
+      });
+      if (selectedStore) {
+        selectedStoreRegion = selectedStore['Region'] || selectedStore.region || '';
+      }
+    }
+    
+    // Build a set of store IDs in the same region
+    const storeIdsInRegion = new Set<string>();
+    if (selectedStoreRegion) {
+      allStores.forEach((store: any) => {
+        const storeRegion = (store['Region'] || store.region || '').toLowerCase().trim();
+        if (storeRegion === selectedStoreRegion.toLowerCase().trim()) {
+          const storeCode = normalizeId(store['Store ID'] || store.storeId || store.StoreID || store.store_id);
+          storeIdsInRegion.add(storeCode);
+        }
+      });
+    }
+    
+    const employees = Object.values(employeeDirectory.byId)
+      .filter((emp: any) => {
+        // If no store selected yet, show all employees
+        if (!selectedStoreRegion) {
+          return true;
+        }
+        
+        // Filter by region - check if employee's store_code is in the same region
+        const empStoreCode = normalizeId(emp.store_code || emp.location || '');
+        return storeIdsInRegion.has(empStoreCode);
+      })
+      .map((emp: any) => ({
+        id: emp.employee_code,
+        name: emp.empname,
+        designation: emp.designation,
+        location: emp.location
+      }));
+    
+    return employees.sort((a: any, b: any) => a.name.localeCompare(b.name));
+  })();
+
   const uniqueStores = (() => {
-    const stores = rows.map((row: any) => ({
+    const stores = allStores.map((row: any) => ({
       name: row['Store Name'] || row.storeName || row.name,
       id: normalizeId(row['Store ID'] || row.storeId || row.StoreID || row.store_id)
     }));
@@ -488,41 +666,83 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     (trainer.id as string).toLowerCase().includes(trainerSearchTerm.toLowerCase())
   );
 
-  // 3. Stores filtered by selected Area Manager (if any)
+  // 2b. MOD employees filtered by search term
+  const filteredModEmployees = modEmployees.filter(mod => 
+    modSearchTerm === '' || 
+    (mod.name as string).toLowerCase().includes(modSearchTerm.toLowerCase()) ||
+    (mod.id as string).toLowerCase().includes(modSearchTerm.toLowerCase()) ||
+    (mod.designation as string).toLowerCase().includes(modSearchTerm.toLowerCase())
+  );
+
+  // 3. Stores filtered by selected Trainer (primary filter) or Area Manager
   const filteredStores = uniqueStores.filter(store => {
     // First apply search filter
     const matchesSearch = storeSearchTerm === '' || 
       (store.name as string).toLowerCase().includes(storeSearchTerm.toLowerCase()) ||
       (store.id as string).toLowerCase().includes(storeSearchTerm.toLowerCase());
 
-    // If no AM is selected, show all stores that match search
-    if (!meta.amId) return matchesSearch;
+    // If trainer is selected, filter stores by trainer (primary filter)
+    if (meta.trainerId) {
+      try {
+        const trainerIdNorm = normalizeId(meta.trainerId);
+        const storesForTrainer = Array.from(
+          new Set(
+            allStores
+              .filter((r: any) => {
+                // Check Trainer 1 (primary), Trainer 2, Trainer 3 using exact Google Sheet column names
+                const trainer1 = normalizeId(r['Trainer 1 ID'] || r['Trainer 1'] || r.Trainer || r['Trainer'] || r['Trainer ID'] || r.trainerId || r.trainer_id);
+                const trainer2 = normalizeId(r['Trainer 2 ID'] || r['Trainer 2'] || '');
+                const trainer3 = normalizeId(r['Trainer 3 ID'] || r['Trainer 3'] || '');
+                return trainer1 === trainerIdNorm || trainer2 === trainerIdNorm || trainer3 === trainerIdNorm;
+              })
+              .map((r: any) => ({
+                name: r['Store Name'] || r.storeName || r.name,
+                id: normalizeId(r['Store ID'] || r.storeId || r.StoreID || r.store_id)
+              }))
+              .filter((s: any) => s.name && s.id)
+              .map((s: any) => `${s.id}::${s.name}`)
+          )
+        ).map((key: string) => {
+          const [id, name] = key.split('::');
+          return { id, name };
+        });
 
-    // If AM is selected, use comprehensive mapping to find stores for that AM
-    try {
-      const amIdNorm = normalizeId(meta.amId);
-      const storesForAM = Array.from(
-        new Set(
-          rows
-            .filter((r: any) => normalizeId(r.AM || r['AM'] || r['AM ID'] || r['Area Manager ID'] || r.amId || r.areaManagerId) === amIdNorm)
-            .map((r: any) => ({
-              name: r['Store Name'] || r.storeName || r.name,
-              id: normalizeId(r['Store ID'] || r.storeId || r.StoreID || r.store_id)
-            }))
-            .filter((s: any) => s.name && s.id)
-            .map((s: any) => `${s.id}::${s.name}`)
-        )
-      ).map((key: string) => {
-        const [id, name] = key.split('::');
-        return { id, name };
-      });
-
-      const storeUnderAM = storesForAM.some((s: any) => normalizeId(s.id) === normalizeId(store.id));
-      return matchesSearch && storeUnderAM;
-    } catch (e) {
-      // If error, only show stores that match search
-      return matchesSearch;
+        const storeUnderTrainer = storesForTrainer.some((s: any) => normalizeId(s.id) === normalizeId(store.id));
+        return matchesSearch && storeUnderTrainer;
+      } catch (e) {
+        return matchesSearch;
+      }
     }
+
+    // If no trainer but AM is selected, filter by AM
+    if (meta.amId) {
+      try {
+        const amIdNorm = normalizeId(meta.amId);
+        const storesForAM = Array.from(
+          new Set(
+            allStores
+              .filter((r: any) => normalizeId(r.AM || r['AM'] || r['AM ID'] || r['Area Manager ID'] || r.amId || r.areaManagerId) === amIdNorm)
+              .map((r: any) => ({
+                name: r['Store Name'] || r.storeName || r.name,
+                id: normalizeId(r['Store ID'] || r.storeId || r.StoreID || r.store_id)
+              }))
+              .filter((s: any) => s.name && s.id)
+              .map((s: any) => `${s.id}::${s.name}`)
+          )
+        ).map((key: string) => {
+          const [id, name] = key.split('::');
+          return { id, name };
+        });
+
+        const storeUnderAM = storesForAM.some((s: any) => normalizeId(s.id) === normalizeId(store.id));
+        return matchesSearch && storeUnderAM;
+      } catch (e) {
+        return matchesSearch;
+      }
+    }
+
+    // If neither trainer nor AM is selected, show all stores that match search
+    return matchesSearch;
   });
 
   // Auto-fill function with cascading filters (same as HR Checklist)
@@ -567,10 +787,10 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         break;
         
       case 'store':
-        // Find store in comprehensive store mapping ONLY
+        // Find store in comprehensive store mapping from Google Sheets
         {
           const valueNorm = normalizeId(value);
-          mappingItem = rows.find((item: any) => {
+          mappingItem = allStores.find((item: any) => {
             const sid = normalizeId(item['Store ID'] || item.storeId || item.StoreID || item.store_id);
             const sname = String(item['Store Name'] || item.storeName || item.name || '').trim();
             return sid === valueNorm || sname === value;
@@ -580,18 +800,22 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             const storeId = normalizeId(mappingItem['Store ID'] || mappingItem.storeId || mappingItem.StoreID || mappingItem.store_id);
             const storeName = mappingItem['Store Name'] || mappingItem.storeName || mappingItem.name || '';
 
+            // Auto-fill AM from store mapping
             const storeAmId = normalizeId(mappingItem.AM || mappingItem['AM'] || mappingItem['AM ID'] || mappingItem['Area Manager ID'] || mappingItem.amId || mappingItem.areaManagerId);
+            const storeAmName = mappingItem['AM Name'] || '';
             const amFromStoreMapping = uniqueAMs.find((am: any) => normalizeId(am.id) === storeAmId);
 
-            const trainerId = normalizeId(mappingItem.Trainer || mappingItem['Trainer'] || mappingItem['Trainer ID'] || mappingItem.trainerId || mappingItem.trainer_id);
-            const trainerName = trainerNameOverrides[trainerId] || trainerId;
+            // Use Trainer 1 from new 23-column structure (primary trainer)
+            const trainerId = normalizeId(mappingItem['Trainer 1'] || mappingItem.Trainer || mappingItem['Trainer'] || mappingItem['Trainer ID'] || mappingItem.trainerId || mappingItem.trainer_id);
+            const trainerName = mappingItem['Trainer 1 Name'] || trainerId;
 
             setMeta(prev => ({
               ...prev,
               storeName,
               storeId,
-              amName: amFromStoreMapping?.name || '',
-              amId: amFromStoreMapping?.id || '',
+              // Auto-fill AM from store mapping
+              amName: storeAmName || amFromStoreMapping?.name || '',
+              amId: storeAmId || amFromStoreMapping?.id || '',
               mappedTrainerName: trainerName,
               mappedTrainerId: trainerId || ''
             }));
@@ -1627,43 +1851,14 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             </label>
             <input
               type="text"
-              value={amSearchTerm || (meta.amId ? meta.amName.split(' ')[0] : '')}
-              onChange={(e) => {
-                setAmSearchTerm(e.target.value);
-                setShowAmDropdown(true);
-                setSelectedAmIndex(-1);
-              }}
-              onFocus={() => setShowAmDropdown(true)}
-              onBlur={() => setTimeout(() => setShowAmDropdown(false), 200)}
-              placeholder="Search Area Manager..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+              value={meta.amId ? `${meta.amName} (${meta.amId})` : ''}
+              readOnly
+              placeholder="Will auto-fill when store is selected..."
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 cursor-not-allowed"
             />
-            
-            {showAmDropdown && (
-              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                {filteredAMs.length > 0 ? (
-                  filteredAMs.map((am, index) => (
-                    <button
-                      key={am.id}
-                      onClick={() => {
-                        handleMetaChange('amId', am.id as string);
-                        handleMetaChange('amName', am.name as string);
-                        autoFillFields('am', am.name as string);
-                        setAmSearchTerm('');
-                        setShowAmDropdown(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
-                        index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                      }`}
-                    >
-                      <div className="truncate">{am.name.split(' ')[0]}</div>
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No area managers found</div>
-                )}
-              </div>
-            )}
+            <div className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+              Auto-filled from store mapping
+            </div>
           </div>
 
           <div className="relative">
@@ -1672,7 +1867,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             </label>
             <input
               type="text"
-              value={trainerSearchTerm || (meta.trainerId ? `${meta.trainerName} (${meta.trainerId})` : '')}
+              value={trainerSearchTerm || (meta.trainerId ? `${meta.trainerName || 'Loading...'} (${meta.trainerId})` : '')}
               onChange={(e) => {
                 setTrainerSearchTerm(e.target.value);
                 setShowTrainerDropdown(true);
@@ -1771,17 +1966,52 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             </div>
           </div>
 
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 relative">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               MOD (Manager on Duty)
             </label>
             <input
               type="text"
-              value={meta.mod}
-              onChange={(e) => handleMetaChange('mod', e.target.value)}
-              placeholder="Enter MOD name"
+              value={modSearchTerm || meta.mod}
+              onChange={(e) => {
+                setModSearchTerm(e.target.value);
+                setShowModDropdown(true);
+                setSelectedModIndex(-1);
+              }}
+              onFocus={() => setShowModDropdown(true)}
+              onBlur={() => setTimeout(() => setShowModDropdown(false), 200)}
+              placeholder="Search for Store Manager, ASM, or Shift Supervisor..."
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
             />
+            
+            {showModDropdown && (
+              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                {employeeLoading ? (
+                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">Loading employees...</div>
+                ) : filteredModEmployees.length > 0 ? (
+                  filteredModEmployees.map((mod, index) => (
+                    <button
+                      key={mod.id}
+                      onClick={() => {
+                        handleMetaChange('mod', mod.name);
+                        setModSearchTerm('');
+                        setShowModDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm ${
+                        index === selectedModIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                      }`}
+                    >
+                      <div className="font-medium">{mod.name}</div>
+                      <div className="text-xs text-gray-500 dark:text-slate-400">{mod.designation} • {mod.location || mod.id}</div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">
+                    {modSearchTerm ? 'No matching managers found' : 'Start typing to search...'}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1888,7 +2118,70 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                                       {item.q}
                                     </p>
                                     <div className="">
-                                      {item.type === 'text' ? (
+                                      {item.type === 'employee' ? (
+                                        <div className="relative">
+                                          <input
+                                            type="text"
+                                            value={employeeSearchTerms[`${section.id}_${item.id}`] || responses[`${section.id}_${item.id}`] || ''}
+                                            onChange={(e) => {
+                                              const fieldKey = `${section.id}_${item.id}`;
+                                              setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: e.target.value }));
+                                              setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
+                                              setSelectedEmployeeIndex(prev => ({ ...prev, [fieldKey]: -1 }));
+                                            }}
+                                            onFocus={() => {
+                                              const fieldKey = `${section.id}_${item.id}`;
+                                              setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
+                                            }}
+                                            onBlur={() => {
+                                              const fieldKey = `${section.id}_${item.id}`;
+                                              setTimeout(() => setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false })), 200);
+                                            }}
+                                            className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                            placeholder="Search employee..."
+                                          />
+                                          
+                                          {showEmployeeDropdown[`${section.id}_${item.id}`] && (
+                                            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                                              {employeeLoading ? (
+                                                <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">Loading employees...</div>
+                                              ) : (() => {
+                                                const searchTerm = employeeSearchTerms[`${section.id}_${item.id}`] || '';
+                                                const filtered = allEmployeesForTSA.filter(emp => 
+                                                  searchTerm === '' || 
+                                                  emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                  emp.id.toLowerCase().includes(searchTerm.toLowerCase())
+                                                );
+                                                
+                                                return filtered.length > 0 ? (
+                                                  filtered.map((emp, index) => (
+                                                    <button
+                                                      key={emp.id}
+                                                      onClick={() => {
+                                                        const fieldKey = `${section.id}_${item.id}`;
+                                                        const value = `${emp.name} (${emp.id})`;
+                                                        handleTextResponse(fieldKey, value);
+                                                        setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: '' }));
+                                                        setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false }));
+                                                      }}
+                                                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm ${
+                                                        index === selectedEmployeeIndex[`${section.id}_${item.id}`] ? 'bg-gray-100 dark:bg-slate-700' : ''
+                                                      }`}
+                                                    >
+                                                      <div className="font-medium">{emp.name}</div>
+                                                      <div className="text-xs text-gray-500 dark:text-slate-400">{emp.id} • {emp.designation}</div>
+                                                    </button>
+                                                  ))
+                                                ) : (
+                                                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">
+                                                    {searchTerm ? 'No matching employees found' : 'Start typing to search...'}
+                                                  </div>
+                                                );
+                                              })()}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : item.type === 'text' ? (
                                         <input
                                           type="text"
                                           value={responses[`${section.id}_${item.id}`] || ''}
@@ -2016,7 +2309,70 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                                       {item.q}
                                     </p>
                                     <div className="">
-                                      {item.type === 'text' ? (
+                                      {item.type === 'employee' ? (
+                                        <div className="relative">
+                                          <input
+                                            type="text"
+                                            value={employeeSearchTerms[`${section.id}_${item.id}`] || responses[`${section.id}_${item.id}`] || ''}
+                                            onChange={(e) => {
+                                              const fieldKey = `${section.id}_${item.id}`;
+                                              setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: e.target.value }));
+                                              setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
+                                              setSelectedEmployeeIndex(prev => ({ ...prev, [fieldKey]: -1 }));
+                                            }}
+                                            onFocus={() => {
+                                              const fieldKey = `${section.id}_${item.id}`;
+                                              setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
+                                            }}
+                                            onBlur={() => {
+                                              const fieldKey = `${section.id}_${item.id}`;
+                                              setTimeout(() => setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false })), 200);
+                                            }}
+                                            className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                            placeholder="Search employee..."
+                                          />
+                                          
+                                          {showEmployeeDropdown[`${section.id}_${item.id}`] && (
+                                            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                                              {employeeLoading ? (
+                                                <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">Loading employees...</div>
+                                              ) : (() => {
+                                                const searchTerm = employeeSearchTerms[`${section.id}_${item.id}`] || '';
+                                                const filtered = allEmployeesForTSA.filter(emp => 
+                                                  searchTerm === '' || 
+                                                  emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                  emp.id.toLowerCase().includes(searchTerm.toLowerCase())
+                                                );
+                                                
+                                                return filtered.length > 0 ? (
+                                                  filtered.map((emp, index) => (
+                                                    <button
+                                                      key={emp.id}
+                                                      onClick={() => {
+                                                        const fieldKey = `${section.id}_${item.id}`;
+                                                        const value = `${emp.name} (${emp.id})`;
+                                                        handleTextResponse(fieldKey, value);
+                                                        setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: '' }));
+                                                        setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false }));
+                                                      }}
+                                                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm ${
+                                                        index === selectedEmployeeIndex[`${section.id}_${item.id}`] ? 'bg-gray-100 dark:bg-slate-700' : ''
+                                                      }`}
+                                                    >
+                                                      <div className="font-medium">{emp.name}</div>
+                                                      <div className="text-xs text-gray-500 dark:text-slate-400">{emp.id} • {emp.designation}</div>
+                                                    </button>
+                                                  ))
+                                                ) : (
+                                                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">
+                                                    {searchTerm ? 'No matching employees found' : 'Start typing to search...'}
+                                                  </div>
+                                                );
+                                              })()}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : item.type === 'text' ? (
                                         <input
                                           type="text"
                                           value={responses[`${section.id}_${item.id}`] || ''}
@@ -2144,7 +2500,70 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                                       {item.q}
                                     </p>
                                     <div className="">
-                                      {item.type === 'text' ? (
+                                      {item.type === 'employee' ? (
+                                        <div className="relative">
+                                          <input
+                                            type="text"
+                                            value={employeeSearchTerms[`${section.id}_${item.id}`] || responses[`${section.id}_${item.id}`] || ''}
+                                            onChange={(e) => {
+                                              const fieldKey = `${section.id}_${item.id}`;
+                                              setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: e.target.value }));
+                                              setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
+                                              setSelectedEmployeeIndex(prev => ({ ...prev, [fieldKey]: -1 }));
+                                            }}
+                                            onFocus={() => {
+                                              const fieldKey = `${section.id}_${item.id}`;
+                                              setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
+                                            }}
+                                            onBlur={() => {
+                                              const fieldKey = `${section.id}_${item.id}`;
+                                              setTimeout(() => setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false })), 200);
+                                            }}
+                                            className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                            placeholder="Search employee..."
+                                          />
+                                          
+                                          {showEmployeeDropdown[`${section.id}_${item.id}`] && (
+                                            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                                              {employeeLoading ? (
+                                                <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">Loading employees...</div>
+                                              ) : (() => {
+                                                const searchTerm = employeeSearchTerms[`${section.id}_${item.id}`] || '';
+                                                const filtered = allEmployeesForTSA.filter(emp => 
+                                                  searchTerm === '' || 
+                                                  emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                  emp.id.toLowerCase().includes(searchTerm.toLowerCase())
+                                                );
+                                                
+                                                return filtered.length > 0 ? (
+                                                  filtered.map((emp, index) => (
+                                                    <button
+                                                      key={emp.id}
+                                                      onClick={() => {
+                                                        const fieldKey = `${section.id}_${item.id}`;
+                                                        const value = `${emp.name} (${emp.id})`;
+                                                        handleTextResponse(fieldKey, value);
+                                                        setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: '' }));
+                                                        setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false }));
+                                                      }}
+                                                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm ${
+                                                        index === selectedEmployeeIndex[`${section.id}_${item.id}`] ? 'bg-gray-100 dark:bg-slate-700' : ''
+                                                      }`}
+                                                    >
+                                                      <div className="font-medium">{emp.name}</div>
+                                                      <div className="text-xs text-gray-500 dark:text-slate-400">{emp.id} • {emp.designation}</div>
+                                                    </button>
+                                                  ))
+                                                ) : (
+                                                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">
+                                                    {searchTerm ? 'No matching employees found' : 'Start typing to search...'}
+                                                  </div>
+                                                );
+                                              })()}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : item.type === 'text' ? (
                                         <input
                                           type="text"
                                           value={responses[`${section.id}_${item.id}`] || ''}

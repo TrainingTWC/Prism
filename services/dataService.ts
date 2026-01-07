@@ -14,7 +14,7 @@ const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwa-49e0qKFJ1ld
 const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzSibBicC4B5_naPxgrbNP4xSK49de2R02rI9wnAKG3QOJvuwYrUOYLiBg_9XNqAhS5ig/exec';
 
 // QA Assessment endpoint - UPDATED URL (Data fetched from Google Sheets)
-const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbySmkzshiMNIBPOBtSJWTtG-8BJdnM__7nW5Qsfdv7K5ygCPdCn--mt_TFNATlOYQqT4w/exec';
+const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxBhQbh7210ZW3XXUypyW_BISG5_Y9sj1dDcIVM40d9jN-UXNRvFWS-ks8xO9TtkoeE/exec';
 
 // Finance Audit endpoint - UPDATED URL (Data fetched from Google Sheets)
 const FINANCE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx1WaaEoUTttanmWGS8me3HZNhuqaxVHoPdWN3AdI0i4bLQmHFRztj133Vh8SaoVb2iwg/exec';
@@ -40,16 +40,6 @@ const loadStoreMapping = async (): Promise<any[]> => {
       response = await fetch(`${base}comprehensive_store_mapping.json`);
       if (response.ok) {
         storeMappingCache = await response.json();
-        console.log('✅ Comprehensive store mapping loaded successfully:', storeMappingCache.length, 'entries');
-        
-        // Log region distribution from the mapping file
-        const regionCount = storeMappingCache.reduce((acc: any, store: any) => {
-          const region = store.Region || store.region || 'Unknown';
-          acc[region] = (acc[region] || 0) + 1;
-          return acc;
-        }, {});
-        console.log('Store mapping region distribution:', regionCount);
-        
         return storeMappingCache;
       } else {
         throw new Error('Comprehensive mapping not found');
@@ -60,7 +50,6 @@ const loadStoreMapping = async (): Promise<any[]> => {
         response = await fetch(`${base}latest_store_mapping.json`);
         if (response.ok) {
           storeMappingCache = await response.json();
-          console.log('⚠️ Fallback to latest store mapping loaded:', storeMappingCache.length, 'entries');
           return storeMappingCache;
         } else {
           throw new Error('Latest mapping not found');
@@ -71,7 +60,6 @@ const loadStoreMapping = async (): Promise<any[]> => {
           response = await fetch(`${base}twc_store_mapping.json`);
           if (response.ok) {
             storeMappingCache = await response.json();
-            console.log('⚠️ Final fallback TWC store mapping loaded:', storeMappingCache.length, 'entries');
             return storeMappingCache;
           } else {
             throw new Error('TWC mapping not found');
@@ -80,13 +68,11 @@ const loadStoreMapping = async (): Promise<any[]> => {
           // Last resort: hr_mapping.json
           response = await fetch(`${base}hr_mapping.json`);
           storeMappingCache = await response.json();
-          console.log('⚠️ Last resort HR mapping loaded:', storeMappingCache.length, 'entries');
           return storeMappingCache;
         }
       }
     }
   } catch (error) {
-    console.warn('Could not load store mapping:', error);
     return [];
   }
 };
@@ -139,9 +125,6 @@ const getRandomItem = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.le
 // Utility function to deduplicate submissions
 // Keeps only the latest submission for each employee per day
 const deduplicateSubmissions = (submissions: Submission[]): Submission[] => {
-  console.log('🔍 Deduplicating submissions...');
-  console.log('Original count:', submissions.length);
-  
   // Group submissions by employee (empName + empId) and date
   const submissionMap = new Map<string, Submission>();
   
@@ -151,7 +134,6 @@ const deduplicateSubmissions = (submissions: Submission[]): Submission[] => {
     // Extract date from submission time (ignore time component)
     const submissionDate = parseSubmissionDate(submission.submissionTime);
     if (!submissionDate) {
-      console.warn('Could not parse date for submission:', submission.submissionTime);
       return;
     }
     
@@ -170,18 +152,12 @@ const deduplicateSubmissions = (submissions: Submission[]): Submission[] => {
       
       if (existingDate && submissionDate > existingDate) {
         // Current submission is newer, replace the existing one
-        console.log(`📝 Replacing duplicate: ${submission.empName} (${submission.empId}) - Keeping ${submission.submissionTime} over ${existing.submissionTime}`);
         submissionMap.set(uniqueKey, submission);
-      } else {
-        console.log(`📝 Skipping duplicate: ${submission.empName} (${submission.empId}) - Keeping earlier ${existing.submissionTime} over ${submission.submissionTime}`);
       }
     }
   });
   
   const deduplicated = Array.from(submissionMap.values());
-  console.log('✅ Deduplicated count:', deduplicated.length);
-  console.log(`Removed ${submissions.length - deduplicated.length} duplicate(s)`);
-  
   return deduplicated;
 };
 
@@ -220,7 +196,6 @@ const parseSubmissionDate = (submissionTime: string): Date | null => {
     
     return new Date(year, month, day, hour, minute, second);
   } catch (err) {
-    console.error('Error parsing date:', err, 'Input:', submissionTime);
     return null;
   }
 };
@@ -237,7 +212,7 @@ const generateMockData = async (count: number): Promise<Submission[]> => {
     const response = await fetch(`${base}hr_mapping.json`);
     hrMappingData = await response.json();
   } catch (error) {
-    console.warn('Could not load hr_mapping.json for mock data, using fallback');
+    // Use fallback
   }
 
   for (let i = 0; i < count; i++) {
@@ -309,12 +284,8 @@ const generateMockData = async (count: number): Promise<Submission[]> => {
 // Convert Google Sheets data to Submission format
 const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submission[]> => {
   if (!sheetsData || sheetsData.length === 0) {
-    console.log('No data from Google Sheets to convert');
     return [];
   }
-
-  console.log('Converting sheets data:', sheetsData);
-  console.log('Sample row structure:', sheetsData[0]);
 
   const results: Submission[] = [];
   
@@ -333,9 +304,6 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
           
           if (choice) {
             totalScore += choice.score;
-            console.log(`Question ${q.id}: "${response}" -> ${choice.score} points`);
-          } else {
-            console.log(`Question ${q.id}: No matching choice found for "${response}"`);
           }
         }
         maxScore += Math.max(...q.choices.map(c => c.score));
@@ -350,8 +318,6 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
     const finalMaxScore = row.maxScore && !isNaN(Number(row.maxScore)) ? Number(row.maxScore) : maxScore;
     // Always use the recalculated percentage to ensure correct scoring after the update
     const finalPercent = calculatedPercent;
-
-    console.log(`Final scores - Total: ${finalTotalScore}, Max: ${finalMaxScore}, Percent: ${finalPercent}%`);
 
     // Get proper mappings for the store
     // Try both formats: with spaces (from Google Sheets) and without (from local data)
@@ -400,21 +366,9 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
           if (mappedRegion) {
             region = mappedRegion;
           }
-          
-          console.log(`Successfully mapped store ${storeId}:`, {
-            amId, amName, hrId, hrName, region,
-            fromSheets: { hrId: originalHrId, hrName: originalHrName },
-            rawMapping: {
-              amId: storeMapping.AM || storeMapping['Area Manager ID'],
-              hrbp: storeMapping.HRBP,
-              region: storeMapping.Region || storeMapping.region
-            }
-          });
-        } else {
-          console.warn(`No mapping found for store ${storeId} in ${mappingData.length} mapping entries`);
         }
       } catch (error) {
-        console.warn(`Could not map store ${storeId}:`, error);
+        // Mapping failed, use original values
       }
     }
 
@@ -466,19 +420,14 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
 
 export const fetchSubmissions = async (): Promise<Submission[]> => {
   try {
-    console.log('Fetching data from Google Sheets...');
-    
     // Try direct request first (works if CORS is properly configured)
     let response;
     let data;
     
     try {
-      console.log('Trying direct request to Google Apps Script...');
       // Add cache-busting parameter to force fresh data
       const cacheBuster = `&_t=${Date.now()}`;
       const directUrl = SHEETS_ENDPOINT + '?action=getData' + cacheBuster;
-      console.log('📡 Fetching from URL:', directUrl);
-      console.log('📡 Using endpoint:', SHEETS_ENDPOINT);
       
       response = await fetch(directUrl, {
         method: 'GET',
@@ -491,13 +440,10 @@ export const fetchSubmissions = async (): Promise<Submission[]> => {
       
       if (response.ok) {
         data = await response.json();
-        console.log('Direct request successful, data received:', data);
       } else {
         throw new Error(`Direct request failed: ${response.status}`);
       }
     } catch (directError) {
-      console.log('Direct request failed, trying CORS proxy...', directError);
-      
       // Fallback to CORS proxy
       const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
       const targetUrl = SHEETS_ENDPOINT + '?action=getData';
@@ -513,29 +459,21 @@ export const fetchSubmissions = async (): Promise<Submission[]> => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('CORS proxy response was not OK:', response.status, response.statusText, errorText);
-        console.log('No real data available, generating mock data for demo...');
         return await generateMockData(20);
       }
 
       data = await response.json();
-      console.log('CORS proxy request successful, data received:', data);
     }
     
     // Check if the received data is an array, as expected
     if (!Array.isArray(data)) {
-        console.error('Data from Google Sheets is not an array:', data);
-        console.log('Invalid data format, generating mock data...');
         return await generateMockData(20);
     }
     
     const submissions = await convertSheetsDataToSubmissions(data);
     
-    console.log('Converted submissions:', submissions);
-    
     // If no real data available, generate mock data for demo purposes
     if (submissions.length === 0) {
-      console.log('No real submissions found, generating mock data...');
       return await generateMockData(20);
     }
     
@@ -544,8 +482,6 @@ export const fetchSubmissions = async (): Promise<Submission[]> => {
     
     return deduplicatedSubmissions;
   } catch (error) {
-    console.error('Error fetching from Google Sheets:', error);
-    console.log('Failed to fetch data, generating mock data...');
     // Return mock data instead of empty array for demo purposes
     return await generateMockData(20);
   }
@@ -585,22 +521,7 @@ export interface AMOperationsSubmission {
 // Fetch AM Operations data
 // Helper function to apply region mapping to any dataset
 const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmission[]> => {
-  console.log('🗺️  Applying comprehensive store mapping to dataset...');
   const mappingData = await loadStoreMapping();
-  console.log(`Loaded ${mappingData.length} store mapping entries for comprehensive mapping`);
-  
-  // Log first few mapping entries for debugging
-  console.log('📋 Sample mapping entries:', mappingData.slice(0, 3).map(m => ({ 
-    id: m['Store ID'], 
-    name: m['Store Name'], 
-    region: m['Region'],
-    menu: m['Menu'],
-    storeType: m['Store Type'],
-    concept: m['Concept'],
-    hrbp: m['HRBP'],
-    trainer: m['Trainer'],
-    am: m['AM']
-  })));
   
   const processedData = dataArray.map((row: any) => {
     let region = 'Unknown';
@@ -614,33 +535,19 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
     
     let storeId = row.storeId || row.storeID || row['Store ID'];
     
-    console.log(`📍 MAPPING STORE: ${storeId} (${row.storeName || row['Store Name'] || 'No name'}) - Original region: ${row.region || 'None'}`);
-    console.log(`   Row keys available:`, Object.keys(row).slice(0, 10));
-    console.log(`   Raw storeId value: "${storeId}", type: ${typeof storeId}`);
-    
     // ALWAYS map ALL fields from the comprehensive mapping file based on Store ID
     if (storeId) {
       try {
-        // Log what we're searching for
-        console.log(`🔍 Searching for Store ID: "${storeId}" (type: ${typeof storeId})`);
-        console.log(`   First 3 mapping entries:`, mappingData.slice(0, 3).map(m => m['Store ID']));
-        
         // Try to find by exact store ID match first
         let storeMapping = mappingData.find(mapping => {
           const mappingStoreId = mapping['Store ID'] || mapping.storeId;
           const match = mappingStoreId === storeId.toString();
-          if (match) {
-            console.log(`✅ EXACT MATCH FOUND: "${mappingStoreId}" === "${storeId}"`);
-          }
           return match;
         });
-        
-        console.log(`   After exact match attempt: storeMapping = ${storeMapping ? 'FOUND' : 'NULL'}`);
         
         // If not found and storeId is numeric, try with S prefix
         if (!storeMapping && !isNaN(storeId) && !storeId.toString().startsWith('S')) {
           const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
-          console.log(`🔍 Trying S-formatted ID: ${sFormattedId}`);
           storeMapping = mappingData.find(mapping => {
             const mappingStoreId = mapping['Store ID'] || mapping.storeId;
             return mappingStoreId === sFormattedId;
@@ -650,15 +557,11 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
         // If still not found, try to match by store name if available
         if (!storeMapping && (row.storeName || row['Store Name'])) {
           const submissionStoreName = row.storeName || row['Store Name'];
-          console.log(`🔍 Trying store name match for: "${submissionStoreName}"`);
           storeMapping = mappingData.find(mapping => {
             const mappingStoreName = mapping['Store Name'] || mapping.storeName || '';
             const nameMatch = mappingStoreName.toLowerCase().includes(submissionStoreName.toLowerCase()) ||
                    submissionStoreName.toLowerCase().includes(mappingStoreName.toLowerCase()) ||
                    mappingStoreName.toLowerCase() === submissionStoreName.toLowerCase();
-            if (nameMatch) {
-              console.log(`✅ NAME MATCH FOUND: "${mappingStoreName}" matches "${submissionStoreName}"`);
-            }
             return nameMatch;
           });
         }
@@ -678,34 +581,10 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
           am = storeMapping['AM'] || storeMapping.am || '';
           regionalTrainingManager = storeMapping['Regional Training Manager'] || storeMapping.regionalTrainingManager || '';
           
-          // Check if Store ID and Store Name match
-          const storeNameMismatch = originalStoreName && 
-            !mappedStoreName.toLowerCase().includes(originalStoreName.toLowerCase()) &&
-            !originalStoreName.toLowerCase().includes(mappedStoreName.toLowerCase());
-          
-          console.log(`✅ COMPREHENSIVE MAPPING: Store ${storeId}:`);
-          if (storeNameMismatch) {
-            console.warn(`   🚨 DATA MISMATCH: Google Sheet has "${originalStoreName}" for ${storeId}, but mapping shows "${mappedStoreName}"`);
-            console.warn(`   ⚠️  Please correct the Google Sheet! Store ID ${storeId} should be "${mappedStoreName}"`);
-          }
-          console.log(`   ⚠️ Original Region from Sheet: ${originalRegion}`);
-          console.log(`   ✅ Mapped Region from comprehensive_store_mapping.json: ${region}`);
-          console.log(`   Menu: ${menu}`);
-          console.log(`   Store Type: ${storeType}`);
-          console.log(`   Concept: ${concept}`);
-          console.log(`   HRBP: ${hrbp}`);
-          console.log(`   Trainer: ${trainer}`);
-          console.log(`   AM: ${am}`);
-          console.log(`   Regional Training Manager: ${regionalTrainingManager}`);
-        } else {
-          console.warn(`❌ Could not find comprehensive mapping for store ${storeId}`);
-          console.log(`   Available store IDs (first 10):`, mappingData.slice(0, 10).map(m => m['Store ID']));
         }
       } catch (error) {
-        console.warn(`❌ Error mapping store details for ${storeId}:`, error);
+        // Mapping failed, use original values
       }
-    } else {
-      console.warn(`❌ No storeId found for submission. Row keys:`, Object.keys(row));
     }
     
     return {
@@ -722,36 +601,16 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
     };
   });
   
-  // Debug: Log region distribution
-  const regionCount = processedData.reduce((acc: any, item: any) => {
-    acc[item.region] = (acc[item.region] || 0) + 1;
-    return acc;
-  }, {});
-  console.log('📊 FINAL REGION DISTRIBUTION:', regionCount);
-  
-  // Debug: Log menu distribution
-  const menuCount = processedData.reduce((acc: any, item: any) => {
-    const menu = item.menu || 'Not Mapped';
-    acc[menu] = (acc[menu] || 0) + 1;
-    return acc;
-  }, {});
-  console.log('🍽️ MENU TYPE DISTRIBUTION:', menuCount);
-  
   return processedData as AMOperationsSubmission[];
 };
 
 export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]> => {
   try {
-    console.log('=== STARTING AM OPERATIONS DATA FETCH ===');
-    console.log('Fetching AM Operations data from Google Sheets...');
-    
     let response;
     let data;
     
     try {
-      console.log('Trying direct request to AM Operations Google Apps Script...');
       const directUrl = AM_OPS_ENDPOINT + '?action=getData';
-      console.log('Direct URL:', directUrl);
       
       response = await fetch(directUrl, {
         method: 'GET',
@@ -761,22 +620,13 @@ export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]>
         redirect: 'follow',
       });
       
-      console.log('Direct response status:', response.status, response.statusText);
-      
       if (response.ok) {
         data = await response.json();
-        console.log('✅ Direct request successful, AM Operations raw data received:');
-        console.log('Data type:', typeof data, 'Is array:', Array.isArray(data));
-        console.log('Data length:', data?.length);
-        console.log('First 2 items:', data?.slice(0, 2));
       } else {
         const errorText = await response.text();
-        console.log('❌ Direct request failed:', response.status, errorText);
         throw new Error(`Direct request failed: ${response.status}`);
       }
     } catch (directError) {
-      console.log('❌ Direct request failed for AM Operations, trying CORS proxy...', directError);
-      
       const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
       const targetUrl = AM_OPS_ENDPOINT + '?action=getData';
 
@@ -791,22 +641,14 @@ export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]>
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ CORS proxy response was not OK for AM Operations:', response.status, response.statusText, errorText);
-        console.log('🔄 Falling back to static AM Operations test data...');
-        console.log('Static data sample:', STATIC_AM_OPERATIONS_DATA.slice(0, 2));
-        
         // Apply region mapping to static data as well
         return await applyRegionMapping(STATIC_AM_OPERATIONS_DATA);
       }
 
       data = await response.json();
-      console.log('✅ CORS proxy request successful for AM Operations, data received:', data);
     }
     
     if (!Array.isArray(data)) {
-      console.error('❌ AM Operations data from Google Sheets is not an array:', data);
-      console.log('🔄 Using static AM Operations test data as fallback...');
-      console.log('Static data sample:', STATIC_AM_OPERATIONS_DATA.slice(0, 2));
       return await applyRegionMapping(STATIC_AM_OPERATIONS_DATA);
     }
     
@@ -816,8 +658,6 @@ export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]>
     return processedData;
     
   } catch (error) {
-    console.error('Error fetching AM Operations data from Google Sheets:', error);
-    console.log('🔄 Using static AM Operations test data as fallback...');
     return await applyRegionMapping(STATIC_AM_OPERATIONS_DATA);
   }
 };
@@ -847,13 +687,10 @@ export interface TrainingAuditSubmission {
 // Fetch Training Audit data
 export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> => {
   try {
-    console.log('Fetching Training Audit data from Google Sheets...');
-    
     let response;
     let data;
     
     try {
-      console.log('Trying direct request to Training Audit Google Apps Script...');
       const directUrl = TRAINING_AUDIT_ENDPOINT + '?action=getData';
       
       response = await fetch(directUrl, {
@@ -866,13 +703,10 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
       
       if (response.ok) {
         data = await response.json();
-        console.log('Direct request successful, Training Audit data received:', data);
       } else {
         throw new Error(`Direct request failed: ${response.status}`);
       }
     } catch (directError) {
-      console.log('Direct request failed for Training Audit, trying CORS proxy...', directError);
-      
       const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
       const targetUrl = TRAINING_AUDIT_ENDPOINT + '?action=getData';
 
@@ -887,18 +721,13 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('CORS proxy response was not OK for Training Audit:', response.status, response.statusText, errorText);
-        console.log('Using static training test data as fallback...');
         return STATIC_TRAINING_DATA as TrainingAuditSubmission[];
       }
 
       data = await response.json();
-      console.log('CORS proxy request successful for Training Audit, data received:', data);
     }
     
     if (!Array.isArray(data)) {
-      console.error('Training Audit data from Google Sheets is not an array:', data);
-      console.log('Using static training test data as fallback...');
       return STATIC_TRAINING_DATA as TrainingAuditSubmission[];
     }
     
@@ -926,7 +755,6 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
                 mapping["Store ID"] === sFormattedId || 
                 mapping.storeId === sFormattedId
               );
-              console.log(`Trying S-formatted ID: ${sFormattedId}`);
             }
             
             // If still not found, try to match by store name if available
@@ -939,18 +767,14 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
                        submissionStoreName.toLowerCase().includes(mappingStoreName.toLowerCase()) ||
                        mappingStoreName.toLowerCase() === submissionStoreName.toLowerCase();
               });
-              console.log(`Trying store name match for: ${row.storeName}`);
             }
             
             if (storeMapping && (storeMapping["Region"] || storeMapping.region)) {
               region = storeMapping["Region"] || storeMapping.region;
-              console.log(`✅ Mapped training store ${storeId} (${row.storeName}) to region: ${region}`);
-            } else {
-              console.warn(`❌ Could not find region mapping for store ${storeId} (${row.storeName})`);
             }
           }
         } catch (error) {
-          console.warn(`Could not map region for store ${row.storeId}:`, error);
+          // Mapping failed, use original values
         }
       }
       
@@ -970,12 +794,9 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
       };
     }));
     
-    console.log('Training Audit submissions processed with regions:', processedData);
     return processedData as TrainingAuditSubmission[];
     
   } catch (error) {
-    console.error('Error fetching Training Audit data from Google Sheets:', error);
-    console.log('Using static training test data as fallback...');
     return STATIC_TRAINING_DATA as TrainingAuditSubmission[];
   }
 };
@@ -1000,13 +821,10 @@ export interface QASubmission {
 // Fetch QA Assessment data
 export const fetchQAData = async (): Promise<QASubmission[]> => {
   try {
-    console.log('Fetching QA Assessment data from Google Sheets...');
-    
     let response;
     let data;
     
     try {
-      console.log('Trying direct request to QA Google Apps Script...');
       const directUrl = QA_ENDPOINT + '?action=getData';
       
       response = await fetch(directUrl, {
@@ -1019,17 +837,10 @@ export const fetchQAData = async (): Promise<QASubmission[]> => {
       
       if (response.ok) {
         data = await response.json();
-        console.log('Direct request successful, QA data received:', data.length, 'submissions');
-        console.log('Sample QA submission from Google Sheets:', data[0]);
-        if (data[0]) {
-          console.log('Google Sheets QA field names:', Object.keys(data[0]));
-        }
       } else {
         throw new Error(`Direct request failed: ${response.status}`);
       }
     } catch (directError) {
-      console.log('Direct request failed for QA, trying CORS proxy...', directError);
-      
       const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
       const targetUrl = QA_ENDPOINT + '?action=getData';
 
@@ -1043,18 +854,12 @@ export const fetchQAData = async (): Promise<QASubmission[]> => {
       
       if (response.ok) {
         data = await response.json();
-        console.log('CORS proxy request successful, QA data received:', data.length, 'submissions');
-        console.log('Sample QA submission from Google Sheets (via proxy):', data[0]);
-        if (data[0]) {
-          console.log('Google Sheets QA field names (via proxy):', Object.keys(data[0]));
-        }
       } else {
         throw new Error(`CORS proxy request failed: ${response.status}`);
       }
     }
     
     if (!data || !Array.isArray(data)) {
-      console.warn('QA data is not in expected format:', data);
       return [];
     }
     
@@ -1094,13 +899,10 @@ export const fetchQAData = async (): Promise<QASubmission[]> => {
             
             if (storeMapping && storeMapping["Region"] || storeMapping.region) {
               region = storeMapping["Region"] || storeMapping.region;
-              console.log(`✅ Mapped QA store ${storeId} (${row.storeName}) to region: ${region}`);
-            } else {
-              console.warn(`❌ Could not find region mapping for QA store ${storeId} (${row.storeName})`);
             }
           }
         } catch (error) {
-          console.warn(`Could not map region for QA store ${row.storeId}:`, error);
+          // Mapping failed, use original values
         }
       }
       
@@ -1110,12 +912,9 @@ export const fetchQAData = async (): Promise<QASubmission[]> => {
       };
     });
     
-    console.log('QA submissions processed with regions:', processedData.length);
     return processedData as QASubmission[];
     
   } catch (error) {
-    console.error('Error fetching QA data from Google Sheets:', error);
-    console.log('Returning static QA test data as fallback...');
     
     // Static test data for QA dashboard development (fallback)
     const STATIC_QA_DATA: QASubmission[] = [
@@ -1318,13 +1117,10 @@ export interface FinanceSubmission {
 // Fetch Finance Audit data
 export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
   try {
-    console.log('Fetching Finance Audit data from Google Sheets...');
-    
     let response;
     let data;
     
     try {
-      console.log('Trying direct request to Finance Google Apps Script...');
       const directUrl = FINANCE_ENDPOINT + '?action=getData';
       
       response = await fetch(directUrl, {
@@ -1337,17 +1133,10 @@ export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
       
       if (response.ok) {
         data = await response.json();
-        console.log('Direct request successful, Finance data received:', data.length, 'submissions');
-        console.log('Sample Finance submission from Google Sheets:', data[0]);
-        if (data[0]) {
-          console.log('Google Sheets Finance field names:', Object.keys(data[0]));
-        }
       } else {
         throw new Error(`Direct request failed: ${response.status}`);
       }
     } catch (directError) {
-      console.log('Direct request failed for Finance, trying CORS proxy...', directError);
-      
       const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
       const targetUrl = FINANCE_ENDPOINT + '?action=getData';
 
@@ -1361,18 +1150,12 @@ export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
       
       if (response.ok) {
         data = await response.json();
-        console.log('CORS proxy request successful, Finance data received:', data.length, 'submissions');
-        console.log('Sample Finance submission from Google Sheets (via proxy):', data[0]);
-        if (data[0]) {
-          console.log('Google Sheets Finance field names (via proxy):', Object.keys(data[0]));
-        }
       } else {
         throw new Error(`CORS proxy request failed: ${response.status}`);
       }
     }
     
     if (!data || !Array.isArray(data)) {
-      console.warn('Finance data is not in expected format:', data);
       return [];
     }
     
@@ -1433,14 +1216,10 @@ export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
             if (!storeName && (storeMapping["Store Name"] || storeMapping.locationName)) {
               storeName = storeMapping["Store Name"] || storeMapping.locationName;
             }
-            
-            console.log(`✅ Mapped Finance store ${storeId} to region: ${region}, AM: ${amId}`);
-          } else {
-            console.warn(`❌ Could not find comprehensive mapping for Finance store ${storeId} (${row.storeName})`);
           }
         }
       } catch (err) {
-        console.warn('Error mapping Finance store data:', err);
+        // Mapping failed, use original values
       }
       
       return {
@@ -1452,12 +1231,9 @@ export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
       };
     });
     
-    console.log('Finance submissions processed with comprehensive mapping:', processedData.length);
     return processedData as FinanceSubmission[];
     
   } catch (error) {
-    console.error('Error fetching Finance data from Google Sheets:', error);
-    console.log('Returning empty Finance data array as fallback...');
     return [];
   }
 };
@@ -1487,13 +1263,10 @@ export interface CampusHiringSubmission {
 // Fetch Campus Hiring data
 export const fetchCampusHiringData = async (): Promise<CampusHiringSubmission[]> => {
   try {
-    console.log('Fetching Campus Hiring Assessment data from Google Sheets...');
-    
     let response;
     let data;
     
     try {
-      console.log('Trying direct request to Campus Hiring Google Apps Script...');
       const directUrl = CAMPUS_HIRING_ENDPOINT + '?action=getData';
       
       response = await fetch(directUrl, {
@@ -1506,17 +1279,10 @@ export const fetchCampusHiringData = async (): Promise<CampusHiringSubmission[]>
       
       if (response.ok) {
         data = await response.json();
-        console.log('Direct request successful, Campus Hiring data received:', data.length, 'submissions');
-        console.log('Sample Campus Hiring submission from Google Sheets:', data[0]);
-        if (data[0]) {
-          console.log('Google Sheets Campus Hiring field names:', Object.keys(data[0]));
-        }
       } else {
         throw new Error(`Direct request failed: ${response.status}`);
       }
     } catch (directError) {
-      console.log('Direct request failed for Campus Hiring, trying CORS proxy...', directError);
-      
       const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
       const targetUrl = CAMPUS_HIRING_ENDPOINT + '?action=getData';
 
@@ -1530,18 +1296,12 @@ export const fetchCampusHiringData = async (): Promise<CampusHiringSubmission[]>
       
       if (response.ok) {
         data = await response.json();
-        console.log('CORS proxy request successful, Campus Hiring data received:', data.length, 'submissions');
-        console.log('Sample Campus Hiring submission from Google Sheets (via proxy):', data[0]);
-        if (data[0]) {
-          console.log('Google Sheets Campus Hiring field names (via proxy):', Object.keys(data[0]));
-        }
       } else {
         throw new Error(`CORS proxy request failed: ${response.status}`);
       }
     }
     
     if (!data || !Array.isArray(data)) {
-      console.warn('Campus Hiring data is not in expected format:', data);
       return [];
     }
     
@@ -1574,13 +1334,9 @@ export const fetchCampusHiringData = async (): Promise<CampusHiringSubmission[]>
       };
     });
     
-    console.log('✅ Campus Hiring data processed successfully:', processedData.length, 'submissions');
     return processedData;
     
   } catch (error) {
-    console.error('Error fetching Campus Hiring data:', error);
-    console.warn('⚠️ Failed to fetch Campus Hiring data from Google Sheets');
     return [];
   }
 };
-
