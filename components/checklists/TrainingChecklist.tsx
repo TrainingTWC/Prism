@@ -545,6 +545,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       'store manager',
       'assistant store manager',
       'shift supervisor',
+      'shift manager',
       'store head',
       'assistant manager'
     ];
