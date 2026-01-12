@@ -7,14 +7,14 @@ import { STATIC_AM_OPERATIONS_DATA } from './staticOperationsData';
 // Google Apps Script endpoint for fetching data - UPDATED with DD/MM/YYYY date formatting
 const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzjSz9tePMAh3bOVfx9-Cnkj8hgZpLhUZ4UPKteSuD40BsDi6PM1v8D3ZSsxQxXYDXgjg/exec';
 
-// AM Operations endpoint - UPDATED URL with FIXED dynamic column reading
-const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwa-49e0qKFJ1ldfTz9eYh4kZFRFNfK_0x0sHjj0cB4mWamg0eLtoJk67jqMwb-y0LXCw/exec';
+// AM Operations endpoint - UPDATED URL (no CORS headers needed, must match OperationsChecklist submission endpoint)
+const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycby7R8JLMuleKjqzjVOK7fkhMmX7nCT0A-IJ8vK2TiC428hpAeKO-0axtaUfJI6k4WlUcQ/exec';
 
 // Training Audit endpoint - UPDATED URL
 const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzSibBicC4B5_naPxgrbNP4xSK49de2R02rI9wnAKG3QOJvuwYrUOYLiBg_9XNqAhS5ig/exec';
 
 // QA Assessment endpoint - UPDATED URL (Data fetched from Google Sheets)
-const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxBhQbh7210ZW3XXUypyW_BISG5_Y9sj1dDcIVM40d9jN-UXNRvFWS-ks8xO9TtkoeE/exec';
+const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzPjylMnpB7Qx0Erh5u5jYA0WY2rrsdxwt4Y1ahB7KW17mzF4pPG3Qk6PUG7KSzbfIi/exec';
 
 // Finance Audit endpoint - UPDATED URL (Data fetched from Google Sheets)
 const FINANCE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx1WaaEoUTttanmWGS8me3HZNhuqaxVHoPdWN3AdI0i4bLQmHFRztj133Vh8SaoVb2iwg/exec';
@@ -321,8 +321,12 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
 
     // Get proper mappings for the store
     // Try both formats: with spaces (from Google Sheets) and without (from local data)
-    let amId = row['AM ID'] || row.amId || '';
-    let amName = row['AM Name'] || row.amName || '';
+    // IMPORTANT: Preserve AM and HR data from Google Sheets as primary source
+    const originalAmId = row['AM ID'] || row.amId || '';
+    const originalAmName = row['AM Name'] || row.amName || '';
+    let amId = originalAmId;
+    let amName = originalAmName;
+    
     // IMPORTANT: Keep the original HR data from Google Sheets (who actually did the survey)
     // Don't overwrite with store mapping HRBP
     const originalHrId = row['HR ID'] || row.hrId || '';
@@ -331,7 +335,7 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
     let hrName = originalHrName;
     let region = row['Region'] || row.region || 'Unknown';
     
-    // Always look up from comprehensive store mapping to ensure we have the latest data
+    // Look up from comprehensive store mapping ONLY if AM/HR data is missing from Google Sheets
     if (row['Store ID'] || row.storeID || row.storeId) {
       const storeId = row['Store ID'] || row.storeID || row.storeId;
       try {
@@ -341,12 +345,14 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
         );
         
         if (storeMapping) {
-          // Get Area Manager - use mapping as primary source
-          const mappedAmId = storeMapping.AM || storeMapping['Area Manager ID'] || storeMapping.areaManagerId;
-          if (mappedAmId) {
-            amId = mappedAmId;
-            const amPerson = AREA_MANAGERS.find(am => am.id === amId);
-            amName = amPerson?.name || `AM ${amId}`;
+          // Get Area Manager - ONLY if not provided in Google Sheets
+          if (!originalAmId || !originalAmName) {
+            const mappedAmId = storeMapping.AM || storeMapping['Area Manager ID'] || storeMapping.areaManagerId;
+            if (mappedAmId) {
+              amId = mappedAmId;
+              const amPerson = AREA_MANAGERS.find(am => am.id === amId);
+              amName = amPerson?.name || `AM ${amId}`;
+            }
           }
           
           // Only use store mapping HRBP if Google Sheets didn't provide HR data
@@ -361,9 +367,9 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
             }
           }
           
-          // Get Region from mapping
+          // Get Region from mapping only if not in Google Sheets
           const mappedRegion = storeMapping.Region || storeMapping['Region'] || storeMapping.region;
-          if (mappedRegion) {
+          if (mappedRegion && !row['Region'] && !row.region) {
             region = mappedRegion;
           }
         }
@@ -606,59 +612,71 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
 
 export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]> => {
   try {
-    let response;
-    let data;
+    const directUrl = AM_OPS_ENDPOINT + '?action=getData';
+    console.log('Fetching AM Operations data from:', directUrl);
     
-    try {
-      const directUrl = AM_OPS_ENDPOINT + '?action=getData';
-      
-      response = await fetch(directUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        redirect: 'follow',
-      });
-      
-      if (response.ok) {
-        data = await response.json();
-      } else {
-        const errorText = await response.text();
-        throw new Error(`Direct request failed: ${response.status}`);
-      }
-    } catch (directError) {
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-      const targetUrl = AM_OPS_ENDPOINT + '?action=getData';
-
-      response = await fetch(proxyUrl + targetUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        redirect: 'follow',
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        // Apply region mapping to static data as well
-        return await applyRegionMapping(STATIC_AM_OPERATIONS_DATA);
-      }
-
-      data = await response.json();
+    const response = await fetch(directUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      redirect: 'follow',
+    });
+    
+    console.log('Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to fetch AM Operations data:', response.status, errorText);
+      return [];
     }
+    
+    const data = await response.json();
+    console.log('Received data:', data);
+    console.log('Data is array?', Array.isArray(data));
+    console.log('Data length:', Array.isArray(data) ? data.length : 'N/A');
     
     if (!Array.isArray(data)) {
-      return await applyRegionMapping(STATIC_AM_OPERATIONS_DATA);
+      console.error('Invalid data format received from AM Operations endpoint:', typeof data);
+      return [];
     }
     
+    // Map Google Sheets column names to camelCase field names
+    const mappedData = data.map((row: any) => {
+      return {
+        submissionTime: row['Submission Time'] || row.submissionTime || '',
+        hrName: row['HR Name'] || row.hrName || '',
+        hrId: row['HR ID'] || row.hrId || '',
+        amName: row['AM Name'] || row.amName || '',
+        amId: row['AM ID'] || row.amId || '',
+        trainerName: row['Trainer Name'] || row.trainerName || '',
+        trainerId: row['Trainer ID'] || row.trainerId || '',
+        storeName: row['Store Name'] || row.storeName || '',
+        storeId: row['Store ID'] || row.storeId || '',
+        region: row['Region'] || row.region || '',
+        bscAchievement: row['BSC Achievement'] || row.bscAchievement || '',
+        peopleOnShift: row['People On Shift'] || row.peopleOnShift || '',
+        manpowerFulfilment: row['Manpower Fulfilment'] || row.manpowerFulfilment || '',
+        totalScore: row['Total Score'] || row.totalScore || '',
+        maxScore: row['Max Score'] || row.maxScore || '',
+        percentageScore: row['Percentage Score'] || row.percentageScore || '',
+        // Copy all other fields (question responses, etc.)
+        ...row
+      };
+    });
+    
+    console.log('Mapped data sample:', mappedData[0]);
+    
     // Process data using the helper function to ensure proper region mapping
-    const processedData = await applyRegionMapping(data);
+    const processedData = await applyRegionMapping(mappedData);
+    console.log('Processed data length:', processedData.length);
+    console.log('Processed data sample:', processedData[0]);
     
     return processedData;
     
   } catch (error) {
-    return await applyRegionMapping(STATIC_AM_OPERATIONS_DATA);
+    console.error('Error fetching AM Operations data:', error);
+    return [];
   }
 };
 
@@ -735,6 +753,12 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
     const processedData = await Promise.all(data.map(async (row: any) => {
       let region = row.region || 'Unknown';
       let storeId = row.storeId;
+      const trainerId = (row.trainerId || '').toLowerCase().trim();
+      
+      // CRITICAL FIX: Kailash (H2595) should ALWAYS be North region, never West
+      if (trainerId === 'h2595' && region === 'West') {
+        region = 'North';
+      }
       
       // If region is Unknown or empty, try to map from store ID
       if (!region || region === 'Unknown') {

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, TrendingUp, Users, Award, MapPin, Coffee, Target, BarChart3, Calendar, Filter } from 'lucide-react';
 
+// Google Sheets endpoint for fetching Brew League data
+const BREW_LEAGUE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxIGr_utWW1EySanNuTjzG254uCvZiPcE1ZkGtxy6ubiPzGqAmaNHgoR2NrH-R4TXyn8w/exec';
+
 interface BrewLeagueSubmission {
   timestamp: string;
   participantName: string;
@@ -15,6 +18,7 @@ interface BrewLeagueSubmission {
   totalScore: number;
   maxScore: number;
   percentage: number;
+  submissionTime?: string;
   sections: Record<string, number>;
 }
 
@@ -24,60 +28,74 @@ const BrewLeagueDashboard: React.FC = () => {
   const [filterRegion, setFilterRegion] = useState<string>('all');
   const [filterScoresheet, setFilterScoresheet] = useState<string>('all');
   const [filterMachine, setFilterMachine] = useState<string>('all');
+  const [filterEmployee, setFilterEmployee] = useState<string>('all');
 
-  // Mock data - replace with actual Google Sheets API call
+  // Fetch data from Google Sheets
   useEffect(() => {
-    // Simulate loading from Google Sheets
-    setTimeout(() => {
-      const mockData: BrewLeagueSubmission[] = [
-        {
-          timestamp: '2026-01-02 10:30:00',
-          participantName: 'Rahul Sharma',
-          participantEmpID: 'TWC001',
-          judgeName: 'Judge 1',
-          judgeID: 'J001',
-          scoresheetType: 'technical',
-          machineType: 'manual',
-          storeName: 'MG Road Store',
-          storeID: 'BLR001',
-          region: 'South',
-          totalScore: 425,
-          maxScore: 500,
-          percentage: 85,
-          sections: {
-            'Grooming': 9,
-            'Espresso': 55,
-            'Milk': 45
-          }
-        },
-        {
-          timestamp: '2026-01-02 11:15:00',
-          participantName: 'Priya Patel',
-          participantEmpID: 'TWC002',
-          judgeName: 'Judge 2',
-          judgeID: 'J002',
-          scoresheetType: 'sensory',
-          machineType: 'automatic',
-          storeName: 'Connaught Place',
-          storeID: 'DEL001',
-          region: 'North',
-          totalScore: 28,
-          maxScore: 32,
-          percentage: 87.5,
-          sections: {
-            'Sensory': 28
-          }
+    const fetchBrewLeagueData = async () => {
+      try {
+        console.log('Fetching Brew League data from:', BREW_LEAGUE_ENDPOINT);
+        
+        const response = await fetch(BREW_LEAGUE_ENDPOINT, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+          redirect: 'follow',
+        });
+        
+        if (!response.ok) {
+          console.error('Failed to fetch Brew League data:', response.status);
+          setLoading(false);
+          return;
         }
-      ];
-      setSubmissions(mockData);
-      setLoading(false);
-    }, 500);
+        
+        const data = await response.json();
+        console.log('Received Brew League data:', data);
+        
+        if (!Array.isArray(data)) {
+          console.error('Invalid data format received');
+          setLoading(false);
+          return;
+        }
+        
+        // Map Google Sheets column names to interface fields
+        const mappedData: BrewLeagueSubmission[] = data.map((row: any) => ({
+          timestamp: row['Timestamp'] || row.timestamp || '',
+          participantName: row['Participant Name'] || row.participantName || '',
+          participantEmpID: row['Participant Emp ID'] || row['Participant Emp. ID'] || row.participantEmpID || '',
+          judgeName: row['Judge Name'] || row.judgeName || '',
+          judgeID: row['Judge Emp ID'] || row['Judge ID'] || row.judgeID || '',
+          scoresheetType: (row['Scoresheet Type'] || row.scoresheetType || 'technical').toLowerCase() as 'technical' | 'sensory',
+          machineType: (row['Machine Type'] || row.machineType || 'manual').toLowerCase() as 'manual' | 'automatic',
+          storeName: row['Store Name'] || row.storeName || '',
+          storeID: row['Store ID'] || row.storeID || '',
+          region: row['Region'] || row.region || '',
+          totalScore: Number(row['Total Score'] || row.totalScore || 0),
+          maxScore: Number(row['Max Score'] || row.maxScore || 0),
+          percentage: Number(row['Percentage'] || row.percentage || 0),
+          submissionTime: row['Submission Time'] || row.submissionTime || '',
+          sections: {} // Can be expanded if needed
+        }));
+        
+        console.log('Mapped Brew League data:', mappedData);
+        setSubmissions(mappedData);
+        setLoading(false);
+        
+      } catch (error) {
+        console.error('Error fetching Brew League data:', error);
+        setLoading(false);
+      }
+    };
+    
+    fetchBrewLeagueData();
   }, []);
 
   const filteredSubmissions = submissions.filter(sub => {
     if (filterRegion !== 'all' && sub.region !== filterRegion) return false;
     if (filterScoresheet !== 'all' && sub.scoresheetType !== filterScoresheet) return false;
     if (filterMachine !== 'all' && sub.machineType !== filterMachine) return false;
+    if (filterEmployee !== 'all' && sub.participantEmpID !== filterEmployee) return false;
     return true;
   });
 
@@ -93,6 +111,8 @@ const BrewLeagueDashboard: React.FC = () => {
   };
 
   const regions = ['all', ...Array.from(new Set(submissions.map(s => s.region)))];
+  const employees = ['all', ...Array.from(new Set(submissions.map(s => s.participantEmpID))).filter(Boolean).sort()];
+  const employeeNames = new Map(submissions.map(s => [s.participantEmpID, s.participantName]));
   
   const leaderboard = [...filteredSubmissions]
     .sort((a, b) => b.percentage - a.percentage)
@@ -130,7 +150,22 @@ const BrewLeagueDashboard: React.FC = () => {
             <Filter size={20} className="text-gray-600 dark:text-slate-400" />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Filters</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Employee</label>
+              <select 
+                value={filterEmployee}
+                onChange={(e) => setFilterEmployee(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+              >
+                <option value="all">All Employees</option>
+                {employees.slice(1).map(empID => (
+                  <option key={empID} value={empID}>
+                    {employeeNames.get(empID)} ({empID})
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Region</label>
               <select 

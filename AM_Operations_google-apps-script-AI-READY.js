@@ -22,9 +22,9 @@ function doPost(e) {
         'BSC Achievement',
         'People On Shift',
         'Manpower Fulfilment',
-        'Cafe Type',
-        'Store Type',
-        'Concept',
+        'Store Format',
+        'Menu Type',
+        'Price Group',
         // Cheerful Greeting (CG) - Questions 1-13
         'CG_1', 'CG_2', 'CG_3', 'CG_4', 'CG_5', 'CG_6', 'CG_7', 'CG_8', 'CG_9', 'CG_10', 'CG_11', 'CG_12', 'CG_13',
         // Order Taking Assistance (OTA) - Questions 1-11
@@ -64,9 +64,9 @@ function doPost(e) {
       params.bscAchievement || '',
       params.peopleOnShift || '',
       params.manpowerFulfilment || '',
-      params.cafeType || '',
-      params.storeType || '',
-      params.concept || '',
+      params.storeFormat || '',
+      params.menuType || '',
+      params.priceGroup || '',
       
       // Cheerful Greeting (CG) - Questions 1-13
       params['CG_1'] || '', params['CG_2'] || '', params['CG_3'] || '', params['CG_4'] || '', 

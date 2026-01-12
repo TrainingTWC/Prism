@@ -23,7 +23,7 @@ import AverageScoreByManagerChart from './AverageScoreByManagerChart';
 import { QUESTIONS as DEFAULT_QUESTIONS, OPERATIONS_QUESTIONS as DEFAULT_OPERATIONS_QUESTIONS, TRAINING_QUESTIONS as DEFAULT_TRAINING_QUESTIONS, AREA_MANAGERS as DEFAULT_AREA_MANAGERS, HR_PERSONNEL as DEFAULT_HR_PERSONNEL, TRAINER_PERSONNEL, REGIONS, SENIOR_HR_ROLES } from '../constants';
 import DashboardFilters from './DashboardFilters';
 import { useConfig } from '../contexts/ConfigContext';
-// import RCACapaAnalysis from './RCACapaAnalysis'; // Commented out - file not found
+import RCACapaAnalysis from './RCACapaAnalysis';
 import RegionPerformanceInfographic from './RegionPerformanceInfographic';
 import AMPerformanceInfographic from './AMPerformanceInfographic';
 import HRPerformanceInfographic from './HRPerformanceInfographic';
@@ -87,10 +87,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   
   // Use config data if available, otherwise fall back to hardcoded constants
   const QUESTIONS = config?.QUESTIONS || DEFAULT_QUESTIONS;
-  const OPERATIONS_QUESTIONS = config?.OPERATIONS_QUESTIONS || DEFAULT_OPERATIONS_QUESTIONS;
+  const OPERATIONS_QUESTIONS = (config?.OPERATIONS_QUESTIONS && config.OPERATIONS_QUESTIONS.length > 0) 
+    ? config.OPERATIONS_QUESTIONS 
+    : DEFAULT_OPERATIONS_QUESTIONS;
   const TRAINING_QUESTIONS = config?.TRAINING_QUESTIONS || DEFAULT_TRAINING_QUESTIONS;
   const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
   const HR_PERSONNEL = config?.HR_PERSONNEL || DEFAULT_HR_PERSONNEL;
+  
+  console.log('Dashboard: OPERATIONS_QUESTIONS length:', OPERATIONS_QUESTIONS.length);
+  console.log('Dashboard: Sample OPERATIONS_QUESTIONS:', OPERATIONS_QUESTIONS.slice(0, 3));
+  
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [amOperationsData, setAMOperationsData] = useState<AMOperationsSubmission[]>([]);
   const [trainingData, setTrainingData] = useState<TrainingAuditSubmission[]>([]);
@@ -480,10 +486,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             storeMap.set(storeId, { name: storeName, id: storeId, region });
           }
 
-          if (amId && !amMap.has(amId)) {
-            // Use AM Name from Google Sheets if available, otherwise try constants
-            const finalAmName = amName || AREA_MANAGERS.find(am => String(am.id).toLowerCase() === String(amId).toLowerCase())?.name || `AM ${amId}`;
-            amMap.set(amId, { name: finalAmName, id: amId });
+          if (amId) {
+            // Normalize AM ID to uppercase to avoid duplicates (H2396 vs h2396)
+            const normalizedAmId = String(amId).toUpperCase();
+            if (!amMap.has(normalizedAmId)) {
+              // Use AM Name from Google Sheets if available, otherwise try constants
+              const finalAmName = amName || AREA_MANAGERS.find(am => String(am.id).toLowerCase() === String(amId).toLowerCase())?.name || `AM ${amId}`;
+              amMap.set(normalizedAmId, { name: finalAmName, id: normalizedAmId });
+            }
           }
 
           [
@@ -581,6 +591,39 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           fetchSubmissions().then(data => {
             setSubmissions(data);
             setDataLoadedFlags(prev => ({ ...prev, hr: true }));
+            
+            // Extract unique Area Managers from HR submissions
+            // This ensures new AMs who have conducted HR surveys appear in the dropdown
+            const existingAmIds = new Set(allAreaManagers.map(am => String(am.id).toUpperCase()));
+            const newAMs: any[] = [];
+            
+            data.forEach((submission: any) => {
+              const amId = submission.amId;
+              const amName = submission.amName;
+              
+              if (amId && amName) {
+                const normalizedAmId = String(amId).toUpperCase();
+                if (!existingAmIds.has(normalizedAmId)) {
+                  newAMs.push({ id: normalizedAmId, name: amName });
+                  existingAmIds.add(normalizedAmId);
+                }
+              }
+            });
+            
+            if (newAMs.length > 0) {
+              console.log(`✅ Found ${newAMs.length} new Area Managers from HR submissions:`, newAMs);
+              setAllAreaManagers(prev => {
+                // Deduplicate by ID (case-insensitive) before combining
+                const amMap = new Map();
+                [...prev, ...newAMs].forEach(am => {
+                  const normalizedId = String(am.id).toUpperCase();
+                  if (!amMap.has(normalizedId)) {
+                    amMap.set(normalizedId, { ...am, id: normalizedId });
+                  }
+                });
+                return Array.from(amMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+              });
+            }
           }).catch(err => {
             console.error('❌ Failed to load HR data:', err);
           })
@@ -3943,14 +3986,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       })()}
 
       {/* RCA & CAPA Analysis - Only for Operations Dashboard */}
-      {/* Commented out - RCACapaAnalysis component not found
-      {dashboardType === 'operations' && filteredAMOperations.length > 0 && (
+      {dashboardType === 'operations' && (
         <RCACapaAnalysis 
           submissions={filteredAMOperations} 
           questions={OPERATIONS_QUESTIONS}
         />
       )}
-      */}
 
       {/* Check if we have data for the selected dashboard type */}
       {dashboardType === 'trainer-calendar' ? (
@@ -5051,21 +5092,55 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           const storeId = submission.storeId;
                           if (!storeId) return;
 
-                          // Parse submission date - if no date, assume September 2025
+                          // Parse submission date using proper date parsing
                           let submissionDate: Date;
                           const submissionDateStr = submission.submissionTime || submission.timestamp;
                           
                           if (!submissionDateStr) {
-                            // No date provided - default to September 1, 2025
-                            submissionDate = new Date('2025-09-01');
-                          } else {
+                            // No date provided - skip this submission for audit coverage
+                            return;
+                          }
+                          
+                          // Try to parse the date - handle both ISO format and DD/MM/YYYY format
+                          if (submissionDateStr.includes('T')) {
+                            // ISO format
                             submissionDate = new Date(submissionDateStr);
+                          } else {
+                            // Google Sheets format: DD/MM/YYYY HH:MM:SS or DD/MM/YYYY
+                            const dateStr = String(submissionDateStr).trim().replace(',', '');
+                            const parts = dateStr.split(' ');
                             
-                            // Check if date is valid
-                            if (isNaN(submissionDate.getTime())) {
-                              // Invalid date - default to September 2025
-                              submissionDate = new Date('2025-09-01');
+                            if (parts.length > 0 && parts[0].includes('/')) {
+                              const dateParts = parts[0].split('/');
+                              if (dateParts.length === 3) {
+                                const day = parseInt(dateParts[0], 10);
+                                const month = parseInt(dateParts[1], 10) - 1; // Months are 0-indexed
+                                const year = parseInt(dateParts[2], 10);
+                                
+                                // Parse time if available
+                                let hour = 0, minute = 0, second = 0;
+                                if (parts.length > 1 && parts[1]) {
+                                  const timeParts = parts[1].split(':');
+                                  hour = parseInt(timeParts[0] || '0', 10);
+                                  minute = parseInt(timeParts[1] || '0', 10);
+                                  second = parseInt(timeParts[2] || '0', 10);
+                                }
+                                
+                                submissionDate = new Date(year, month, day, hour, minute, second);
+                              } else {
+                                // Invalid date format - skip
+                                return;
+                              }
+                            } else {
+                              // Try standard Date parsing as fallback
+                              submissionDate = new Date(submissionDateStr);
                             }
+                          }
+                          
+                          // Validate the parsed date
+                          if (isNaN(submissionDate.getTime())) {
+                            // Invalid date - skip this submission
+                            return;
                           }
 
                           const percentage = parseFloat(submission.percentageScore || '0');
@@ -5211,13 +5286,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           auditCoverage = auditCoverage.filter(audit => audit.trainerName === auditCoverageFilters.trainer);
                         }
 
-                        // Sort by days remaining (no audit done first, then overdue, then ascending)
+                        // Sort by last audit date (latest first, then no audits at the end)
                         auditCoverage.sort((a, b) => {
-                          if (a.status === 'No audit done' && b.status !== 'No audit done') return -1;
-                          if (a.status !== 'No audit done' && b.status === 'No audit done') return 1;
-                          if (a.daysRemaining < 0 && b.daysRemaining >= 0) return -1;
-                          if (a.daysRemaining >= 0 && b.daysRemaining < 0) return 1;
-                          return a.daysRemaining - b.daysRemaining;
+                          // No audit done always goes to the end
+                          if (a.status === 'No audit done' && b.status !== 'No audit done') return 1;
+                          if (a.status !== 'No audit done' && b.status === 'No audit done') return -1;
+                          
+                          // Both have audits - sort by most recent first
+                          if (a.lastAuditDate && b.lastAuditDate) {
+                            return b.lastAuditDate.getTime() - a.lastAuditDate.getTime();
+                          }
+                          
+                          return 0;
                         });
 
                         if (auditCoverage.length === 0) {

@@ -61,6 +61,8 @@ const RCACapaAnalysis: React.FC<RCACapaAnalysisProps> = ({ submissions, question
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [expandedRCA, setExpandedRCA] = useState<number | null>(null);
+  const [expandedProblems, setExpandedProblems] = useState(false);
 
   // AI-style analysis functions (similar to AIInsights.tsx approach)
   const performOperationalAnalysis = (data: any[], questions: any[]) => {
@@ -420,63 +422,106 @@ const RCACapaAnalysis: React.FC<RCACapaAnalysisProps> = ({ submissions, question
           )}
 
           {analysis && (
-            <div className="space-y-6">
-              {/* Analysis Summary */}
-              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-600">
-                <h4 className="font-semibold text-slate-100 mb-3">AI Analysis Summary</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-yellow-500">{analysis.problems.length}</div>
-                    <div className="text-xs text-slate-400">Issues Identified</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-500">{analysis.rootCauseAnalysis.length}</div>
-                    <div className="text-xs text-slate-400">Root Cause Analyses</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-red-500">{analysis.correctiveActions.length}</div>
-                    <div className="text-xs text-slate-400">Corrective Actions</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-500">{analysis.preventiveActions.length}</div>
-                    <div className="text-xs text-slate-400">Preventive Actions</div>
-                  </div>
+            <div className="space-y-4">
+              {/* Compact Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-gradient-to-br from-yellow-900/30 to-yellow-800/20 border border-yellow-700/50 rounded-lg p-4 text-center">
+                  <div className="text-3xl font-bold text-yellow-400">{analysis.problems.length}</div>
+                  <div className="text-xs text-yellow-200/80 mt-1">Issues Found</div>
+                </div>
+                <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/20 border border-blue-700/50 rounded-lg p-4 text-center">
+                  <div className="text-3xl font-bold text-blue-400">{analysis.rootCauseAnalysis.length}</div>
+                  <div className="text-xs text-blue-200/80 mt-1">Root Causes</div>
+                </div>
+                <div className="bg-gradient-to-br from-red-900/30 to-red-800/20 border border-red-700/50 rounded-lg p-4 text-center">
+                  <div className="text-3xl font-bold text-red-400">{analysis.correctiveActions.length}</div>
+                  <div className="text-xs text-red-200/80 mt-1">Fix Now</div>
+                </div>
+                <div className="bg-gradient-to-br from-green-900/30 to-green-800/20 border border-green-700/50 rounded-lg p-4 text-center">
+                  <div className="text-3xl font-bold text-green-400">{analysis.preventiveActions.length}</div>
+                  <div className="text-xs text-green-200/80 mt-1">Prevent Future</div>
                 </div>
               </div>
 
-              {/* Identified Problems */}
+              {/* Top Issues - Compact View */}
               {analysis.problems.length > 0 && (
-                <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-600">
-                  <div className="flex items-center gap-2 mb-3">
-                    <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500" />
-                    <h4 className="font-semibold text-slate-100">Critical Issues Identified</h4>
-                  </div>
-                  <div className="space-y-3">
-                    {analysis.problems.map((problem, index) => (
-                      <div key={index} className="bg-slate-800/50 rounded p-3 border border-slate-700">
-                        <div className="flex items-start justify-between mb-2">
-                          <h5 className="font-medium text-slate-200">{typeof problem === 'string' ? problem : (problem && (problem as any).area) || String(problem)}</h5>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            (problem && (problem as any).severity) === 'High' ? 'bg-red-900/50 text-red-300' : 'bg-yellow-900/50 text-yellow-300'
-                          }`}>
-                            {(problem && (problem as any).severity) || 'Medium'}
-                          </span>
-                        </div>
-                        {typeof problem === 'object' && (
-                          <>
-                            <p className="text-slate-300 text-sm mb-2">{(problem && (problem as any).description) || ''}</p>
-                            <div className="flex flex-wrap gap-4 text-xs text-slate-400">
-                              <span>🔢 {(problem && (problem as any).frequency) || 0} instances</span>
-                              <span>📊 {(problem && (problem as any).nonComplianceRate) || 0}% non-compliance</span>
-                              <span>🏪 {(problem && (problem as any).stores ? (problem as any).stores.length : 0)} stores affected</span>
+                <div className="bg-slate-900/50 rounded-lg border border-slate-700">
+                  <button
+                    onClick={() => setExpandedProblems(!expandedProblems)}
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-800/50 transition-colors rounded-t-lg"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ExclamationTriangleIcon className="w-5 h-5 text-yellow-400" />
+                      <h4 className="font-semibold text-slate-100">Top Issues ({analysis.problems.length})</h4>
+                    </div>
+                    {expandedProblems ? (
+                      <ChevronUpIcon className="w-4 h-4 text-slate-400" />
+                    ) : (
+                      <ChevronDownIcon className="w-4 h-4 text-slate-400" />
+                    )}
+                  </button>
+                  
+                  {expandedProblems && (
+                    <div className="px-4 pb-4 space-y-2">
+                      {analysis.problems.slice(0, 5).map((problem, index) => (
+                        <div key={index} className="bg-slate-800/70 rounded-lg p-3 border-l-4 border-yellow-500">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <span className="font-medium text-slate-200 text-sm leading-tight">
+                              {typeof problem === 'string' ? problem : (problem && (problem as any).area) || String(problem)}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${
+                              (problem && (problem as any).severity) === 'High' ? 'bg-red-500/20 text-red-300' : 'bg-yellow-500/20 text-yellow-300'
+                            }`}>
+                              {(problem && (problem as any).severity) || 'Medium'}
+                            </span>
+                          </div>
+                          {typeof problem === 'object' && (problem as any).stores && (
+                            <div className="text-xs text-slate-400 mt-1">
+                              🏪 {(problem as any).stores.length} store{(problem as any).stores.length > 1 ? 's' : ''} • 
+                              📊 {(problem as any).nonComplianceRate || 0}% issue rate
                             </div>
-                            {problem && (problem as any).stores && (problem as any).stores.length > 0 && (
-                              <div className="mt-2">
-                                <span className="text-xs text-slate-500">Affected stores: </span>
-                                <span className="text-xs text-slate-400">{(problem as any).stores.slice(0, 3).join(', ')}{(problem as any).stores.length > 3 ? ` +${(problem as any).stores.length - 3} more` : ''}</span>
-                              </div>
-                            )}
-                          </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Root Cause Analysis - Collapsible Cards */}
+              {analysis.rootCauseAnalysis.length > 0 && (
+                <div className="bg-slate-900/50 rounded-lg border border-slate-700 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <MagnifyingGlassIcon className="w-5 h-5 text-blue-400" />
+                    <h4 className="font-semibold text-slate-100">5-Why Analysis</h4>
+                  </div>
+                  <div className="space-y-2">
+                    {analysis.rootCauseAnalysis.map((rca, index) => (
+                      <div key={index} className="bg-slate-800/50 rounded-lg border border-slate-700 overflow-hidden">
+                        <button
+                          onClick={() => setExpandedRCA(expandedRCA === index ? null : index)}
+                          className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-700/30 transition-colors text-left"
+                        >
+                          <span className="font-medium text-slate-200 text-sm">{rca.problem}</span>
+                          {expandedRCA === index ? (
+                            <ChevronUpIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                          ) : (
+                            <ChevronDownIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                          )}
+                        </button>
+                        
+                        {expandedRCA === index && (
+                          <div className="px-4 pb-3 space-y-1.5 border-t border-slate-700 pt-3">
+                            <div className="flex gap-2 text-xs"><span className="text-slate-500 font-medium w-14">Why 1:</span><span className="text-slate-300">{rca.why1}</span></div>
+                            <div className="flex gap-2 text-xs"><span className="text-slate-500 font-medium w-14">Why 2:</span><span className="text-slate-300">{rca.why2}</span></div>
+                            <div className="flex gap-2 text-xs"><span className="text-slate-500 font-medium w-14">Why 3:</span><span className="text-slate-300">{rca.why3}</span></div>
+                            <div className="flex gap-2 text-xs"><span className="text-slate-500 font-medium w-14">Why 4:</span><span className="text-slate-300">{rca.why4}</span></div>
+                            <div className="flex gap-2 text-xs"><span className="text-slate-500 font-medium w-14">Why 5:</span><span className="text-slate-300">{rca.why5}</span></div>
+                            <div className="flex gap-2 text-xs mt-2 pt-2 border-t border-slate-700">
+                              <span className="text-blue-400 font-medium w-14">Root:</span>
+                              <span className="text-blue-300 font-medium">{rca.rootCause}</span>
+                            </div>
+                          </div>
                         )}
                       </div>
                     ))}
@@ -484,67 +529,49 @@ const RCACapaAnalysis: React.FC<RCACapaAnalysisProps> = ({ submissions, question
                 </div>
               )}
 
-              {/* Root Cause Analysis */}
-              {analysis.rootCauseAnalysis.length > 0 && (
-                <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-600">
-                  <h4 className="font-semibold text-slate-100 mb-3">5 Why Root Cause Analysis</h4>
-                  <div className="space-y-4">
-                    {analysis.rootCauseAnalysis.map((rca, index) => (
-                      <div key={index} className="border-l-2 border-blue-500 pl-4">
-                        <h5 className="font-medium text-slate-200 mb-2">{rca.problem}</h5>
-                        <div className="space-y-1 text-sm">
-                          <p className="text-slate-300"><span className="font-medium text-slate-200">Why 1:</span> {rca.why1}</p>
-                          <p className="text-slate-300"><span className="font-medium text-slate-200">Why 2:</span> {rca.why2}</p>
-                          <p className="text-slate-300"><span className="font-medium text-slate-200">Why 3:</span> {rca.why3}</p>
-                          <p className="text-slate-300"><span className="font-medium text-slate-200">Why 4:</span> {rca.why4}</p>
-                          <p className="text-slate-300"><span className="font-medium text-slate-200">Why 5:</span> {rca.why5}</p>
-                          <p className="text-green-400 font-medium mt-2"><span className="text-slate-200">Root Cause:</span> {rca.rootCause}</p>
-                        </div>
-                      </div>
-                    ))}
+              {/* Actions - Side by Side */}
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Corrective Actions */}
+                <div className="bg-gradient-to-br from-red-900/20 to-red-800/10 rounded-lg border border-red-700/50 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                    <h4 className="font-semibold text-red-200 text-sm">Immediate Actions</h4>
                   </div>
+                  <ul className="space-y-2">
+                    {analysis.correctiveActions.map((action, index) => (
+                      <li key={index} className="text-slate-300 text-xs flex items-start gap-2 leading-relaxed">
+                        <span className="text-red-400 font-bold flex-shrink-0">{index + 1}.</span>
+                        <span>{action}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              )}
 
-              {/* Corrective Actions */}
-              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-600">
-                <div className="flex items-center gap-2 mb-3">
-                  <CheckCircleIcon className="w-5 h-5 text-red-500" />
-                  <h4 className="font-semibold text-slate-100">Corrective Actions (Immediate)</h4>
+                {/* Preventive Actions */}
+                <div className="bg-gradient-to-br from-green-900/20 to-green-800/10 rounded-lg border border-green-700/50 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircleIcon className="w-4 h-4 text-green-400" />
+                    <h4 className="font-semibold text-green-200 text-sm">Long-term Prevention</h4>
+                  </div>
+                  <ul className="space-y-2">
+                    {analysis.preventiveActions.map((action, index) => (
+                      <li key={index} className="text-slate-300 text-xs flex items-start gap-2 leading-relaxed">
+                        <span className="text-green-400 font-bold flex-shrink-0">{index + 1}.</span>
+                        <span>{action}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="space-y-2">
-                  {analysis.correctiveActions.map((action, index) => (
-                    <li key={index} className="text-slate-300 text-sm flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0"></span>
-                      {action}
-                    </li>
-                  ))}
-                </ul>
               </div>
 
-              {/* Preventive Actions */}
-              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-600">
-                <div className="flex items-center gap-2 mb-3">
-                  <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                  <h4 className="font-semibold text-slate-100">Preventive Actions (Long-term)</h4>
-                </div>
-                <ul className="space-y-2">
-                  {analysis.preventiveActions.map((action, index) => (
-                    <li key={index} className="text-slate-300 text-sm flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></span>
-                      {action}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Regenerate Button */}
-              <div className="text-center pt-2">
+              {/* Compact Regenerate Button */}
+              <div className="flex justify-center pt-2">
                 <button
                   onClick={generateRCAAndCAPA}
                   disabled={isAnalyzing}
-                  className="bg-slate-600 hover:bg-slate-500 disabled:bg-slate-600/50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  className="bg-slate-700 hover:bg-slate-600 disabled:bg-slate-700/50 text-slate-200 px-4 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-2"
                 >
+                  <MagnifyingGlassIcon className="w-3.5 h-3.5" />
                   {isAnalyzing ? 'Analyzing...' : 'Regenerate Analysis'}
                 </button>
               </div>

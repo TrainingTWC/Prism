@@ -198,6 +198,18 @@ function doPost(e) {
     }
     
     Logger.log('Preparing row data with all 116 checklist items...');
+    
+    // Parse questionRemarksJSON if present
+    let questionRemarks = {};
+    if (params.questionRemarksJSON) {
+      try {
+        questionRemarks = JSON.parse(params.questionRemarksJSON);
+        Logger.log('Parsed question remarks: ' + Object.keys(questionRemarks).length + ' remarks found');
+      } catch (e) {
+        Logger.log('Failed to parse questionRemarksJSON: ' + e.toString());
+      }
+    }
+    
     // Prepare the row data
     const rowData = [
       timestamp,                                    // A: Timestamp
@@ -282,7 +294,10 @@ function doPost(e) {
       params.smSignature || '',                   // Store Manager Signature (Base64)
       
       // Question Images JSON
-      params.questionImagesJSON || ''             // Store all images as JSON for PDF generation
+      params.questionImagesJSON || '',            // Store all images as JSON for PDF generation
+      
+      // Question Remarks JSON
+      params.questionRemarksJSON || ''            // Store all question remarks as JSON
     ];
     
     Logger.log('Row data prepared with ' + rowData.length + ' fields');
@@ -684,12 +699,23 @@ function updateSubmission(sheet, params) {
       const submissionTime = data[i][1]; // Column B - Submission Time
       const submissionTimeStr = String(submissionTime);
       
-      Logger.log('Row ' + i + ' submission time: "' + submissionTimeStr + '"');
+      Logger.log('Row ' + (i + 1) + ' submission time: "' + submissionTimeStr + '"');
+      Logger.log('Searching for rowId: "' + params.rowId + '"');
       
       // Try exact match first
       if (submissionTimeStr === params.rowId) {
         targetRowIndex = i + 1; // +1 because sheet rows are 1-indexed
         Logger.log('Found exact match at row: ' + targetRowIndex);
+        break;
+      }
+      
+      // Try normalized comparison (remove spaces, compare parts)
+      const normalizedSheet = submissionTimeStr.replace(/\s+/g, '').toLowerCase();
+      const normalizedParam = String(params.rowId).replace(/\s+/g, '').toLowerCase();
+      
+      if (normalizedSheet === normalizedParam) {
+        targetRowIndex = i + 1;
+        Logger.log('Found normalized match at row: ' + targetRowIndex);
         break;
       }
       
@@ -699,14 +725,19 @@ function updateSubmission(sheet, params) {
         const sheetDate = new Date(submissionTime);
         const paramDate = new Date(params.rowId);
         
-        // Compare timestamps (ignore milliseconds)
-        if (Math.abs(sheetDate.getTime() - paramDate.getTime()) < 2000) { // Within 2 seconds
-          targetRowIndex = i + 1;
-          Logger.log('Found date match at row: ' + targetRowIndex);
-          break;
+        // Check if both dates are valid
+        if (!isNaN(sheetDate.getTime()) && !isNaN(paramDate.getTime())) {
+          // Compare timestamps (within 60 seconds tolerance for timezone/format differences)
+          if (Math.abs(sheetDate.getTime() - paramDate.getTime()) < 60000) {
+            targetRowIndex = i + 1;
+            Logger.log('Found date match at row: ' + targetRowIndex + ' (time diff: ' + 
+                      Math.abs(sheetDate.getTime() - paramDate.getTime()) + 'ms)');
+            break;
+          }
         }
       } catch (e) {
         // Ignore date parsing errors
+        Logger.log('Date parsing failed: ' + e.toString());
       }
     }
     
@@ -724,6 +755,18 @@ function updateSubmission(sheet, params) {
     const updateTimestamp = Utilities.formatDate(now, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
     
     Logger.log('Preparing updated row data...');
+    
+    // Parse questionRemarksJSON if present
+    let questionRemarks = {};
+    if (params.questionRemarksJSON) {
+      try {
+        questionRemarks = JSON.parse(params.questionRemarksJSON);
+        Logger.log('Parsed question remarks for update: ' + Object.keys(questionRemarks).length + ' remarks found');
+      } catch (e) {
+        Logger.log('Failed to parse questionRemarksJSON: ' + e.toString());
+      }
+    }
+    
     // Prepare the updated row data (same structure as create)
     const rowData = [
       updateTimestamp + ' (Updated)',              // A: Timestamp - mark as updated
@@ -808,7 +851,10 @@ function updateSubmission(sheet, params) {
       params.smSignature || '',                   // Store Manager Signature (Base64)
       
       // Question Images JSON
-      params.questionImagesJSON || ''             // Store all images as JSON for PDF generation
+      params.questionImagesJSON || '',            // Store all images as JSON for PDF generation
+      
+      // Question Remarks JSON
+      params.questionRemarksJSON || ''            // Store all question remarks as JSON
     ];
     
     Logger.log('Row data prepared with ' + rowData.length + ' fields');

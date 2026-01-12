@@ -9,7 +9,7 @@ import { useComprehensiveMapping, useAreaManagers, useStoreDetails } from '../..
 import ImageEditor from '../ImageEditor';
 
 // Google Sheets endpoint for logging data - Updated to capture all 116 questions
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxBhQbh7210ZW3XXUypyW_BISG5_Y9sj1dDcIVM40d9jN-UXNRvFWS-ks8xO9TtkoeE/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzj8DfAC_SImsXP6_QA6JfwLIFlsptsn-sv1hbXu9xgmS7pZ4pRtOeMnrYj_xCXWM88RQ/exec';
 
 // Google Sheets endpoint for draft management
 const DRAFT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxCtm2UGYSLsR6ZhJ9jxr_pHBwU3dVnJQhqg1VQ1asrf7aX4rW6rxopGKlrOvgXr-QShg/exec';

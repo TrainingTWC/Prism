@@ -4,6 +4,9 @@ import InfographicCard from './InfographicCard';
 
 interface OperationsMetricsInfographicProps {
   submissions: AMOperationsSubmission[];
+  currentStoreFormat?: string;
+  currentMenuType?: string;
+  currentPriceGroup?: string;
 }
 
 const MetricStat: React.FC<{
@@ -23,7 +26,12 @@ const MetricStat: React.FC<{
     </div>
 );
 
-const OperationsMetricsInfographic: React.FC<OperationsMetricsInfographicProps> = ({ submissions }) => {
+const OperationsMetricsInfographic: React.FC<OperationsMetricsInfographicProps> = ({ 
+  submissions, 
+  currentStoreFormat, 
+  currentMenuType, 
+  currentPriceGroup 
+}) => {
   const metrics = useMemo(() => {
     console.log('=== OPERATIONS METRICS CALCULATION ===');
     console.log('OperationsMetricsInfographic - Processing submissions:', submissions?.length || 0);
@@ -34,9 +42,9 @@ const OperationsMetricsInfographic: React.FC<OperationsMetricsInfographicProps> 
       return {
         avgBSC: 'N/A',
         avgPeople: 'N/A',
-        topCafeType: 'N/A',
-        topStoreType: 'N/A',
-        topConcept: 'N/A',
+        topStoreFormat: currentStoreFormat || 'Select Cafe',
+        topMenuType: currentMenuType || 'Select Cafe',
+        topPriceGroup: currentPriceGroup || 'Select Cafe',
         manpowerDistribution: { Low: 0, Med: 0, High: 0 }
       };
     }
@@ -90,41 +98,10 @@ const OperationsMetricsInfographic: React.FC<OperationsMetricsInfographicProps> 
         ? Math.round(peopleValues.reduce((a, b) => a + b, 0) / peopleValues.length).toString()
         : 'N/A';
 
-      // Find most common café type
-      const cafeTypeCounts = submissions.reduce((acc: any, s) => {
-        if (s.cafeType && s.cafeType !== '') {
-          acc[s.cafeType] = (acc[s.cafeType] || 0) + 1;
-        }
-        return acc;
-      }, {});
-      
-      const topCafeType = Object.keys(cafeTypeCounts).length > 0 
-        ? Object.keys(cafeTypeCounts).reduce((a, b) => cafeTypeCounts[a] > cafeTypeCounts[b] ? a : b)
-        : 'N/A';
-
-      // Find most common store type
-      const storeTypeCounts = submissions.reduce((acc: any, s) => {
-        if (s.storeType && s.storeType !== '') {
-          acc[s.storeType] = (acc[s.storeType] || 0) + 1;
-        }
-        return acc;
-      }, {});
-      
-      const topStoreType = Object.keys(storeTypeCounts).length > 0 
-        ? Object.keys(storeTypeCounts).reduce((a, b) => storeTypeCounts[a] > storeTypeCounts[b] ? a : b)
-        : 'N/A';
-
-      // Find most common concept
-      const conceptCounts = submissions.reduce((acc: any, s) => {
-        if (s.concept && s.concept !== '') {
-          acc[s.concept] = (acc[s.concept] || 0) + 1;
-        }
-        return acc;
-      }, {});
-      
-      const topConcept = Object.keys(conceptCounts).length > 0 
-        ? Object.keys(conceptCounts).reduce((a, b) => conceptCounts[a] > conceptCounts[b] ? a : b)
-        : 'N/A';
+      // Use current store details if provided, otherwise show placeholder
+      const displayStoreFormat = currentStoreFormat || 'Select Cafe';
+      const displayMenuType = currentMenuType || 'Select Cafe';
+      const displayPriceGroup = currentPriceGroup || 'Select Cafe';
 
       // Manpower fulfilment distribution
       const manpowerDistribution = submissions.reduce((acc: any, s) => {
@@ -134,14 +111,14 @@ const OperationsMetricsInfographic: React.FC<OperationsMetricsInfographicProps> 
         return acc;
       }, { Low: 0, Med: 0, High: 0 });
 
-      console.log('Calculated metrics:', { avgBSC, avgPeople, topCafeType, topStoreType, topConcept, manpowerDistribution });
+      console.log('Calculated metrics:', { avgBSC, avgPeople, displayStoreFormat, displayMenuType, displayPriceGroup, manpowerDistribution });
 
       return {
         avgBSC,
         avgPeople,
-        topCafeType,
-        topStoreType,
-        topConcept,
+        topStoreFormat: displayStoreFormat,
+        topMenuType: displayMenuType,
+        topPriceGroup: displayPriceGroup,
         manpowerDistribution
       };
     } catch (error) {
@@ -149,9 +126,9 @@ const OperationsMetricsInfographic: React.FC<OperationsMetricsInfographicProps> 
       return {
         avgBSC: 'Error',
         avgPeople: 'Error',
-        topCafeType: 'Error',
-        topStoreType: 'Error',
-        topConcept: 'Error',
+        topStoreFormat: 'Select Cafe',
+        topMenuType: 'Select Cafe',
+        topPriceGroup: 'Select Cafe',
         manpowerDistribution: { Low: 0, Med: 0, High: 0 }
       };
     }
@@ -187,18 +164,18 @@ const OperationsMetricsInfographic: React.FC<OperationsMetricsInfographicProps> 
         <div className="border-t border-gray-200 dark:border-slate-700 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-slate-400">Most Common Café Type</p>
-              <p className="text-lg font-semibold text-purple-600 dark:text-purple-400">{metrics.topCafeType}</p>
+              <p className="text-sm text-gray-600 dark:text-slate-400">Store Format</p>
+              <p className="text-lg font-semibold text-purple-600 dark:text-purple-400">{metrics.topStoreFormat}</p>
             </div>
             
             <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-slate-400">Most Common Store Type</p>
-              <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">{metrics.topStoreType}</p>
+              <p className="text-sm text-gray-600 dark:text-slate-400">Menu Type</p>
+              <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">{metrics.topMenuType}</p>
             </div>
             
             <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-slate-400">Most Common Concept</p>
-              <p className="text-lg font-semibold text-pink-600 dark:text-pink-400">{metrics.topConcept}</p>
+              <p className="text-sm text-gray-600 dark:text-slate-400">Price Group</p>
+              <p className="text-lg font-semibold text-pink-600 dark:text-pink-400">{metrics.topPriceGroup}</p>
             </div>
           </div>
         </div>

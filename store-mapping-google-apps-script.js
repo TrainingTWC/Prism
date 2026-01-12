@@ -4,12 +4,13 @@
  * This script serves store mapping data from Google Sheets to the Prism Dashboard.
  * It provides Area Manager assignments, store details, HR assignments, trainer assignments, and regional info.
  * 
- * Sheet Structure (Extended - 23 columns):
+ * Sheet Structure (Extended - 26 columns):
  * Columns: Store ID | Store Name | AM ID | AM Name | Region | 
  *          HRBP 1 ID | HRBP 1 Name | HRBP 2 ID | HRBP 2 Name | HRBP 3 ID | HRBP 3 Name |
  *          Trainer 1 ID | Trainer 1 Name | Trainer 2 ID | Trainer 2 Name | Trainer 3 ID | Trainer 3 Name |
  *          Regional Trainer ID | Regional Trainer name |
- *          Regional HR ID | Regional HR Name | HR Head ID | HR Head Name
+ *          Regional HR ID | Regional HR Name | HR Head ID | HR Head Name |
+ *          Store Format | Menu Type | Price Group
  * 
  * Setup:
  * 1. Create a Google Sheet with a tab named "Store_Mapping"
@@ -71,7 +72,8 @@ function getStoreMapping() {
     //          HRBP 1 ID, HRBP 1 Name, HRBP 2 ID, HRBP 2 Name, HRBP 3 ID, HRBP 3 Name,
     //          Trainer 1 ID, Trainer 1 Name, Trainer 2 ID, Trainer 2 Name, Trainer 3 ID, Trainer 3 Name,
     //          Regional Trainer ID, Regional Trainer name,
-    //          Regional HR ID, Regional HR Name, HR Head ID, HR Head Name
+    //          Regional HR ID, Regional HR Name, HR Head ID, HR Head Name,
+    //          Store Format, Menu Type, Price Group
     const stores = [];
     
     for (let i = 1; i < data.length; i++) {
@@ -112,6 +114,11 @@ function getStoreMapping() {
         'Regional HR Name': row[20] ? row[20].toString().trim() : '',
         'HR Head': row[21] ? row[21].toString().trim() : '',
         'HR Head Name': row[22] ? row[22].toString().trim() : '',
+        
+        // Store Classification Fields (NEW)
+        'Store Format': row[23] ? row[23].toString().trim() : '',
+        'Menu Type': row[24] ? row[24].toString().trim() : '',
+        'Price Group': row[25] ? row[25].toString().trim() : '',
         
         // Legacy field for backward compatibility (uses HRBP 1)
         'HRBP': row[5] ? row[5].toString().trim() : '',
@@ -180,6 +187,11 @@ function getStoreById(storeId) {
           'Regional HR Name': row[20] ? row[20].toString().trim() : '',
           'HR Head': row[21] ? row[21].toString().trim() : '',
           'HR Head Name': row[22] ? row[22].toString().trim() : '',
+          
+          // Store Classification Fields
+          'Store Format': row[23] ? row[23].toString().trim() : '',
+          'Menu Type': row[24] ? row[24].toString().trim() : '',
+          'Price Group': row[25] ? row[25].toString().trim() : '',
           
           // Legacy fields
           'HRBP': row[5] ? row[5].toString().trim() : '',
@@ -250,6 +262,11 @@ function getStoresByAM(amId) {
           'HR Head': row[21] ? row[21].toString().trim() : '',
           'HR Head Name': row[22] ? row[22].toString().trim() : '',
           
+          // Store Classification Fields
+          'Store Format': row[23] ? row[23].toString().trim() : '',
+          'Menu Type': row[24] ? row[24].toString().trim() : '',
+          'Price Group': row[25] ? row[25].toString().trim() : '',
+          
           // Legacy fields
           'HRBP': row[5] ? row[5].toString().trim() : '',
           'HRBP Name': row[6] ? row[6].toString().trim() : ''
@@ -318,6 +335,11 @@ function getStoresByRegion(region) {
           'Regional HR Name': row[20] ? row[20].toString().trim() : '',
           'HR Head': row[21] ? row[21].toString().trim() : '',
           'HR Head Name': row[22] ? row[22].toString().trim() : '',
+          
+          // Store Classification Fields
+          'Store Format': row[23] ? row[23].toString().trim() : '',
+          'Menu Type': row[24] ? row[24].toString().trim() : '',
+          'Price Group': row[25] ? row[25].toString().trim() : '',
           
           // Legacy fields
           'HRBP': row[5] ? row[5].toString().trim() : '',
