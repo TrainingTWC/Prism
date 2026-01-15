@@ -602,6 +602,29 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
   // All employees for TSA sections - filtered by region if store selected
   const allEmployeesForTSA = (() => {
+    // Debug: Log employee directory status
+    console.log('TSA Employee Directory Status:', {
+      loading: employeeLoading,
+      totalEmployees: Object.keys(employeeDirectory.byId).length,
+      storeSelected: !!meta.storeId
+    });
+
+    // Get all employees first
+    const allEmployees = Object.values(employeeDirectory.byId)
+      .map((emp: any) => ({
+        id: emp.employee_code,
+        name: emp.empname,
+        designation: emp.designation,
+        location: emp.location,
+        store_code: emp.store_code
+      }));
+
+    // If no employees at all, return empty
+    if (allEmployees.length === 0) {
+      console.log('TSA: No employees in directory');
+      return [];
+    }
+
     // Get the region from the selected store
     let selectedStoreRegion = '';
     if (meta.storeId) {
@@ -614,37 +637,36 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       }
     }
     
-    // Build a set of store IDs in the same region
-    const storeIdsInRegion = new Set<string>();
-    if (selectedStoreRegion) {
-      allStores.forEach((store: any) => {
-        const storeRegion = (store['Region'] || store.region || '').toLowerCase().trim();
-        if (storeRegion === selectedStoreRegion.toLowerCase().trim()) {
-          const storeCode = normalizeId(store['Store ID'] || store.storeId || store.StoreID || store.store_id);
-          storeIdsInRegion.add(storeCode);
-        }
-      });
+    // If no store selected, return all employees
+    if (!selectedStoreRegion) {
+      console.log('TSA: No store selected, showing all employees:', allEmployees.length);
+      return allEmployees.sort((a: any, b: any) => a.name.localeCompare(b.name));
     }
     
-    const employees = Object.values(employeeDirectory.byId)
-      .filter((emp: any) => {
-        // If no store selected yet, show all employees
-        if (!selectedStoreRegion) {
-          return true;
-        }
-        
-        // Filter by region - check if employee's store_code is in the same region
-        const empStoreCode = normalizeId(emp.store_code || emp.location || '');
-        return storeIdsInRegion.has(empStoreCode);
-      })
-      .map((emp: any) => ({
-        id: emp.employee_code,
-        name: emp.empname,
-        designation: emp.designation,
-        location: emp.location
-      }));
+    // Build a set of store IDs in the same region
+    const storeIdsInRegion = new Set<string>();
+    allStores.forEach((store: any) => {
+      const storeRegion = (store['Region'] || store.region || '').toLowerCase().trim();
+      if (storeRegion === selectedStoreRegion.toLowerCase().trim()) {
+        const storeCode = normalizeId(store['Store ID'] || store.storeId || store.StoreID || store.store_id);
+        storeIdsInRegion.add(storeCode);
+      }
+    });
+    console.log('TSA Region Filter:', { region: selectedStoreRegion, storesInRegion: storeIdsInRegion.size });
     
-    return employees.sort((a: any, b: any) => a.name.localeCompare(b.name));
+    const filteredEmployees = allEmployees.filter((emp: any) => {
+      const empStoreCode = normalizeId(emp.store_code || emp.location || '');
+      return storeIdsInRegion.has(empStoreCode);
+    });
+    
+    // If filtering resulted in no employees, return all employees as fallback
+    if (filteredEmployees.length === 0) {
+      console.log('TSA: Region filtering returned 0 employees, falling back to all employees');
+      return allEmployees.sort((a: any, b: any) => a.name.localeCompare(b.name));
+    }
+    
+    console.log('TSA Filtered Employees:', filteredEmployees.length);
+    return filteredEmployees.sort((a: any, b: any) => a.name.localeCompare(b.name));
   })();
 
   const uniqueStores = (() => {
@@ -2184,6 +2206,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                                   <div className="flex-1 min-w-0">
                                     <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-slate-100 leading-tight mb-2">
                                       {item.q}
+                                      {/* Debug: show item type */}
+                                      <span className="ml-2 text-xs text-gray-400">({item.type || 'undefined'})</span>
                                     </p>
                                     <div className="">
                                       {item.type === 'employee' ? (

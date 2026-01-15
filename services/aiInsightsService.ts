@@ -3,6 +3,7 @@
  * Analyzes HR Connect survey remarks and generates positive/negative insights
  */
 
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { aiRequestQueue } from './requestQueue';
 
 /**
@@ -99,22 +100,21 @@ export async function generateAMInsights(submissions: any[]): Promise<InsightRes
 }
 
 /**
- * Analyzes remarks using AI (GitHub Models or local analysis)
+ * Analyzes remarks using AI (Google Gemini or local analysis)
  */
 async function analyzeWithAI(remarks: string[], submissions: any[]): Promise<InsightResult> {
-  // Attempt to use the server-side proxy (/api/analyze). This avoids requiring the secret in the browser.
+  // Attempt to use Google Gemini API
   try {
-    console.log('🚀 Queueing AI analysis request via server proxy...');
+    console.log('🚀 Queueing AI analysis request via Google Gemini...');
     console.log(`📊 Queue status: ${aiRequestQueue.getQueueLength()} pending, ${aiRequestQueue.isProcessing() ? 'processing' : 'idle'}`);
 
     return await aiRequestQueue.add(async () => {
-      console.log('🤖 Processing AI analysis via server proxy...');
-      // Pass token if available (server-side deployments may provide it), otherwise proxy should use its own env var
-      const token = import.meta.env.VITE_GITHUB_TOKEN || '';
-      return await analyzeWithGitHubModels(remarks, submissions, token);
+      console.log('🤖 Processing AI analysis via Google Gemini...');
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+      return await analyzeWithGemini(remarks, submissions, apiKey);
     });
   } catch (error) {
-    console.error('❌ Server proxy AI analysis failed, using fallback analysis:', error);
+    console.error('❌ Google Gemini AI analysis failed, using fallback analysis:', error);
   }
 
   // Fallback to local analysis
@@ -122,27 +122,24 @@ async function analyzeWithAI(remarks: string[], submissions: any[]): Promise<Ins
 }
 
 /**
- * Uses GitHub Models API to analyze remarks
+ * Uses Google Gemini API to analyze remarks
  */
-async function analyzeWithGitHubModels(
+async function analyzeWithGemini(
   remarks: string[], 
   submissions: any[], 
-  token: string
+  apiKey: string
 ): Promise<InsightResult> {
-  // Determine proxy endpoint. Prefer same-origin serverless function in production (/api/analyze).
-  let endpoint = '/api/analyze';
-  try {
-    if (typeof window === 'undefined') {
-      // running server-side (e.g., SSR or Node task) - allow override via env var
-      endpoint = process.env.AI_PROXY_ENDPOINT || 'http://localhost:3003/api/ai/analyze';
-    } else if (window && window.location && window.location.origin) {
-      endpoint = `${window.location.origin}/api/analyze`;
-    }
-  } catch (e) {
-    // fallback to default '/api/analyze'
+  if (!apiKey) {
+    console.warn('⚠️ No Gemini API key provided, falling back to local analysis');
+    return generateFallbackInsights(submissions);
   }
 
-  console.log('🌐 Using proxy endpoint:', endpoint);
+  console.log('🌐 Using Google Generative AI SDK');
+  console.log('🔑 API Key present:', apiKey ? `Yes (${apiKey.substring(0, 10)}...)` : 'No');
+
+  // Initialize the Google Generative AI client
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   
   // Collect detailed response data for root cause analysis
   const responseData: { [key: string]: { scores: number[], remarks: string[] } } = {};
@@ -281,21 +278,8 @@ Return ONLY valid JSON with both short summaries AND detailed explanations:
   ]
 }`;
 
-  // Build headers; include Authorization only when a token is supplied (some proxies accept token server-side)
-  const headers: any = { 'Content-Type': 'application/json' };
-  if (token && token.length > 10) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an expert workplace analyst for Third Wave Coffee (TWC), a specialty coffee chain in India. You analyze employee survey data to identify specific operational, management, and workplace issues.
+  // Build request body for Gemini
+  const systemPrompt = `You are an expert workplace analyst for Third Wave Coffee (TWC), a specialty coffee chain in India. You analyze employee survey data to identify specific operational, management, and workplace issues.
 
 COMPANY CONTEXT - Third Wave Coffee (TWC):
 - Specialty coffee chain operating café stores across India (North, South, East, West regions)
@@ -405,26 +389,28 @@ OUTPUT FORMAT:
 - Summary: Clear, specific title using TWC context (e.g., "Not enough baristas during morning rush", "Espresso machine keeps breaking", "Need more training on latte art")
 - Explanation: Simple details about WHY this happens in a café context and its impact on daily coffee shop work
 
-Always respond with valid JSON only.`
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
+Always respond with valid JSON only.`;
+
+  const fullPrompt = `${systemPrompt}\n\n${prompt}`;
+
+  // Use SDK's generateContent method
+  const result = await model.generateContent({
+    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+    generationConfig: {
       temperature: 0.3,
-      max_tokens: 500
-    })
+      maxOutputTokens: 500
+    }
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('GitHub Models API error:', response.status, errorText);
-    throw new Error(`GitHub Models API error: ${response.status}`);
+  const response = await result.response;
+  console.log('✅ Gemini SDK Response received');
+  
+  const content = response.text() || '';
+  
+  if (!content) {
+    console.error('❌ No content in Gemini response.');
+    throw new Error('Empty response from Gemini API');
   }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || '';
   
   console.log('AI Root Cause Analysis:', content);
   
@@ -1140,38 +1126,43 @@ function extractRemarks(submissions: any[]): string[] {
  * Uses AI to analyze monthly data
  */
 async function analyzeMonthWithAI(monthName: string, submissions: any[], monthStats: any, remarks: string[]): Promise<InsightResult> {
-  // Try proxy-based AI first (works when token is provided server-side by the proxy). This avoids requiring client-side secret.
+  // Try Google Gemini AI first
   try {
-    console.log(`🚀 [${monthName}] Queueing AI analysis via server proxy...`);
+    console.log(`🚀 [${monthName}] Queueing AI analysis via Google Gemini...`);
     console.log(`📊 Queue status: ${aiRequestQueue.getQueueLength()} pending`);
 
     return await aiRequestQueue.add(async () => {
-      console.log(`🤖 [${monthName}] Processing AI analysis via server proxy...`);
-      const token = import.meta.env.VITE_GITHUB_TOKEN || '';
-      return await analyzeMonthWithGitHubModels(monthName, submissions, monthStats, remarks, token);
+      console.log(`🤖 [${monthName}] Processing AI analysis via Google Gemini...`);
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+      return await analyzeMonthWithGemini(monthName, submissions, monthStats, remarks, apiKey);
     });
   } catch (error) {
-    console.error(`❌ [${monthName}] Server proxy AI analysis failed:`, error);
+    console.error(`❌ [${monthName}] Google Gemini AI analysis failed:`, error);
   }
 
   return generateMonthlyFallback(monthName, submissions);
 }
 
 /**
- * AI analysis for monthly data
+ * AI analysis for monthly data using Google Gemini
  */
-async function analyzeMonthWithGitHubModels(
+async function analyzeMonthWithGemini(
   monthName: string, 
   submissions: any[], 
   monthStats: any, 
   remarks: string[], 
-  token: string
+  apiKey: string
 ): Promise<InsightResult> {
-  // Use local proxy server to avoid CORS issues
-  // The proxy default port is 3003 in development (configurable via AI_PROXY_PORT)
-  const endpoint = 'http://localhost:3003/api/ai/analyze';
+  if (!apiKey) {
+    console.warn(`⚠️ [${monthName}] No Gemini API key provided, falling back to local analysis`);
+    return generateMonthlyFallback(monthName, submissions);
+  }
   
-  console.log(`🌐 [${monthName}] Using proxy endpoint:`, endpoint);
+  console.log(`🌐 [${monthName}] Using Google Generative AI SDK`);
+  
+  // Initialize the Google Generative AI client
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   
   // Prepare month-specific analysis
   const monthSummary = Object.entries(monthStats).map(([q, data]: [string, any]) => {
@@ -1235,18 +1226,7 @@ Return ONLY valid JSON:
   ]
 }`;
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an expert workplace analyst for Third Wave Coffee (TWC), a specialty coffee chain in India. You analyze monthly employee survey data to identify trends, operational patterns, and management effectiveness for specific time periods.
+  const systemPrompt = `You are an expert workplace analyst for Third Wave Coffee (TWC), a specialty coffee chain in India. You analyze monthly employee survey data to identify trends, operational patterns, and management effectiveness for specific time periods.
 
 TWC CONTEXT:
 - Coffee shop operations with peak hours (morning rush 7-11 AM, evening rush 4-7 PM)
@@ -1274,24 +1254,21 @@ CRITICAL RULES - DO NOT VIOLATE:
 
 Use TWC-specific terminology for workplace context. Explain in simple, clear language what specifically happened during the given month.
 
-Always respond with valid JSON only.`
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
+Always respond with valid JSON only.`;
+
+  const fullPrompt = `${systemPrompt}\n\n${prompt}`;
+
+  // Use SDK's generateContent method
+  const result = await model.generateContent({
+    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+    generationConfig: {
       temperature: 0.3,
-      max_tokens: 800
-    })
+      maxOutputTokens: 800
+    }
   });
 
-  if (!response.ok) {
-    throw new Error(`GitHub Models API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || '';
+  const response = await result.response;
+  const content = response.text() || '';
   
   // Parse JSON response
   const jsonMatch = content.match(/\{[\s\S]*\}/);

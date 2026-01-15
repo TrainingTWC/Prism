@@ -851,18 +851,33 @@ export const fetchQAData = async (): Promise<QASubmission[]> => {
     try {
       const directUrl = QA_ENDPOINT + '?action=getData';
       
-      response = await fetch(directUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        redirect: 'follow',
-      });
+      // Create an AbortController with 30 second timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
       
-      if (response.ok) {
-        data = await response.json();
-      } else {
-        throw new Error(`Direct request failed: ${response.status}`);
+      try {
+        response = await fetch(directUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+          redirect: 'follow',
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          data = await response.json();
+        } else {
+          throw new Error(`Direct request failed: ${response.status}`);
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          throw new Error('Request timed out');
+        }
+        throw fetchError;
       }
     } catch (directError) {
       const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
@@ -939,7 +954,6 @@ export const fetchQAData = async (): Promise<QASubmission[]> => {
     return processedData as QASubmission[];
     
   } catch (error) {
-    
     // Static test data for QA dashboard development (fallback)
     const STATIC_QA_DATA: QASubmission[] = [
       {

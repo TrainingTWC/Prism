@@ -340,8 +340,9 @@ export const getHRBPForAM = async (amName: string): Promise<string | null> => {
   if (!hrbpId || hrbpId === 'N/A' || hrbpId === '') return null;
 
   // Map HRBP ID to a human-readable name using HR_PERSONNEL
-  const hrPerson = HR_PERSONNEL.find(h => h.id === String(hrbpId).trim());
-  const hrbpName = hrPerson ? `${hrPerson.name} (${hrbpId})` : String(hrbpId);
+  // Case-insensitive comparison
+  const hrPerson = HR_PERSONNEL.find(h => h.id.toLowerCase() === String(hrbpId).trim().toLowerCase());
+  const hrbpName = hrPerson ? hrPerson.name : String(hrbpId);
 
   return hrbpName;
 };

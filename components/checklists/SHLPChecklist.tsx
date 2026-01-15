@@ -141,6 +141,11 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
     };
   }, [employeeSearchOpen]);
 
+  // Scoring configuration
+  const negativeScoring = ['SHLP_1', 'SHLP_2', 'SHLP_3', 'SHLP_5', 'SHLP_11', 'SHLP_13', 'SHLP_15', 'SHLP_23'];
+  const positiveScoring = ['SHLP_20', 'SHLP_28', 'SHLP_34'];
+  const naOption = ['SHLP_33']; // Questions that have N/A option
+
   // SHLP sections and questions
   const sections = [
     {
@@ -222,7 +227,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
       id: 'SHLP_BUSINESS',
       title: 'Business Acumen',
       items: [
-        { id: '34', q: 'is able to do Shift Performance analysis (PSA) like LTO,LA, IPS, ADS, AOV drivers, CPI, MA,QA Etc. Has BSC understanding' },
+        { id: '34', q: 'is able to do Shift Performance analysis (PSA) like LTO,LA, IPS, ADS, AOV drivers, CPI, MA,QA Etc. & has BSC understanding' },
         { id: '35', q: 'check and keep the record of EB Units as per their shift' }
       ]
     }
@@ -243,10 +248,39 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         
         if (response) {
           completed++;
-          const points = parseInt(response);
-          if (!isNaN(points)) {
-            score += points;
-            maxScore += 2; // Max 2 points per SHLP question
+          
+          // Handle N/A responses - don't add to score or maxScore
+          if (response === 'NA') {
+            return;
+          }
+          
+          // Handle different scoring types
+          if (negativeScoring.includes(questionKey)) {
+            // Negative scoring: Yes = +2, No = -2
+            if (response === 'Yes') {
+              score += 2;
+            } else if (response === 'No') {
+              score -= 2;
+            }
+            maxScore += 2;
+          } else if (positiveScoring.includes(questionKey)) {
+            // Positive scoring with exceptional option: 0,1,2,+2 (where +2 = 4 total)
+            if (response === '+2') {
+              score += 4;
+            } else {
+              const points = parseInt(response);
+              if (!isNaN(points)) {
+                score += points;
+              }
+            }
+            maxScore += 4; // Max 4 points for positive scoring questions
+          } else {
+            // Default scoring: 0,1,2
+            const points = parseInt(response);
+            if (!isNaN(points)) {
+              score += points;
+            }
+            maxScore += 2;
           }
         }
       });
@@ -254,7 +288,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
 
     const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
     onStatsUpdate({ completed, total, score: percentage });
-  }, [responses, onStatsUpdate]);
+  }, [responses, onStatsUpdate, sections, negativeScoring, positiveScoring]);
 
   const handleResponse = (questionKey: string, value: string) => {
     setResponses(prev => ({
@@ -268,6 +302,82 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
       ...prev,
       [questionKey]: value
     }));
+  };
+
+  const calculateSectionScores = (): SectionScores => {
+    const sectionDefinitions = {
+      'Store_Readiness': ['SHLP_1', 'SHLP_2', 'SHLP_3', 'SHLP_4'],
+      'Product_Quality': ['SHLP_5', 'SHLP_6', 'SHLP_7', 'SHLP_8', 'SHLP_9'],
+      'Cash_Admin': ['SHLP_10', 'SHLP_11', 'SHLP_12', 'SHLP_13', 'SHLP_14'],
+      'Team_Management': ['SHLP_15', 'SHLP_16', 'SHLP_17', 'SHLP_18', 'SHLP_19', 'SHLP_20', 'SHLP_21', 'SHLP_22'],
+      'Operations': ['SHLP_23', 'SHLP_24', 'SHLP_25', 'SHLP_26', 'SHLP_27', 'SHLP_28', 'SHLP_29'],
+      'Safety': ['SHLP_30', 'SHLP_31', 'SHLP_32'],
+      'Shift_Closing': ['SHLP_33'],
+      'Business': ['SHLP_34', 'SHLP_35']
+    };
+
+    const sectionScores: Record<string, number> = {};
+    let totalScore = 0;
+    let totalMaxScore = 0;
+
+    for (const [sectionName, questionIds] of Object.entries(sectionDefinitions)) {
+      let sectionScore = 0;
+      let sectionMaxScore = 0;
+
+      for (const questionId of questionIds) {
+        const response = responses[questionId];
+        
+        // Skip N/A responses in scoring
+        if (response === 'NA') {
+          continue;
+        }
+        
+        // Handle different scoring types
+        if (response) {
+          if (negativeScoring.includes(questionId)) {
+            // Negative scoring: Yes = +2, No = -2
+            sectionMaxScore += 2;
+            if (response === 'Yes') {
+              sectionScore += 2;
+            } else if (response === 'No') {
+              sectionScore -= 2;
+            }
+          } else if (positiveScoring.includes(questionId)) {
+            // Positive scoring with exceptional option: max 4 points
+            sectionMaxScore += 4;
+            if (response === '+2') {
+              sectionScore += 4;
+            } else {
+              const points = parseInt(response);
+              if (!isNaN(points)) {
+                sectionScore += points;
+              }
+            }
+          } else {
+            // Default scoring: 0,1,2
+            sectionMaxScore += 2;
+            const points = parseInt(response);
+            if (!isNaN(points)) {
+              sectionScore += points;
+            }
+          }
+        }
+      }
+
+      const sectionPercentage = sectionMaxScore > 0 ? Math.round((sectionScore / sectionMaxScore) * 100) : 0;
+      sectionScores[sectionName] = sectionPercentage;
+
+      totalScore += sectionScore;
+      totalMaxScore += sectionMaxScore;
+    }
+
+    const overallPercentage = totalMaxScore > 0 ? Math.round((totalScore / totalMaxScore) * 100) : 0;
+
+    return {
+      ...(sectionScores as any),
+      totalScore,
+      overallPercentage
+    } as SectionScores;
   };
 
   const handleSubmit = async () => {
@@ -347,7 +457,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         // Clear form after successful submission
         setResponses({});
         setQuestionRemarks({});
-        setMetadata({ empName: '', empId: '', store: '', amId: '', trainerIds: '', amName: '', trainerNames: '' });
+        setMetadata({ empName: '', empId: '', store: '', auditorName: '', amId: '', trainerIds: '', amName: '', trainerNames: '' });
         
         setTimeout(() => {
           setShowSuccess(false);
@@ -364,49 +474,6 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const calculateSectionScores = (): SectionScores => {
-    const sectionDefinitions = {
-      'Store_Readiness': ['SHLP_1', 'SHLP_2', 'SHLP_3', 'SHLP_4'],
-      'Product_Quality': ['SHLP_5', 'SHLP_6', 'SHLP_7', 'SHLP_8', 'SHLP_9'],
-      'Cash_Admin': ['SHLP_10', 'SHLP_11', 'SHLP_12', 'SHLP_13', 'SHLP_14'],
-      'Team_Management': ['SHLP_15', 'SHLP_16', 'SHLP_17', 'SHLP_18', 'SHLP_19', 'SHLP_20', 'SHLP_21', 'SHLP_22'],
-      'Operations': ['SHLP_23', 'SHLP_24', 'SHLP_25', 'SHLP_26', 'SHLP_27', 'SHLP_28', 'SHLP_29'],
-      'Safety': ['SHLP_30', 'SHLP_31', 'SHLP_32'],
-      'Shift_Closing': ['SHLP_33'],
-      'Business': ['SHLP_34', 'SHLP_35']
-    };
-
-    const sectionScores: Record<string, number> = {};
-    let totalScore = 0;
-    let totalMaxScore = 0;
-
-    for (const [sectionName, questionIds] of Object.entries(sectionDefinitions)) {
-      let sectionScore = 0;
-      const sectionMaxScore = questionIds.length * 2; // Each question max 2 points
-
-      for (const questionId of questionIds) {
-        const response = responses[questionId];
-        if (response && !isNaN(parseInt(response))) {
-          sectionScore += parseInt(response);
-        }
-      }
-
-      const sectionPercentage = sectionMaxScore > 0 ? Math.round((sectionScore / sectionMaxScore) * 100) : 0;
-      sectionScores[sectionName] = sectionPercentage;
-
-      totalScore += sectionScore;
-      totalMaxScore += sectionMaxScore;
-    }
-
-    const overallPercentage = totalMaxScore > 0 ? Math.round((totalScore / totalMaxScore) * 100) : 0;
-
-    return {
-      ...(sectionScores as any),
-      totalScore,
-      overallPercentage
-    } as SectionScores;
   };
 
   return (
@@ -597,26 +664,112 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
                     </div>
 
                     <div className="ml-11 space-y-3">
+                      {/* Scoring type indicator */}
+                      {negativeScoring.includes(questionKey) && (
+                        <div className="inline-block px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded">
+                          Negative Scoring (Yes = +2, No = -2)
+                        </div>
+                      )}
+                      {positiveScoring.includes(questionKey) && (
+                        <div className="inline-block px-2 py-1 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded">
+                          Positive Scoring (Max 4 points with +2 for exceptional)
+                        </div>
+                      )}
+                      
                       <div className="flex flex-row flex-wrap gap-3">
-                        {[
-                          { value: '0', label: '0', color: 'text-red-600 dark:text-red-400' },
-                          { value: '1', label: '1', color: 'text-yellow-600 dark:text-yellow-400' },
-                          { value: '2', label: '2', color: 'text-green-600 dark:text-green-400' }
-                        ].map((option) => (
-                          <label key={option.value} className="flex items-center space-x-2 cursor-pointer">
+                        {negativeScoring.includes(questionKey) ? (
+                          // Negative scoring: Yes/No options
+                          <>
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={questionKey}
+                                value="Yes"
+                                checked={responses[questionKey] === 'Yes'}
+                                onChange={(e) => handleResponse(questionKey, e.target.value)}
+                                className="w-4 h-4 text-green-600 border-gray-300 dark:border-slate-600 focus:ring-green-500"
+                              />
+                              <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                                Yes (+2)
+                              </span>
+                            </label>
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={questionKey}
+                                value="No"
+                                checked={responses[questionKey] === 'No'}
+                                onChange={(e) => handleResponse(questionKey, e.target.value)}
+                                className="w-4 h-4 text-red-600 border-gray-300 dark:border-slate-600 focus:ring-red-500"
+                              />
+                              <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                                No (-2)
+                              </span>
+                            </label>
+                          </>
+                        ) : positiveScoring.includes(questionKey) ? (
+                          // Positive scoring: 0,1,2,+2 options
+                          <>
+                            {[
+                              { value: '0', label: '0', color: 'text-red-600 dark:text-red-400' },
+                              { value: '1', label: '1', color: 'text-yellow-600 dark:text-yellow-400' },
+                              { value: '2', label: '2', color: 'text-green-600 dark:text-green-400' },
+                              { value: '+2', label: '+2 (Exceptional)', color: 'text-blue-600 dark:text-blue-400' }
+                            ].map((option) => (
+                              <label key={option.value} className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name={questionKey}
+                                  value={option.value}
+                                  checked={responses[questionKey] === option.value}
+                                  onChange={(e) => handleResponse(questionKey, e.target.value)}
+                                  className="w-4 h-4 text-emerald-600 border-gray-300 dark:border-slate-600 focus:ring-emerald-500"
+                                />
+                                <span className={`text-sm font-medium ${option.color}`}>
+                                  {option.label}
+                                </span>
+                              </label>
+                            ))}
+                          </>
+                        ) : (
+                          // Default scoring: 0,1,2 options
+                          [
+                            { value: '0', label: '0', color: 'text-red-600 dark:text-red-400' },
+                            { value: '1', label: '1', color: 'text-yellow-600 dark:text-yellow-400' },
+                            { value: '2', label: '2', color: 'text-green-600 dark:text-green-400' }
+                          ].map((option) => (
+                            <label key={option.value} className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={questionKey}
+                                value={option.value}
+                                checked={responses[questionKey] === option.value}
+                                onChange={(e) => handleResponse(questionKey, e.target.value)}
+                                className="w-4 h-4 text-emerald-600 border-gray-300 dark:border-slate-600 focus:ring-emerald-500"
+                              />
+                              <span className={`text-sm font-medium ${option.color}`}>
+                                {option.label}
+                              </span>
+                            </label>
+                          ))
+                        )}
+                        
+                        {/* Add N/A option for specific questions */}
+                        {naOption.includes(questionKey) && (
+                          <label className="flex items-center space-x-2 cursor-pointer">
                             <input
                               type="radio"
                               name={questionKey}
-                              value={option.value}
-                              checked={responses[questionKey] === option.value}
+                              value="NA"
+                              checked={responses[questionKey] === 'NA'}
                               onChange={(e) => handleResponse(questionKey, e.target.value)}
-                              className="w-4 h-4 text-emerald-600 border-gray-300 dark:border-slate-600 focus:ring-emerald-500"
+                              className="w-4 h-4 text-gray-600 border-gray-300 dark:border-slate-600 focus:ring-gray-500"
                             />
-                            <span className={`text-sm font-medium ${option.color}`}>
-                              {option.label}
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                              N/A
                             </span>
                           </label>
-                        ))}
+                        )}
                       </div>
 
                       <div>

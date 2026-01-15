@@ -7,6 +7,7 @@ import { buildTrainingPDF } from '../src/utils/trainingReport';
 import { buildOperationsPDF } from '../src/utils/operationsReport';
 import { buildQAPDF } from '../src/utils/qaReport';
 import { buildHRPDF } from '../src/utils/hrReport';
+import { buildSHLPPDF } from '../src/utils/shlpReport';
 import { Users, Clipboard, GraduationCap, BarChart3, Brain, Calendar, CheckCircle, TrendingUp, Target } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Submission, Store } from '../types';
@@ -2598,6 +2599,80 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         pdf.save(fileName);
         setIsGenerating(false);
         showNotificationMessage('HR Survey PDF generated successfully!', 'success');
+        return;
+      }
+
+      // SHLP dashboard: use the SHLP-specific PDF builder
+      if (dashboardType === 'shlp') {
+        const meta: any = {};
+        const firstRecord = reportData.length > 0 ? reportData[0] as any : null;
+        
+        // Store filter - prioritize store name from mapping
+        if (filters.store) {
+          const s = allStores.find(s => s.id === filters.store);
+          meta.storeName = s?.name || filters.store;
+          meta.storeId = filters.store;
+        } else if (firstRecord) {
+          // Get store ID and look up name from mapping
+          const storeId = firstRecord['Store'] || firstRecord.storeId || '';
+          const storeInfo = allStores.find(s => s.id === storeId);
+          meta.storeName = storeInfo?.name || storeId;
+          meta.storeId = storeId;
+        } else if (filters.region) {
+          meta.storeName = `${filters.region} Region`;
+          meta.storeId = '';
+        } else if (reportData.length > 0) {
+          meta.storeName = 'All Stores (Filtered)';
+          meta.storeId = '';
+        }
+        
+        // Employee filter
+        if (filters.employee) {
+          const emp = employeeDirectory.find(e => e.employee_id === filters.employee);
+          meta.employeeName = emp?.name || filters.employee;
+          meta.employeeId = filters.employee;
+        } else if (firstRecord) {
+          meta.employeeName = firstRecord['Employee Name'] || '';
+          meta.employeeId = firstRecord['Employee ID'] || '';
+        }
+        
+        // Trainer filter - get name from personnel list
+        if (filters.trainer) {
+          const t = HR_PERSONNEL.find(h => h.id === filters.trainer) || AREA_MANAGERS.find(a => a.id === filters.trainer);
+          meta.trainerName = t?.name || filters.trainer;
+        } else if (firstRecord) {
+          const trainerId = firstRecord['Trainer'] || '';
+          const trainerInfo = HR_PERSONNEL.find(h => h.id === trainerId) || AREA_MANAGERS.find(a => a.id === trainerId);
+          meta.trainerName = trainerInfo?.name || trainerId;
+        }
+        
+        // AM filter - get name from area managers list
+        if (filters.am) {
+          const am = AREA_MANAGERS.find(a => a.id === filters.am);
+          meta.amName = am?.name || filters.am;
+          meta.auditorName = am?.name || filters.am;
+        } else if (firstRecord) {
+          const amId = firstRecord['Area Manager'] || '';
+          const amInfo = AREA_MANAGERS.find(a => a.id === amId);
+          meta.amName = amInfo?.name || amId;
+          
+          const auditorName = firstRecord['Auditor Name'] || '';
+          meta.auditorName = auditorName;
+        }
+        
+        // Date metadata - use submission time from the record
+        if (firstRecord && firstRecord['Submission Time']) {
+          meta.date = firstRecord['Submission Time'];
+        } else if (lastRefresh) {
+          meta.date = lastRefresh.toLocaleString();
+        }
+
+        const fileName = `SHLP_Certification_${meta.employeeName?.replace(/\s+/g, '_') || meta.storeName?.replace(/\s+/g, '_') || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+        
+        const pdf = await buildSHLPPDF(reportData as any, meta, { title: 'SHLP Certification Assessment' });
+        pdf.save(fileName);
+        setIsGenerating(false);
+        showNotificationMessage('SHLP Certification PDF generated successfully!', 'success');
         return;
       }
 
