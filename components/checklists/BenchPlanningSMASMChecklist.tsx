@@ -14,37 +14,261 @@ interface BenchPlanningChecklistProps {
 
 type TabType = 'readiness' | 'assessment' | 'interview';
 
-// Google Apps Script endpoint - UPDATE THIS with your deployed script URL
-const BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwK1N2T8mp2_NqDKfm6hwNcK79CvVgrLeZmp76RR4CjsbpLS9H5VlKPlZUY0H2d_2Q61w/exec';
+// Google Apps Script endpoint - UPDATE THIS with your deployed SM-ASM script URL
+const BENCH_PLANNING_SM_ASM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxIXN0cmVzRNY0sj6AVp60GnEQycuey4FIx9vWGrlTPFeUi14OXGoFLpmIKMhuM_t-CrA/exec';
 
-// Readiness checklist items from the image
+// Readiness checklist items for SM to ASM level
 const READINESS_ITEMS = [
-  'Has completed all product and process knowledge modules on LMS.',
-  'Demonstrates strong understanding of SOPs and stays updated with any changes in process or communication.',
-  'Has completed the Food Safety module in LMS and consistently applies standards, correcting others when needed.',
-  'Maintains punctuality and regular attendance.',
-  'Consistently maintains high personal grooming and hygiene standards, setting an example for others.',
-  'Proactively leads pre-shift huddles and supports in store training (e.g., during LTO rollouts, communication etc).',
-  'Takes initiative to support store operations beyond assigned tasks.',
-  'Shows positive influence and motivates team members during service.',
-  'Has experience in coaching or mentoring new team members.',
-  'Can independently manage short shifts with minimal supervision.',
-  'Handles guest concerns or complaints calmly and confidently.'
+  'Has successfully managed full shifts independently with consistent quality standards',
+  'Demonstrates strong leadership in coaching and developing team members',
+  'Shows consistent ability to handle peak hours and complex operational challenges',
+  'Has completed all advanced training modules including P&L basics and inventory management',
+  'Exhibits strong problem-solving skills and decision-making capabilities',
+  'Maintains excellent communication with store team, AM, and support functions',
+  'Shows initiative in driving store performance metrics (sales, quality, guest satisfaction)',
+  'Has experience managing conflict resolution and challenging guest situations',
+  'Demonstrates understanding of cost control, wastage management, and labour scheduling',
+  'Can open and close the store independently following all protocols',
+  'Shows commitment to TWC values and acts as a role model for the team'
 ];
 
-// Interview sections from the image
+// Interview sections for SM to ASM level
 const INTERVIEW_SECTIONS = [
-  'Product & Process Knowledge',
-  'Food Safety Understanding',
-  'Leadership & Initiative',
-  'Guest Service Excellence',
-  'Communication Skills',
-  'Problem Solving',
-  'Team Management',
-  'Adaptability'
+  'Operational Excellence & Process Management',
+  'Team Leadership & People Development',
+  'Guest Experience & Service Excellence',
+  'Business Acumen & Cost Management',
+  'Problem Solving & Decision Making',
+  'Communication & Stakeholder Management',
+  'Adaptability & Change Management',
+  'Strategic Thinking & Initiative'
 ];
 
-const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({ 
+// Assessment Questions for SM to ASM level (Shuffled)
+const ASSESSMENT_QUESTIONS = [
+  {
+    id: 1,
+    question: "You're promoted over a peer who expected the role. They're demotivated and disengaging. You:",
+    options: {
+      A: "Involve HR directly",
+      B: "Let them cool off on their own",
+      C: "Assign fewer responsibilities",
+      D: "Address it 1:1, acknowledge the situation, and re-engage"
+    },
+    correctAnswer: "D"
+  },
+  {
+    id: 2,
+    question: "During peak time, your POS system crashes. What's your action?",
+    options: {
+      A: "Use manual billing after informing the AM",
+      B: "Stop service",
+      C: "Inform customers and close the store",
+      D: "Wait for IT"
+    },
+    correctAnswer: "A"
+  },
+  {
+    id: 3,
+    question: "Your average daily sales are ₹18,000. Your gross margin is 60%. What is your approximate monthly gross profit (30 days)?",
+    options: {
+      A: "₹3,60,000",
+      B: "₹3,24,000",
+      C: "₹4,20,000",
+      D: "₹3,00,000"
+    },
+    correctAnswer: "B"
+  },
+  {
+    id: 4,
+    question: "How often should you appreciate your team?",
+    options: {
+      A: "Once a month",
+      B: "Only for major achievements",
+      C: "Rarely",
+      D: "Publicly and often for small wins"
+    },
+    correctAnswer: "D"
+  },
+  {
+    id: 5,
+    question: "The cost of making one beverage is ₹55, and it is sold at ₹130. What is the profit margin per drink?",
+    options: {
+      A: "₹85",
+      B: "₹95",
+      C: "₹75",
+      D: "₹65"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 6,
+    question: "You observe shortcuts being taken during cleaning. You:",
+    options: {
+      A: "Inform area manager",
+      B: "Coach the team",
+      C: "Ignore — it's minor",
+      D: "Suspend team"
+    },
+    correctAnswer: "B"
+  },
+  {
+    id: 7,
+    question: "A barista makes an error in a drink three times in one shift. What's your first response?",
+    options: {
+      A: "Replace them on shift",
+      B: "Observe and retrain",
+      C: "Issue warning letter",
+      D: "Ignore – busy shift"
+    },
+    correctAnswer: "B"
+  },
+  {
+    id: 8,
+    question: "You have ₹1,20,000 as your monthly budget for inventory. You've already spent ₹86,000. How much balance remains?",
+    options: {
+      A: "₹38,000",
+      B: "₹40,000",
+      C: "₹36,000",
+      D: "₹34,000"
+    },
+    correctAnswer: "D"
+  },
+  {
+    id: 9,
+    question: "A delivery vendor is late for the third time in a week, impacting morning prep. What's the ideal response?",
+    options: {
+      A: "Apologize publicly and take it offline",
+      B: "Accept and move on",
+      C: "Raise an SLA concern and request urgent resolution",
+      D: "Cancel the vendor immediately"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 10,
+    question: "You need 5 staff to manage the floor, but one has called in sick. What do you do first?",
+    options: {
+      A: "Do nothing",
+      B: "Skip Breaks",
+      C: "Call backup staff",
+      D: "Reduce service area"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 11,
+    question: "Last month's total sales were ₹5,50,000. This month it dropped by 10%. What are this month's sales?",
+    options: {
+      A: "₹5,00,000",
+      B: "₹4,95,000",
+      C: "₹5,25,000",
+      D: "₹4,85,000"
+    },
+    correctAnswer: "B"
+  },
+  {
+    id: 12,
+    question: "You've received a customer complaint on social media about rude service. What is your priority?",
+    options: {
+      A: "Give discount on next visit",
+      B: "Delete the comment",
+      C: "Privately message the customer",
+      D: "Apologize publicly and take it offline"
+    },
+    correctAnswer: "D"
+  },
+  {
+    id: 13,
+    question: "Your store's target is ₹6,00,000. You've achieved ₹4,20,000 in 20 days. What's the required daily average for the remaining 10 days?",
+    options: {
+      A: "₹22,000",
+      B: "₹15,000",
+      C: "₹18,000",
+      D: "₹20,000"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 14,
+    question: "Your team consistently meets targets, but morale is low. You:",
+    options: {
+      A: "Increase targets",
+      B: "Avoid change",
+      C: "Let them continue",
+      D: "Celebrate small wins"
+    },
+    correctAnswer: "D"
+  },
+  {
+    id: 15,
+    question: "You have to reduce 10 labor hours per week while maintaining service. Which solution is most efficient?",
+    options: {
+      A: "Cut breaks",
+      B: "Shorten peak hours",
+      C: "Remove one low traffic shift/lean shift entirely",
+      D: "Reduce each staff's shift by 30 minutes"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 16,
+    question: "If A is faster than B, B is faster than C, but C is most accurate, whom do you schedule during a high-accuracy order window?",
+    options: {
+      A: "A and C",
+      B: "A",
+      C: "C",
+      D: "B"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 17,
+    question: "A customer orders 4 beverages, but the system only bills for 3. What do you do?",
+    options: {
+      A: "Adjust from another order",
+      B: "Pay difference yourself",
+      C: "Inform customer and add item",
+      D: "Let it go"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 18,
+    question: "You are asked to lead two new stores temporarily, but your own store is under-staffed. What's your approach?",
+    options: {
+      A: "Ask for external support",
+      B: "Take it on and manage all yourself",
+      C: "Delegate internally and develop one team member as acting lead",
+      D: "Decline the opportunity"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 19,
+    question: "A beverage's ingredient cost is ₹35. If wastage is 8% and spoilage loss is 5%, what is the adjusted cost per beverage?",
+    options: {
+      A: "₹40.25",
+      B: "₹41.20",
+      C: "₹37.50",
+      D: "₹38.85"
+    },
+    correctAnswer: "B"
+  },
+  {
+    id: 20,
+    question: "A system generates the following pattern of sales increase: 5%, 10%, 15%, 20%… What would be the % increase in the 6th week?",
+    options: {
+      A: "35%",
+      B: "25%",
+      C: "40%",
+      D: "30%"
+    },
+    correctAnswer: "B"
+  }
+];
+
+const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({ 
   userRole, 
   onStatsUpdate, 
   onBackToChecklists 
@@ -102,7 +326,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
   const loadManagerCandidates = async (managerId: string) => {
     try {
       setLoadingCandidates(true);
-      const response = await fetch(`${BENCH_PLANNING_ENDPOINT}?action=getManagerCandidates&managerId=${managerId}&_t=${new Date().getTime()}`);
+      const response = await fetch(`${BENCH_PLANNING_SM_ASM_ENDPOINT}?action=getManagerCandidates&managerId=${managerId}&_t=${new Date().getTime()}`);
       const data = await response.json();
       
       if (data.success && data.candidates) {
@@ -122,7 +346,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
     try {
       setLoading(true);
       setNotEligible(false);
-      const response = await fetch(`${BENCH_PLANNING_ENDPOINT}?action=getCandidateData&employeeId=${employeeId}&_t=${new Date().getTime()}`);
+      const response = await fetch(`${BENCH_PLANNING_SM_ASM_ENDPOINT}?action=getCandidateData&employeeId=${employeeId}&_t=${new Date().getTime()}`);
       const data = await response.json();
       
       if (data.success && data.candidate) {
@@ -196,25 +420,12 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
     }
   }, [loading, loadingCandidates, candidateData, managerCandidates, userId]);
   
-  // Fetch assessment questions when assessment is unlocked
+  // Set assessment questions from hardcoded data when assessment is unlocked
   useEffect(() => {
-    const fetchAssessmentQuestions = async () => {
-      try {
-        const response = await fetch(`${BENCH_PLANNING_ENDPOINT}?action=getAssessmentQuestions&_t=${new Date().getTime()}`);
-        const data = await response.json();
-        
-        if (data.success && data.questions) {
-          setAssessmentQuestions(data.questions);
-        }
-      } catch (error) {
-        console.error('Error fetching assessment questions:', error);
-      }
-    };
-    
     if (!assessmentLocked && assessmentQuestions.length === 0) {
-      fetchAssessmentQuestions();
+      setAssessmentQuestions(ASSESSMENT_QUESTIONS);
     }
-  }, [assessmentLocked]);
+  }, [assessmentLocked, assessmentQuestions.length]);
   
   // Set user type to manager/admin if manager candidates are loaded but user is not a candidate
   useEffect(() => {
@@ -267,7 +478,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
         submissionTime: new Date().toISOString()
       };
       
-      const response = await fetch(BENCH_PLANNING_ENDPOINT, {
+      const response = await fetch(BENCH_PLANNING_SM_ASM_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -317,7 +528,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
         submissionTime: new Date().toISOString()
       };
       
-      const response = await fetch(BENCH_PLANNING_ENDPOINT, {
+      const response = await fetch(BENCH_PLANNING_SM_ASM_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -375,7 +586,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
         submissionTime: new Date().toISOString()
       };
       
-      await fetch(BENCH_PLANNING_ENDPOINT, {
+      await fetch(BENCH_PLANNING_SM_ASM_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -930,7 +1141,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
           <div className="flex items-center gap-3">
             <Users className="w-8 h-8 text-purple-600 dark:text-purple-400" />
             <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">
-              Bench Planning | Barista to Shift Manager
+              Bench Planning | Shift Manager to Assistant Store Manager
             </h1>
           </div>
           {/* Exit Button */}
@@ -1123,4 +1334,4 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
   );
 };
 
-export default BenchPlanningChecklist;
+export default BenchPlanningSMASMChecklist;

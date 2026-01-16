@@ -46,7 +46,7 @@ export const AUTH_CONFIG: AuthConfig = {
     hr: {
       password: 'HRConnect2024!',
       permissions: ['hr', 'dashboard', 'employee-data'],
-      dashboardAccess: ['hr-dashboard', 'hr-analytics', 'employee-reports', 'training-audit', 'campus-hiring-dashboard', 'bench-planning-dashboard']
+      dashboardAccess: ['hr-dashboard', 'hr-analytics', 'employee-reports', 'training-audit', 'campus-hiring-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
     },
     qa: {
       password: 'QualityCheck2024!',
@@ -56,7 +56,7 @@ export const AUTH_CONFIG: AuthConfig = {
     training: {
       password: 'TrainingHub2024!',
       permissions: ['training', 'shlp', 'dashboard', 'learning-management'],
-      dashboardAccess: ['training-dashboard', 'training-reports', 'learning-analytics', 'training-audit', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'shlp-dashboard']
+      dashboardAccess: ['training-dashboard', 'training-reports', 'learning-analytics', 'training-audit', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'shlp-dashboard']
     },
     forms: {
       password: 'MT2025!',
@@ -78,6 +78,11 @@ export const AUTH_CONFIG: AuthConfig = {
       permissions: ['bench-planning'],
       dashboardAccess: [] // No dashboard access - checklist only, role-based access within module
     },
+    'bench-planning-sm-asm': {
+      password: 'BenchPlanSMASM2025!',
+      permissions: ['bench-planning-sm-asm'],
+      dashboardAccess: [] // No dashboard access - checklist only, role-based access within module
+    },
     shlp: {
       password: 'SHLP2025!',
       permissions: ['shlp'],
@@ -85,13 +90,13 @@ export const AUTH_CONFIG: AuthConfig = {
     },
     admin: {
       password: 'AdminView2024!',
-      permissions: ['operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'bench-planning', 'dashboard'],
+      permissions: ['operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'bench-planning', 'bench-planning-sm-asm', 'dashboard'],
       dashboardAccess: ['all', 'campus-hiring-dashboard']
     },
     editor: {
       password: 'Editornotcreator2025!',
-      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'bench-planning', 'dashboard'],
-      dashboardAccess: ['all', 'campus-hiring-dashboard', 'trainer-calendar-dashboard', 'bench-planning-dashboard']
+      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'bench-planning', 'bench-planning-sm-asm', 'dashboard'],
+      dashboardAccess: ['all', 'campus-hiring-dashboard', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
     }
   },
   

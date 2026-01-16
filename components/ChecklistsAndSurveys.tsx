@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Settings, GraduationCap, CheckCircle, DollarSign, ArrowLeft, Home, Brain, FileText, Calendar, Trophy, Coffee, BarChart3 } from 'lucide-react';
+import { Users, Settings, GraduationCap, CheckCircle, DollarSign, ArrowLeft, Home, Brain, FileText, Calendar, Trophy, Coffee, BarChart3, Briefcase } from 'lucide-react';
 import { UserRole } from '../roleMapping';
 import { useAuth } from '../contexts/AuthContext';
 import HRChecklist from './checklists/HRChecklist';
@@ -12,6 +12,7 @@ import FormsChecklist from './checklists/FormsChecklist';
 import TrainerCalendarChecklist from './checklists/TrainerCalendarChecklist';
 import SHLPChecklist from './checklists/SHLPChecklist';
 import BenchPlanningChecklist from './checklists/BenchPlanningChecklist';
+import BenchPlanningSMASMChecklist from './checklists/BenchPlanningSMASMChecklist';
 import BrewLeagueRegionRound from './checklists/BrewLeagueRegionRound';
 import BrewLeagueDashboard from './checklists/BrewLeagueDashboard';
 
@@ -21,11 +22,13 @@ interface ChecklistsAndSurveysProps {
 
 type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning' | 'brew-league';
 type BrewLeagueSubType = 'store' | 'am' | 'region' | 'dashboard';
+type BenchPlanningSubType = 'barista-sm' | 'sm-asm';
 
 const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole }) => {
   const { userRole: authUserRole, hasPermission } = useAuth();
   const [activeChecklist, setActiveChecklist] = useState<ChecklistType | null>(null);
   const [brewLeagueSubSection, setBrewLeagueSubSection] = useState<BrewLeagueSubType | null>(null);
+  const [benchPlanningSubSection, setBenchPlanningSubSection] = useState<BenchPlanningSubType | null>(null);
   const [checklistStats, setChecklistStats] = useState({
     hr: { completed: 0, total: 0, score: 0 },
     operations: { completed: 0, total: 0, score: 0 },
@@ -37,6 +40,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     forms: { completed: 0, total: 0, score: 0 },
     'trainer-calendar': { completed: 0, total: 0, score: 0 },
     'bench-planning': { completed: 0, total: 0, score: 0 },
+    'bench-planning-sm-asm': { completed: 0, total: 0, score: 0 },
     'brew-league': { completed: 0, total: 0, score: 0 }
   });
 
@@ -56,6 +60,15 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
   useEffect(() => {
     if (authUserRole === 'bench-planning' && !activeChecklist) {
       setActiveChecklist('bench-planning');
+      setBenchPlanningSubSection('barista-sm');
+    }
+  }, [authUserRole]);
+
+  // Auto-open SM-ASM bench planning for bench-planning-sm-asm role users
+  useEffect(() => {
+    if (authUserRole === 'bench-planning-sm-asm' && !activeChecklist) {
+      setActiveChecklist('bench-planning');
+      setBenchPlanningSubSection('sm-asm');
     }
   }, [authUserRole]);
 
@@ -71,7 +84,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
       { id: 'campus-hiring' as ChecklistType, label: 'Campus Hiring', icon: Brain, color: 'bg-indigo-500' },
       { id: 'forms' as ChecklistType, label: 'Forms & Surveys', icon: FileText, color: 'bg-teal-500' },
       { id: 'trainer-calendar' as ChecklistType, label: 'Trainer Calendar', icon: Calendar, color: 'bg-purple-600' },
-      { id: 'bench-planning' as ChecklistType, label: 'Bench Planning', icon: Users, color: 'bg-violet-600' },
+      { id: 'bench-planning' as ChecklistType, label: 'Bench Planning', icon: Briefcase, color: 'bg-sky-600' },
       { id: 'brew-league' as ChecklistType, label: 'Brew League', icon: Trophy, color: 'bg-amber-600' }
     ];
 
@@ -98,7 +111,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     { id: 'campus-hiring' as ChecklistType, label: 'Campus Hiring', icon: Brain, color: 'bg-indigo-500' },
     { id: 'forms' as ChecklistType, label: 'Forms & Surveys', icon: FileText, color: 'bg-teal-500' },
     { id: 'trainer-calendar' as ChecklistType, label: 'Trainer Calendar', icon: Calendar, color: 'bg-purple-600' },
-    { id: 'bench-planning' as ChecklistType, label: 'Bench Planning', icon: Users, color: 'bg-violet-600' },
+    { id: 'bench-planning' as ChecklistType, label: 'Bench Planning', icon: Briefcase, color: 'bg-sky-600' },
     { id: 'brew-league' as ChecklistType, label: 'Brew League', icon: Trophy, color: 'bg-amber-600' }
   ];
 
@@ -117,10 +130,15 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
   const handleBackToOverview = () => {
     setActiveChecklist(null);
     setBrewLeagueSubSection(null);
+    setBenchPlanningSubSection(null);
   };
 
   const handleBackToBrewLeague = () => {
     setBrewLeagueSubSection(null);
+  };
+
+  const handleBackToBenchPlanning = () => {
+    setBenchPlanningSubSection(null);
   };
 
   const renderActiveChecklist = () => {
@@ -226,6 +244,73 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
       );
     }
 
+    // Handle Bench Planning subsections
+    if (activeChecklist === 'bench-planning' && !benchPlanningSubSection) {
+      return (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+              <Briefcase className="w-8 h-8 text-sky-600" />
+              Bench Planning
+            </h2>
+            <p className="text-gray-600 dark:text-slate-400 mb-6">
+              Select the promotion pathway to begin assessment.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <button
+              onClick={() => setBenchPlanningSubSection('barista-sm')}
+              className="group p-8 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-sky-400 dark:hover:border-sky-400 bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition-all duration-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-sky-500 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <Coffee className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                  Barista to Shift Manager
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+                  Assessment and readiness checklist for Shift Manager promotion
+                </p>
+                <span className="mt-2 text-sm text-sky-600 dark:text-sky-400 font-medium group-hover:text-sky-700 dark:group-hover:text-sky-300">
+                  Open →
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setBenchPlanningSubSection('sm-asm')}
+              className="group p-8 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-purple-400 dark:hover:border-purple-400 bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-purple-500 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <Users className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                  Shift Manager to Assistant Store Manager
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+                  Assessment and readiness checklist for ASM promotion
+                </p>
+                <span className="mt-2 text-sm text-purple-600 dark:text-purple-400 font-medium group-hover:text-purple-700 dark:group-hover:text-purple-300">
+                  Open →
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Define common props for checklists
+    const commonProps = {
+      userRole,
+      onStatsUpdate: (stats: { completed: number; total: number; score: number }) => 
+        updateChecklistStats(activeChecklist, stats),
+      onBackToChecklists: () => setActiveChecklist(null)
+    };
+
     // Render Brew League subsection
     if (activeChecklist === 'brew-league' && brewLeagueSubSection) {
       if (brewLeagueSubSection === 'dashboard') {
@@ -248,12 +333,15 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
       );
     }
 
-    const commonProps = {
-      userRole,
-      onStatsUpdate: (stats: { completed: number; total: number; score: number }) => 
-        updateChecklistStats(activeChecklist, stats),
-      onBackToChecklists: () => setActiveChecklist(null)
-    };
+    // Render Bench Planning subsection
+    if (activeChecklist === 'bench-planning' && benchPlanningSubSection) {
+      if (benchPlanningSubSection === 'barista-sm') {
+        return <BenchPlanningChecklist {...commonProps} />;
+      }
+      if (benchPlanningSubSection === 'sm-asm') {
+        return <BenchPlanningSMASMChecklist {...commonProps} />;
+      }
+    }
 
     switch (activeChecklist) {
       case 'hr':
@@ -274,8 +362,6 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
         return <FormsChecklist {...commonProps} />;
       case 'trainer-calendar':
         return <TrainerCalendarChecklist {...commonProps} />;
-      case 'bench-planning':
-        return <BenchPlanningChecklist {...commonProps} />;
       default:
         return <HRChecklist {...commonProps} />;
     }
@@ -304,20 +390,20 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
           <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 py-3 sm:px-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                {/* Hide back button for campus-hiring and bench-planning roles */}
-                {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && (
+                {/* Hide back button for campus-hiring, bench-planning, and bench-planning-sm-asm roles */}
+                {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && authUserRole !== 'bench-planning-sm-asm' && (
                   <button
-                    onClick={brewLeagueSubSection ? handleBackToBrewLeague : handleBackToOverview}
+                    onClick={benchPlanningSubSection ? handleBackToBenchPlanning : brewLeagueSubSection ? handleBackToBrewLeague : handleBackToOverview}
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                    aria-label={brewLeagueSubSection ? "Back to Brew League" : "Back to checklists overview"}
+                    aria-label={benchPlanningSubSection ? "Back to Bench Planning" : brewLeagueSubSection ? "Back to Brew League" : "Back to checklists overview"}
                   >
                     <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-slate-400" />
                   </button>
                 )}
                 
                 <nav className="flex items-center space-x-2 text-sm">
-                  {/* Hide breadcrumb for campus-hiring and bench-planning roles */}
-                  {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && (
+                  {/* Hide breadcrumb for campus-hiring, bench-planning, and bench-planning-sm-asm roles */}
+                  {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && authUserRole !== 'bench-planning-sm-asm' && (
                     <>
                       <button
                         onClick={handleBackToOverview}
@@ -338,21 +424,35 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                           <span className="text-gray-400 dark:text-slate-500">/</span>
                         </>
                       )}
+                      {benchPlanningSubSection && (
+                        <>
+                          <button
+                            onClick={handleBackToBenchPlanning}
+                            className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
+                          >
+                            {getChecklistLabel(activeChecklist)}
+                          </button>
+                          <span className="text-gray-400 dark:text-slate-500">/</span>
+                        </>
+                      )}
                     </>
                   )}
                   <span className="text-gray-900 dark:text-slate-100 font-medium">
-                    {brewLeagueSubSection 
-                      ? brewLeagueSubSection === 'store' ? 'Store Round' 
-                        : brewLeagueSubSection === 'am' ? 'AM Round' 
-                        : 'Region Round'
-                      : getChecklistLabel(activeChecklist)
+                    {benchPlanningSubSection
+                      ? benchPlanningSubSection === 'barista-sm' ? 'Barista to Shift Manager'
+                        : 'Shift Manager to Assistant Store Manager'
+                      : brewLeagueSubSection 
+                        ? brewLeagueSubSection === 'store' ? 'Store Round' 
+                          : brewLeagueSubSection === 'am' ? 'AM Round' 
+                          : 'Region Round'
+                        : getChecklistLabel(activeChecklist)
                     }
                   </span>
                 </nav>
               </div>
               
               <div className="text-sm text-gray-500 dark:text-slate-400">
-                {checklistStats[activeChecklist].completed}/{checklistStats[activeChecklist].total} completed
+                {checklistStats[activeChecklist]?.completed || 0}/{checklistStats[activeChecklist]?.total || 0} completed
               </div>
             </div>
           </div>
@@ -382,7 +482,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
           {/* Checklist Grid */}
           <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${availableChecklists.length > 3 ? 'xl:grid-cols-5' : availableChecklists.length === 3 ? 'xl:grid-cols-3' : 'xl:grid-cols-2'} gap-4`}>
             {availableChecklists.map(checklist => {
-              const stats = checklistStats[checklist.id];
+              const stats = checklistStats[checklist.id] || { completed: 0, total: 0, score: 0 };
               const completionPercentage = stats.total > 0 ? (stats.completed / stats.total) * 100 : 0;
               const IconComponent = checklist.icon;
               

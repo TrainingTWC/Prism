@@ -1,11 +1,11 @@
 /**
- * BENCH PLANNING GOOGLE APPS SCRIPT
+ * BENCH PLANNING GOOGLE APPS SCRIPT - SHIFT MANAGER TO ASSISTANT STORE MANAGER
  * 
- * This script manages three separate sheets for the Bench Planning module:
- * 1. Bench_Candidates - Master list of candidates with manager and panelist info
- * 2. Readiness_Checklists - Manager assessments (11 items, scored 1-5)
- * 3. Self_Assessments - Candidate self-assessments (one attempt only)
- * 4. Interviews - Panelist evaluations (8 sections, scored 1-5)
+ * This script manages three separate sheets for the SM to ASM Bench Planning module:
+ * 1. SM_ASM_Candidates - Master list of candidates with manager and panelist info
+ * 2. SM_ASM_Readiness - Manager assessments (17 items, scored 1-5)
+ * 3. SM_ASM_Assessments - Candidate self-assessments (one attempt only)
+ * 4. SM_ASM_Interviews - Panelist evaluations (8 sections, scored 1-5)
  * 
  * Workflow:
  * - Manager completes readiness checklist
@@ -15,206 +15,267 @@
 
 // Sheet names
 const SHEETS = {
-  CANDIDATES: 'Bench_Candidates',
-  READINESS: 'Readiness_Checklists',
-  ASSESSMENT: 'Self_Assessments',
-  INTERVIEW: 'Interviews',
-  STORE_MAPPING: 'Store_Mapping'  // New sheet for store/AM lookup
+  CANDIDATES: 'SM_ASM_Candidates',
+  READINESS: 'SM_ASM_Readiness',
+  ASSESSMENT: 'SM_ASM_Assessments',
+  INTERVIEW: 'SM_ASM_Interviews',
+  STORE_MAPPING: 'Store_Mapping'  // Shared store/AM lookup sheet
 };
 
-// Readiness checklist items (11 items)
+// Readiness checklist items (17 items) - SM to ASM criteria
 const READINESS_ITEMS = [
-  'Has completed all product and process knowledge modules on LMS',
-  'Demonstrates strong understanding of SOPs and stays updated with any changes',
-  'Has completed Food Safety module and consistently applies standards',
-  'Maintains punctuality and regular attendance',
-  'Consistently maintains high personal grooming and hygiene standards',
-  'Proactively leads pre-shift huddles and supports in store training',
-  'Takes initiative to support store operations beyond assigned tasks',
-  'Shows positive influence and motivates team members during service',
-  'Has experience in coaching or mentoring new team members',
-  'Can independently manage short shifts with minimal supervision',
-  'Handles guest concerns or complaints calmly and confidently'
+  'Demonstrates clear understanding of P&L, cost control, and store-level KPIs.',
+  'Prioritizes tasks effectively to balance customer experience, operations, and team well-being.',
+  'Ensures full compliance with SOPs, safety protocols, food safety, and statutory regulations.',
+  'Continuously identifies operational bottlenecks and initiates sustainable solutions.',
+  'Provides regular coaching and feedback to team members for performance and growth.',
+  'Recognizes and nurtures talent; supports internal promotions and succession planning.',
+  'Maintains discipline and professionalism across the team, addressing issues promptly and fairly.',
+  'Drives team motivation and morale during high-pressure periods or challenging days.',
+  'Sets the standard for guest engagement and leads by example in service excellence.',
+  'Handles escalated customer issues with calm, confidence, and effective resolution.',
+  'Builds a loyal customer base through consistent service, community engagement, and feedback handling.',
+  'Owns store performance and consistently works toward achieving business targets.',
+  'Takes accountability for store readiness, cleanliness, and team presentation at all times.',
+  'Maintains confidentiality and demonstrates integrity in handling team, cash, and store matters.',
+  'Represents the brand positively in all forums and communications.',
+  'Actively seeks feedback and development opportunities to grow as a leader.',
+  'Completes all advanced training modules (e.g., leadership, financial acumen, compliance).'
 ];
 
 // Interview sections (8 sections)
 const INTERVIEW_SECTIONS = [
-  'Product & Process Knowledge',
-  'Food Safety Understanding',
-  'Leadership & Initiative',
-  'Guest Service Excellence',
-  'Communication Skills',
-  'Problem Solving',
-  'Team Management',
-  'Adaptability'
+  'Operational Excellence & Process Management',
+  'Team Leadership & People Development',
+  'Guest Experience & Service Excellence',
+  'Business Acumen & Cost Management',
+  'Problem Solving & Decision Making',
+  'Communication & Stakeholder Management',
+  'Adaptability & Change Management',
+  'Strategic Thinking & Initiative'
 ];
 
-// Self Assessment MCQ Questions (15 questions) - Shuffled
+// Self Assessment MCQ Questions (20 questions)
 const ASSESSMENT_QUESTIONS = [
   {
     id: 1,
-    question: "Which statement reflects true leadership in a café?",
+    question: "Last month's total sales were ₹5,50,000. This month it dropped by 10%. What are this month's sales?",
     options: {
-      A: "\"I support the team, step in, and debrief.\"",
-      B: "\"I take the toughest tasks.\"",
-      C: "\"I handle escalations only.\"",
-      D: "\"I stick to my scope.\""
+      A: "₹4,95,000",
+      B: "₹4,85,000",
+      C: "₹5,25,000",
+      D: "₹5,00,000"
     },
     correctAnswer: "A"
   },
   {
     id: 2,
-    question: "The café sold 200 cups of coffee. Each cup costs ₹140, with a 25% profit margin. What was the profit?",
+    question: "You have ₹1,20,000 as your monthly budget for inventory. You've already spent ₹86,000. How much balance remains?",
     options: {
-      A: "₹6,800",
-      B: "₹7,000",
-      C: "₹7,200",
-      D: "₹6,500"
+      A: "₹36,000",
+      B: "₹38,000",
+      C: "₹34,000",
+      D: "₹40,000"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 3,
+    question: "The cost of making one beverage is ₹55, and it is sold at ₹130. What is the profit margin per drink?",
+    options: {
+      A: "₹65",
+      B: "₹75",
+      C: "₹85",
+      D: "₹95"
     },
     correctAnswer: "B"
   },
   {
-    id: 3,
-    question: "You spot a team member skipping an SOP step. How do you address it?",
-    options: {
-      A: "File written warning",
-      B: "Ignore it this time",
-      C: "Give 1:1 feedback and demonstrate",
-      D: "Call out loudly in front of guests"
-    },
-    correctAnswer: "C"
-  },
-  {
     id: 4,
-    question: "A long pickup queue is forming; service is slowing. Most effective move?",
+    question: "Your store's target is ₹6,00,000. You've achieved ₹4,20,000 in 20 days. What's the required daily average for the remaining 10 days?",
     options: {
-      A: "Ask guests to be patient",
-      B: "Stop dine-in orders",
-      C: "Add floater to pickup/expedite",
-      D: "Wait for queue to shrink"
+      A: "₹15,000",
+      B: "₹18,000",
+      C: "₹20,000",
+      D: "₹22,000"
     },
-    correctAnswer: "C"
+    correctAnswer: "B"
   },
   {
     id: 5,
-    question: "Team member X at POS for 4 hours without a break, and café is busy. Best action?",
+    question: "Your average daily sales are ₹18,000. Your gross margin is 60%. What is your approximate monthly gross profit (30 days)?",
     options: {
-      A: "\"That's rush life\"",
-      B: "Tell X to slip out when they can",
-      C: "\"Hold till rush ends.\"",
-      D: "Arrange cover, give X a break, then rotate."
+      A: "₹3,00,000",
+      B: "₹3,60,000",
+      C: "₹3,24,000",
+      D: "₹4,20,000"
     },
-    correctAnswer: "D"
+    correctAnswer: "C"
   },
   {
     id: 6,
-    question: "Total sales: ₹9,200. Cash counted: ₹9,000. What is the discrepancy and possible reason?",
+    question: "A beverage's ingredient cost is ₹35. If wastage is 8% and spoilage loss is 5%, what is the adjusted cost per beverage?",
     options: {
-      A: "₹150 short; incorrect product pricing",
-      B: "₹200 excess; card payment logged as cash",
-      C: "₹200 short; wrong discount applied",
-      D: "₹200 short; unbilled order or theft"
+      A: "₹37.50",
+      B: "₹38.85",
+      C: "₹40.25",
+      D: "₹41.20"
     },
     correctAnswer: "D"
   },
   {
     id: 7,
-    question: "Find the next number in the series: 7, 14, 28, 56, ___",
+    question: "A barista makes an error in a drink three times in one shift. What's your first response?",
     options: {
-      A: "84",
-      B: "112",
-      C: "98",
-      D: "70"
-    },
-    correctAnswer: "B"
-  },
-  {
-    id: 8,
-    question: "A café uses 7 L of milk per day. If a 12% increase in customers is expected next week, how much milk should be ordered for a 7-day week?",
-    options: {
-      A: "55L",
-      B: "57.5L",
-      C: "56L",
-      D: "54.9L"
-    },
-    correctAnswer: "D"
-  },
-  {
-    id: 9,
-    question: "With 5 team members and 3 peak hours, how would you deploy resources to avoid bottlenecks?",
-    options: {
-      A: "Use only 1 per peak hour",
-      B: "All 5 to one peak hour",
-      C: "2 in first peak, 1 each in remaining two",
-      D: "2 to first, 2 to second, 1 to third peak"
-    },
-    correctAnswer: "D"
-  },
-  {
-    id: 10,
-    question: "If 3% of the monthly coffee stock is wasted and the stock is worth ₹18,000, calculate the wastage cost.",
-    options: {
-      A: "₹450",
-      B: "₹720",
-      C: "₹600",
-      D: "₹540"
-    },
-    correctAnswer: "D"
-  },
-  {
-    id: 11,
-    question: "Customer waiting, order delayed, team busy. What should be your first response?",
-    options: {
-      A: "\"It'll be out soon.\"",
-      B: "\"Someone else handle this.\"",
-      C: "\"Please wait; we're busy.\"",
-      D: "\"I'm sorry... let me check the status.\""
-    },
-    correctAnswer: "D"
-  },
-  {
-    id: 12,
-    question: "What's the right priority order during operations?",
-    options: {
-      A: "Team → Cost → Customer",
-      B: "Customer → Cost → Team",
-      C: "Customer → Team → Cost",
-      D: "Cost → Team → Customer"
+      A: "Issue warning letter",
+      B: "Ignore – busy shift",
+      C: "Observe and retrain",
+      D: "Replace them on shift"
     },
     correctAnswer: "C"
   },
   {
-    id: 13,
-    question: "A guest says their Americano tastes too bitter. What's the best course of action?",
+    id: 8,
+    question: "If A is faster than B, B is faster than C, but C is most accurate, whom do you schedule during a high-accuracy order window?",
     options: {
-      A: "Apologize, remake, and check dial-in",
-      B: "Say it's standard",
-      C: "Blame grinder settings",
-      D: "Offer refund immediately"
+      A: "A",
+      B: "C",
+      C: "B",
+      D: "A and C"
+    },
+    correctAnswer: "B"
+  },
+  {
+    id: 9,
+    question: "You need 5 staff to manage the floor, but one has called in sick. What do you do first?",
+    options: {
+      A: "Call backup staff",
+      B: "Reduce service area",
+      C: "Skip Breaks",
+      D: "Do nothing"
     },
     correctAnswer: "A"
   },
   {
-    id: 14,
-    question: "A (POS), B (Espresso), C (Cold bar/clean-downs). Rush in 15 mins. Who takes a break now?",
+    id: 10,
+    question: "A customer orders 4 beverages, but the system only bills for 3. What do you do?",
     options: {
-      A: "B",
-      B: "C",
-      C: "None of the above",
-      D: "A"
+      A: "Let it go",
+      B: "Inform customer and add item",
+      C: "Adjust from another order",
+      D: "Pay difference yourself"
+    },
+    correctAnswer: "B"
+  },
+  {
+    id: 11,
+    question: "You have to reduce 10 labor hours per week while maintaining service. Which solution is most efficient?",
+    options: {
+      A: "Reduce each staff's shift by 30 minutes",
+      B: "Remove one low traffic shift/lean shift entirely",
+      C: "Shorten peak hours",
+      D: "Cut breaks"
+    },
+    correctAnswer: "B"
+  },
+  {
+    id: 12,
+    question: "A system generates the following pattern of sales increase: 5%, 10%, 15%, 20%… What would be the % increase in the 6th week?",
+    options: {
+      A: "30%",
+      B: "35%",
+      C: "40%",
+      D: "25%"
+    },
+    correctAnswer: "D"
+  },
+  {
+    id: 13,
+    question: "During peak time, your POS system crashes. What's your action?",
+    options: {
+      A: "Stop service",
+      B: "Use manual billing after informing the AM",
+      C: "Wait for IT",
+      D: "Inform customers and close the store"
+    },
+    correctAnswer: "B"
+  },
+  {
+    id: 14,
+    question: "You're promoted over a peer who expected the role. They're demotivated and disengaging. You:",
+    options: {
+      A: "Assign fewer responsibilities",
+      B: "Address it 1:1, acknowledge the situation, and re-engage",
+      C: "Let them cool off on their own",
+      D: "Involve HR directly"
     },
     correctAnswer: "B"
   },
   {
     id: 15,
-    question: "Oat milk stocks are low and may not last till the next delivery. What do you do?",
+    question: "You are asked to lead two new stores temporarily, but your own store is under-staffed. What's your approach?",
     options: {
-      A: "Mix with dairy",
-      B: "Use less milk to stretch stock",
-      C: "Hope it lasts",
-      D: "Inform manager, 86/limit SKU, suggest alternatives"
+      A: "Delegate internally and develop one team member as acting lead",
+      B: "Decline the opportunity",
+      C: "Ask for external support",
+      D: "Take it on and manage all yourself"
     },
-    correctAnswer: "D"
+    correctAnswer: "A"
+  },
+  {
+    id: 16,
+    question: "How often should you appreciate your team?",
+    options: {
+      A: "Only for major achievements",
+      B: "Rarely",
+      C: "Publicly and often for small wins",
+      D: "Once a month"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 17,
+    question: "Your team consistently meets targets, but morale is low. You:",
+    options: {
+      A: "Celebrate small wins",
+      B: "Increase targets",
+      C: "Let them continue",
+      D: "Avoid change"
+    },
+    correctAnswer: "A"
+  },
+  {
+    id: 18,
+    question: "You've received a customer complaint on social media about rude service. What is your priority?",
+    options: {
+      A: "Delete the comment",
+      B: "Apologize publicly and take it offline",
+      C: "Privately message the customer",
+      D: "Give discount on next visit"
+    },
+    correctAnswer: "B"
+  },
+  {
+    id: 19,
+    question: "A delivery vendor is late for the third time in a week, impacting morning prep. What's the ideal response?",
+    options: {
+      A: "Cancel the vendor immediately",
+      B: "Apologize publicly and take it offline",
+      C: "Raise an SLA concern and request urgent resolution",
+      D: "Accept and move on"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 20,
+    question: "You observe shortcuts being taken during cleaning. You:",
+    options: {
+      A: "Suspend team",
+      B: "Inform area manager",
+      C: "Coach the team",
+      D: "Ignore — it's minor"
+    },
+    correctAnswer: "C"
   }
 ];
 
@@ -447,7 +508,7 @@ function getCandidateData(employeeId) {
         assessmentStatus = {
           unlocked: true,
           attempted: true,
-          passed: assessmentRow[4] || false, // Assuming 'passed' is in column 5
+          passed: assessmentRow[4] || false,
           score: assessmentRow[5] || 0
         };
       }
@@ -523,14 +584,13 @@ function submitReadinessChecklist(data) {
       headerRange.setFontColor('#FFFFFF');
     }
 
-    // Check if employee already has ANY submission (don't allow resubmission)
+    // Check if employee already has ANY submission
     const existingData = sheet.getDataRange().getValues();
     const existingRow = existingData.slice(1).findIndex(row => 
       row[1] && row[1].toString().toUpperCase() === data.employeeId.toString().toUpperCase()
     );
     
     if (existingRow !== -1) {
-      // Submission already exists - don't allow resubmission
       return createResponse(false, 'Readiness checklist already submitted for this candidate. Cannot resubmit.');
     }
     
@@ -614,7 +674,7 @@ function submitSelfAssessment(data) {
       return createResponse(false, 'Assessment already attempted. Only one attempt is allowed.');
     }
 
-    // Calculate score by comparing answers with correct answers
+    // Calculate score
     let correctCount = 0;
     const answers = JSON.parse(data.answers || '{}');
     
@@ -631,7 +691,7 @@ function submitSelfAssessment(data) {
     const totalScore = correctCount;
     const maxScore = ASSESSMENT_QUESTIONS.length;
     const percentage = (totalScore / maxScore * 100).toFixed(2);
-    const passed = percentage >= 80; // 80% passing threshold
+    const passed = percentage >= 80;
 
     const newRow = [
       data.submissionTime || new Date().toISOString(),
@@ -642,7 +702,7 @@ function submitSelfAssessment(data) {
       totalScore,
       maxScore,
       percentage,
-      1 // First attempt
+      1
     ];
     
     // Add individual answers and correctness
@@ -710,7 +770,7 @@ function submitInterview(data) {
       headerRange.setFontColor('#FFFFFF');
     }
 
-    // Check if interview already exists for this employee
+    // Check if interview already exists
     const existingData = sheet.getDataRange().getValues();
     const existingRow = existingData.slice(1).findIndex(row => row[1] && row[1].toString().toUpperCase() === data.employeeId.toString().toUpperCase());
     
@@ -733,7 +793,6 @@ function submitInterview(data) {
     }
     
     if (existingRow !== -1) {
-      // Update existing interview
       const rowIndex = existingRow + 2;
       sheet.getRange(rowIndex, 1, 1, baseRow.length).setValues([baseRow]);
       
@@ -742,7 +801,6 @@ function submitInterview(data) {
         maxScore: data.maxScore
       });
     } else {
-      // New interview
       sheet.appendRow(baseRow);
       
       return createResponse(true, 'Interview submitted successfully', {
@@ -757,7 +815,7 @@ function submitInterview(data) {
 }
 
 /**
- * Get all candidates (for admin dashboard if needed)
+ * Get all candidates
  */
 function getAllCandidates() {
   try {
@@ -769,12 +827,11 @@ function getAllCandidates() {
     }
 
     const data = sheet.getDataRange().getValues();
-    const headers = data[0];
     const candidates = [];
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      if (row[0]) { // If employee ID exists
+      if (row[0]) {
         candidates.push({
           employeeId: row[0],
           employeeName: row[1],
@@ -815,7 +872,6 @@ function getManagerCandidates(managerId) {
     const data = sheet.getDataRange().getValues();
     const candidates = [];
 
-    // Filter candidates by manager ID (column index 2)
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       if (row[0] && row[2] && row[2].toString().toUpperCase() === managerId.toUpperCase()) {
@@ -841,11 +897,10 @@ function getManagerCandidates(managerId) {
 }
 
 /**
- * Get assessment questions for candidates
+ * Get assessment questions
  */
 function getAssessmentQuestions() {
   try {
-    // Return assessment questions without correct answers for security
     const questions = ASSESSMENT_QUESTIONS.map(q => ({
       id: q.id,
       question: q.question,
@@ -870,7 +925,6 @@ function getDashboardData() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    // Get all candidates with their region directly from Bench_Candidates sheet
     const candidatesSheet = ss.getSheetByName(SHEETS.CANDIDATES);
     
     if (!candidatesSheet) {
@@ -878,21 +932,17 @@ function getDashboardData() {
     }
     
     const candidatesData = candidatesSheet.getDataRange().getValues();
-    const totalCandidates = candidatesData.length - 1; // Exclude header
+    const totalCandidates = candidatesData.length - 1;
     
-    // Get readiness checklist submissions
     const readinessSheet = ss.getSheetByName(SHEETS.READINESS);
     const readinessData = readinessSheet ? readinessSheet.getDataRange().getValues().slice(1) : [];
     
-    // Get self assessment submissions
     const assessmentSheet = ss.getSheetByName(SHEETS.ASSESSMENT);
     const assessmentData = assessmentSheet ? assessmentSheet.getDataRange().getValues().slice(1) : [];
     
-    // Get interview submissions
     const interviewSheet = ss.getSheetByName(SHEETS.INTERVIEW);
     const interviewData = interviewSheet ? interviewSheet.getDataRange().getValues().slice(1) : [];
     
-    // Count statuses
     let readinessPassed = 0;
     let readinessFailed = 0;
     let readinessNotStarted = totalCandidates;
@@ -903,33 +953,27 @@ function getDashboardData() {
     let interviewCompleted = 0;
     let interviewNotStarted = totalCandidates;
     
-    // Region-wise breakdown
     const regionStats = new Map();
-    
-    // Store-wise and AM-wise details
     const storeWiseData = new Map();
     const amWiseData = new Map();
     const detailedCandidates = [];
     
-    // Process candidates with region from sheet (column 7)
     for (let i = 1; i < candidatesData.length; i++) {
       const row = candidatesData[i];
       const employeeId = row[0];
       const employeeName = row[1];
       const reportingManagerId = row[2];
       const storeId = row[6] || 'Unknown';
-      let region = row[7] || 'Unknown'; // Region is in column 8 (index 7)
+      let region = row[7] || 'Unknown';
       
-      // Lookup store name and Area Manager info from mapping (prioritizes AM over reporting manager)
       const lookupInfo = getStoreAndManagerInfo(storeId, reportingManagerId);
       const storeName = lookupInfo.storeName;
-      const managerId = lookupInfo.managerId;     // Use Area Manager ID from Store_Mapping
-      const managerName = lookupInfo.managerName; // Use Area Manager Name from Store_Mapping
+      const managerId = lookupInfo.managerId;
+      const managerName = lookupInfo.managerName;
       if (region === 'Unknown' || !region) {
         region = lookupInfo.region;
       }
       
-      // Check readiness status
       const readinessRow = readinessData.find(r => r[1] && r[1].toString().toUpperCase() === employeeId.toString().toUpperCase());
       let readinessStatus = 'Not Started';
       let readinessScore = null;
@@ -939,7 +983,6 @@ function getDashboardData() {
         readinessStatus = passed ? 'Passed' : 'Failed';
       }
       
-      // Check assessment status
       const assessmentRow = assessmentData.find(r => r[1] && r[1].toString().toUpperCase() === employeeId.toString().toUpperCase());
       let assessmentStatus = 'Not Started';
       let assessmentScore = null;
@@ -949,7 +992,6 @@ function getDashboardData() {
         assessmentStatus = passed ? 'Passed' : 'Completed';
       }
       
-      // Check interview status
       const interviewRow = interviewData.find(r => r[1] && r[1].toString().toUpperCase() === employeeId.toString().toUpperCase());
       let interviewStatus = 'Not Started';
       let interviewScore = null;
@@ -958,7 +1000,6 @@ function getDashboardData() {
         interviewStatus = 'Completed';
       }
       
-      // Create detailed candidate object
       const candidateDetail = {
         employeeId,
         employeeName,
@@ -977,7 +1018,6 @@ function getDashboardData() {
       
       detailedCandidates.push(candidateDetail);
       
-      // Store-wise grouping
       if (!storeWiseData.has(storeId)) {
         storeWiseData.set(storeId, {
           storeId,
@@ -997,7 +1037,6 @@ function getDashboardData() {
       if (assessmentStatus === 'Passed' || assessmentStatus === 'Completed') storeData.assessmentCompleted++;
       if (interviewStatus === 'Completed') storeData.interviewCompleted++;
       
-      // AM-wise grouping
       if (!amWiseData.has(managerId)) {
         amWiseData.set(managerId, {
           managerId,
@@ -1017,7 +1056,6 @@ function getDashboardData() {
       if (assessmentStatus === 'Passed' || assessmentStatus === 'Completed') amData.assessmentCompleted++;
       if (interviewStatus === 'Completed') amData.interviewCompleted++;
       
-      // Initialize region stats
       if (!regionStats.has(region)) {
         regionStats.set(region, {
           region: region,
@@ -1035,7 +1073,6 @@ function getDashboardData() {
       const stats = regionStats.get(region);
       stats.totalCandidates++;
       
-      // Update region stats
       if (readinessRow) {
         const passed = readinessRow[8];
         if (passed) {
@@ -1095,7 +1132,7 @@ function getDashboardData() {
 }
 
 /**
- * Create JSON response (CORS handled by deployment settings)
+ * Create JSON response
  */
 function createResponse(success, message, data) {
   const response = {
@@ -1118,7 +1155,6 @@ function createResponse(success, message, data) {
 function initializeSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  // Create Candidates sheet if it doesn't exist
   let candidateSheet = ss.getSheetByName(SHEETS.CANDIDATES);
   if (!candidateSheet) {
     candidateSheet = ss.insertSheet(SHEETS.CANDIDATES);
@@ -1137,32 +1173,24 @@ function initializeSheets() {
     
     candidateSheet.appendRow(headers);
     
-    // Add sample data from the provided image
+    // Add sample data
     const sampleData = [
-      ['H3282', 'Madan V', 'H546', 'Ajay Hathmuria', 'H2155', 'Jagruti', '', '', ''],
-      ['H3235', 'Ravitheja M', 'H1355', 'Suresh A', 'H2155', 'Jagruti', '', '', ''],
-      ['H626', 'Naveen Kumar C', 'H546', 'Ajay Hathmuria', 'H2155', 'Jagruti', '', '', ''],
-      ['H751', 'Lavanya B', 'H3270', 'Gorijala Umakanth', 'H2155', 'Jagruti', '', '', ''],
-      ['H3335', 'Manikanta', 'H3735', 'Sanika Sandeep Jagtap', 'H2155', 'Jagruti', '', '', ''],
-      ['H2797', 'Kareti Hemanad', 'H2312', 'Manish B', 'H2155', 'Jagruti', '', '', ''],
-      ['H3381', 'Sri Venkatesh L', 'H3362', 'Karthick G', 'H2155', 'Jagruti', '', '', ''],
-      ['H1437', 'Sonu Bahadur R', 'H833', 'Nandish M', 'H2155', 'Jagruti', '', '', ''],
-      ['H2109', 'Beldari Syed Pee', 'H833', 'Nandish M', 'H2155', 'Jagruti', '', '', '']
+      ['H1001', 'Rahul SM', 'H301', 'Regional Manager A', 'H201', 'Senior Panel A', 'S101', 'North', ''],
+      ['H1002', 'Priya SM', 'H302', 'Regional Manager B', 'H201', 'Senior Panel A', 'S102', 'South', ''],
+      ['H1003', 'Amit SM', 'H301', 'Regional Manager A', 'H202', 'Senior Panel B', 'S103', 'East', '']
     ];
     
     sampleData.forEach(row => candidateSheet.appendRow(row));
     
-    // Format header
     const headerRange = candidateSheet.getRange(1, 1, 1, headers.length);
     headerRange.setFontWeight('bold');
     headerRange.setBackground('#4A5568');
     headerRange.setFontColor('#FFFFFF');
     
-    // Auto-resize columns
     for (let i = 1; i <= headers.length; i++) {
       candidateSheet.autoResizeColumn(i);
     }
   }
   
-  Logger.log('Sheets initialized successfully!');
+  Logger.log('SM to ASM Sheets initialized successfully!');
 }

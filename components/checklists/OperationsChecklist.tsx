@@ -366,17 +366,44 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         const hrDetails = HR_PERSONNEL.find(hr => normalizeId(hr.id) === normalizeId(hrbpId));
         
         // Get Trainer details - check multiple possible column names
-        const trainerName = amStore['Trainer 1 Name'] || amStore['Trainer1Name'] || amStore['Trainer Name'] || amStore['TrainerName'] || '';
-        console.log('🔍 Trainer name from sheet:', trainerName);
+        const trainerIdFromSheet = amStore['Trainer'] || amStore['Trainer 1'] || amStore['Trainer1'] || '';
+        const trainerNameFromSheet = amStore['Trainer 1 Name'] || amStore['Trainer1Name'] || amStore['Trainer Name'] || amStore['TrainerName'] || '';
+        
+        console.log('🔍 Trainer ID from sheet:', trainerIdFromSheet);
+        console.log('🔍 Trainer name from sheet:', trainerNameFromSheet);
         console.log('🔍 Available trainer columns:', {
+          'Trainer': amStore['Trainer'],
+          'Trainer 1': amStore['Trainer 1'],
           'Trainer 1 Name': amStore['Trainer 1 Name'],
           'Trainer1Name': amStore['Trainer1Name'],
           'Trainer Name': amStore['Trainer Name'],
-          'TrainerName': amStore['TrainerName'],
-          'Trainer': amStore['Trainer']
+          'TrainerName': amStore['TrainerName']
         });
         
-        const trainerDetails = trainerName ? { id: trainerName, name: trainerName } : null;
+        // Trainer name overrides mapping
+        const trainerNameOverrides: Record<string, string> = {
+          H1278: 'Viraj Vijay Mahamunkar',
+          H1697: 'Sheldon Antonio Xavier DSouza', 
+          H1761: 'Mahadev Nayak',
+          H2155: 'Jagruti Narendra Bhanushali',
+          H2595: 'Kailash Singh',
+          H3247: 'Thatikonda Sunil Kumar',
+          H3252: 'Priyanka Pankajkumar Gupta',
+          H3595: 'Bhawna',
+          H3603: 'Manasi',
+          H3728: 'Siddhant',
+          H3786: 'Oviya',
+          H701: 'Mallika M'
+        };
+        
+        // Determine trainer details - prefer name from sheet, fallback to ID with override
+        let trainerDetails = null;
+        if (trainerNameFromSheet) {
+          trainerDetails = { id: trainerIdFromSheet || trainerNameFromSheet, name: trainerNameFromSheet };
+        } else if (trainerIdFromSheet) {
+          const resolvedName = trainerNameOverrides[trainerIdFromSheet] || trainerIdFromSheet;
+          trainerDetails = { id: trainerIdFromSheet, name: resolvedName };
+        }
         
         if (hrDetails || trainerDetails) {
           setMetadata(prev => ({
@@ -390,7 +417,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
           if (hrDetails) setHrSearchTerm(hrDetails.name);
           if (trainerDetails) setTrainerSearchTerm(trainerDetails.name);
           
-          console.log('✅ Auto-filled from EMPID → HR:', hrDetails?.name, '| Trainer:', trainerDetails?.name);
+          console.log('✅ Auto-filled from EMPID → HR:', hrDetails?.name, '| Trainer:', trainerDetails?.name, '(ID:', trainerDetails?.id, ')');
         }
       }
     }
