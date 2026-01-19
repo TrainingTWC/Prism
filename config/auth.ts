@@ -40,12 +40,12 @@ export const AUTH_CONFIG: AuthConfig = {
   roles: {
     operations: {
       password: 'OpsAccess2024!',
-      permissions: ['operations', 'shlp', 'dashboard'],
-      dashboardAccess: ['operations-dashboard', 'operations-analytics', 'operations-reports', 'shlp-dashboard']
+      permissions: ['operations', 'shlp', 'bench-planning', 'bench-planning-sm-asm', 'dashboard'],
+      dashboardAccess: ['operations-dashboard', 'operations-analytics', 'operations-reports', 'shlp-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
     },
     hr: {
       password: 'HRConnect2024!',
-      permissions: ['hr', 'dashboard', 'employee-data'],
+      permissions: ['hr', 'bench-planning', 'bench-planning-sm-asm', 'dashboard', 'employee-data'],
       dashboardAccess: ['hr-dashboard', 'hr-analytics', 'employee-reports', 'training-audit', 'campus-hiring-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
     },
     qa: {
@@ -55,7 +55,7 @@ export const AUTH_CONFIG: AuthConfig = {
     },
     training: {
       password: 'TrainingHub2024!',
-      permissions: ['training', 'shlp', 'dashboard', 'learning-management'],
+      permissions: ['training', 'shlp', 'bench-planning', 'bench-planning-sm-asm', 'dashboard', 'learning-management'],
       dashboardAccess: ['training-dashboard', 'training-reports', 'learning-analytics', 'training-audit', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'shlp-dashboard']
     },
     forms: {
