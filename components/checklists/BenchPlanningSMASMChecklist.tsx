@@ -15,7 +15,7 @@ interface BenchPlanningChecklistProps {
 type TabType = 'readiness' | 'assessment' | 'interview';
 
 // Google Apps Script endpoint - UPDATE THIS with your deployed SM-ASM script URL
-const BENCH_PLANNING_SM_ASM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxIXN0cmVzRNY0sj6AVp60GnEQycuey4FIx9vWGrlTPFeUi14OXGoFLpmIKMhuM_t-CrA/exec';
+const BENCH_PLANNING_SM_ASM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyRq-5FtJvRkuHamVgCJs6HHBex6UTHQzz1xE5rrlYLaedJH7XKs230DQVrpaPri5caLg/exec';
 
 // Readiness checklist items for SM to ASM level
 const READINESS_ITEMS = [
@@ -303,6 +303,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
   const [assessmentQuestions, setAssessmentQuestions] = useState<any[]>([]);
   const [assessmentResults, setAssessmentResults] = useState<any>(null);
   const [assessmentStatus, setAssessmentStatus] = useState<any>(null);
+  const [isSubmittingAssessment, setIsSubmittingAssessment] = useState(false);
   
   // Interview State
   const [interviewScores, setInterviewScores] = useState<{ [key: number]: number }>({});
@@ -507,7 +508,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
   
   // Submit Assessment (placeholder - will be updated when questions are provided)
   const handleSubmitAssessment = async () => {
-    if (!candidateData) return;
+    if (!candidateData || isSubmittingAssessment) return;
     
     // Validate all questions are answered
     const allAnswered = assessmentQuestions.every(q => assessmentAnswers[q.id]);
@@ -517,6 +518,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
     }
     
     try {
+      setIsSubmittingAssessment(true);
       setLoading(true);
       hapticFeedback.select();
       
@@ -528,12 +530,18 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
         submissionTime: new Date().toISOString()
       };
       
+      console.log('Submitting SM-ASM assessment with params:', params);
+      console.log('Answers object:', assessmentAnswers);
+      console.log('Questions count:', assessmentQuestions.length);
+      
       const response = await fetch(BENCH_PLANNING_SM_ASM_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams(params).toString()
       });
+      
+      console.log('SM-ASM assessment submission sent successfully');
       
       // With no-cors, we can't read the response, so assume success
       setSubmitStatus('success');
@@ -552,6 +560,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
       hapticFeedback.error();
     } finally {
       setLoading(false);
+      setIsSubmittingAssessment(false);
     }
   };
   
@@ -876,15 +885,46 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
     }
     
     if (assessmentAttempted && isCandidate) {
+      const passed = assessmentStatus?.passed || assessmentPassed;
+      const score = assessmentStatus?.score;
+      
       return (
         <div className="flex flex-col items-center justify-center py-12">
-          <AlertCircle className="w-16 h-16 text-yellow-500 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
-            Assessment Already Attempted
-          </h3>
-          <p className="text-gray-600 dark:text-slate-400 text-center max-w-md">
-            You have already completed this assessment. Only one attempt is allowed.
-          </p>
+          {passed ? (
+            <>
+              <CheckCircle className="w-20 h-20 text-green-500 mb-4" />
+              <h3 className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
+                Assessment Passed! ✓
+              </h3>
+              <p className="text-gray-600 dark:text-slate-400 text-center max-w-md mb-4">
+                Congratulations! You have successfully completed the assessment.
+              </p>
+              {score !== undefined && (
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <p className="text-lg font-semibold text-green-700 dark:text-green-300">
+                    Your Score: {score}%
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <XCircle className="w-20 h-20 text-red-500 mb-4" />
+              <h3 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">
+                Assessment Not Passed
+              </h3>
+              <p className="text-gray-600 dark:text-slate-400 text-center max-w-md mb-4">
+                Unfortunately, you did not meet the passing threshold of 80%.
+              </p>
+              {score !== undefined && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <p className="text-lg font-semibold text-red-700 dark:text-red-300">
+                    Your Score: {score}%
+                  </p>
+                </div>
+              )}
+            </>
+          )}
         </div>
       );
     }
@@ -929,18 +969,18 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
                           assessmentAnswers[question.id] === optionKey
                             ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
                             : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
-                        } ${!isCandidate ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        } ${(!isCandidate || assessmentAttempted) ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <input
                           type="radio"
                           name={`question-${question.id}`}
                           value={optionKey}
                           checked={assessmentAnswers[question.id] === optionKey}
-                          onChange={(e) => isCandidate && setAssessmentAnswers(prev => ({
+                          onChange={(e) => isCandidate && !assessmentAttempted && setAssessmentAnswers(prev => ({
                             ...prev,
                             [question.id]: e.target.value
                           }))}
-                          disabled={!isCandidate}
+                          disabled={!isCandidate || assessmentAttempted}
                           className="mt-1 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                         />
                         <span className="flex-1 text-sm text-gray-700 dark:text-slate-300">
@@ -960,11 +1000,11 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
           
           <button
             onClick={handleSubmitAssessment}
-            disabled={loading || !isCandidate || assessmentQuestions.length === 0 || Object.keys(assessmentAnswers).length < assessmentQuestions.length}
+            disabled={loading || !isCandidate || assessmentAttempted || isSubmittingAssessment || assessmentQuestions.length === 0 || Object.keys(assessmentAnswers).length < assessmentQuestions.length}
             className="mt-6 w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
           >
             <Save className="w-5 h-5" />
-            Submit Assessment (One Attempt Only)
+            {assessmentAttempted ? 'Assessment Already Submitted' : 'Submit Assessment (One Attempt Only)'}
           </button>
         </div>
       </div>

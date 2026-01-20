@@ -15,7 +15,7 @@ interface BenchPlanningChecklistProps {
 type TabType = 'readiness' | 'assessment' | 'interview';
 
 // Google Apps Script endpoint - UPDATE THIS with your deployed script URL
-const BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwK1N2T8mp2_NqDKfm6hwNcK79CvVgrLeZmp76RR4CjsbpLS9H5VlKPlZUY0H2d_2Q61w/exec';
+const BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwd6tVOZrLU92ogmLbzQ7AHK2jr3L-HHGjPE10jUFqk8yjonyzJhlpmB8ycoWTSNkQhYw/exec';
 
 // Readiness checklist items from the image
 const READINESS_ITEMS = [
@@ -42,6 +42,175 @@ const INTERVIEW_SECTIONS = [
   'Problem Solving',
   'Team Management',
   'Adaptability'
+];
+
+// Assessment Questions (15 questions) - Shuffled to match backend
+const ASSESSMENT_QUESTIONS = [
+  {
+    id: 1,
+    question: "Which statement reflects true leadership in a café?",
+    options: {
+      A: "\"I support the team, step in, and debrief.\"",
+      B: "\"I take the toughest tasks.\"",
+      C: "\"I handle escalations only.\"",
+      D: "\"I stick to my scope.\""
+    },
+    correctAnswer: "A"
+  },
+  {
+    id: 2,
+    question: "The café sold 200 cups of coffee. Each cup costs ₹140, with a 25% profit margin. What was the profit?",
+    options: {
+      A: "₹6,800",
+      B: "₹7,000",
+      C: "₹7,200",
+      D: "₹6,500"
+    },
+    correctAnswer: "B"
+  },
+  {
+    id: 3,
+    question: "You spot a team member skipping an SOP step. How do you address it?",
+    options: {
+      A: "File written warning",
+      B: "Ignore it this time",
+      C: "Give 1:1 feedback and demonstrate",
+      D: "Call out loudly in front of guests"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 4,
+    question: "A long pickup queue is forming; service is slowing. Most effective move?",
+    options: {
+      A: "Ask guests to be patient",
+      B: "Stop dine-in orders",
+      C: "Add floater to pickup/expedite",
+      D: "Wait for queue to shrink"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 5,
+    question: "Team member X at POS for 4 hours without a break, and café is busy. Best action?",
+    options: {
+      A: "\"That's rush life\"",
+      B: "Tell X to slip out when they can",
+      C: "\"Hold till rush ends.\"",
+      D: "Arrange cover, give X a break, then rotate."
+    },
+    correctAnswer: "D"
+  },
+  {
+    id: 6,
+    question: "Total sales: ₹9,200. Cash counted: ₹9,000. What is the discrepancy and possible reason?",
+    options: {
+      A: "₹150 short; incorrect product pricing",
+      B: "₹200 excess; card payment logged as cash",
+      C: "₹200 short; wrong discount applied",
+      D: "₹200 short; unbilled order or theft"
+    },
+    correctAnswer: "D"
+  },
+  {
+    id: 7,
+    question: "Find the next number in the series: 7, 14, 28, 56, ___",
+    options: {
+      A: "84",
+      B: "112",
+      C: "98",
+      D: "70"
+    },
+    correctAnswer: "B"
+  },
+  {
+    id: 8,
+    question: "A café uses 7 L of milk per day. If a 12% increase in customers is expected next week, how much milk should be ordered for a 7-day week?",
+    options: {
+      A: "55L",
+      B: "57.5L",
+      C: "56L",
+      D: "54.9L"
+    },
+    correctAnswer: "D"
+  },
+  {
+    id: 9,
+    question: "With 5 team members and 3 peak hours, how would you deploy resources to avoid bottlenecks?",
+    options: {
+      A: "Use only 1 per peak hour",
+      B: "All 5 to one peak hour",
+      C: "2 in first peak, 1 each in remaining two",
+      D: "2 to first, 2 to second, 1 to third peak"
+    },
+    correctAnswer: "D"
+  },
+  {
+    id: 10,
+    question: "If 3% of the monthly coffee stock is wasted and the stock is worth ₹18,000, calculate the wastage cost.",
+    options: {
+      A: "₹450",
+      B: "₹720",
+      C: "₹600",
+      D: "₹540"
+    },
+    correctAnswer: "D"
+  },
+  {
+    id: 11,
+    question: "Customer waiting, order delayed, team busy. What should be your first response?",
+    options: {
+      A: "\"It'll be out soon.\"",
+      B: "\"Someone else handle this.\"",
+      C: "\"Please wait; we're busy.\"",
+      D: "\"I'm sorry... let me check the status.\""
+    },
+    correctAnswer: "D"
+  },
+  {
+    id: 12,
+    question: "What's the right priority order during operations?",
+    options: {
+      A: "Team → Cost → Customer",
+      B: "Customer → Cost → Team",
+      C: "Customer → Team → Cost",
+      D: "Cost → Team → Customer"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 13,
+    question: "A guest says their Americano tastes too bitter. What's the best course of action?",
+    options: {
+      A: "Apologize, remake, and check dial-in",
+      B: "Say it's standard",
+      C: "Blame grinder settings",
+      D: "Offer refund immediately"
+    },
+    correctAnswer: "A"
+  },
+  {
+    id: 14,
+    question: "A (POS), B (Espresso), C (Cold bar/clean-downs). Rush in 15 mins. Who takes a break now?",
+    options: {
+      A: "B",
+      B: "C",
+      C: "None of the above",
+      D: "A"
+    },
+    correctAnswer: "B"
+  },
+  {
+    id: 15,
+    question: "Oat milk stocks are low and may not last till the next delivery. What do you do?",
+    options: {
+      A: "Mix with dairy",
+      B: "Use less milk to stretch stock",
+      C: "Hope it lasts",
+      D: "Inform manager, 86/limit SKU, suggest alternatives"
+    },
+    correctAnswer: "D"
+  }
 ];
 
 const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({ 
@@ -76,9 +245,10 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
   const [assessmentLocked, setAssessmentLocked] = useState(true);
   const [assessmentAttempted, setAssessmentAttempted] = useState(false);
   const [assessmentPassed, setAssessmentPassed] = useState(false);
-  const [assessmentQuestions, setAssessmentQuestions] = useState<any[]>([]);
+  const [assessmentQuestions, setAssessmentQuestions] = useState<any[]>(ASSESSMENT_QUESTIONS);
   const [assessmentResults, setAssessmentResults] = useState<any>(null);
   const [assessmentStatus, setAssessmentStatus] = useState<any>(null);
+  const [isSubmittingAssessment, setIsSubmittingAssessment] = useState(false);
   
   // Interview State
   const [interviewScores, setInterviewScores] = useState<{ [key: number]: number }>({});
@@ -196,26 +366,6 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
     }
   }, [loading, loadingCandidates, candidateData, managerCandidates, userId]);
   
-  // Fetch assessment questions when assessment is unlocked
-  useEffect(() => {
-    const fetchAssessmentQuestions = async () => {
-      try {
-        const response = await fetch(`${BENCH_PLANNING_ENDPOINT}?action=getAssessmentQuestions&_t=${new Date().getTime()}`);
-        const data = await response.json();
-        
-        if (data.success && data.questions) {
-          setAssessmentQuestions(data.questions);
-        }
-      } catch (error) {
-        console.error('Error fetching assessment questions:', error);
-      }
-    };
-    
-    if (!assessmentLocked && assessmentQuestions.length === 0) {
-      fetchAssessmentQuestions();
-    }
-  }, [assessmentLocked]);
-  
   // Set user type to manager/admin if manager candidates are loaded but user is not a candidate
   useEffect(() => {
     if (managerCandidates.length > 0 && !candidateData) {
@@ -296,7 +446,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
   
   // Submit Assessment (placeholder - will be updated when questions are provided)
   const handleSubmitAssessment = async () => {
-    if (!candidateData) return;
+    if (!candidateData || isSubmittingAssessment) return;
     
     // Validate all questions are answered
     const allAnswered = assessmentQuestions.every(q => assessmentAnswers[q.id]);
@@ -306,6 +456,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
     }
     
     try {
+      setIsSubmittingAssessment(true);
       setLoading(true);
       hapticFeedback.select();
       
@@ -317,12 +468,18 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
         submissionTime: new Date().toISOString()
       };
       
+      console.log('Submitting assessment with params:', params);
+      console.log('Answers object:', assessmentAnswers);
+      console.log('Questions count:', assessmentQuestions.length);
+      
       const response = await fetch(BENCH_PLANNING_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams(params).toString()
       });
+      
+      console.log('Assessment submission sent successfully');
       
       // With no-cors, we can't read the response, so assume success
       setSubmitStatus('success');
@@ -341,6 +498,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
       hapticFeedback.error();
     } finally {
       setLoading(false);
+      setIsSubmittingAssessment(false);
     }
   };
   
@@ -665,15 +823,46 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
     }
     
     if (assessmentAttempted && isCandidate) {
+      const passed = assessmentStatus?.passed || assessmentPassed;
+      const score = assessmentStatus?.score;
+      
       return (
         <div className="flex flex-col items-center justify-center py-12">
-          <AlertCircle className="w-16 h-16 text-yellow-500 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
-            Assessment Already Attempted
-          </h3>
-          <p className="text-gray-600 dark:text-slate-400 text-center max-w-md">
-            You have already completed this assessment. Only one attempt is allowed.
-          </p>
+          {passed ? (
+            <>
+              <CheckCircle className="w-20 h-20 text-green-500 mb-4" />
+              <h3 className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
+                Assessment Passed! ✓
+              </h3>
+              <p className="text-gray-600 dark:text-slate-400 text-center max-w-md mb-4">
+                Congratulations! You have successfully completed the assessment.
+              </p>
+              {score !== undefined && (
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <p className="text-lg font-semibold text-green-700 dark:text-green-300">
+                    Your Score: {score}%
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <XCircle className="w-20 h-20 text-red-500 mb-4" />
+              <h3 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">
+                Assessment Not Passed
+              </h3>
+              <p className="text-gray-600 dark:text-slate-400 text-center max-w-md mb-4">
+                Unfortunately, you did not meet the passing threshold of 80%.
+              </p>
+              {score !== undefined && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <p className="text-lg font-semibold text-red-700 dark:text-red-300">
+                    Your Score: {score}%
+                  </p>
+                </div>
+              )}
+            </>
+          )}
         </div>
       );
     }
@@ -718,18 +907,18 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
                           assessmentAnswers[question.id] === optionKey
                             ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
                             : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
-                        } ${!isCandidate ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        } ${(!isCandidate || assessmentAttempted) ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <input
                           type="radio"
                           name={`question-${question.id}`}
                           value={optionKey}
                           checked={assessmentAnswers[question.id] === optionKey}
-                          onChange={(e) => isCandidate && setAssessmentAnswers(prev => ({
+                          onChange={(e) => isCandidate && !assessmentAttempted && setAssessmentAnswers(prev => ({
                             ...prev,
                             [question.id]: e.target.value
                           }))}
-                          disabled={!isCandidate}
+                          disabled={!isCandidate || assessmentAttempted}
                           className="mt-1 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                         />
                         <span className="flex-1 text-sm text-gray-700 dark:text-slate-300">
@@ -749,11 +938,11 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
           
           <button
             onClick={handleSubmitAssessment}
-            disabled={loading || !isCandidate || assessmentQuestions.length === 0 || Object.keys(assessmentAnswers).length < assessmentQuestions.length}
+            disabled={loading || !isCandidate || assessmentAttempted || isSubmittingAssessment || assessmentQuestions.length === 0 || Object.keys(assessmentAnswers).length < assessmentQuestions.length}
             className="mt-6 w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
           >
             <Save className="w-5 h-5" />
-            Submit Assessment (One Attempt Only)
+            {assessmentAttempted ? 'Assessment Already Submitted' : 'Submit Assessment (One Attempt Only)'}
           </button>
         </div>
       </div>

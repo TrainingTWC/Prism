@@ -304,12 +304,25 @@ function doPost(e) {
       } catch {
         // If not JSON, it's URL-encoded form data
         data = e.parameter;
-        // Parse JSON strings in the data
-        if (data.scores) data.scores = JSON.parse(data.scores);
-        if (data.answers) data.answers = JSON.parse(data.answers);
       }
     } else {
-      data = e.parameter;
+      data = e.parameter || {};
+    }
+    
+    // Parse JSON strings in the data (for URL-encoded submissions)
+    if (data.scores && typeof data.scores === 'string') {
+      try {
+        data.scores = JSON.parse(data.scores);
+      } catch (e) {
+        // Keep as string if parsing fails
+      }
+    }
+    if (data.answers && typeof data.answers === 'string') {
+      try {
+        data.answers = JSON.parse(data.answers);
+      } catch (e) {
+        // Keep as string if parsing fails
+      }
     }
     
     const action = data.action;
@@ -447,8 +460,10 @@ function getCandidateData(employeeId) {
         assessmentStatus = {
           unlocked: true,
           attempted: true,
-          passed: assessmentRow[4] || false, // Assuming 'passed' is in column 5
-          score: assessmentRow[5] || 0
+          passed: assessmentRow[4] || false,
+          score: assessmentRow[7] || 0,  // Column 7 is Percentage
+          totalScore: assessmentRow[5] || 0,
+          maxScore: assessmentRow[6] || 0
         };
       }
     }
@@ -493,7 +508,13 @@ function submitReadinessChecklist(data) {
     // Create sheet if it doesn't exist
     if (!sheet) {
       sheet = ss.insertSheet(SHEETS.READINESS);
-      
+    }
+    
+    // Check if headers exist (check if first row is empty or doesn't have expected headers)
+    const firstRow = sheet.getRange(1, 1, 1, 20).getValues()[0];
+    const hasHeaders = firstRow[0] && firstRow[0].toString().includes('Timestamp');
+    
+    if (!hasHeaders) {
       // Create headers
       const headers = [
         'Timestamp',
@@ -514,7 +535,7 @@ function submitReadinessChecklist(data) {
         headers.push(`Item ${i + 1} Score`);
       }
       
-      sheet.appendRow(headers);
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
       
       // Format header
       const headerRange = sheet.getRange(1, 1, 1, headers.length);
@@ -578,7 +599,13 @@ function submitSelfAssessment(data) {
     // Create sheet if it doesn't exist
     if (!sheet) {
       sheet = ss.insertSheet(SHEETS.ASSESSMENT);
-      
+    }
+    
+    // Check if headers exist
+    const firstRow = sheet.getRange(1, 1, 1, 20).getValues()[0];
+    const hasHeaders = firstRow[0] && firstRow[0].toString().includes('Timestamp');
+    
+    if (!hasHeaders) {
       const headers = [
         'Timestamp',
         'Employee ID',
@@ -597,7 +624,7 @@ function submitSelfAssessment(data) {
         headers.push(`Q${i + 1} Correct`);
       }
       
-      sheet.appendRow(headers);
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
       
       // Format header
       const headerRange = sheet.getRange(1, 1, 1, headers.length);
@@ -616,7 +643,7 @@ function submitSelfAssessment(data) {
 
     // Calculate score by comparing answers with correct answers
     let correctCount = 0;
-    const answers = JSON.parse(data.answers || '{}');
+    const answers = typeof data.answers === 'string' ? JSON.parse(data.answers) : (data.answers || {});
     
     for (let i = 0; i < ASSESSMENT_QUESTIONS.length; i++) {
       const questionId = ASSESSMENT_QUESTIONS[i].id;
@@ -682,7 +709,13 @@ function submitInterview(data) {
     // Create sheet if it doesn't exist
     if (!sheet) {
       sheet = ss.insertSheet(SHEETS.INTERVIEW);
-      
+    }
+    
+    // Check if headers exist
+    const firstRow = sheet.getRange(1, 1, 1, 20).getValues()[0];
+    const hasHeaders = firstRow[0] && firstRow[0].toString().includes('Timestamp');
+    
+    if (!hasHeaders) {
       const headers = [
         'Timestamp',
         'Employee ID',
@@ -701,7 +734,7 @@ function submitInterview(data) {
         headers.push(`${INTERVIEW_SECTIONS[i]} Score`);
       }
       
-      sheet.appendRow(headers);
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
       
       // Format header
       const headerRange = sheet.getRange(1, 1, 1, headers.length);
