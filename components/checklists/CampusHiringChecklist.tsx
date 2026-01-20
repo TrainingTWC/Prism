@@ -180,6 +180,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     'Institute of Hotel Management, Dehradun',
     'IHM Panipat',
     'IHM yamuna nagar',
+    'IHM Bhatinda',
     'IHM Kurukshetra'
   ];
   
