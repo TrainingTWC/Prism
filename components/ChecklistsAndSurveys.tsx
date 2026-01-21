@@ -60,17 +60,11 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
   useEffect(() => {
     if (authUserRole === 'bench-planning' && !activeChecklist) {
       setActiveChecklist('bench-planning');
-      setBenchPlanningSubSection('barista-sm');
+      // Don't auto-set subsection - let user choose between barista-sm and sm-asm
     }
   }, [authUserRole]);
 
-  // Auto-open SM-ASM bench planning for bench-planning-sm-asm role users
-  useEffect(() => {
-    if (authUserRole === 'bench-planning-sm-asm' && !activeChecklist) {
-      setActiveChecklist('bench-planning');
-      setBenchPlanningSubSection('sm-asm');
-    }
-  }, [authUserRole]);
+  // Remove the bench-planning-sm-asm auto-open effect since we no longer have that separate role
 
   // Filter checklists based on user permissions
   const getAvailableChecklists = () => {

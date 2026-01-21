@@ -75,12 +75,7 @@ export const AUTH_CONFIG: AuthConfig = {
     },
     'bench-planning': {
       password: 'BenchPlan2025!',
-      permissions: ['bench-planning'],
-      dashboardAccess: [] // No dashboard access - checklist only, role-based access within module
-    },
-    'bench-planning-sm-asm': {
-      password: 'BenchPlanSMASM2025!',
-      permissions: ['bench-planning-sm-asm'],
+      permissions: ['bench-planning', 'bench-planning-sm-asm'],
       dashboardAccess: [] // No dashboard access - checklist only, role-based access within module
     },
     shlp: {
