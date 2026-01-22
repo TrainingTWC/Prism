@@ -2001,7 +2001,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             {/* Breadcrumbs */}
             <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-slate-400 mb-3">
               <button
-                onClick={() => window.location.href = '/'}
+                onClick={() => window.location.href = '/Prism/'}
                 className="flex items-center gap-1 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
               >
                 <Home className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -2038,7 +2038,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                   Start New Checklist
                 </button>
                 <button
-                  onClick={() => window.location.href = '/'}
+                  onClick={() => window.location.href = '/Prism/?tab=dashboard'}
                   className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
                 >
                   <Home className="w-5 h-5" />
