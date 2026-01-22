@@ -6,6 +6,7 @@ import { useConfig } from '../../contexts/ConfigContext';
 import { useComprehensiveMapping } from '../../hooks/useComprehensiveMapping';
 import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 import TrainingCalendar from './TrainingCalendar';
+import ImageEditor from '../ImageEditor';
 
 interface Store {
   name: string;
@@ -870,11 +871,22 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     }
   });
 
+  const [sectionImages, setSectionImages] = useState<Record<string, string[]>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('training_section_images') || '{}');
+    } catch (e) {
+      return {};
+    }
+  });
+
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [tsaExpanded, setTsaExpanded] = useState(false);
   const [tsaCoffeeExpanded, setTsaCoffeeExpanded] = useState(false);
   const [tsaCXExpanded, setTsaCXExpanded] = useState(false);
+
+  // Image editing state
+  const [editingImage, setEditingImage] = useState<{sectionId: string; imageIndex: number; imageData: string} | null>(null);
 
   // --- Speech recognition state ---
   const [isSpeechSupported] = useState<boolean>(() => !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition));
@@ -1430,6 +1442,10 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     localStorage.setItem('training_remarks', JSON.stringify(remarks));
   }, [remarks]);
 
+  useEffect(() => {
+    localStorage.setItem('training_section_images', JSON.stringify(sectionImages));
+  }, [sectionImages]);
+
   const handleResponse = (questionId: string, value: string) => {
     setResponses(prev => ({
       ...prev,
@@ -1450,6 +1466,53 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       ...prev,
       [sectionId]: value
     }));
+  };
+
+  const handleImageUpload = (sectionId: string, file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setSectionImages(prev => ({
+        ...prev,
+        [sectionId]: [...(prev[sectionId] || []), result]
+      }));
+      hapticFeedback.select();
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = (sectionId: string, imageIndex: number) => {
+    setSectionImages(prev => ({
+      ...prev,
+      [sectionId]: (prev[sectionId] || []).filter((_, index) => index !== imageIndex)
+    }));
+    hapticFeedback.select();
+  };
+
+  const handleEditImage = (sectionId: string, imageIndex: number) => {
+    const imageData = sectionImages[sectionId]?.[imageIndex];
+    if (imageData) {
+      setEditingImage({ sectionId, imageIndex, imageData });
+    }
+  };
+
+  const handleSaveEditedImage = (editedImageData: string) => {
+    if (editingImage) {
+      setSectionImages(prev => {
+        const updatedImages = [...(prev[editingImage.sectionId] || [])];
+        updatedImages[editingImage.imageIndex] = editedImageData;
+        return {
+          ...prev,
+          [editingImage.sectionId]: updatedImages
+        };
+      });
+      setEditingImage(null);
+      hapticFeedback.success();
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingImage(null);
   };
 
   const handleMetaChange = (field: keyof TrainingMeta, value: string) => {
@@ -1642,7 +1705,10 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         }
       });
 
-      const response = await fetch('https://script.google.com/macros/s/AKfycbzSibBicC4B5_naPxgrbNP4xSK49de2R02rI9wnAKG3QOJvuwYrUOYLiBg_9XNqAhS5ig/exec', {
+      // Add section images as JSON
+      formData.append('sectionImages', JSON.stringify(sectionImages));
+
+      const response = await fetch('https://script.google.com/macros/s/AKfycbzdM913aTvGv8FyU0c7U2ljVeLY-_2FiAl73WMz_kvGEzclROeUJXGeRTfD1YrLWXXM9g/exec', {
         method: 'POST',
         body: formData
       });
@@ -1655,6 +1721,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         localStorage.removeItem('training_resp');
         localStorage.removeItem('training_meta');  
         localStorage.removeItem('training_remarks');
+        localStorage.removeItem('training_section_images');
       } else {
         throw new Error('Submission failed');
       }
@@ -1671,8 +1738,10 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     localStorage.removeItem('training_resp');
     localStorage.removeItem('training_meta');
     localStorage.removeItem('training_remarks');
+    localStorage.removeItem('training_section_images');
     setResponses({});
     setRemarks({});
+    setSectionImages({});
     setMeta({
       amName: '',
       amId: '',
@@ -1693,6 +1762,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     setSubmitted(false);
     setResponses({});
     setRemarks({});
+    setSectionImages({});
     setMeta({
       amName: '',
       amId: '',
@@ -1709,6 +1779,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     localStorage.removeItem('training_resp');
     localStorage.removeItem('training_meta');
     localStorage.removeItem('training_remarks');
+    localStorage.removeItem('training_section_images');
     hapticFeedback.tap();
   };
 
@@ -2322,6 +2393,84 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                       className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-orange-500 dark:focus:border-orange-400 focus:outline-none"
                     />
                   </div>
+
+                  {/* Image Upload Section */}
+                  <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-3">
+                      Upload Images
+                    </h3>
+                    
+                    <div className="mb-4 flex flex-col sm:flex-row gap-3">
+                      <input
+                        id={`camera-${section.id}`}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleImageUpload(section.id, file);
+                            e.target.value = '';
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor={`camera-${section.id}`}
+                        className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Take Photo
+                      </label>
+                      <input
+                        id={`upload-${section.id}`}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleImageUpload(section.id, file);
+                            e.target.value = '';
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor={`upload-${section.id}`}
+                        className="flex-1 px-4 py-2 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-300 dark:border-orange-700 rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Upload Image
+                      </label>
+                    </div>
+
+                    {/* Display uploaded images */}
+                    {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {sectionImages[section.id].map((image, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={image}
+                              alt={`${section.title} - Image ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg shadow-sm cursor-pointer"
+                              onClick={() => handleEditImage(section.id, index)}
+                            />
+                            <button
+                              onClick={() => removeImage(section.id, index)}
+                              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             }
@@ -2512,6 +2661,84 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                       rows={2}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:outline-none"
                     />
+                  </div>
+
+                  {/* Image Upload Section */}
+                  <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-3">
+                      Upload Images
+                    </h3>
+                    
+                    <div className="mb-4 flex flex-col sm:flex-row gap-3">
+                      <input
+                        id={`camera-${section.id}`}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleImageUpload(section.id, file);
+                            e.target.value = '';
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor={`camera-${section.id}`}
+                        className="flex-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Take Photo
+                      </label>
+                      <input
+                        id={`upload-${section.id}`}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleImageUpload(section.id, file);
+                            e.target.value = '';
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor={`upload-${section.id}`}
+                        className="flex-1 px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Upload Image
+                      </label>
+                    </div>
+
+                    {/* Display uploaded images */}
+                    {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {sectionImages[section.id].map((image, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={image}
+                              alt={`${section.title} - Image ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg shadow-sm cursor-pointer"
+                              onClick={() => handleEditImage(section.id, index)}
+                            />
+                            <button
+                              onClick={() => removeImage(section.id, index)}
+                              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -2704,6 +2931,84 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                       className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none"
                     />
                   </div>
+
+                  {/* Image Upload Section */}
+                  <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-3">
+                      Upload Images
+                    </h3>
+                    
+                    <div className="mb-4 flex flex-col sm:flex-row gap-3">
+                      <input
+                        id={`camera-${section.id}`}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleImageUpload(section.id, file);
+                            e.target.value = '';
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor={`camera-${section.id}`}
+                        className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Take Photo
+                      </label>
+                      <input
+                        id={`upload-${section.id}`}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleImageUpload(section.id, file);
+                            e.target.value = '';
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor={`upload-${section.id}`}
+                        className="flex-1 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Upload Image
+                      </label>
+                    </div>
+
+                    {/* Display uploaded images */}
+                    {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {sectionImages[section.id].map((image, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={image}
+                              alt={`${section.title} - Image ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg shadow-sm cursor-pointer"
+                              onClick={() => handleEditImage(section.id, index)}
+                            />
+                            <button
+                              onClick={() => removeImage(section.id, index)}
+                              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             }
@@ -2760,6 +3065,84 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                     className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
                   />
                 </div>
+
+                {/* Image Upload Section */}
+                <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-3">
+                    Upload Images
+                  </h3>
+                  
+                  <div className="mb-4 flex flex-col sm:flex-row gap-3">
+                    <input
+                      id={`camera-${section.id}`}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleImageUpload(section.id, file);
+                          e.target.value = '';
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor={`camera-${section.id}`}
+                      className="flex-1 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Take Photo
+                    </label>
+                    <input
+                      id={`upload-${section.id}`}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleImageUpload(section.id, file);
+                          e.target.value = '';
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor={`upload-${section.id}`}
+                      className="flex-1 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Upload Image
+                    </label>
+                  </div>
+
+                  {/* Display uploaded images */}
+                  {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {sectionImages[section.id].map((image, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={image}
+                            alt={`${section.title} - Image ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg shadow-sm cursor-pointer"
+                            onClick={() => handleEditImage(section.id, index)}
+                          />
+                          <button
+                            onClick={() => removeImage(section.id, index)}
+                            className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -2786,6 +3169,19 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
           </button>
         </div>
       </div>
+
+      {/* Image Editor Modal */}
+      {editingImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
+            <ImageEditor
+              imageBase64={editingImage.imageData}
+              onSave={handleSaveEditedImage}
+              onCancel={handleCancelEdit}
+            />
+          </div>
+        </div>
+      )}
         </div>
       )}
     </>

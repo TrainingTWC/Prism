@@ -368,7 +368,7 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
   y += cardHeight + 12;
 
   // Build sections from TRAINING_QUESTIONS to preserve order, titles and weightage
-  const sections: Record<string, { rows: any[]; score: number; maxScore: number; remarks?: string }> = {};
+  const sections: Record<string, { rows: any[]; score: number; maxScore: number; remarks?: string; images?: string[] }> = {};
 
   // Map short section keys to readable titles
   const SECTION_TITLES: Record<string, string> = {
@@ -493,6 +493,24 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
   if (sub.tsaCoffeeScoreRemarks || sub.tsaCoffeeRemarks) sections['TSA_Coffee_Score'].remarks = sub.tsaCoffeeScoreRemarks || sub.tsaCoffeeRemarks;
   if (sub.tsaCXScoreRemarks || sub.tsaCXRemarks) sections['TSA_CX_Score'].remarks = sub.tsaCXScoreRemarks || sub.tsaCXRemarks;
 
+  // Parse section images from the submission
+  if (sub.sectionImages) {
+    try {
+      const parsedImages = typeof sub.sectionImages === 'string' 
+        ? JSON.parse(sub.sectionImages) 
+        : sub.sectionImages;
+      
+      // Add images to corresponding sections
+      Object.keys(parsedImages).forEach(sectionId => {
+        if (sections[sectionId] && parsedImages[sectionId] && Array.isArray(parsedImages[sectionId])) {
+          sections[sectionId].images = parsedImages[sectionId];
+        }
+      });
+    } catch (error) {
+      console.error('Error parsing section images:', error);
+    }
+  }
+
   // Render each section
   Object.keys(sections).forEach(secKey => {
     const sec = sections[secKey];
@@ -575,6 +593,45 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
       doc.setTextColor(51, 65, 85);
       doc.text(remarksLines, 18, y + 14);
       y += remarksHeight + 8;
+    }
+
+    // Display section images if they exist
+    if (sec.images && sec.images.length > 0) {
+      const pageBottomLimit = 285;
+      const imageWidth = 50; // mm
+      const imageHeight = 50; // mm
+      const imagesPerRow = 3;
+      const imageSpacing = 8; // mm between images
+      
+      for (let i = 0; i < sec.images.length; i++) {
+        const col = i % imagesPerRow;
+        const row = Math.floor(i / imagesPerRow);
+        
+        // Check if we need a new page
+        const neededHeight = imageHeight + 10;
+        if (y + neededHeight > pageBottomLimit) {
+          doc.addPage();
+          y = 20;
+        }
+        
+        // Calculate position (start new row after every 3 images)
+        if (col === 0 && row > 0) {
+          y += imageHeight + imageSpacing;
+        }
+        
+        const xPos = 14 + (col * (imageWidth + imageSpacing));
+        
+        try {
+          // Add image to PDF
+          doc.addImage(sec.images[i], 'JPEG', xPos, y, imageWidth, imageHeight);
+        } catch (error) {
+          console.error('Error adding image to PDF:', error);
+        }
+      }
+      
+      // Move y position down after last row of images
+      const totalRows = Math.ceil(sec.images.length / imagesPerRow);
+      y += imageHeight + imageSpacing;
     }
   });
 
