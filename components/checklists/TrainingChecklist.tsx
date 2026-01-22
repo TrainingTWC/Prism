@@ -1443,7 +1443,14 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   }, [remarks]);
 
   useEffect(() => {
-    localStorage.setItem('training_section_images', JSON.stringify(sectionImages));
+    try {
+      localStorage.setItem('training_section_images', JSON.stringify(sectionImages));
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+        console.warn('localStorage quota exceeded for images. Images will be kept in memory only.');
+        // Images will still be in state and will be submitted, just not persisted to localStorage
+      }
+    }
   }, [sectionImages]);
 
   const handleResponse = (questionId: string, value: string) => {
@@ -1472,11 +1479,45 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
-      setSectionImages(prev => ({
-        ...prev,
-        [sectionId]: [...(prev[sectionId] || []), result]
-      }));
-      hapticFeedback.select();
+      
+      // Compress image before storing
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Limit max dimensions to reduce size
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Compress to JPEG with 0.7 quality
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        
+        setSectionImages(prev => ({
+          ...prev,
+          [sectionId]: [...(prev[sectionId] || []), compressedDataUrl]
+        }));
+        hapticFeedback.select();
+      };
+      img.src = result;
     };
     reader.readAsDataURL(file);
   };
@@ -1498,16 +1539,49 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
   const handleSaveEditedImage = (editedImageData: string) => {
     if (editingImage) {
-      setSectionImages(prev => {
-        const updatedImages = [...(prev[editingImage.sectionId] || [])];
-        updatedImages[editingImage.imageIndex] = editedImageData;
-        return {
-          ...prev,
-          [editingImage.sectionId]: updatedImages
-        };
-      });
-      setEditingImage(null);
-      hapticFeedback.success();
+      // Compress the edited image before saving
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Limit max dimensions to reduce size
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Compress to JPEG with 0.7 quality
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        
+        setSectionImages(prev => {
+          const updatedImages = [...(prev[editingImage.sectionId] || [])];
+          updatedImages[editingImage.imageIndex] = compressedDataUrl;
+          return {
+            ...prev,
+            [editingImage.sectionId]: updatedImages
+          };
+        });
+        setEditingImage(null);
+        hapticFeedback.success();
+      };
+      img.src = editedImageData;
     }
   };
 
