@@ -1747,9 +1747,9 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         percentage: percentage.toString(),
         type: 'Training',
         // TSA individual scores (0/5/10 based on percentage)
-        tsaFoodScore: calculateTSAFoodScore().toString(),
-        tsaCoffeeScore: calculateTSACoffeeScore().toString(),
-        tsaCXScore: calculateTSACXScore().toString()
+        TSA_Food_Score: calculateTSAFoodScore().toString(),
+        TSA_Coffee_Score: calculateTSACoffeeScore().toString(),
+        TSA_CX_Score: calculateTSACXScore().toString()
       });
 
       // Add individual responses
@@ -1782,7 +1782,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       // Add section images as JSON
       formData.append('sectionImages', JSON.stringify(sectionImages));
 
-      const response = await fetch('https://script.google.com/macros/s/AKfycbzdM913aTvGv8FyU0c7U2ljVeLY-_2FiAl73WMz_kvGEzclROeUJXGeRTfD1YrLWXXM9g/exec', {
+      const response = await fetch('https://script.google.com/macros/s/AKfycby3Wpq7A6rd9Pi7iN31RhLwVsivHO6ZlM8xtrXREzXe6RjDAM9ssfXm5U1tcHaemuu-Fw/exec', {
         method: 'POST',
         body: formData
       });

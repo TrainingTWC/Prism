@@ -87,10 +87,10 @@ function doPost(e) {
     // Auto-populate from store mapping - these override form values
     params.region = storeInfo.region || params.region || '';
     params.storeName = storeInfo.storeName || params.storeName || '';
-    params.trainerName = storeInfo.trainerName || storeInfo.trainer || '';
-    params.trainerId = storeInfo.trainerId || '';
-    params.amName = storeInfo.amName || '';
-    params.amId = storeInfo.amId || '';
+    params.trainerName = storeInfo.trainerName || storeInfo.trainer || params.trainerName || '';
+    params.trainerId = storeInfo.trainerId || params.trainerId || '';
+    params.amName = storeInfo.amName || params.amName || '';
+    params.amId = storeInfo.amId || params.amId || '';
     params.hrbpId = storeInfo.hrbpId || params.hrbpId || '';
     params.regionalHrId = storeInfo.regionalHrId || params.regionalHrId || '';
     params.hrHeadId = storeInfo.hrHeadId || params.hrHeadId || '';
