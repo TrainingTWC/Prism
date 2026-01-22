@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { GraduationCap, Calendar as CalendarIcon, ClipboardCheck } from 'lucide-react';
+import { GraduationCap, Calendar as CalendarIcon, ClipboardCheck, Home } from 'lucide-react';
 import { AREA_MANAGERS as DEFAULT_AREA_MANAGERS } from '../../constants';
 import { hapticFeedback } from '../../utils/haptics';
 import { useConfig } from '../../contexts/ConfigContext';
@@ -1995,22 +1995,56 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         )}
       {/* Show submission success screen */}
       {submitted ? (
-        <div className="p-6 space-y-6 max-w-4xl mx-auto">
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-8 text-center border border-green-200 dark:border-green-800">
-            <div className="text-6xl mb-4">✅</div>
-            <h2 className="text-2xl font-bold text-green-800 dark:text-green-300 mb-4">
-              Training Checklist Submitted Successfully!
-            </h2>
-            <p className="text-green-600 dark:text-green-400 mb-6">
-              Your checklist has been recorded and will be processed for dashboard insights.
-            </p>
-            <div className="flex justify-center gap-4">
+        <div className="w-full min-h-screen">
+          {/* Header Banner with Breadcrumbs - Full Width */}
+          <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 p-3 sm:p-4 border-b border-purple-200 dark:border-purple-800">
+            {/* Breadcrumbs */}
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-slate-400 mb-3">
               <button
-                onClick={startNewChecklist}
-                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                onClick={() => window.location.href = '/'}
+                className="flex items-center gap-1 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
               >
-                Start New Checklist
+                <Home className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span>Home</span>
               </button>
+              <span className="text-gray-400">/</span>
+              <span className="text-gray-900 dark:text-slate-200 font-medium">Training Management</span>
+            </div>
+            
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-slate-100 mb-1 flex items-center gap-2">
+              <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+              <span className="break-words">Training Management</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400 leading-relaxed">
+              Comprehensive training assessment for trainers.
+            </p>
+          </div>
+
+          {/* Success Message */}
+          <div className="p-6 space-y-6 max-w-4xl mx-auto">
+            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-8 text-center border border-green-200 dark:border-green-800">
+              <div className="text-6xl mb-4">✅</div>
+              <h2 className="text-2xl font-bold text-green-800 dark:text-green-300 mb-4">
+                Training Checklist Submitted Successfully!
+              </h2>
+              <p className="text-green-600 dark:text-green-400 mb-6">
+                Your checklist has been recorded and will be processed for dashboard insights.
+              </p>
+              <div className="flex justify-center gap-4 flex-wrap">
+                <button
+                  onClick={startNewChecklist}
+                  className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Start New Checklist
+                </button>
+                <button
+                  onClick={() => window.location.href = '/'}
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  <Home className="w-5 h-5" />
+                  Go to Dashboard
+                </button>
+              </div>
             </div>
           </div>
         </div>
