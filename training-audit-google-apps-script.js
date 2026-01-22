@@ -135,7 +135,7 @@ function doPost(e) {
       // Partner Knowledge (PK_1 to PK_7)
       'PK_1', 'PK_2', 'PK_3', 'PK_4', 'PK_5', 'PK_6', 'PK_7',
       
-      // TSA (TSA_1 to TSA_3)
+      // TSA Scores (TSA_1=Food, TSA_2=Coffee, TSA_3=CX) - captures 0/5/10
       'TSA_1', 'TSA_2', 'TSA_3',
       
       // Customer Experience (CX_1 to CX_9)
@@ -151,8 +151,8 @@ function doPost(e) {
       // Scoring
       'Total Score', 'Max Score', 'Percentage',
       
-      // TSA Scores at the end (matching existing sheet structure)
-      'Food TSA', 'Coffee TSA', 'CX TSA',
+      // TSA Remarks (after percentage score)
+      'TSA_Food_remarks', 'TSA_Coffee_remarks', 'TSA_CX_remarks',
       
       // NEW COLUMNS ADDED AFTER EXISTING DATA
       'Auditor Name', 'Auditor ID', 'Section Images'
@@ -205,8 +205,8 @@ function doPost(e) {
       params.PK_1 || '', params.PK_2 || '', params.PK_3 || '',
       params.PK_4 || '', params.PK_5 || '', params.PK_6 || '', params.PK_7 || '',
       
-      // TSA (TSA_1 to TSA_3)
-      params.TSA_1 || '', params.TSA_2 || '', params.TSA_3 || '',
+      // TSA Scores (TSA_1=Food, TSA_2=Coffee, TSA_3=CX) - captures 0/5/10
+      params.TSA_Food_Score || '', params.TSA_Coffee_Score || '', params.TSA_CX_Score || '',
       
       // Customer Experience (CX_1 to CX_9)
       params.CX_1 || '', params.CX_2 || '', params.CX_3 || '',
@@ -224,8 +224,8 @@ function doPost(e) {
       // Scoring
       params.totalScore || '', params.maxScore || '', params.percentage || '',
       
-      // TSA Scores at the end (matching existing sheet structure)
-      params.TSA_Food_Score || '', params.TSA_Coffee_Score || '', params.TSA_CX_Score || '',
+      // TSA Remarks (after percentage score)
+      params.TSA_Food_remarks || '', params.TSA_Coffee_remarks || '', params.TSA_CX_remarks || '',
       
       // NEW COLUMNS ADDED AFTER EXISTING DATA
       params.auditorName || '', params.auditorId || '',
@@ -355,10 +355,10 @@ function getTrainingChecklistData() {
         obj['PK_' + i] = row[colIndex++] || '';
       }
       
-      // TSA (TSA_1 to TSA_3)
-      for (var i = 1; i <= 3; i++) {
-        obj['TSA_' + i] = row[colIndex++] || '';
-      }
+      // TSA Scores (TSA_1=Food, TSA_2=Coffee, TSA_3=CX)
+      obj.tsaFoodScore = row[colIndex++] || '';
+      obj.tsaCoffeeScore = row[colIndex++] || '';
+      obj.tsaCXScore = row[colIndex++] || '';
       
       // Customer Experience (CX_1 to CX_9)
       for (var i = 1; i <= 9; i++) {
@@ -384,10 +384,10 @@ function getTrainingChecklistData() {
       obj.maxScore = row[colIndex++] || '';
       obj.percentageScore = row[colIndex++] || '';
       
-      // TSA Scores at the end (matching existing sheet structure)
-      obj.tsaFoodScore = row[colIndex++] || '';
-      obj.tsaCoffeeScore = row[colIndex++] || '';
-      obj.tsaCXScore = row[colIndex++] || '';
+      // TSA Remarks (after percentage score)
+      obj.TSA_Food_remarks = row[colIndex++] || '';
+      obj.TSA_Coffee_remarks = row[colIndex++] || '';
+      obj.TSA_CX_remarks = row[colIndex++] || '';
       
       // NEW COLUMNS ADDED AFTER EXISTING DATA
       obj.auditorName = row[colIndex++] || '';
