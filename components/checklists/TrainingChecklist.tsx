@@ -1995,22 +1995,9 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         )}
       {/* Show submission success screen */}
       {submitted ? (
-        <div className="w-full min-h-screen">
-          {/* Header Banner with Breadcrumbs - Full Width */}
+        <div className="w-full">
+          {/* Header Banner - Full Width */}
           <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 p-3 sm:p-4 border-b border-purple-200 dark:border-purple-800">
-            {/* Breadcrumbs */}
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-slate-400 mb-3">
-              <button
-                onClick={() => window.location.href = '/Prism/'}
-                className="flex items-center gap-1 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-              >
-                <Home className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>Home</span>
-              </button>
-              <span className="text-gray-400">/</span>
-              <span className="text-gray-900 dark:text-slate-200 font-medium">Training Management</span>
-            </div>
-            
             <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-slate-100 mb-1 flex items-center gap-2">
               <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
               <span className="break-words">Training Management</span>
