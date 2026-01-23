@@ -89,7 +89,7 @@ interface AMWiseData {
   interviewCompleted: number;
 }
 
-const BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwK1N2T8mp2_NqDKfm6hwNcK79CvVgrLeZmp76RR4CjsbpLS9H5VlKPlZUY0H2d_2Q61w/exec';
+const BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbySeztour7tgtLwx7DA8hV8kgtARGtFPAT3S0eI_CrIXAuiutrsxtrRxsB8HFcfqp88XA/exec';
 
 const BenchPlanningDashboard: React.FC<BenchPlanningDashboardProps> = ({ userRole }) => {
   const [loading, setLoading] = useState(true);
@@ -183,11 +183,11 @@ const matchesStatus =
       'Area Manager Name': candidate.managerName,
       'Region': candidate.region,
       'Readiness Status': candidate.readinessStatus,
-      'Readiness Score': candidate.readinessScore || 'N/A',
+      'Readiness Score': candidate.readinessScore !== null ? `${candidate.readinessScore}%` : 'N/A',
       'Assessment Status': candidate.assessmentStatus,
-      'Assessment Score': candidate.assessmentScore || 'N/A',
+      'Assessment Score': candidate.assessmentScore !== null ? `${candidate.assessmentScore}%` : 'N/A',
       'Interview Status': candidate.interviewStatus,
-      'Interview Score': candidate.interviewScore || 'N/A'
+      'Interview Score': candidate.interviewScore !== null ? `${candidate.interviewScore}%` : 'N/A'
     }));
     
     // Create workbook
@@ -823,7 +823,7 @@ const matchesStatus =
                                   {getStatusBadge(candidate.interviewStatus)}
                                   {candidate.interviewScore !== null && (
                                     <span className="text-xs text-gray-500 dark:text-slate-400">
-                                      {candidate.interviewScore.toFixed(1)}%
+                                      {candidate.interviewScore}%
                                     </span>
                                   )}
                                 </div>
@@ -943,7 +943,7 @@ const matchesStatus =
                                   {getStatusBadge(candidate.readinessStatus)}
                                   {candidate.readinessScore !== null && (
                                     <span className="text-xs text-gray-500 dark:text-slate-400">
-                                      {candidate.readinessScore.toFixed(1)}%
+                                      {candidate.readinessScore}%
                                     </span>
                                   )}
                                 </div>
@@ -953,7 +953,7 @@ const matchesStatus =
                                   {getStatusBadge(candidate.assessmentStatus)}
                                   {candidate.assessmentScore !== null && (
                                     <span className="text-xs text-gray-500 dark:text-slate-400">
-                                      {candidate.assessmentScore.toFixed(1)}%
+                                      {candidate.assessmentScore}%
                                     </span>
                                   )}
                                 </div>
@@ -963,7 +963,7 @@ const matchesStatus =
                                   {getStatusBadge(candidate.interviewStatus)}
                                   {candidate.interviewScore !== null && (
                                     <span className="text-xs text-gray-500 dark:text-slate-400">
-                                      {candidate.interviewScore.toFixed(1)}%
+                                      {candidate.interviewScore}%
                                     </span>
                                   )}
                                 </div>

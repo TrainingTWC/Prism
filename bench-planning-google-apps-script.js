@@ -967,8 +967,10 @@ function getDashboardData() {
       let readinessStatus = 'Not Started';
       let readinessScore = null;
       if (readinessRow) {
+        const totalScore = readinessRow[6];
+        const maxScore = readinessRow[7];
         const passed = readinessRow[8];
-        readinessScore = readinessRow[7];
+        readinessScore = parseFloat(((totalScore / maxScore) * 100).toFixed(2));
         readinessStatus = passed ? 'Passed' : 'Failed';
       }
       
@@ -977,7 +979,7 @@ function getDashboardData() {
       let assessmentStatus = 'Not Started';
       let assessmentScore = null;
       if (assessmentRow) {
-        assessmentScore = assessmentRow[4];
+        assessmentScore = parseFloat(assessmentRow[4]);
         const passed = assessmentRow[5];
         assessmentStatus = passed ? 'Passed' : 'Completed';
       }
@@ -987,7 +989,7 @@ function getDashboardData() {
       let interviewStatus = 'Not Started';
       let interviewScore = null;
       if (interviewRow) {
-        interviewScore = interviewRow[4];
+        interviewScore = parseFloat(interviewRow[4]);
         interviewStatus = 'Completed';
       }
       
