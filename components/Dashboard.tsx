@@ -3717,6 +3717,155 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     }
   };
 
+  // Generate Store Health Card Excel for Training Dashboard
+  const generateStoreHealthCardExcel = () => {
+    try {
+      hapticFeedback.confirm();
+
+      if (dashboardType !== 'training') {
+        alert('Store Health Card is only available for Training Dashboard');
+        hapticFeedback.error();
+        return;
+      }
+
+      if (!filteredTrainingData || filteredTrainingData.length === 0) {
+        alert('No training audit data available to export');
+        hapticFeedback.error();
+        return;
+      }
+
+      // Group data by store to get the latest audit per store
+      const storeHealthMap = new Map<string, {
+        storeName: string;
+        storeId: string;
+        amName: string;
+        trainerName: string;
+        lastAuditDate: Date;
+        lastAuditMonth: string;
+        auditPercentage: number;
+        healthStatus: string;
+      }>();
+
+      filteredTrainingData.forEach(submission => {
+        const storeId = submission.storeId;
+        const submissionDate = new Date(submission.submissionTime);
+        const percentage = parseFloat(submission.percentageScore || '0');
+        
+        // Determine health status based on percentage
+        let healthStatus = '';
+        if (percentage < 56) {
+          healthStatus = 'Needs Attention';
+        } else if (percentage >= 56 && percentage < 81) {
+          healthStatus = 'Brewing';
+        } else {
+          healthStatus = 'Perfect Shot';
+        }
+
+        // Get the month/year of the audit
+        const auditMonth = submissionDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+        // Check if this is the latest audit for this store
+        const existing = storeHealthMap.get(storeId);
+        if (!existing || submissionDate > existing.lastAuditDate) {
+          storeHealthMap.set(storeId, {
+            storeName: submission.storeName || '',
+            storeId: storeId || '',
+            amName: submission.amName || '',
+            trainerName: submission.trainerName || '',
+            lastAuditDate: submissionDate,
+            lastAuditMonth: auditMonth,
+            auditPercentage: percentage,
+            healthStatus: healthStatus
+          });
+        }
+      });
+
+      // Convert map to array and prepare Excel data
+      const excelData = Array.from(storeHealthMap.values())
+        .sort((a, b) => {
+          // Sort by health status priority (Needs Attention > Brewing > Perfect Shot), then by store name
+          const statusOrder = { 'Needs Attention': 0, 'Brewing': 1, 'Perfect Shot': 2 };
+          const statusDiff = statusOrder[a.healthStatus as keyof typeof statusOrder] - statusOrder[b.healthStatus as keyof typeof statusOrder];
+          if (statusDiff !== 0) return statusDiff;
+          return a.storeName.localeCompare(b.storeName);
+        })
+        .map(store => ({
+          'Store Name': store.storeName,
+          'Store ID': store.storeId,
+          'Area Manager': store.amName,
+          'Trainer Name': store.trainerName,
+          'Health Status': store.healthStatus,
+          'Last Audit Month': store.lastAuditMonth,
+          'Audit Percentage': `${store.auditPercentage.toFixed(1)}%`
+        }));
+
+      // Create workbook and worksheet
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Store Health Card');
+
+      // Style the worksheet - add conditional formatting colors
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+      for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+        const healthCell = worksheet[XLSX.utils.encode_cell({ r: R, c: 4 })]; // Column E (Health Status)
+        if (healthCell && healthCell.v) {
+          // Add cell styling based on health status
+          if (!healthCell.s) healthCell.s = {};
+          if (healthCell.v === 'Perfect Shot') {
+            healthCell.s.fill = { fgColor: { rgb: 'C6EFCE' } }; // Light green
+            healthCell.s.font = { color: { rgb: '006100' } };
+          } else if (healthCell.v === 'Brewing') {
+            healthCell.s.fill = { fgColor: { rgb: 'FFEB9C' } }; // Light yellow
+            healthCell.s.font = { color: { rgb: '9C5700' } };
+          } else if (healthCell.v === 'Needs Attention') {
+            healthCell.s.fill = { fgColor: { rgb: 'FFC7CE' } }; // Light red
+            healthCell.s.font = { color: { rgb: '9C0006' } };
+          }
+        }
+      }
+
+      // Auto-size columns
+      const headers = ['Store Name', 'Store ID', 'Area Manager', 'Trainer Name', 'Health Status', 'Last Audit Month', 'Audit Percentage'];
+      worksheet['!cols'] = headers.map((header, i) => {
+        let maxWidth = header.length;
+        for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+          const cell = worksheet[XLSX.utils.encode_cell({ r: R, c: i })];
+          if (cell && cell.v) {
+            const cellLength = String(cell.v).length;
+            maxWidth = Math.max(maxWidth, cellLength);
+          }
+        }
+        return { wch: Math.min(maxWidth + 2, 50) };
+      });
+
+      // Generate filename with date and filter info
+      let filenamePart = 'All_Stores';
+      if (filters.region) {
+        filenamePart = filters.region;
+      } else if (filters.store) {
+        const store = allStores.find(s => s.id === filters.store);
+        filenamePart = store?.name || filters.store;
+      } else if (filters.am) {
+        filenamePart = filters.am;
+      } else if (filters.trainer) {
+        filenamePart = filters.trainer;
+      }
+
+      const fileName = `Store_Health_Card_${filenamePart}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Download file
+      XLSX.writeFile(workbook, fileName);
+
+      hapticFeedback.ultraStrong();
+      showNotificationMessage('Store Health Card Downloaded', 'success');
+    } catch (error) {
+      console.error('Error generating Store Health Card Excel:', error);
+      alert('Error generating Store Health Card. Please try again.');
+      hapticFeedback.error();
+      showNotificationMessage('Error generating Excel', 'error');
+    }
+  };
+
   // For training dashboard, also wait for trendsData to load (needed for stats calculation)
   const isTrainingLoading = dashboardType === 'training' && !Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health) && trendsLoading;
   
@@ -4053,6 +4202,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               onDownload={generatePDFReport}
               onDownloadExcel={generateExcelReport}
               onDownloadSHLPExcel={generateSHLPExcelReport}
+              onDownloadStoreHealthCard={generateStoreHealthCardExcel}
               isGenerating={isGenerating}
               dashboardType={dashboardType}
             />

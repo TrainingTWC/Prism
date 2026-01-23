@@ -27,6 +27,7 @@ interface DashboardFiltersProps {
   onDownload?: () => void;
   onDownloadExcel?: () => void;
   onDownloadSHLPExcel?: () => void;
+  onDownloadStoreHealthCard?: () => void;
   isGenerating?: boolean;
   dashboardType?: string; // Add dashboard type to customize labels
 }
@@ -241,6 +242,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   onDownload,
   onDownloadExcel,
   onDownloadSHLPExcel,
+  onDownloadStoreHealthCard,
   isGenerating = false,
   dashboardType = 'training', // Default to training for backward compatibility
 }) => {
@@ -606,6 +608,21 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
                 <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
               Download Excel
+            </button>
+          )}
+
+          {/* Download Store Health Card Button - Only show for Training dashboard */}
+          {dashboardType === 'training' && onDownloadStoreHealthCard && (
+            <button
+              onClick={() => { if (typeof onDownloadStoreHealthCard === 'function') onDownloadStoreHealthCard(); }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-all duration-200 text-sm sm:text-base hover:shadow-lg flex items-center justify-center gap-2"
+              aria-label="Download Store Health Card"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+              <span className="hidden sm:inline">Store Health Card</span>
+              <span className="sm:hidden">Health Card</span>
             </button>
           )}
         </div>
