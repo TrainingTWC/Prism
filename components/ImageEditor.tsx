@@ -44,6 +44,51 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
     img.src = imageBase64;
   }, [imageBase64]);
 
+  // Set up non-passive event listeners for touch events
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Native event handlers that work with non-passive listeners
+    const handleTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      const syntheticEvent = {
+        preventDefault: () => {},
+        touches: e.touches,
+      } as any;
+      handleStart(syntheticEvent);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const syntheticEvent = {
+        preventDefault: () => {},
+        touches: e.touches,
+      } as any;
+      handleMove(syntheticEvent);
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      e.preventDefault();
+      const syntheticEvent = {
+        preventDefault: () => {},
+        touches: e.changedTouches.length > 0 ? [e.changedTouches[0]] : [],
+      } as any;
+      handleEnd(syntheticEvent);
+    };
+
+    // Add non-passive touch event listeners
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [tool, color, lineWidth, isDrawing, startPos]);
+
   const saveToHistory = () => {
     const canvas = canvasRef.current;
     if (!canvas) {
@@ -120,7 +165,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
     img.src = history[historyStep + 1];
   };
 
-  const getCanvasPoint = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+  const getCanvasPoint = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | any) => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
 
@@ -129,7 +174,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
     const scaleY = canvas.height / rect.height;
 
     let clientX, clientY;
-    if ('touches' in e) {
+    if ('touches' in e && e.touches && e.touches.length > 0) {
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
     } else {
@@ -143,8 +188,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
     };
   };
 
-  const handleStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
+  const handleStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | any) => {
+    if (e.preventDefault) e.preventDefault();
     const point = getCanvasPoint(e);
     if (!point) {
       console.error('[ImageEditor] Failed to get canvas point on start');
@@ -179,8 +224,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
     }
   };
 
-  const handleMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
+  const handleMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | any) => {
+    if (e.preventDefault) e.preventDefault();
     const point = getCanvasPoint(e);
     if (!point) return;
 
@@ -217,8 +262,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
     }
   };
 
-  const handleEnd = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
+  const handleEnd = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | any) => {
+    if (e.preventDefault) e.preventDefault();
     if (!isDrawing) return;
 
     const point = getCanvasPoint(e);
@@ -464,15 +509,11 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
                 onMouseMove={handleMove}
                 onMouseUp={handleEnd}
                 onMouseLeave={handleEnd}
-                onTouchStart={handleStart}
-                onTouchMove={handleMove}
-                onTouchEnd={handleEnd}
                 className="max-w-full max-h-full bg-white"
                 style={{ maxHeight: 'calc(100vh - 280px)', touchAction: 'none' }}
               />
               <canvas
                 ref={previewCanvasRef}
-                onMouseDown={handleStart}
                 onMouseMove={handleMove}
                 onMouseUp={handleEnd}
                 onMouseLeave={handleEnd}
