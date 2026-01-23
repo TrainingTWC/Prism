@@ -360,11 +360,25 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
   };
 
   const handleSave = () => {
+    console.log('[ImageEditor] Save button clicked');
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      console.error('[ImageEditor] Canvas not found');
+      return;
+    }
 
-    const editedImage = canvas.toDataURL('image/jpeg', 0.9);
-    onSave(editedImage);
+    console.log('[ImageEditor] Canvas size:', canvas.width, 'x', canvas.height);
+    console.log('[ImageEditor] History length:', history.length, 'Current step:', historyStep);
+    
+    try {
+      const editedImage = canvas.toDataURL('image/jpeg', 0.9);
+      console.log('[ImageEditor] Generated data URL, length:', editedImage.length);
+      console.log('[ImageEditor] Calling onSave callback');
+      onSave(editedImage);
+    } catch (error) {
+      console.error('[ImageEditor] Error generating data URL:', error);
+      alert('Failed to save image. Please try again.');
+    }
   };
 
   return (

@@ -1615,15 +1615,21 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
           
           // Compress to JPEG with 0.7 quality
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          console.log('[EditImage] Compressed data URL length:', compressedDataUrl.length);
           
           setSectionImages(prev => {
             const updatedImages = [...(prev[editingImage.sectionId] || [])];
+            console.log('[EditImage] Updating image at index:', editingImage.imageIndex, 'in section:', editingImage.sectionId);
+            console.log('[EditImage] Previous images in section:', updatedImages.length);
             updatedImages[editingImage.imageIndex] = compressedDataUrl;
-            return {
+            const newState = {
               ...prev,
               [editingImage.sectionId]: updatedImages
             };
+            console.log('[EditImage] New section images state:', Object.keys(newState).map(key => `${key}: ${newState[key].length} images`));
+            return newState;
           });
+          console.log('[EditImage] Closing editor');
           setEditingImage(null);
           hapticFeedback.success();
         } catch (error) {
