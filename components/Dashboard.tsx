@@ -3728,13 +3728,25 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         return;
       }
 
-      if (!filteredTrainingData || filteredTrainingData.length === 0) {
-        alert('No training audit data available to export');
+      // Get the list of stores to include based on filters
+      let storesToInclude = availableStores;
+      
+      // Apply filter logic to determine which stores to show
+      if (filters.region) {
+        storesToInclude = allStores.filter(s => s.region === filters.region);
+      } else if (filters.store) {
+        storesToInclude = allStores.filter(s => s.id === filters.store);
+      } else if (filters.am) {
+        storesToInclude = allStores.filter(s => s.amId === filters.am);
+      }
+
+      if (storesToInclude.length === 0) {
+        alert('No stores available to export');
         hapticFeedback.error();
         return;
       }
 
-      // Group data by store to get the latest audit per store
+      // Group audit data by store to get the latest audit per store
       const storeHealthMap = new Map<string, {
         storeName: string;
         storeId: string;
@@ -3746,58 +3758,78 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         healthStatus: string;
       }>();
 
-      filteredTrainingData.forEach(submission => {
-        const storeId = submission.storeId;
-        const submissionDate = new Date(submission.submissionTime);
-        const percentage = parseFloat(submission.percentageScore || '0');
+      // Process training audit data
+      if (filteredTrainingData && filteredTrainingData.length > 0) {
+        filteredTrainingData.forEach(submission => {
+          const storeId = submission.storeId;
+          const submissionDate = new Date(submission.submissionTime);
+          const percentage = parseFloat(submission.percentageScore || '0');
+          
+          // Determine health status based on percentage
+          let healthStatus = '';
+          if (percentage < 56) {
+            healthStatus = 'Needs Attention';
+          } else if (percentage >= 56 && percentage < 81) {
+            healthStatus = 'Brewing';
+          } else {
+            healthStatus = 'Perfect Shot';
+          }
+
+          // Get the month/year of the audit
+          const auditMonth = submissionDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+          // Check if this is the latest audit for this store
+          const existing = storeHealthMap.get(storeId);
+          if (!existing || submissionDate > existing.lastAuditDate) {
+            storeHealthMap.set(storeId, {
+              storeName: submission.storeName || '',
+              storeId: storeId || '',
+              amName: submission.amName || '',
+              trainerName: submission.trainerName || '',
+              lastAuditDate: submissionDate,
+              lastAuditMonth: auditMonth,
+              auditPercentage: percentage,
+              healthStatus: healthStatus
+            });
+          }
+        });
+      }
+
+      // Create Excel data including ALL stores
+      const excelData = storesToInclude.map(store => {
+        const auditData = storeHealthMap.get(store.id);
         
-        // Determine health status based on percentage
-        let healthStatus = '';
-        if (percentage < 56) {
-          healthStatus = 'Needs Attention';
-        } else if (percentage >= 56 && percentage < 81) {
-          healthStatus = 'Brewing';
+        if (auditData) {
+          // Store has audit data
+          return {
+            'Store Name': auditData.storeName,
+            'Store ID': auditData.storeId,
+            'Area Manager': auditData.amName,
+            'Trainer Name': auditData.trainerName,
+            'Health Status': auditData.healthStatus,
+            'Last Audit Month': auditData.lastAuditMonth,
+            'Audit Percentage': `${auditData.auditPercentage.toFixed(1)}%`
+          };
         } else {
-          healthStatus = 'Perfect Shot';
+          // Store has no audit data
+          return {
+            'Store Name': store.name,
+            'Store ID': store.id,
+            'Area Manager': store.amName || 'N/A',
+            'Trainer Name': 'N/A',
+            'Health Status': 'Not Audited',
+            'Last Audit Month': 'N/A',
+            'Audit Percentage': 'N/A'
+          };
         }
-
-        // Get the month/year of the audit
-        const auditMonth = submissionDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-
-        // Check if this is the latest audit for this store
-        const existing = storeHealthMap.get(storeId);
-        if (!existing || submissionDate > existing.lastAuditDate) {
-          storeHealthMap.set(storeId, {
-            storeName: submission.storeName || '',
-            storeId: storeId || '',
-            amName: submission.amName || '',
-            trainerName: submission.trainerName || '',
-            lastAuditDate: submissionDate,
-            lastAuditMonth: auditMonth,
-            auditPercentage: percentage,
-            healthStatus: healthStatus
-          });
-        }
+      })
+      .sort((a, b) => {
+        // Sort by health status priority, then by store name
+        const statusOrder = { 'Needs Attention': 0, 'Brewing': 1, 'Perfect Shot': 2, 'Not Audited': 3 };
+        const statusDiff = statusOrder[a['Health Status'] as keyof typeof statusOrder] - statusOrder[b['Health Status'] as keyof typeof statusOrder];
+        if (statusDiff !== 0) return statusDiff;
+        return a['Store Name'].localeCompare(b['Store Name']);
       });
-
-      // Convert map to array and prepare Excel data
-      const excelData = Array.from(storeHealthMap.values())
-        .sort((a, b) => {
-          // Sort by health status priority (Needs Attention > Brewing > Perfect Shot), then by store name
-          const statusOrder = { 'Needs Attention': 0, 'Brewing': 1, 'Perfect Shot': 2 };
-          const statusDiff = statusOrder[a.healthStatus as keyof typeof statusOrder] - statusOrder[b.healthStatus as keyof typeof statusOrder];
-          if (statusDiff !== 0) return statusDiff;
-          return a.storeName.localeCompare(b.storeName);
-        })
-        .map(store => ({
-          'Store Name': store.storeName,
-          'Store ID': store.storeId,
-          'Area Manager': store.amName,
-          'Trainer Name': store.trainerName,
-          'Health Status': store.healthStatus,
-          'Last Audit Month': store.lastAuditMonth,
-          'Audit Percentage': `${store.auditPercentage.toFixed(1)}%`
-        }));
 
       // Create workbook and worksheet
       const worksheet = XLSX.utils.json_to_sheet(excelData);
@@ -3820,6 +3852,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           } else if (healthCell.v === 'Needs Attention') {
             healthCell.s.fill = { fgColor: { rgb: 'FFC7CE' } }; // Light red
             healthCell.s.font = { color: { rgb: '9C0006' } };
+          } else if (healthCell.v === 'Not Audited') {
+            healthCell.s.fill = { fgColor: { rgb: 'D9D9D9' } }; // Light gray
+            healthCell.s.font = { color: { rgb: '333333' } };
           }
         }
       }
