@@ -2605,19 +2605,32 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                     {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {sectionImages[section.id].map((image, index) => (
-                          <div key={index} className="relative group">
+                          <div key={index} className="relative rounded-lg overflow-hidden shadow-sm">
                             <img
                               src={image}
                               alt={`${section.title} - Image ${index + 1}`}
-                              className="w-full h-32 object-cover rounded-lg shadow-sm cursor-pointer"
-                              onClick={() => handleEditImage(section.id, index)}
+                              className="w-full h-32 object-cover"
                             />
-                            <button
-                              onClick={() => removeImage(section.id, index)}
-                              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              ×
-                            </button>
+                            <div className="absolute top-2 right-2 flex gap-2">
+                              <button
+                                onClick={() => handleEditImage(section.id, index)}
+                                className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                                aria-label="Edit image"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => removeImage(section.id, index)}
+                                className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                                aria-label="Delete image"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -2874,19 +2887,32 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                     {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {sectionImages[section.id].map((image, index) => (
-                          <div key={index} className="relative group">
+                          <div key={index} className="relative rounded-lg overflow-hidden shadow-sm">
                             <img
                               src={image}
                               alt={`${section.title} - Image ${index + 1}`}
-                              className="w-full h-32 object-cover rounded-lg shadow-sm cursor-pointer"
-                              onClick={() => handleEditImage(section.id, index)}
+                              className="w-full h-32 object-cover"
                             />
-                            <button
-                              onClick={() => removeImage(section.id, index)}
-                              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              ×
-                            </button>
+                            <div className="absolute top-2 right-2 flex gap-2">
+                              <button
+                                onClick={() => handleEditImage(section.id, index)}
+                                className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                                aria-label="Edit image"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => removeImage(section.id, index)}
+                                className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                                aria-label="Delete image"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -3143,19 +3169,32 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                     {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {sectionImages[section.id].map((image, index) => (
-                          <div key={index} className="relative group">
+                          <div key={index} className="relative rounded-lg overflow-hidden shadow-sm">
                             <img
                               src={image}
                               alt={`${section.title} - Image ${index + 1}`}
-                              className="w-full h-32 object-cover rounded-lg shadow-sm cursor-pointer"
-                              onClick={() => handleEditImage(section.id, index)}
+                              className="w-full h-32 object-cover"
                             />
-                            <button
-                              onClick={() => removeImage(section.id, index)}
-                              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              ×
-                            </button>
+                            <div className="absolute top-2 right-2 flex gap-2">
+                              <button
+                                onClick={() => handleEditImage(section.id, index)}
+                                className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                                aria-label="Edit image"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => removeImage(section.id, index)}
+                                className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                                aria-label="Delete image"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -3277,19 +3316,32 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                   {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {sectionImages[section.id].map((image, index) => (
-                        <div key={index} className="relative group">
+                        <div key={index} className="relative rounded-lg overflow-hidden shadow-sm">
                           <img
                             src={image}
                             alt={`${section.title} - Image ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg shadow-sm cursor-pointer"
-                            onClick={() => handleEditImage(section.id, index)}
+                            className="w-full h-32 object-cover"
                           />
-                          <button
-                            onClick={() => removeImage(section.id, index)}
-                            className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            ×
-                          </button>
+                          <div className="absolute top-2 right-2 flex gap-2">
+                            <button
+                              onClick={() => handleEditImage(section.id, index)}
+                              className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                              aria-label="Edit image"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => removeImage(section.id, index)}
+                              className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                              aria-label="Delete image"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
