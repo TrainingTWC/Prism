@@ -16,6 +16,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
   const [color, setColor] = useState('#FF0000');
   const [lineWidth, setLineWidth] = useState(3);
   const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
+  const [currentPos, setCurrentPos] = useState<{ x: number; y: number } | null>(null);
   const [textInput, setTextInput] = useState('');
   const [textPosition, setTextPosition] = useState<{ x: number; y: number } | null>(null);
   const [history, setHistory] = useState<string[]>([]);
@@ -87,7 +88,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
       canvas.removeEventListener('touchmove', handleTouchMove);
       canvas.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [tool, color, lineWidth, isDrawing, startPos]);
+  }, [tool, color, lineWidth, isDrawing, startPos, currentPos]);
 
   const saveToHistory = () => {
     const canvas = canvasRef.current;
@@ -229,6 +230,9 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
     const point = getCanvasPoint(e);
     if (!point) return;
 
+    // Store current position for touch end events
+    setCurrentPos(point);
+
     if (tool === 'pen' && isDrawing) {
       const ctx = canvasRef.current?.getContext('2d');
       if (!ctx) return;
@@ -266,11 +270,20 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
     if (e.preventDefault) e.preventDefault();
     if (!isDrawing) return;
 
-    const point = getCanvasPoint(e);
+    // Try to get point from event, fallback to currentPos for touch events
+    let point = getCanvasPoint(e);
+    if (!point) {
+      point = currentPos;
+    }
+    
     if (!point || !startPos) {
+      console.log('[ImageEditor] handleEnd - no point or startPos, point:', point, 'startPos:', startPos);
       setIsDrawing(false);
+      setCurrentPos(null);
       return;
     }
+
+    console.log('[ImageEditor] Drawing final shape:', tool, 'from', startPos, 'to', point);
 
     const ctx = canvasRef.current?.getContext('2d');
     const previewCtx = previewCanvasRef.current?.getContext('2d');
@@ -288,18 +301,21 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
     switch (tool) {
       case 'circle':
         const radius = Math.sqrt(Math.pow(point.x - startPos.x, 2) + Math.pow(point.y - startPos.y, 2));
+        console.log('[ImageEditor] Drawing circle with radius:', radius);
         ctx.beginPath();
         ctx.arc(startPos.x, startPos.y, radius, 0, 2 * Math.PI);
         ctx.stroke();
         break;
 
       case 'arrow':
+        console.log('[ImageEditor] Drawing arrow');
         drawArrow(ctx, startPos.x, startPos.y, point.x, point.y);
         break;
     }
 
     setIsDrawing(false);
     setStartPos(null);
+    setCurrentPos(null);
     saveToHistory();
   };
 
