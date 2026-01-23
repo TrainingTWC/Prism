@@ -1476,46 +1476,78 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   };
 
   const handleImageUpload = (sectionId: string, file: File) => {
+    console.log('[ImageUpload] Starting upload for section:', sectionId, 'File:', file.name, 'Size:', file.size, 'Type:', file.type);
+    
     const reader = new FileReader();
+    reader.onerror = (error) => {
+      console.error('[ImageUpload] FileReader error:', error);
+      alert('Failed to read image file. Please try again.');
+    };
     reader.onload = (e) => {
+      console.log('[ImageUpload] FileReader loaded successfully');
       const result = e.target?.result as string;
+      if (!result) {
+        console.error('[ImageUpload] No result from FileReader');
+        alert('Failed to load image. Please try again.');
+        return;
+      }
+      
+      console.log('[ImageUpload] Result length:', result.length);
       
       // Compress image before storing
       const img = new Image();
+      img.onerror = (error) => {
+        console.error('[ImageUpload] Image load error:', error);
+        alert('Failed to load image. Please try a different image.');
+      };
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        // Limit max dimensions to reduce size
-        const MAX_WIDTH = 1200;
-        const MAX_HEIGHT = 1200;
-        let width = img.width;
-        let height = img.height;
-        
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
+        console.log('[ImageUpload] Image loaded:', img.width, 'x', img.height);
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            console.error('[ImageUpload] Canvas context not available');
+            alert('Canvas not supported on this device');
+            return;
           }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
+          
+          // Limit max dimensions to reduce size
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
           }
+          
+          console.log('[ImageUpload] Resizing to:', width, 'x', height);
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Compress to JPEG with 0.7 quality
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          console.log('[ImageUpload] Compressed size:', compressedDataUrl.length);
+          
+          setSectionImages(prev => ({
+            ...prev,
+            [sectionId]: [...(prev[sectionId] || []), compressedDataUrl]
+          }));
+          console.log('[ImageUpload] Image added to section:', sectionId);
+          hapticFeedback.select();
+        } catch (error) {
+          console.error('[ImageUpload] Error compressing image:', error);
+          alert('Failed to process image. Please try a smaller image.');
         }
-        
-        canvas.width = width;
-        canvas.height = height;
-        ctx?.drawImage(img, 0, 0, width, height);
-        
-        // Compress to JPEG with 0.7 quality
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        
-        setSectionImages(prev => ({
-          ...prev,
-          [sectionId]: [...(prev[sectionId] || []), compressedDataUrl]
-        }));
-        hapticFeedback.select();
       };
       img.src = result;
     };
@@ -1539,47 +1571,66 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
   const handleSaveEditedImage = (editedImageData: string) => {
     if (editingImage) {
+      console.log('[EditImage] Saving edited image for section:', editingImage.sectionId, 'Index:', editingImage.imageIndex);
       // Compress the edited image before saving
       const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        // Limit max dimensions to reduce size
-        const MAX_WIDTH = 1200;
-        const MAX_HEIGHT = 1200;
-        let width = img.width;
-        let height = img.height;
-        
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        ctx?.drawImage(img, 0, 0, width, height);
-        
-        // Compress to JPEG with 0.7 quality
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        
-        setSectionImages(prev => {
-          const updatedImages = [...(prev[editingImage.sectionId] || [])];
-          updatedImages[editingImage.imageIndex] = compressedDataUrl;
-          return {
-            ...prev,
-            [editingImage.sectionId]: updatedImages
-          };
-        });
+      img.onerror = (error) => {
+        console.error('[EditImage] Error loading edited image:', error);
+        alert('Failed to save edited image. Please try again.');
         setEditingImage(null);
-        hapticFeedback.success();
+      };
+      img.onload = () => {
+        console.log('[EditImage] Edited image loaded:', img.width, 'x', img.height);
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            console.error('[EditImage] Canvas context not available');
+            alert('Canvas not supported on this device');
+            setEditingImage(null);
+            return;
+          }
+          
+          // Limit max dimensions to reduce size
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Compress to JPEG with 0.7 quality
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          
+          setSectionImages(prev => {
+            const updatedImages = [...(prev[editingImage.sectionId] || [])];
+            updatedImages[editingImage.imageIndex] = compressedDataUrl;
+            return {
+              ...prev,
+              [editingImage.sectionId]: updatedImages
+            };
+          });
+          setEditingImage(null);
+          hapticFeedback.success();
+        } catch (error) {
+          console.error('Error processing edited image:', error);
+          alert('Failed to save edited image. Please try again.');
+          setEditingImage(null);
+        }
       };
       img.src = editedImageData;
     }

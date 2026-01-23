@@ -46,43 +46,78 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
 
   const saveToHistory = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      console.error('[ImageEditor] Cannot save to history - canvas not available');
+      return;
+    }
     
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-    setHistory(prev => [...prev.slice(0, historyStep + 1), dataUrl]);
-    setHistoryStep(prev => prev + 1);
+    try {
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      console.log('[ImageEditor] Saving to history. Current step:', historyStep, 'Data URL length:', dataUrl.length);
+      setHistory(prev => [...prev.slice(0, historyStep + 1), dataUrl]);
+      setHistoryStep(prev => prev + 1);
+    } catch (error) {
+      console.error('[ImageEditor] Error saving to history:', error);
+      alert('Failed to save edit state. Try using a smaller image.');
+    }
   };
 
   const undo = () => {
-    if (historyStep > 0) {
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      if (!canvas || !ctx) return;
-
-      const img = new Image();
-      img.onload = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-      };
-      img.src = history[historyStep - 1];
-      setHistoryStep(prev => prev - 1);
+    console.log('[ImageEditor] Undo requested. Current step:', historyStep, 'History length:', history.length);
+    if (historyStep <= 0) {
+      console.log('[ImageEditor] Cannot undo, already at first state');
+      return;
     }
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) {
+      console.error('[ImageEditor] Canvas or context not available for undo');
+      return;
+    }
+
+    console.log('[ImageEditor] Loading history state:', historyStep - 1);
+    const img = new Image();
+    img.onload = () => {
+      console.log('[ImageEditor] Undo image loaded successfully');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      setHistoryStep(prev => prev - 1);
+    };
+    img.onerror = (error) => {
+      console.error('[ImageEditor] Failed to load undo state:', error);
+      alert('Failed to undo. Please try again.');
+    };
+    img.src = history[historyStep - 1];
   };
 
   const redo = () => {
-    if (historyStep < history.length - 1) {
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      if (!canvas || !ctx) return;
-
-      const img = new Image();
-      img.onload = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-      };
-      img.src = history[historyStep + 1];
-      setHistoryStep(prev => prev + 1);
+    console.log('[ImageEditor] Redo requested. Current step:', historyStep, 'History length:', history.length);
+    if (historyStep >= history.length - 1) {
+      console.log('[ImageEditor] Cannot redo, already at latest state');
+      return;
     }
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) {
+      console.error('[ImageEditor] Canvas or context not available for redo');
+      return;
+    }
+
+    console.log('[ImageEditor] Loading history state:', historyStep + 1);
+    const img = new Image();
+    img.onload = () => {
+      console.log('[ImageEditor] Redo image loaded successfully');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      setHistoryStep(prev => prev + 1);
+    };
+    img.onerror = (error) => {
+      console.error('[ImageEditor] Failed to load redo state:', error);
+      alert('Failed to redo. Please try again.');
+    };
+    img.src = history[historyStep + 1];
   };
 
   const getCanvasPoint = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -111,7 +146,12 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
   const handleStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     const point = getCanvasPoint(e);
-    if (!point) return;
+    if (!point) {
+      console.error('[ImageEditor] Failed to get canvas point on start');
+      return;
+    }
+
+    console.log('[ImageEditor] Start drawing:', tool, 'at', point);
 
     if (tool === 'text') {
       setTextPosition(point);
@@ -123,7 +163,10 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
 
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.error('[ImageEditor] Canvas context not available on start');
+      return;
+    }
 
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
@@ -417,6 +460,13 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
             <div className="relative max-w-full max-h-full rounded-xl overflow-hidden shadow-2xl ring-1 ring-black/5">
               <canvas
                 ref={canvasRef}
+                onMouseDown={handleStart}
+                onMouseMove={handleMove}
+                onMouseUp={handleEnd}
+                onMouseLeave={handleEnd}
+                onTouchStart={handleStart}
+                onTouchMove={handleMove}
+                onTouchEnd={handleEnd}
                 className="max-w-full max-h-full bg-white"
                 style={{ maxHeight: 'calc(100vh - 280px)', touchAction: 'none' }}
               />
