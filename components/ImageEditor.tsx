@@ -544,14 +544,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
               />
               <canvas
                 ref={previewCanvasRef}
-                onMouseMove={handleMove}
-                onMouseUp={handleEnd}
-                onMouseLeave={handleEnd}
-                onTouchStart={handleStart}
-                onTouchMove={handleMove}
-                onTouchEnd={handleEnd}
-                className="absolute top-0 left-0 max-w-full max-h-full cursor-crosshair"
-                style={{ maxHeight: 'calc(100vh - 280px)', touchAction: 'none', pointerEvents: 'auto' }}
+                className="absolute top-0 left-0 max-w-full max-h-full pointer-events-none"
+                style={{ maxHeight: 'calc(100vh - 280px)' }}
               />
             </div>
           </div>
