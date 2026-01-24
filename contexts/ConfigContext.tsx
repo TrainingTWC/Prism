@@ -22,18 +22,18 @@ export const ConfigProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       console.log('[ConfigContext] Fetching config from /api/config...');
       let res = await fetch('/api/config');
-      
+
       // If API fails (like on GitHub Pages), try loading static config.json
       if (!res.ok) {
         console.log('[ConfigContext] API failed, trying static config.json...');
         res = await fetch('/config.json');
       }
-      
+
       const data = await res.json();
       console.log('[ConfigContext] API Response:', data);
       console.log('[ConfigContext] data.config.CHECKLISTS:', data?.config?.CHECKLISTS);
       console.log('[ConfigContext] Defaults:', Defaults);
-      
+
       if (data && data.ok && data.config) {
         const merged = { ...Defaults, ...data.config };
         console.log('[ConfigContext] Merged config:', merged);

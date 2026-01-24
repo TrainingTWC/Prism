@@ -33,86 +33,86 @@ interface FinanceChecklistProps {
 }
 
 const FINANCE_SECTIONS = [
-  { 
-    id: 'CashManagement', 
-    title: 'Cash Management', 
+  {
+    id: 'CashManagement',
+    title: 'Cash Management',
     items: [
-      {id: 'CM_1', q: 'Daily cash reconciliation completed and documented with proper signatures', w: 3},
-      {id: 'CM_2', q: 'Cash drawer balancing performed at shift changes with variance reports', w: 3},
-      {id: 'CM_3', q: 'Petty cash properly managed with supporting receipts and authorization', w: 2},
-      {id: 'CM_4', q: 'Cash security measures in place and followed (locked till, limited access)', w: 3},
-      {id: 'CM_5', q: 'Daily cash deposit procedures followed and documented', w: 3},
-      {id: 'CM_6', q: 'Cash variances investigated and reported promptly to management', w: 2},
-      {id: 'CM_7', q: 'Adequate change fund maintained at all times for operations', w: 2},
-      {id: 'CM_8', q: 'Counterfeit currency detection procedures in place and staff trained', w: 2}
+      { id: 'CM_1', q: 'Daily cash reconciliation completed and documented with proper signatures', w: 3 },
+      { id: 'CM_2', q: 'Cash drawer balancing performed at shift changes with variance reports', w: 3 },
+      { id: 'CM_3', q: 'Petty cash properly managed with supporting receipts and authorization', w: 2 },
+      { id: 'CM_4', q: 'Cash security measures in place and followed (locked till, limited access)', w: 3 },
+      { id: 'CM_5', q: 'Daily cash deposit procedures followed and documented', w: 3 },
+      { id: 'CM_6', q: 'Cash variances investigated and reported promptly to management', w: 2 },
+      { id: 'CM_7', q: 'Adequate change fund maintained at all times for operations', w: 2 },
+      { id: 'CM_8', q: 'Counterfeit currency detection procedures in place and staff trained', w: 2 }
     ]
   },
-  { 
-    id: 'SalesRevenue', 
-    title: 'Sales & Revenue Tracking', 
+  {
+    id: 'SalesRevenue',
+    title: 'Sales & Revenue Tracking',
     items: [
-      {id: 'SR_1', q: 'Daily sales reports generated and reviewed accurately by management', w: 3},
-      {id: 'SR_2', q: 'POS system data reconciled with physical cash and documented', w: 3},
-      {id: 'SR_3', q: 'Promotional discounts properly tracked and authorized with approvals', w: 2},
-      {id: 'SR_4', q: 'Refund and void transaction procedures followed with proper documentation', w: 3},
-      {id: 'SR_5', q: 'Revenue trend analysis conducted regularly and variances investigated', w: 2},
-      {id: 'SR_6', q: 'Sales tax calculations verified and properly recorded', w: 2},
-      {id: 'SR_7', q: 'Credit card settlement procedures followed and reconciled daily', w: 3}
+      { id: 'SR_1', q: 'Daily sales reports generated and reviewed accurately by management', w: 3 },
+      { id: 'SR_2', q: 'POS system data reconciled with physical cash and documented', w: 3 },
+      { id: 'SR_3', q: 'Promotional discounts properly tracked and authorized with approvals', w: 2 },
+      { id: 'SR_4', q: 'Refund and void transaction procedures followed with proper documentation', w: 3 },
+      { id: 'SR_5', q: 'Revenue trend analysis conducted regularly and variances investigated', w: 2 },
+      { id: 'SR_6', q: 'Sales tax calculations verified and properly recorded', w: 2 },
+      { id: 'SR_7', q: 'Credit card settlement procedures followed and reconciled daily', w: 3 }
     ]
   },
-  { 
-    id: 'InventoryFinance', 
-    title: 'Inventory & Financial Controls', 
+  {
+    id: 'InventoryFinance',
+    title: 'Inventory & Financial Controls',
     items: [
-      {id: 'IF_1', q: 'Inventory valuation methods consistently applied and documented', w: 3},
-      {id: 'IF_2', q: 'Physical inventory counts conducted regularly and variances investigated', w: 3},
-      {id: 'IF_3', q: 'Stock movement properly recorded and authorized', w: 2},
-      {id: 'IF_4', q: 'Vendor payment procedures followed with proper approvals', w: 3},
-      {id: 'IF_5', q: 'Purchase orders properly authorized and documented', w: 2},
-      {id: 'IF_6', q: 'Expense categorization accurate and consistent with guidelines', w: 2},
-      {id: 'IF_7', q: 'Cost of goods sold calculations verified and accurate', w: 3},
-      {id: 'IF_8', q: 'Wastage and shrinkage properly documented and investigated', w: 2}
+      { id: 'IF_1', q: 'Inventory valuation methods consistently applied and documented', w: 3 },
+      { id: 'IF_2', q: 'Physical inventory counts conducted regularly and variances investigated', w: 3 },
+      { id: 'IF_3', q: 'Stock movement properly recorded and authorized', w: 2 },
+      { id: 'IF_4', q: 'Vendor payment procedures followed with proper approvals', w: 3 },
+      { id: 'IF_5', q: 'Purchase orders properly authorized and documented', w: 2 },
+      { id: 'IF_6', q: 'Expense categorization accurate and consistent with guidelines', w: 2 },
+      { id: 'IF_7', q: 'Cost of goods sold calculations verified and accurate', w: 3 },
+      { id: 'IF_8', q: 'Wastage and shrinkage properly documented and investigated', w: 2 }
     ]
   },
-  { 
-    id: 'ComplianceReporting', 
-    title: 'Compliance & Reporting', 
+  {
+    id: 'ComplianceReporting',
+    title: 'Compliance & Reporting',
     items: [
-      {id: 'CR_1', q: 'Monthly financial statements prepared accurately and on time', w: 3},
-      {id: 'CR_2', q: 'Tax compliance requirements met and documented', w: 3},
-      {id: 'CR_3', q: 'Audit trail maintained for all financial transactions', w: 3},
-      {id: 'CR_4', q: 'Internal controls testing performed and documented', w: 2},
-      {id: 'CR_5', q: 'Regulatory reporting requirements met and filed on time', w: 3},
-      {id: 'CR_6', q: 'Documentation retention policies followed for financial records', w: 2},
-      {id: 'CR_7', q: 'Budget variance analysis performed and reviewed monthly', w: 2}
+      { id: 'CR_1', q: 'Monthly financial statements prepared accurately and on time', w: 3 },
+      { id: 'CR_2', q: 'Tax compliance requirements met and documented', w: 3 },
+      { id: 'CR_3', q: 'Audit trail maintained for all financial transactions', w: 3 },
+      { id: 'CR_4', q: 'Internal controls testing performed and documented', w: 2 },
+      { id: 'CR_5', q: 'Regulatory reporting requirements met and filed on time', w: 3 },
+      { id: 'CR_6', q: 'Documentation retention policies followed for financial records', w: 2 },
+      { id: 'CR_7', q: 'Budget variance analysis performed and reviewed monthly', w: 2 }
     ]
   }
 ];
 
 const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUpdate }) => {
   const { config, loading: configLoading } = useConfig();
-  
+
   // Use config data if available, otherwise fall back to hardcoded FINANCE_SECTIONS
   const sections = config?.CHECKLISTS?.FINANCE || FINANCE_SECTIONS;
-  
+
   const [responses, setResponses] = useState<SurveyResponse>(() => {
-    try { 
-      return JSON.parse(localStorage.getItem('finance_resp') || '{}'); 
-    } catch (e) { 
-      return {}; 
+    try {
+      return JSON.parse(localStorage.getItem('finance_resp') || '{}');
+    } catch (e) {
+      return {};
     }
   });
 
   const [meta, setMeta] = useState<SurveyMeta>(() => {
     let stored = {};
-    try { 
-      stored = JSON.parse(localStorage.getItem('finance_meta') || '{}'); 
-    } catch(e) {}
-    
+    try {
+      stored = JSON.parse(localStorage.getItem('finance_meta') || '{}');
+    } catch (e) { }
+
     const urlParams = new URLSearchParams(window.location.search);
     const financeAuditorId = urlParams.get('financeAuditorId') || urlParams.get('finance_auditor_id') || (stored as any).financeAuditorId || '';
     const financeAuditorName = urlParams.get('financeAuditorName') || urlParams.get('finance_auditor_name') || (stored as any).financeAuditorName || '';
-    
+
     return {
       financeAuditorName: financeAuditorName,
       financeAuditorId: financeAuditorId,
@@ -141,14 +141,14 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const [amSearchTerm, setAmSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
   const [showAmDropdown, setShowAmDropdown] = useState(false);
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   const [selectedAmIndex, setSelectedAmIndex] = useState(-1);
   const [selectedStoreIndex, setSelectedStoreIndex] = useState(-1);
-  
+
   // Signature state
   const [signatures, setSignatures] = useState<{ auditor: string; sm: string }>(() => {
     try {
@@ -178,10 +178,10 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   useEffect(() => {
     if (meta.storeId && comprehensiveMapping.length > 0) {
       const store = comprehensiveMapping.find(s => s['Store ID'] === meta.storeId);
-      
+
       if (store && store.AM) {
         const am = areaManagers.areaManagers.find(am => am.id === store.AM);
-        
+
         if (am && (!meta.amId || meta.amId !== am.id)) {
           setMeta(prev => ({
             ...prev,
@@ -242,14 +242,14 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   // Update stats whenever responses change
   useEffect(() => {
     const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
-    const answeredQuestions = Object.keys(responses).filter(key => 
+    const answeredQuestions = Object.keys(responses).filter(key =>
       responses[key] && responses[key] !== '' && !key.includes('_remarks')
     ).length;
-    
+
     // Calculate score
     let totalScore = 0;
     let maxScore = 0;
-    
+
     sections.forEach(section => {
       section.items.forEach(item => {
         maxScore += item.w;
@@ -259,9 +259,9 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         }
       });
     });
-    
+
     const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
-    
+
     onStatsUpdate({
       completed: answeredQuestions,
       total: totalQuestions,
@@ -271,7 +271,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
   const filteredAreaManagers = useMemo(() => {
     if (!amSearchTerm) return areaManagers.areaManagers;
-    return areaManagers.areaManagers.filter(am => 
+    return areaManagers.areaManagers.filter(am =>
       am.name.toLowerCase().includes(amSearchTerm.toLowerCase()) ||
       am.id.toLowerCase().includes(amSearchTerm.toLowerCase())
     );
@@ -279,7 +279,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
   const filteredStores = useMemo(() => {
     if (!storeSearchTerm) return allStores;
-    return allStores.filter(store => 
+    return allStores.filter(store =>
       store.name.toLowerCase().includes(storeSearchTerm.toLowerCase()) ||
       store.id.toLowerCase().includes(storeSearchTerm.toLowerCase())
     );
@@ -356,7 +356,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
   const stopDrawing = (type: 'auditor' | 'sm') => {
     setIsDrawing(prev => ({ ...prev, [type]: false }));
-    
+
     const canvas = type === 'auditor' ? auditorCanvasRef.current : smCanvasRef.current;
     if (!canvas) return;
 
@@ -393,10 +393,10 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
   const handleSubmit = async () => {
     const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
-    const answeredQuestions = Object.keys(responses).filter(key => 
+    const answeredQuestions = Object.keys(responses).filter(key =>
       responses[key] && responses[key] !== '' && !key.includes('_remarks')
     ).length;
-    
+
     if (answeredQuestions < totalQuestions) {
       alert(`Please answer all questions. You have answered ${answeredQuestions} out of ${totalQuestions} questions.`);
       return;
@@ -404,7 +404,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
     const requiredFields = ['financeAuditorName', 'financeAuditorId', 'amName', 'amId', 'storeName', 'storeId'];
     const missingFields = requiredFields.filter(field => !meta[field as keyof SurveyMeta]);
-    
+
     if (missingFields.length > 0) {
       alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
       return;
@@ -422,7 +422,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       // Calculate scores
       let totalScore = 0;
       let maxScore = 0;
-      
+
       sections.forEach(section => {
         section.items.forEach(item => {
           maxScore += item.w;
@@ -432,7 +432,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
           }
         });
       });
-      
+
       const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
 
       // Detect region and correct store ID from comprehensive mapping
@@ -441,21 +441,21 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       try {
         if (meta.storeId && comprehensiveMapping.length > 0) {
           let storeMapping = comprehensiveMapping.find(item => item['Store ID'] === meta.storeId);
-          
+
           // If not found and store ID doesn't start with S, try with S prefix
           if (!storeMapping && !meta.storeId.startsWith('S')) {
             const sFormattedId = `S${meta.storeId.padStart(3, '0')}`;
             storeMapping = comprehensiveMapping.find(item => item['Store ID'] === sFormattedId);
           }
-          
+
           // If still not found, try matching by store name
           if (!storeMapping && meta.storeName) {
-            storeMapping = comprehensiveMapping.find(item => 
+            storeMapping = comprehensiveMapping.find(item =>
               item['Store Name'].toLowerCase().includes(meta.storeName.toLowerCase()) ||
               meta.storeName.toLowerCase().includes(item['Store Name'].toLowerCase())
             );
           }
-          
+
           if (storeMapping) {
             detectedRegion = storeMapping.Region || '';
             correctedStoreId = storeMapping['Store ID'];
@@ -467,7 +467,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
       // Prepare data for Google Sheets (URL-encoded like QA checklist)
       const params: Record<string, string> = {
-        submissionTime: new Date().toLocaleString('en-GB', {hour12: false}),
+        submissionTime: new Date().toLocaleString('en-GB', { hour12: false }),
         financeAuditorName: meta.financeAuditorName || '',
         financeAuditorId: meta.financeAuditorId || '',
         amName: meta.amName || '',
@@ -504,12 +504,12 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
       alert('Finance audit submitted successfully! Please check your Google Sheet to verify the data was recorded.');
       setSubmitted(true);
-      
+
     } catch (error) {
       console.error('Error submitting Finance survey:', error);
       console.error('Error details:', error.message);
       console.error('Error stack:', error.stack);
-      
+
       // Show detailed error to user
       alert(`Error submitting survey: ${error.message}\n\nCheck browser console (F12) for details.`);
     } finally {
@@ -533,7 +533,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       localStorage.removeItem('finance_resp');
       localStorage.removeItem('finance_meta');
       localStorage.removeItem('finance_signatures');
-      
+
       // Clear canvases
       if (auditorCanvasRef.current) {
         const ctx = auditorCanvasRef.current.getContext('2d');
@@ -572,8 +572,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
   return (
     <div className="p-6 space-y-6">
-  {isLoading && <LoadingOverlay isVisible={true} />}
-      
+      {isLoading && <LoadingOverlay isVisible={true} />}
+
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg p-6 border border-emerald-200 dark:border-emerald-800">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
@@ -589,7 +589,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">
           Assessment Information
         </h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
@@ -634,7 +634,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
               placeholder="Search Area Manager..."
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
             />
-            
+
             {showAmDropdown && (
               <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
                 {filteredAreaManagers.length > 0 ? (
@@ -647,9 +647,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
                         setAmSearchTerm('');
                         setShowAmDropdown(false);
                       }}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${
-                        index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                      }`}
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                        }`}
                     >
                       {am.name.split(' ')[0]}
                     </button>
@@ -678,7 +677,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
               placeholder="Search Store..."
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
             />
-            
+
             {showStoreDropdown && (
               <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
                 {filteredStores.length > 0 ? (
@@ -691,9 +690,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
                         setStoreSearchTerm('');
                         setShowStoreDropdown(false);
                       }}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${
-                        index === selectedStoreIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                      }`}
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${index === selectedStoreIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                        }`}
                     >
                       {store.name} ({store.id})
                     </button>
@@ -712,14 +710,14 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">
           Financial Controls Assessment
         </h2>
-        
+
         <div className="space-y-8">
           {sections.map((section, sectionIndex) => (
             <div key={section.id} className="border-l-4 border-emerald-500 pl-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4 text-emerald-700 dark:text-emerald-300">
                 {section.title}
               </h3>
-              
+
               <div className="space-y-3">
                 {section.items.map((item, itemIndex) => (
                   <div key={item.id} className="p-4 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -731,7 +729,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
                         <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-3">
                           {item.q}
                         </p>
-                        
+
                         {/* Response Options */}
                         <div className="flex gap-4">
                           {['yes', 'no', 'na'].map(option => (
@@ -777,7 +775,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4 sm:mb-6">
           Signatures
         </h2>
-        
+
         <div className="space-y-6 md:space-y-0 md:grid md:grid-cols-2 md:gap-6">
           {/* Auditor Signature */}
           <div className="space-y-3">
@@ -806,7 +804,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
                   stopDrawing('auditor');
                 }}
                 className="w-full h-auto touch-none rounded-lg"
-                style={{ 
+                style={{
                   touchAction: 'none',
                   cursor: 'crosshair',
                   WebkitTouchCallout: 'none',
@@ -827,8 +825,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
               Clear Signature
             </button>
             <p className="text-sm text-gray-600 dark:text-slate-400 text-center font-medium">
-              {typeof window !== 'undefined' && 'ontouchstart' in window 
-                ? '✍️ Draw with your finger' 
+              {typeof window !== 'undefined' && 'ontouchstart' in window
+                ? '✍️ Draw with your finger'
                 : '🖱️ Draw with your mouse'}
             </p>
           </div>
@@ -860,7 +858,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
                   stopDrawing('sm');
                 }}
                 className="w-full h-auto touch-none rounded-lg"
-                style={{ 
+                style={{
                   touchAction: 'none',
                   cursor: 'crosshair',
                   WebkitTouchCallout: 'none',
@@ -881,8 +879,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
               Clear Signature
             </button>
             <p className="text-sm text-gray-600 dark:text-slate-400 text-center font-medium">
-              {typeof window !== 'undefined' && 'ontouchstart' in window 
-                ? '✍️ Draw with your finger' 
+              {typeof window !== 'undefined' && 'ontouchstart' in window
+                ? '✍️ Draw with your finger'
                 : '🖱️ Draw with your mouse'}
             </p>
           </div>

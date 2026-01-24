@@ -100,7 +100,7 @@ function simpleLocalInterpret(transcript) {
   });
 
   const updates = {};
-  if (/none of the other|no other|none of the other training|none of the other training materials/.test(cmd) && mentions.length>0) {
+  if (/none of the other|no other|none of the other training|none of the other training materials/.test(cmd) && mentions.length > 0) {
     const mentionSet = new Set(mentions);
     TM_KEYWORDS.forEach(entry => {
       updates[`TrainingMaterials_${entry.id}`] = mentionSet.has(entry.id) ? 'yes' : 'no';
@@ -111,7 +111,7 @@ function simpleLocalInterpret(transcript) {
     TM_KEYWORDS.forEach(entry => updates[`TrainingMaterials_${entry.id}`] = 'no');
   } else {
     // default: mark mentioned as yes
-    if (mentions.length>0) {
+    if (mentions.length > 0) {
       TM_KEYWORDS.forEach(entry => {
         updates[`TrainingMaterials_${entry.id}`] = mentions.includes(entry.id) ? 'yes' : undefined;
       });
@@ -153,7 +153,7 @@ app.post('/api/interpret', async (req, res) => {
 
       // Primary prompt (relaxed)
       const systemPrompt = `You are an assistant that maps auditor transcripts into checklist updates. Return JSON following the schema: version, wakeWordDetected (bool), rawTranscript, intent, updates (array of objects with questionId,value,confidence,reason,suggestedBy). Allowed values for updates.value: yes,no,na. ONLY return valid JSON — no explanatory text.`;
-      const userPrompt = `Transcript: "${transcript.replace(/"/g,'\\"')}"\n\nChecklist items: ${TM_KEYWORDS.map(t=>t.id+':'+t.keywords[0]).join(', ')}\n\nRules: If user says 'none of the other', treat mentioned as yes and others no. If user says 'not applicable' mark na.`;
+      const userPrompt = `Transcript: "${transcript.replace(/"/g, '\\"')}"\n\nChecklist items: ${TM_KEYWORDS.map(t => t.id + ':' + t.keywords[0]).join(', ')}\n\nRules: If user says 'none of the other', treat mentioned as yes and others no. If user says 'not applicable' mark na.`;
 
       let raw = await callLLM([
         { role: 'system', content: systemPrompt },
@@ -181,7 +181,7 @@ app.post('/api/interpret', async (req, res) => {
       if (!valid) {
         // Retry with very strict instruction
         const strictSystem = `You are an assistant that MUST return only JSON that exactly matches the schema: version (string), wakeWordDetected (boolean), rawTranscript (string), intent (string), updates (array of {questionId:string,value:string,confidence:number,reason:string,suggestedBy:string}). Allowed values for value: yes,no,na. DO NOT RETURN ANY TEXT OTHER THAN JSON.`;
-        const strictUser = `Transcript: "${transcript.replace(/"/g,'\\"')}"\nChecklist items: ${TM_KEYWORDS.map(t=>t.id+':'+t.keywords[0]).join(', ')}`;
+        const strictUser = `Transcript: "${transcript.replace(/"/g, '\\"')}"\nChecklist items: ${TM_KEYWORDS.map(t => t.id + ':' + t.keywords[0]).join(', ')}`;
         raw = await callLLM([
           { role: 'system', content: strictSystem },
           { role: 'user', content: strictUser }

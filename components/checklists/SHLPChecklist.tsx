@@ -9,7 +9,7 @@ import { getTrainerName } from '../../utils/trainerMapping';
 import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 
 // Google Sheets endpoint for SHLP data logging (updated with AM Name and Trainer Names columns)
-const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzmfn6LXRXqidjqYdUjYHIkDOzXf2pJ9N-Pm1lGJqn1bddyob_wLKjdncuWjnKZKtuanA/exec';
+const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwhWnGIS-ky5zl2xOdPgrnxuuN7drOKVtt8ZxCnLneM-7sZZUsj1CiK04p7tDodmBZ9pg/exec';
 
 interface SHLPChecklistProps {
   userRole: UserRole;

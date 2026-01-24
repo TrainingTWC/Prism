@@ -44,152 +44,152 @@ interface ChecklistSection {
 }
 
 const SECTIONS: ChecklistSection[] = [
-  { 
-    id: 'CG', 
-    title: 'Cheerful Greeting', 
+  {
+    id: 'CG',
+    title: 'Cheerful Greeting',
     items: [
-      {id:'CG_1', q:'Is the store front area clean and maintained?'},
-      {id:'CG_2', q:'Is the signage clean and are all lights functioning?'},
-      {id:'CG_3', q:'Are the glass and doors smudge-free?'},
-      {id:'CG_4', q:'Do promotional displays reflect current offers?'},
-      {id:'CG_5', q:'Are POS tent cards as per the latest communication?'},
-      {id:'CG_6', q:'Are menu boards/DMB as per the latest communication?'},
-      {id:'CG_7', q:'Does the café have a welcoming environment (music, lighting, AC, aroma)?'},
-      {id:'CG_8', q:'Are washrooms cleaned and the checklist updated?'},
-      {id:'CG_9', q:'Is the FDU counter neat, fully stocked, and set as per the planogram?'},
-      {id:'CG_10', q:'Does the merch rack follow VM guidelines and attract attention?'},
-      {id:'CG_11', q:'Is staff grooming (uniform, jewellery, hair and makeup) as per standards?'},
-      {id:'CG_12', q:'Are all seating, furniture, and stations tidy and organized?'},
-      {id:'CG_13', q:'Is the engine area clean and ready for operations?'}
+      { id: 'CG_1', q: 'Is the store front area clean and maintained?' },
+      { id: 'CG_2', q: 'Is the signage clean and are all lights functioning?' },
+      { id: 'CG_3', q: 'Are the glass and doors smudge-free?' },
+      { id: 'CG_4', q: 'Do promotional displays reflect current offers?' },
+      { id: 'CG_5', q: 'Are POS tent cards as per the latest communication?' },
+      { id: 'CG_6', q: 'Are menu boards/DMB as per the latest communication?' },
+      { id: 'CG_7', q: 'Does the café have a welcoming environment (music, lighting, AC, aroma)?' },
+      { id: 'CG_8', q: 'Are washrooms cleaned and the checklist updated?' },
+      { id: 'CG_9', q: 'Is the FDU counter neat, fully stocked, and set as per the planogram?' },
+      { id: 'CG_10', q: 'Does the merch rack follow VM guidelines and attract attention?' },
+      { id: 'CG_11', q: 'Is staff grooming (uniform, jewellery, hair and makeup) as per standards?' },
+      { id: 'CG_12', q: 'Are all seating, furniture, and stations tidy and organized?' },
+      { id: 'CG_13', q: 'Is the engine area clean and ready for operations?' }
     ]
   },
-  { 
-    id: 'OTA', 
-    title: 'Order Taking Assistance', 
+  {
+    id: 'OTA',
+    title: 'Order Taking Assistance',
     items: [
-      {id:'OTA_1', q:'Is suggestive selling happening at the POS?'},
-      {id:'OTA_2', q:'Is the POS partner updated on the latest promos and item availability?'},
-      {id:'OTA_3', q:'Has order-taking time been recorded for 5 customers?'},
-      {id:'OTA_4', q:'Is there sufficient cash and change at the POS?'},
-      {id:'OTA_5', q:'Are valid licenses displayed and expiries checked (medical reports)?'},
-      {id:'OTA_6', q:'Are cash audits completed and verified with the logbook?'},
-      {id:'OTA_7', q:'Are daily banking reports tallied?'},
-      {id:'OTA_8', q:'Has CPI been reviewed through the FAME pilot?'},
-      {id:'OTA_9', q:'Are Swiggy/Zomato metrics (RDC, MFR, visibility) reviewed, and are Food Lock on LS and stock control on UrbanPiper managed per stock availability/opening inventory?'},
-      {id:'OTA_10', q:'Are all food and drinks served as per SOP?'},
-      {id:'OTA_11', q:'Are food orders placed based on the 4-week sales trend?'}
+      { id: 'OTA_1', q: 'Is suggestive selling happening at the POS?' },
+      { id: 'OTA_2', q: 'Is the POS partner updated on the latest promos and item availability?' },
+      { id: 'OTA_3', q: 'Has order-taking time been recorded for 5 customers?' },
+      { id: 'OTA_4', q: 'Is there sufficient cash and change at the POS?' },
+      { id: 'OTA_5', q: 'Are valid licenses displayed and expiries checked (medical reports)?' },
+      { id: 'OTA_6', q: 'Are cash audits completed and verified with the logbook?' },
+      { id: 'OTA_7', q: 'Are daily banking reports tallied?' },
+      { id: 'OTA_8', q: 'Has CPI been reviewed through the FAME pilot?' },
+      { id: 'OTA_9', q: 'Are Swiggy/Zomato metrics (RDC, MFR, visibility) reviewed, and are Food Lock on LS and stock control on UrbanPiper managed per stock availability/opening inventory?' },
+      { id: 'OTA_10', q: 'Are all food and drinks served as per SOP?' },
+      { id: 'OTA_11', q: 'Are food orders placed based on the 4-week sales trend?' }
     ]
   },
-  { 
-    id: 'FAS', 
-    title: 'Friendly & Accurate Service', 
+  {
+    id: 'FAS',
+    title: 'Friendly & Accurate Service',
     items: [
-      {id:'FAS_1', q:'Is equipment cleaned and maintained?'},
-      {id:'FAS_2', q:'Are temperature checks done with the Therma Pen and logs updated?'},
-      {id:'FAS_3', q:'Is documentation (GRN, RSTN, STN & TO) completed?'},
-      {id:'FAS_4', q:'Is fast-moving SKU availability checked and validated with LS?'},
-      {id:'FAS_5', q:'Is the thawing chart validated against actual thawing?'},
-      {id:'FAS_6', q:'Are deployment roles clear, with coaching and appreciation done by the MOD?'},
-      {id:'FAS_7', q:'Are there no broken/unused tools stored in the store?'},
-      {id:'FAS_8', q:'Is garbage segregated properly (wet/dry)?'},
-      {id:'FAS_9', q:'Are LTO products served as per standards?'},
-      {id:'FAS_10', q:'Is the coffee and food dial-in process followed?'},
-      {id:'FAS_11', q:'Are R.O.A.S.T. and app orders executed accurately?'},
-      {id:'FAS_12', q:'Have 5 order service times been validated?'},
-      {id:'FAS_13', q:'Have open maintenance-related points been reviewed?'}
+      { id: 'FAS_1', q: 'Is equipment cleaned and maintained?' },
+      { id: 'FAS_2', q: 'Are temperature checks done with the Therma Pen and logs updated?' },
+      { id: 'FAS_3', q: 'Is documentation (GRN, RSTN, STN & TO) completed?' },
+      { id: 'FAS_4', q: 'Is fast-moving SKU availability checked and validated with LS?' },
+      { id: 'FAS_5', q: 'Is the thawing chart validated against actual thawing?' },
+      { id: 'FAS_6', q: 'Are deployment roles clear, with coaching and appreciation done by the MOD?' },
+      { id: 'FAS_7', q: 'Are there no broken/unused tools stored in the store?' },
+      { id: 'FAS_8', q: 'Is garbage segregated properly (wet/dry)?' },
+      { id: 'FAS_9', q: 'Are LTO products served as per standards?' },
+      { id: 'FAS_10', q: 'Is the coffee and food dial-in process followed?' },
+      { id: 'FAS_11', q: 'Are R.O.A.S.T. and app orders executed accurately?' },
+      { id: 'FAS_12', q: 'Have 5 order service times been validated?' },
+      { id: 'FAS_13', q: 'Have open maintenance-related points been reviewed?' }
     ]
   },
-  { 
-    id: 'FWS', 
-    title: 'Feedback with Solution', 
+  {
+    id: 'FWS',
+    title: 'Feedback with Solution',
     items: [
-      {id:'FWS_1', q:'Has COGS been reviewed, with actions in place per last month P&L feedback?'},
-      {id:'FWS_2', q:'Have BSC targets vs achievements been reviewed?'},
-      {id:'FWS_3', q:'Has people budget vs actuals (labour cost/bench planning) been reviewed?'},
-      {id:'FWS_4', q:'Has variance in stock (physical vs system) been verified?'},
-      {id:'FWS_5', q:'Have the top 10 wastage items been reviewed?'},
-      {id:'FWS_6', q:'Have store utilities (units, chemical use) been reviewed?'},
-      {id:'FWS_7', q:'Have shift targets, briefings, and goal tracking been conducted?'},
-      {id:'FWS_8', q:'Have new staff training and bench plans been reviewed?'},
-      {id:'FWS_9', q:'Have Training and QA audits been reviewed?'},
-      {id:'FWS_10', q:'Has the duty roster (off/coff, ELCL, tenure) been checked and attendance ensured as per ZingHR?'},
-      {id:'FWS_11', q:'Have temperature and thawing logs been validated?'},
-      {id:'FWS_12', q:'Have audit and data findings been cross-checked with store observations?'},
-      {id:'FWS_13', q:'Is the pest control layout updated?'}
+      { id: 'FWS_1', q: 'Has COGS been reviewed, with actions in place per last month P&L feedback?' },
+      { id: 'FWS_2', q: 'Have BSC targets vs achievements been reviewed?' },
+      { id: 'FWS_3', q: 'Has people budget vs actuals (labour cost/bench planning) been reviewed?' },
+      { id: 'FWS_4', q: 'Has variance in stock (physical vs system) been verified?' },
+      { id: 'FWS_5', q: 'Have the top 10 wastage items been reviewed?' },
+      { id: 'FWS_6', q: 'Have store utilities (units, chemical use) been reviewed?' },
+      { id: 'FWS_7', q: 'Have shift targets, briefings, and goal tracking been conducted?' },
+      { id: 'FWS_8', q: 'Have new staff training and bench plans been reviewed?' },
+      { id: 'FWS_9', q: 'Have Training and QA audits been reviewed?' },
+      { id: 'FWS_10', q: 'Has the duty roster (off/coff, ELCL, tenure) been checked and attendance ensured as per ZingHR?' },
+      { id: 'FWS_11', q: 'Have temperature and thawing logs been validated?' },
+      { id: 'FWS_12', q: 'Have audit and data findings been cross-checked with store observations?' },
+      { id: 'FWS_13', q: 'Is the pest control layout updated?' }
     ]
   },
-  { 
-    id: 'ENJ', 
-    title: 'Enjoyable Experience', 
+  {
+    id: 'ENJ',
+    title: 'Enjoyable Experience',
     items: [
-      {id:'ENJ_1', q:'Have 2 new and 2 repeat customers been engaged, with feedback documented?'},
-      {id:'ENJ_2', q:'Are seating and stations adjusted as per customer requirements?'},
-      {id:'ENJ_3', q:'Is the team proactively assisting customers?'},
-      {id:'ENJ_4', q:'Is CCTV checked to monitor customer service during peak hours?'},
-      {id:'ENJ_5', q:'Is CCTV backup (minimum 60 days) in place and are black spots checked?'},
-      {id:'ENJ_6', q:'Is opening/closing footage reviewed for correct practices?'},
-      {id:'ENJ_7', q:'Are there no personal items/clutter in guest areas, with belongings kept in lockers/designated places?'}
+      { id: 'ENJ_1', q: 'Have 2 new and 2 repeat customers been engaged, with feedback documented?' },
+      { id: 'ENJ_2', q: 'Are seating and stations adjusted as per customer requirements?' },
+      { id: 'ENJ_3', q: 'Is the team proactively assisting customers?' },
+      { id: 'ENJ_4', q: 'Is CCTV checked to monitor customer service during peak hours?' },
+      { id: 'ENJ_5', q: 'Is CCTV backup (minimum 60 days) in place and are black spots checked?' },
+      { id: 'ENJ_6', q: 'Is opening/closing footage reviewed for correct practices?' },
+      { id: 'ENJ_7', q: 'Are there no personal items/clutter in guest areas, with belongings kept in lockers/designated places?' }
     ]
   },
-  { 
-    id: 'EX', 
-    title: 'Enthusiastic Exit', 
+  {
+    id: 'EX',
+    title: 'Enthusiastic Exit',
     items: [
-      {id:'EX_1', q:'Are there no unresolved issues at exits?'},
-      {id:'EX_2', q:'Is the final interaction cheerful and courteous?'},
-      {id:'EX_3', q:'Has a consolidated action plan been created with the Store Manager?'},
-      {id:'EX_4', q:'Have top performers been recognized?'},
-      {id:'EX_5', q:'Have wins been celebrated and improvement areas communicated?'},
-      {id:'EX_6', q:'Has the team been motivated for ongoing improvement?'}
+      { id: 'EX_1', q: 'Are there no unresolved issues at exits?' },
+      { id: 'EX_2', q: 'Is the final interaction cheerful and courteous?' },
+      { id: 'EX_3', q: 'Has a consolidated action plan been created with the Store Manager?' },
+      { id: 'EX_4', q: 'Have top performers been recognized?' },
+      { id: 'EX_5', q: 'Have wins been celebrated and improvement areas communicated?' },
+      { id: 'EX_6', q: 'Has the team been motivated for ongoing improvement?' }
     ]
   },
-  { 
-    id: 'SHLP', 
-    title: 'SHLP Certification Tool', 
+  {
+    id: 'SHLP',
+    title: 'SHLP Certification Tool',
     items: [
       // Store Readiness
-      {id:'SHLP_1', q:'Complete Opening, Mid, and Closing checklists'},
-      {id:'SHLP_2', q:'Ensure store readiness before opening'},
-      {id:'SHLP_3', q:'VM of food case & merchandise wall'},
-      {id:'SHLP_4', q:'Marketing & promo collaterals'},
-      {id:'SHLP_5', q:'Complete all closing tasks'},
+      { id: 'SHLP_1', q: 'Complete Opening, Mid, and Closing checklists' },
+      { id: 'SHLP_2', q: 'Ensure store readiness before opening' },
+      { id: 'SHLP_3', q: 'VM of food case & merchandise wall' },
+      { id: 'SHLP_4', q: 'Marketing & promo collaterals' },
+      { id: 'SHLP_5', q: 'Complete all closing tasks' },
       // Product Quality & Standards
-      {id:'SHLP_6', q:'Dial-in checks for coffee & food'},
-      {id:'SHLP_7', q:'No sub-standard products served'},
-      {id:'SHLP_8', q:'SOPs & recipes followed'},
-      {id:'SHLP_9', q:'Understand COGS, wastage & variance'},
-      {id:'SHLP_10', q:'Sampling & coffee tasting'},
+      { id: 'SHLP_6', q: 'Dial-in checks for coffee & food' },
+      { id: 'SHLP_7', q: 'No sub-standard products served' },
+      { id: 'SHLP_8', q: 'SOPs & recipes followed' },
+      { id: 'SHLP_9', q: 'Understand COGS, wastage & variance' },
+      { id: 'SHLP_10', q: 'Sampling & coffee tasting' },
       // Cash & Administration
-      {id:'SHLP_11', q:'Petty cash, float & safe check'},
-      {id:'SHLP_12', q:'Cash log book handover'},
-      {id:'SHLP_13', q:'Arrange POS float/change'},
-      {id:'SHLP_14', q:'GRN & petty cash entries'},
-      {id:'SHLP_15', q:'Ordering flow/schedule'},
+      { id: 'SHLP_11', q: 'Petty cash, float & safe check' },
+      { id: 'SHLP_12', q: 'Cash log book handover' },
+      { id: 'SHLP_13', q: 'Arrange POS float/change' },
+      { id: 'SHLP_14', q: 'GRN & petty cash entries' },
+      { id: 'SHLP_15', q: 'Ordering flow/schedule' },
       // Team Management
-      {id:'SHLP_16', q:'Team briefing'},
-      {id:'SHLP_17', q:'Shift goals & targets'},
-      {id:'SHLP_18', q:'Motivate team to follow standards'},
-      {id:'SHLP_19', q:'Plan team breaks'},
-      {id:'SHLP_20', q:'Identify bottlenecks & support'},
-      {id:'SHLP_21', q:'Recognize top performers'},
-      {id:'SHLP_22', q:'Task-specific feedback'},
-      {id:'SHLP_23', q:'Share inputs with SM'},
+      { id: 'SHLP_16', q: 'Team briefing' },
+      { id: 'SHLP_17', q: 'Shift goals & targets' },
+      { id: 'SHLP_18', q: 'Motivate team to follow standards' },
+      { id: 'SHLP_19', q: 'Plan team breaks' },
+      { id: 'SHLP_20', q: 'Identify bottlenecks & support' },
+      { id: 'SHLP_21', q: 'Recognize top performers' },
+      { id: 'SHLP_22', q: 'Task-specific feedback' },
+      { id: 'SHLP_23', q: 'Share inputs with SM' },
       // Operations & Availability
-      {id:'SHLP_24', q:'Product availability monitoring'},
-      {id:'SHLP_25', q:'Lean period training'},
-      {id:'SHLP_26', q:'Peak period utilisation'},
-      {id:'SHLP_27', q:'Deployment adjustment'},
-      {id:'SHLP_28', q:'Shift priority changes'},
-      {id:'SHLP_29', q:'Receiving/storing/thawing'},
-      {id:'SHLP_30', q:'Remove thawing products'},
+      { id: 'SHLP_24', q: 'Product availability monitoring' },
+      { id: 'SHLP_25', q: 'Lean period training' },
+      { id: 'SHLP_26', q: 'Peak period utilisation' },
+      { id: 'SHLP_27', q: 'Deployment adjustment' },
+      { id: 'SHLP_28', q: 'Shift priority changes' },
+      { id: 'SHLP_29', q: 'Receiving/storing/thawing' },
+      { id: 'SHLP_30', q: 'Remove thawing products' },
       // Safety & Compliance
-      {id:'SHLP_31', q:'Key handling & handover'},
-      {id:'SHLP_32', q:'Lost & Found SOP'},
-      {id:'SHLP_33', q:'Maintenance logging'},
+      { id: 'SHLP_31', q: 'Key handling & handover' },
+      { id: 'SHLP_32', q: 'Lost & Found SOP' },
+      { id: 'SHLP_33', q: 'Maintenance logging' },
       // Business Acumen
-      {id:'SHLP_34', q:'Sales analysis (WoW, MoM – ADS, ADT, FIPT, LTO)'},
-      {id:'SHLP_35', q:'BSC understanding'},
-      {id:'SHLP_36', q:'Controllables (EB units, COGS)'}
+      { id: 'SHLP_34', q: 'Sales analysis (WoW, MoM – ADS, ADT, FIPT, LTO)' },
+      { id: 'SHLP_35', q: 'BSC understanding' },
+      { id: 'SHLP_36', q: 'Controllables (EB units, COGS)' }
     ]
   }
 ];
@@ -198,13 +198,13 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
   const { config, loading: configLoading } = useConfig();
   const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
   const HR_PERSONNEL = config?.HR_PERSONNEL || DEFAULT_HR_PERSONNEL;
-  
+
   // Use config data if available, otherwise fall back to hardcoded SECTIONS
   const sections = config?.CHECKLISTS?.OPERATIONS || SECTIONS;
-  
+
   // Load comprehensive mapping from Google Sheets
   const { mapping: compStoreMapping, loading: mappingLoading } = useComprehensiveMapping();
-  
+
   const [responses, setResponses] = useState<Record<string, string>>(() => {
     try {
       return JSON.parse(localStorage.getItem('operations_checklist_responses') || '{}');
@@ -215,23 +215,23 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
 
   const [metadata, setMetadata] = useState<ChecklistMeta>(() => {
     let stored = {};
-    try { 
-      stored = JSON.parse(localStorage.getItem('operations_checklist_metadata') || '{}'); 
-    } catch(e) {}
-    
+    try {
+      stored = JSON.parse(localStorage.getItem('operations_checklist_metadata') || '{}');
+    } catch (e) { }
+
     const urlParams = new URLSearchParams(window.location.search);
     // Look for EMPID in URL first, then fall back to other params
     const empId = urlParams.get('EMPID') || urlParams.get('empid') || urlParams.get('amId') || urlParams.get('am_id') || urlParams.get('r') || (stored as any).amId || '';
     const amName = urlParams.get('amName') || urlParams.get('am_name') || (stored as any).amName || '';
-    
+
     const findAMById = (id: string) => {
       if (!id) return null;
       return AREA_MANAGERS.find(am => am.id === id || am.id.toLowerCase() === id.toLowerCase());
     };
-    
+
     let finalAmName = amName;
     let finalAmId = empId;
-    
+
     if (empId) {
       const amPerson = findAMById(empId);
       if (amPerson) {
@@ -245,7 +245,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         finalAmId = amPerson.id;
       }
     }
-    
+
     return {
       hrName: (stored as any).hrName || '',
       hrId: (stored as any).hrId || '',
@@ -287,22 +287,22 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     const checkUrlForEmpId = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const empIdFromUrl = urlParams.get('EMPID') || urlParams.get('empid');
-      
+
       if (empIdFromUrl) {
         const normalizeId = (v: any) => (v || '').toString().trim().toUpperCase();
         const empIdNorm = normalizeId(empIdFromUrl);
         const currentAmNorm = normalizeId(metadata.amId);
-        
+
         // Only update if EMPID has changed
         if (empIdNorm !== currentAmNorm) {
           const amPerson = AREA_MANAGERS.find(am => normalizeId(am.id) === empIdNorm);
-          
+
           if (amPerson) {
             console.log('🔄 EMPID changed in URL:', empIdFromUrl, '→ Updating AM to:', amPerson.name);
-            
+
             // Clear localStorage to prevent stale data
             localStorage.removeItem('operations_checklist_metadata');
-            
+
             // Reset all dependent fields and update AM
             setMetadata(prev => ({
               ...prev,
@@ -319,29 +319,29 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
               menuType: '',
               priceGroup: ''
             }));
-            
+
             // Reset all search terms to clear UI
             setAmSearchTerm(amPerson.name);
             setHrSearchTerm('');
             setTrainerSearchTerm('');
             setStoreSearchTerm('');
-            
+
             console.log('✅ Reset HR, Trainer, and Store fields due to EMPID change');
           }
         }
       }
     };
-    
+
     // Check on mount and when component updates
     checkUrlForEmpId();
-    
+
     // Listen for URL changes (browser back/forward, pushState, replaceState)
     const handlePopState = () => checkUrlForEmpId();
     window.addEventListener('popstate', handlePopState);
-    
+
     // Also check periodically in case URL changes without popstate event
     const intervalId = setInterval(checkUrlForEmpId, 1000);
-    
+
     return () => {
       window.removeEventListener('popstate', handlePopState);
       clearInterval(intervalId);
@@ -353,22 +353,22 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     if (metadata.amId && compStoreMapping.length > 0 && !metadata.hrId && !metadata.trainerId) {
       const normalizeId = (v: any) => (v || '').toString().trim().toUpperCase();
       const amIdNorm = normalizeId(metadata.amId);
-      
+
       // Find first store for this AM to get HR and Trainer
       const amStore = compStoreMapping.find((row: any) => normalizeId(row['AM']) === amIdNorm);
-      
+
       if (amStore) {
         console.log('🔍 Store data for AM:', amStore);
         console.log('🔍 All keys in amStore:', Object.keys(amStore));
-        
+
         // Get HR details
         const hrbpId = amStore['HRBP'] || amStore['HRBP 1 ID'] || '';
         const hrDetails = HR_PERSONNEL.find(hr => normalizeId(hr.id) === normalizeId(hrbpId));
-        
+
         // Get Trainer details - check multiple possible column names
         const trainerIdFromSheet = amStore['Trainer'] || amStore['Trainer 1'] || amStore['Trainer1'] || '';
         const trainerNameFromSheet = amStore['Trainer 1 Name'] || amStore['Trainer1Name'] || amStore['Trainer Name'] || amStore['TrainerName'] || '';
-        
+
         console.log('🔍 Trainer ID from sheet:', trainerIdFromSheet);
         console.log('🔍 Trainer name from sheet:', trainerNameFromSheet);
         console.log('🔍 Available trainer columns:', {
@@ -379,11 +379,11 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
           'Trainer Name': amStore['Trainer Name'],
           'TrainerName': amStore['TrainerName']
         });
-        
+
         // Trainer name overrides mapping
         const trainerNameOverrides: Record<string, string> = {
           H1278: 'Viraj Vijay Mahamunkar',
-          H1697: 'Sheldon Antonio Xavier DSouza', 
+          H1697: 'Sheldon Antonio Xavier DSouza',
           H1761: 'Mahadev Nayak',
           H2155: 'Jagruti Narendra Bhanushali',
           H2595: 'Kailash Singh',
@@ -395,7 +395,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
           H3786: 'Oviya',
           H701: 'Mallika M'
         };
-        
+
         // Determine trainer details - prefer name from sheet, fallback to ID with override
         let trainerDetails = null;
         if (trainerNameFromSheet) {
@@ -404,7 +404,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
           const resolvedName = trainerNameOverrides[trainerIdFromSheet] || trainerIdFromSheet;
           trainerDetails = { id: trainerIdFromSheet, name: resolvedName };
         }
-        
+
         if (hrDetails || trainerDetails) {
           setMetadata(prev => ({
             ...prev,
@@ -413,10 +413,10 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
             trainerId: trainerDetails?.id || '',
             trainerName: trainerDetails?.name || ''
           }));
-          
+
           if (hrDetails) setHrSearchTerm(hrDetails.name);
           if (trainerDetails) setTrainerSearchTerm(trainerDetails.name);
-          
+
           console.log('✅ Auto-filled from EMPID → HR:', hrDetails?.name, '| Trainer:', trainerDetails?.name, '(ID:', trainerDetails?.id, ')');
         }
       }
@@ -443,7 +443,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
   const [showAmDropdown, setShowAmDropdown] = useState(false);
   const [showTrainerDropdown, setShowTrainerDropdown] = useState(false);
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
-  
+
   // Submission state
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -452,7 +452,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
   useEffect(() => {
     try {
       localStorage.setItem('operations_checklist_responses', JSON.stringify(responses));
-    } catch (e) {}
+    } catch (e) { }
 
     const { score, maxScore, percentage } = calculateScore();
     const totalQuestions = sections.reduce((acc, section) => acc + section.items.length, 0);
@@ -476,7 +476,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
   // Trainer name overrides from comprehensive mapping
   const trainerNameOverrides: Record<string, string> = {
     H1278: 'Viraj Vijay Mahamunkar',
-    H1697: 'Sheldon Antonio Xavier DSouza', 
+    H1697: 'Sheldon Antonio Xavier DSouza',
     H1761: 'Mahadev Nayak',
     H2155: 'Jagruti Narendra Bhanushali',
     H2595: 'Kailash Singh',
@@ -507,7 +507,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
   // Extract stores from comprehensive store mapping - filtered by AM's region
   const uniqueStores = useMemo(() => {
     if (compStoreMapping.length === 0) return [];
-    
+
     // Get AM's region if AM is selected
     let amRegion = '';
     if (metadata.amId) {
@@ -519,7 +519,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         console.log('📍 AM Region detected:', amRegion);
       }
     }
-    
+
     const stores = compStoreMapping
       .filter((row: any) => {
         // If AM is identified, filter stores by AM's region
@@ -545,28 +545,28 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     if (metadata.storeId && compStoreMapping.length > 0) {
       const normalizeId = (v: any) => (v || '').toString().trim().toUpperCase();
       const storeIdNorm = normalizeId(metadata.storeId);
-      
+
       // Find store in comprehensive mapping
-      const storeData = compStoreMapping.find((row: any) => 
+      const storeData = compStoreMapping.find((row: any) =>
         normalizeId(row['Store ID']) === storeIdNorm
       );
-      
+
       if (storeData) {
         console.log('🏪 Auto-filling from Store_mapping:', storeData);
-        
+
         // Get AM details
         const amId = storeData['AM'] || storeData['Area Manager ID'] || '';
         const amDetails = AREA_MANAGERS.find(am => normalizeId(am.id) === normalizeId(amId));
-        
+
         // Get Trainer details - handle comma-separated IDs (take first one)
         const trainerIds = (storeData['Trainer'] || '').split(',').map((id: string) => id.trim()).filter(Boolean);
         const trainerId = trainerIds[0] || '';
         const trainerDetails = trainerId ? (TRAINER_PERSONNEL.find(t => normalizeId(t.id) === normalizeId(trainerId)) || { id: trainerId, name: trainerId }) : null;
-        
+
         // Get HR details
         const hrbpId = storeData['HRBP'] || storeData['HRBP 1 ID'] || '';
         const hrDetails = HR_PERSONNEL.find(hr => normalizeId(hr.id) === normalizeId(hrbpId));
-        
+
         // Auto-fill ALL fields
         setMetadata(prev => ({
           ...prev,
@@ -585,12 +585,12 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
           hrId: hrDetails?.id || hrbpId,
           hrName: hrDetails?.name || hrbpId
         }));
-        
+
         // Update search terms
         if (amDetails) setAmSearchTerm(amDetails.name);
         if (trainerDetails) setTrainerSearchTerm(trainerDetails.name);
         if (hrDetails) setHrSearchTerm(hrDetails.name);
-        
+
         console.log('✅ Auto-filled: AM:', amDetails?.name, '| Trainer:', trainerDetails?.name, '| HR:', hrDetails?.name);
       }
     }
@@ -600,11 +600,11 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
   const normalizeId = (v: any) => (v || '').toString().trim().toUpperCase();
 
   // Filtering functions using comprehensive store mapping as ULTIMATE SOURCE OF TRUTH
-  
+
   // 1. Area Managers filtered by selected trainer (if any)
   const filteredAM = AREA_MANAGERS.filter(am => {
     // First apply search filter
-    const matchesSearch = amSearchTerm === '' || 
+    const matchesSearch = amSearchTerm === '' ||
       (am.name as string).toLowerCase().includes(amSearchTerm.toLowerCase()) ||
       (am.id as string).toLowerCase().includes(amSearchTerm.toLowerCase());
 
@@ -633,7 +633,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
   const filteredTrainers = () => {
     return uniqueTrainers.filter(trainer => {
       // First apply search filter
-      const matchesSearch = trainerSearchTerm === '' || 
+      const matchesSearch = trainerSearchTerm === '' ||
         (trainer.name as string).toLowerCase().includes(trainerSearchTerm.toLowerCase()) ||
         (trainer.id as string).toLowerCase().includes(trainerSearchTerm.toLowerCase());
 
@@ -659,7 +659,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
   const getStoresForAM = () => {
     return uniqueStores.filter(store => {
       // First apply search filter
-      const matchesSearch = storeSearchTerm === '' || 
+      const matchesSearch = storeSearchTerm === '' ||
         (store.name as string).toLowerCase().includes(storeSearchTerm.toLowerCase()) ||
         (store.id as string).toLowerCase().includes(storeSearchTerm.toLowerCase());
 
@@ -684,10 +684,10 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
   // 4. HR filtered by selected AM (if any)
   const filteredHR = HR_PERSONNEL.filter(hr => {
     const matchesSearch = hr.name.toLowerCase().includes(hrSearchTerm.toLowerCase());
-    
+
     // If no AM is selected, show all HR
     if (!metadata.amId) return matchesSearch;
-    
+
     // Filter HR based on selected AM using comprehensive mapping
     try {
       const amIdNorm = normalizeId(metadata.amId);
@@ -717,19 +717,19 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
   useEffect(() => {
     try {
       localStorage.setItem('operations_checklist_metadata', JSON.stringify(metadata));
-    } catch (e) {}
+    } catch (e) { }
   }, [metadata]);
 
   useEffect(() => {
     try {
       localStorage.setItem('operations_section_remarks', JSON.stringify(sectionRemarks));
-    } catch (e) {}
+    } catch (e) { }
   }, [sectionRemarks]);
 
   useEffect(() => {
     try {
       localStorage.setItem('operations_section_images', JSON.stringify(sectionImages));
-    } catch (e) {}
+    } catch (e) { }
   }, [sectionImages]);
 
   const handleResponse = (questionKey: string, value: string) => {
@@ -745,7 +745,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     // Validate all questions are answered
     const totalQuestions = sections.reduce((acc, section) => acc + section.items.length, 0);
     const answeredQuestions = Object.keys(responses).filter(key => responses[key] && responses[key] !== '').length;
-    
+
     if (answeredQuestions < totalQuestions) {
       alert(`Please answer all questions. You have answered ${answeredQuestions} out of ${totalQuestions} questions.`);
       return;
@@ -754,7 +754,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     // Validate required metadata fields
     const requiredFields = ['hrName', 'hrId', 'amName', 'amId', 'trainerName', 'storeName', 'storeId', 'bscAchievement', 'peopleOnShift', 'manpowerFulfilment', 'storeFormat', 'menuType', 'priceGroup'];
     const missingFields = requiredFields.filter(field => !metadata[field as keyof ChecklistMeta] || metadata[field as keyof ChecklistMeta].trim() === '');
-    
+
     if (missingFields.length > 0) {
       alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
       return;
@@ -765,18 +765,18 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     try {
       // Calculate scores
       const { score, maxScore, percentage } = calculateScore();
-      
+
       // Detect region from comprehensive store mapping - ULTIMATE SOURCE OF TRUTH
       let detectedRegion = '';
       try {
         if (metadata.storeId) {
           const storeIdNorm = normalizeId(metadata.storeId);
-          
+
           // Find in comprehensive mapping
-          const storeMapping = compStoreMapping.find((row: any) => 
+          const storeMapping = compStoreMapping.find((row: any) =>
             normalizeId(row['Store ID']) === storeIdNorm
           );
-          
+
           if (storeMapping) {
             detectedRegion = storeMapping['Region'] || '';
           } else {
@@ -791,7 +791,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
 
       // Prepare data for Google Sheets
       const params: any = {
-        submissionTime: new Date().toLocaleString('en-GB', {hour12: false}),
+        submissionTime: new Date().toLocaleString('en-GB', { hour12: false }),
         hrName: metadata.hrName,
         hrId: metadata.hrId,
         amName: metadata.amName,
@@ -816,14 +816,14 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
       sections.forEach((section, sectionIndex) => {
         section.items.forEach((item, itemIndex) => {
           const questionKey = `${section.id}_${item.id}`;
-          
+
           // Use item.id directly as it already has the correct format (CG_1, OTA_1, etc.)
           // Google Apps Script AI-READY expects simple format: CG_1, OTA_1, FAS_1, etc.
           const paramKey = item.id;
-          
+
           params[paramKey] = responses[questionKey] || '';
         });
-        
+
         // Add section remarks with simple format matching AI-READY script
         params[`${section.id}_remarks`] = sectionRemarks[section.id] || '';
       });
@@ -831,10 +831,10 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
       // Add section scores (matching the AI-READY script format)
       sections.forEach(section => {
         const sectionScore = getSectionScore(section);
-        const sectionPercentage = sectionScore.maxScore > 0 
-          ? Math.round((sectionScore.score / sectionScore.maxScore) * 100) 
+        const sectionPercentage = sectionScore.maxScore > 0
+          ? Math.round((sectionScore.score / sectionScore.maxScore) * 100)
           : 0;
-        
+
         // Use lowercase for score parameters to match AI-READY script
         const scoreKey = `${section.id.toLowerCase()}Score`;
         params[scoreKey] = sectionPercentage.toString();
@@ -842,13 +842,13 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
 
       // Add overall score
       params.overallScore = percentage.toString();
-      
+
       // Add remarks and image upload fields
       params.remarks = Object.values(sectionRemarks).filter(r => r).join(' | ');
       params.imageUpload = '';
 
       // Convert to URL-encoded format
-      const body = Object.keys(params).map(k => 
+      const body = Object.keys(params).map(k =>
         encodeURIComponent(k) + '=' + encodeURIComponent(params[k])
       ).join('&');
 
@@ -862,9 +862,9 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
           body,
           mode: 'no-cors' // Use no-cors mode to bypass CORS restrictions
         });
-        
+
         console.log('📤 Response received (no-cors mode)');
-        
+
         // In no-cors mode, we can't read the response but if we get here, the request was sent
         // Since you confirmed data is logging successfully, treat this as success
         console.log('✅ Checklist submitted successfully (no-cors mode)!');
@@ -874,10 +874,10 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         localStorage.removeItem('operations_section_remarks');
         localStorage.removeItem('operations_section_images');
         hapticFeedback.success();
-        
+
       } catch (fetchError) {
         console.error('❌ Fetch error:', fetchError);
-        
+
         // Even if fetch fails with CORS, the data might still be logged
         // Since you confirmed logging works, show success anyway
         console.log('⚠️ Fetch blocked by CORS, but data should be logged. Treating as success.');
@@ -926,7 +926,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
       section.items.forEach(item => {
         const questionKey = `${section.id}_${item.id}`;
         const response = responses[questionKey];
-        
+
         if (section.id === 'SHLP') {
           // SHLP questions use 0-2 scoring
           if (response === '0' || response === '1' || response === '2') {
@@ -957,7 +957,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     section.items.forEach(item => {
       const questionKey = `${section.id}_${item.id}`;
       const response = responses[questionKey];
-      
+
       if (section.id === 'SHLP') {
         // SHLP questions use 0-2 scoring
         if (response === '0' || response === '1' || response === '2') {
@@ -1265,20 +1265,20 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
                       className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600 cursor-pointer dark:text-slate-100"
                       onClick={() => {
                         // Find the full store data from compStoreMapping
-                        const storeData = compStoreMapping.find((s: any) => 
+                        const storeData = compStoreMapping.find((s: any) =>
                           s['Store Name'] === store.name || s['Store ID'] === store.id
                         );
-                        
+
                         console.log('🏪 Selected store:', store.name);
                         console.log('🔍 Store data from mapping:', storeData);
                         console.log('📋 Store Format:', storeData?.['Store Format']);
                         console.log('📋 Menu Type:', storeData?.['Menu Type']);
                         console.log('📋 Price Group:', storeData?.['Price Group']);
-                        
+
                         // Auto-populate all fields from Store_mapping sheet
-                        setMetadata(prev => ({ 
-                          ...prev, 
-                          storeName: store.name, 
+                        setMetadata(prev => ({
+                          ...prev,
+                          storeName: store.name,
                           storeId: store.id,
                           storeFormat: storeData?.['Store Format'] || '',
                           menuType: storeData?.['Menu Type'] || '',
@@ -1389,7 +1389,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
                 Section score: {sectionScore.score} / {sectionScore.maxScore}
               </div>
             </div>
-            
+
             <div className="space-y-4">
               {section.items.map((item, index) => {
                 const questionKey = `${section.id}_${item.id}`;
@@ -1403,7 +1403,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
                         {item.q}
                       </span>
                     </div>
-                    
+
                     <div className="ml-11">
                       {section.id === 'SHLP' ? (
                         // SHLP questions use 0-2 scoring system
@@ -1441,9 +1441,8 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
                                 onChange={(e) => handleResponse(questionKey, e.target.value)}
                                 className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500"
                               />
-                              <span className={`text-sm font-medium ${
-                                option === 'na' ? 'text-gray-500 dark:text-slate-400' : 'text-gray-900 dark:text-slate-100'
-                              }`}>
+                              <span className={`text-sm font-medium ${option === 'na' ? 'text-gray-500 dark:text-slate-400' : 'text-gray-900 dark:text-slate-100'
+                                }`}>
                                 {option.toUpperCase()}
                               </span>
                             </label>
@@ -1455,7 +1454,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
                 );
               })}
             </div>
-            
+
             {/* Section Remarks */}
             <div className="mt-6 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
               <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-3">
@@ -1475,7 +1474,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
               <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-3">
                 Upload Images
               </h3>
-              
+
               <div className="mb-4">
                 <input
                   type="file"

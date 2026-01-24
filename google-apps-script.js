@@ -1,3 +1,9 @@
+// Handle preflight OPTIONS requests
+function doOptions(e) {
+  return ContentService.createTextOutput('')
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+
 function doPost(e) {
   try {
     var params = (e && e.parameter) ? e.parameter : {};
@@ -241,7 +247,6 @@ function getDataFromSheet() {
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
-    console.error('Error fetching data:', error);
     return ContentService
       .createTextOutput(JSON.stringify([]))
       .setMimeType(ContentService.MimeType.JSON);

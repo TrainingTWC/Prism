@@ -2,91 +2,175 @@ import { useEffect, useState, useMemo } from 'react';
 
 type Row = any;
 
-const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbytDw7gOZXNJdJ-oS_G347Xj9NiUxBRmPfmwRZgQ3SbKqZ2OQ2D0j5nNm91vxMOrlwRQg/exec';
+// Use the same endpoint as Training Audit submissions
+const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzEyJQiAhl3pS90uvkf-3e1mIbq8WNs7-xMtuBwD6eOy85Kkx6EKpzUsHW-oxp6NAoqjQ/exec';
 
+/**
+ * Fetches raw training audit data from Google Sheets
+ */
 async function fetchGoogleSheets() {
   try {
-    const r = await fetch(GOOGLE_SHEETS_URL);
+    const url = TRAINING_AUDIT_ENDPOINT + '?action=getData';
+    
+    const r = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      redirect: 'follow',
+    });
+    
+    if (!r.ok) {
+      throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+    }
+    
     const j = await r.json();
-    const rows = j.rows || [];
     
-    // Filter out June 2025 data and normalize observed_period format
-    const processed = rows
-      .map((row: any) => {
-        let period = row.observed_period;
-        const original = period;
-        
-        // Convert date strings to YYYY-MM format
-        if (typeof period === 'string' && period.includes('/')) {
-          // Parse dates like "6/30/2025 6:30:00 PM" or "6/30/2025"
-          const match = period.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-          if (match) {
-            const month = match[1].padStart(2, '0');
-            const year = match[3];
-            period = `${year}-${month}`;
-          }
-        }
-        
-        return { ...row, observed_period: period, _original_period: original };
-      })
-      .filter((row: any) => {
-        // Exclude June 2025 data (2025-06)
-        const dateStr = row.observed_period || '';
-        const originalStr = row._original_period || '';
-        
-        // Check for June 2025 in various formats
-        const isJune2025 = 
-          dateStr === '2025-06' || 
-          dateStr.startsWith('2025-06-') || // Matches "2025-06-30T18:30:00.000Z"
-          originalStr.startsWith('2025-06-') ||
-          (typeof dateStr === 'string' && dateStr.includes('6/') && dateStr.includes('2025'));
-        
-
-        return !isJune2025;
-      });
+    // Handle both array format (direct) and object format with rows property
+    const rows = Array.isArray(j) ? j : (j.rows || []);
     
-    return processed;
+    return rows;
   } catch (e) {
-    console.error('❌ Failed to fetch from Google Sheets:', e);
+    console.error('Failed to fetch training audit data:', e);
     return [];
   }
 }
 
 /**
- * Hook to fetch data ONLY from Google Sheets
- * Returns data and loading state
+ * Aggregates raw training audit data into monthly trends
+ * Returns data in the same format as the old Monthly_Trends sheet
+ */
+function aggregateMonthlyTrends(auditRows: any[]): any[] {
+  const aggregates: Record<string, {
+    store_id: string;
+    store_name: string;
+    observed_period: string;
+    percentages: number[];
+    scores: number[];
+    count: number;
+  }> = {};
+  
+  auditRows.forEach((row) => {
+    // Parse timestamp
+    const timestamp = row['Timestamp'] || row.timestamp || row.submissionTime || row.submission_time || row.submitted_at;
+    if (!timestamp) return;
+    
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return;
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const period = `${year}-${month}`;
+    
+    // Get store info - try multiple field name variations
+    const storeId = String(row['Store ID'] || row.storeId || row.storeID || row.store_id || '').trim();
+    const storeName = String(row['Store Name'] || row.storeName || row.store_name || '').trim();
+    
+    if (!storeId) return;
+    
+    // Get score data - try multiple field name variations
+    const percentage = parseFloat(row['Percentage'] || row.percentage || row.percentageScore || row.percentage_score || '0') || 0;
+    const totalScore = parseFloat(row['Total Score'] || row.totalScore || row.total_score || row.score || '0') || 0;
+    
+    // Create unique key
+    const key = `${storeId}_${period}`;
+    
+    if (!aggregates[key]) {
+      aggregates[key] = {
+        store_id: storeId,
+        store_name: storeName,
+        observed_period: period,
+        percentages: [],
+        scores: [],
+        count: 0
+      };
+    }
+    
+    aggregates[key].percentages.push(percentage);
+    aggregates[key].scores.push(totalScore);
+    aggregates[key].count++;
+  });
+  
+  // Convert to rows format (2 rows per store-month: score and percentage)
+  const rows: any[] = [];
+  
+  Object.values(aggregates).forEach((agg) => {
+    // Calculate averages
+    const avgPercentage = agg.percentages.reduce((a, b) => a + b, 0) / agg.count;
+    const avgScore = agg.scores.reduce((a, b) => a + b, 0) / agg.count;
+    
+    // Filter out June 2025 data
+    const isJune2025 = agg.observed_period === '2025-06';
+    if (isJune2025) return;
+    
+    // Add percentage row
+    rows.push({
+      store_id: agg.store_id,
+      store_name: agg.store_name,
+      observed_period: agg.observed_period,
+      metric_name: 'percentage',
+      metric_value: Math.round(avgPercentage * 100) / 100,
+      audit_count: agg.count
+    });
+    
+    // Add score row
+    rows.push({
+      store_id: agg.store_id,
+      store_name: agg.store_name,
+      observed_period: agg.observed_period,
+      metric_name: 'score',
+      metric_value: Math.round(avgScore * 100) / 100,
+      audit_count: agg.count
+    });
+  });
+  
+  // Sort by period (newest first) then by store_id
+  rows.sort((a, b) => {
+    if (a.observed_period !== b.observed_period) {
+      return b.observed_period.localeCompare(a.observed_period);
+    }
+    return a.store_id.localeCompare(b.store_id);
+  });
+  
+  return rows;
+}
+
+/**
+ * Hook to fetch training audit data and calculate monthly trends
+ * Returns aggregated data in the same format as the old Monthly_Trends sheet
  */
 export function useTrendsData() {
-  const [sheetRows, setSheetRows] = useState<Row[]>([]);
+  const [auditRows, setAuditRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchGoogleSheets()
       .then((rows) => {
-        setSheetRows(rows);
+        setAuditRows(rows);
         setError(null);
       })
       .catch((e) => {
-        console.error('❌ useTrendsData: Error fetching Google Sheets:', e);
+        console.error('Error fetching training audit data:', e);
         setError(e.message);
-        setSheetRows([]);
+        setAuditRows([]);
       })
       .finally(() => {
         setLoading(false);
       });
   }, []);
 
-  // ONLY use Google Sheets data - no local fallback
-  const combinedRows = useMemo(() => {
-    return sheetRows;
-  }, [sheetRows]);
+  // Calculate monthly trends from raw audit data
+  const trendRows = useMemo(() => {
+    if (auditRows.length === 0) return [];
+    return aggregateMonthlyTrends(auditRows);
+  }, [auditRows]);
 
   return {
-    rows: combinedRows,
+    rows: trendRows,
     loading,
     error,
-    sheetRowsCount: sheetRows.length,
-    totalRowsCount: combinedRows.length,
+    sheetRowsCount: auditRows.length,
+    totalRowsCount: trendRows.length,
   };
 }

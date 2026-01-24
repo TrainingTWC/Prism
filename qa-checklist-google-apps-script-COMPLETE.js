@@ -23,6 +23,14 @@
  */
 
 /**
+ * Handle OPTIONS preflight requests for CORS
+ */
+function doOptions(e) {
+  return ContentService.createTextOutput('')
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+
+/**
  * Handles GET requests to return QA data for the dashboard
  */
 function doGet(e) {
@@ -114,6 +122,11 @@ function doGet(e) {
         }
       });
       
+      // Log questionRemarksJSON specifically for debugging
+      if (submission['Question Remarks JSON']) {
+        Logger.log('Found Question Remarks JSON in submission ' + (index + 1));
+      }
+      
       // Ensure numeric fields are properly formatted
       submission.scorePercentage = parseFloat(submission.scorePercentage) || 0;
       submission.totalScore = parseFloat(submission.totalScore) || 0;
@@ -128,10 +141,11 @@ function doGet(e) {
     
     Logger.log('=== QA Data GET Request Completed Successfully ===');
     
-    // Return the data as JSON
-    return ContentService
+    // Return the data as JSON with CORS headers
+    const output = ContentService
       .createTextOutput(JSON.stringify(qaSubmissions))
       .setMimeType(ContentService.MimeType.JSON);
+    return output;
       
   } catch (error) {
     Logger.log('=== ERROR in QA Data GET Request ===');
@@ -140,13 +154,14 @@ function doGet(e) {
     Logger.log('Error stack: ' + error.stack);
     console.error('Error retrieving QA data:', error);
     
-    // Return error response
-    return ContentService
+    // Return error response with CORS headers
+    const output = ContentService
       .createTextOutput(JSON.stringify({ 
         error: 'Failed to retrieve QA data', 
         message: error.toString() 
       }))
       .setMimeType(ContentService.MimeType.JSON);
+    return output;
   }
 }
 
@@ -205,9 +220,14 @@ function doPost(e) {
       try {
         questionRemarks = JSON.parse(params.questionRemarksJSON);
         Logger.log('Parsed question remarks: ' + Object.keys(questionRemarks).length + ' remarks found');
+        Logger.log('Sample remarks keys: ' + Object.keys(questionRemarks).slice(0, 5).join(', '));
+        console.log('Question remarks received: ' + Object.keys(questionRemarks).length + ' remarks');
       } catch (e) {
         Logger.log('Failed to parse questionRemarksJSON: ' + e.toString());
       }
+    } else {
+      Logger.log('WARNING: No questionRemarksJSON received in params');
+      console.log('WARNING: No questionRemarksJSON in submission');
     }
     
     // Prepare the row data
@@ -320,14 +340,15 @@ function doPost(e) {
     Logger.log('=== QA survey data successfully saved to sheet ===');
     console.log('QA survey data successfully saved to sheet');
     
-    // Return success response
-    return ContentService
+    // Return success response with CORS headers
+    const output = ContentService
       .createTextOutput(JSON.stringify({ 
         status: 'success', 
         message: 'QA survey submitted successfully',
         timestamp: timestamp 
       }))
       .setMimeType(ContentService.MimeType.JSON);
+    return output;
       
   } catch (error) {
     Logger.log('=== ERROR in QA Survey POST Submission ===');
@@ -336,13 +357,14 @@ function doPost(e) {
     Logger.log('Error stack: ' + error.stack);
     console.error('Error processing QA survey submission:', error);
     
-    // Return error response
-    return ContentService
+    // Return error response with CORS headers
+    const output = ContentService
       .createTextOutput(JSON.stringify({ 
         status: 'error', 
         message: error.toString() 
       }))
       .setMimeType(ContentService.MimeType.JSON);
+    return output;
   }
 }
 
@@ -506,7 +528,10 @@ function setupQAHeaders(sheet) {
     'Store Manager Signature',
     
     // Question Images
-    'Question Images JSON'
+    'Question Images JSON',
+    
+    // Question Remarks
+    'Question Remarks JSON'
   ];
   
   Logger.log('Total headers: ' + headers.length);
@@ -744,10 +769,11 @@ function updateSubmission(sheet, params) {
     if (targetRowIndex === -1) {
       Logger.log('ERROR: Could not find submission with timestamp: ' + params.rowId);
       Logger.log('Checked ' + (data.length - 1) + ' rows');
-      return ContentService.createTextOutput(JSON.stringify({
+      const output = ContentService.createTextOutput(JSON.stringify({
         status: 'error',
         message: 'Submission not found. Please try again or contact support.'
       })).setMimeType(ContentService.MimeType.JSON);
+      return output;
     }
     
     // Get current timestamp for update
@@ -762,9 +788,14 @@ function updateSubmission(sheet, params) {
       try {
         questionRemarks = JSON.parse(params.questionRemarksJSON);
         Logger.log('Parsed question remarks for update: ' + Object.keys(questionRemarks).length + ' remarks found');
+        Logger.log('Sample update remarks keys: ' + Object.keys(questionRemarks).slice(0, 5).join(', '));
+        console.log('Question remarks for update: ' + Object.keys(questionRemarks).length + ' remarks');
       } catch (e) {
         Logger.log('Failed to parse questionRemarksJSON: ' + e.toString());
       }
+    } else {
+      Logger.log('WARNING: No questionRemarksJSON received in update params');
+      console.log('WARNING: No questionRemarksJSON in update submission');
     }
     
     // Prepare the updated row data (same structure as create)
@@ -864,13 +895,12 @@ function updateSubmission(sheet, params) {
     range.setValues([rowData]);
     
     Logger.log('✅ Row ' + targetRowIndex + ' updated successfully');
-    Logger.log('=== UPDATE SUBMISSION Completed ===');
-    
-    return ContentService.createTextOutput(JSON.stringify({
+    const output = ContentService.createTextOutput(JSON.stringify({
       status: 'success',
       message: 'QA submission updated successfully',
       rowNumber: targetRowIndex
     })).setMimeType(ContentService.MimeType.JSON);
+    return output;
     
   } catch (error) {
     Logger.log('ERROR updating submission: ' + error.toString());

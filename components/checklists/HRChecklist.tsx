@@ -10,7 +10,7 @@ import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 import { useComprehensiveMapping } from '../../hooks/useComprehensiveMapping';
 
 // Google Sheets endpoint for logging data
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKMVh-lnNBnINskIqD10CnQHvGsW_R2SLASGSdBDN9lTGj1gznlNbHORQ/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxGp9HAph2daannyuSsO5CFcIwtJaAH-WtMPyBZ1x9g6NwWcPuNhrJWKiSJeiZW44j91g/exec';
 
 interface SurveyResponse {
   [key: string]: string;
@@ -624,24 +624,19 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
         encodeURIComponent(k) + '=' + encodeURIComponent((params as any)[k])
       ).join('&');
 
-      console.log('Submitting to Google Sheets with data:', params);
-
-      const response = await fetch(LOG_ENDPOINT, {
+      await fetch(LOG_ENDPOINT, {
         method: 'POST',
+        mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
         body
       });
 
-      if (response.ok) {
-        setSubmitted(true);
-        localStorage.removeItem('hr_resp');
-        localStorage.removeItem('hr_meta');
-        hapticFeedback.success();
-      } else {
-        throw new Error('Failed to submit survey');
-      }
+      // Survey submitted successfully (no-cors mode doesn't allow reading response)
+      setSubmitted(true);
+      localStorage.removeItem('hr_resp');
+      localStorage.removeItem('hr_meta');
+      hapticFeedback.success();
     } catch (error) {
-      console.error('Error submitting survey:', error);
       alert('Failed to submit survey. Please try again.');
       hapticFeedback.error();
     } finally {

@@ -9,7 +9,7 @@ export interface SHLPSubmission {
   'Store': string;
   'Area Manager': string;
   'Trainer': string;
-  
+
   // Individual responses (SHLP_1 to SHLP_36)
   SHLP_1: string;
   SHLP_2: string;
@@ -47,7 +47,7 @@ export interface SHLPSubmission {
   SHLP_34: string;
   SHLP_35: string;
   SHLP_36: string;
-  
+
   // Section scores
   Store_Readiness_Score: string;
   Product_Quality_Score: string;
@@ -60,19 +60,19 @@ export interface SHLPSubmission {
   Overall_Percentage: string;
 }
 
-const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzmfn6LXRXqidjqYdUjYHIkDOzXf2pJ9N-Pm1lGJqn1bddyob_wLKjdncuWjnKZKtuanA/exec';
+const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwhWnGIS-ky5zl2xOdPgrnxuuN7drOKVtt8ZxCnLneM-7sZZUsj1CiK04p7tDodmBZ9pg/exec';
 
 export const fetchSHLPData = async (): Promise<SHLPSubmission[]> => {
   try {
-    
+
     const response = await fetch(`${SHLP_ENDPOINT}?action=getSHLPData`);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const result = await response.json();
-    
+
     if (result.result === 'success' && Array.isArray(result.data)) {
       return result.data;
     } else {

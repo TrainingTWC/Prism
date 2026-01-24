@@ -417,6 +417,23 @@ export const buildQAPDF = async (
   // Fill rows from submission
   const sub = submissions[0] || {} as any;
 
+  // Parse questionRemarksJSON if it exists and merge into sub
+  if (sub.questionRemarksJSON || sub['Question Remarks JSON']) {
+    try {
+      const remarksJSON = sub.questionRemarksJSON || sub['Question Remarks JSON'];
+      const parsedRemarks = JSON.parse(remarksJSON);
+      console.log('📝 Parsed questionRemarksJSON:', parsedRemarks);
+      console.log('📝 Total remarks found:', Object.keys(parsedRemarks).length);
+      
+      // Add each remark as a field with _remark suffix
+      Object.entries(parsedRemarks).forEach(([key, value]) => {
+        sub[`${key}_remark`] = value;
+      });
+    } catch (e) {
+      console.warn('Failed to parse questionRemarksJSON:', e);
+    }
+  }
+
   QA_SECTIONS.forEach(section => {
     const prefix = SECTION_PREFIXES[section.id];
     

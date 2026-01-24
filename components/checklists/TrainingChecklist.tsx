@@ -48,226 +48,226 @@ interface SectionItem {
 }
 
 const SECTIONS = [
-  { 
-    id: 'TrainingMaterials', 
-    title: 'Training Materials', 
+  {
+    id: 'TrainingMaterials',
+    title: 'Training Materials',
     items: [
-      {id: 'TM_1', q: 'FRM available at store?', w: 1},
-      {id: 'TM_2', q: 'BRM available at store?', w: 1},
-      {id: 'TM_3', q: 'One-pager – Hot/Cue Cards displayed?', w: 1},
-      {id: 'TM_4', q: 'One-pager – Cold/Cue Cards displayed?', w: 1},
-      {id: 'TM_5', q: 'Dial-in One-pager visible?', w: 2},
-      {id: 'TM_6', q: 'New-launch learning material available?', w: 1},
-      {id: 'TM_7', q: 'COFFEE & HD Playbook in store?', w: 1},
-      {id: 'TM_8', q: 'MSDS, chemical chart and Shelf life chart available?', w: 1},
-      {id: 'TM_9', q: 'Career Progression Chart & Reward Poster displayed?', w: 1}
+      { id: 'TM_1', q: 'FRM available at store?', w: 1 },
+      { id: 'TM_2', q: 'BRM available at store?', w: 1 },
+      { id: 'TM_3', q: 'One-pager – Hot/Cue Cards displayed?', w: 1 },
+      { id: 'TM_4', q: 'One-pager – Cold/Cue Cards displayed?', w: 1 },
+      { id: 'TM_5', q: 'Dial-in One-pager visible?', w: 2 },
+      { id: 'TM_6', q: 'New-launch learning material available?', w: 1 },
+      { id: 'TM_7', q: 'COFFEE & HD Playbook in store?', w: 1 },
+      { id: 'TM_8', q: 'MSDS, chemical chart and Shelf life chart available?', w: 1 },
+      { id: 'TM_9', q: 'Career Progression Chart & Reward Poster displayed?', w: 1 }
     ]
   },
-  { 
-    id: 'LMS', 
-    title: 'LMS Usage', 
+  {
+    id: 'LMS',
+    title: 'LMS Usage',
     items: [
-      {id: 'LMS_1', q: 'Orientation & Induction completed within 3 days of joining?', w: 4, wneg: -4},
-      {id: 'LMS_2', q: 'All assessments & knowledge checks completed on LMS?', w: 4, wneg: -4},
-      {id: 'LMS_3', q: 'Team uses LMS for new info & comms?', w: 2}
+      { id: 'LMS_1', q: 'Orientation & Induction completed within 3 days of joining?', w: 4, wneg: -4 },
+      { id: 'LMS_2', q: 'All assessments & knowledge checks completed on LMS?', w: 4, wneg: -4 },
+      { id: 'LMS_3', q: 'Team uses LMS for new info & comms?', w: 2 }
     ]
   },
-  { 
-    id: 'Buddy', 
-    title: 'Buddy Trainer Availability & Capability', 
+  {
+    id: 'Buddy',
+    title: 'Buddy Trainer Availability & Capability',
     items: [
-      {id: 'Buddy_1', q: 'Does the café have at least 20% of the staff certified Buddy Trainers?', w: 2},
-      {id: 'Buddy_2', q: 'Have Buddy Trainers completed their Skill Check?', w: 2},
-      {id: 'Buddy_3', q: 'Are trainees rostered with Buddy Trainers and working in the same shift?', w: 1},
-      {id: 'Buddy_4', q: 'Have Buddy Trainers attended the BT workshop?', w: 2},
-      {id: 'Buddy_5', q: 'Can Buddy Trainers explain the 4-step training process effectively?', w: 2},
-      {id: 'Buddy_6', q: 'Can Buddy Trainers navigate Zing LMS flawlessly?', w: 1}
+      { id: 'Buddy_1', q: 'Does the café have at least 20% of the staff certified Buddy Trainers?', w: 2 },
+      { id: 'Buddy_2', q: 'Have Buddy Trainers completed their Skill Check?', w: 2 },
+      { id: 'Buddy_3', q: 'Are trainees rostered with Buddy Trainers and working in the same shift?', w: 1 },
+      { id: 'Buddy_4', q: 'Have Buddy Trainers attended the BT workshop?', w: 2 },
+      { id: 'Buddy_5', q: 'Can Buddy Trainers explain the 4-step training process effectively?', w: 2 },
+      { id: 'Buddy_6', q: 'Can Buddy Trainers navigate Zing LMS flawlessly?', w: 1 }
     ]
   },
-  { 
-    id: 'NewJoiner', 
-    title: 'New Joiner Training & Records', 
+  {
+    id: 'NewJoiner',
+    title: 'New Joiner Training & Records',
     items: [
-      {id: 'NJ_1', q: 'Is the OJT book available for all partners?', w: 1},
-      {id: 'NJ_2', q: 'Are trainees referring to the OJT book and completing their skill checks?', w: 1},
-      {id: 'NJ_3', q: 'Is training progression aligned with the Training Calendar/Plan?', w: 1},
-      {id: 'NJ_4', q: 'Are team members aware of post-barista training progressions?', w: 1},
-      {id: 'NJ_5', q: 'Have managers completed SHLP training as per the calendar?', w: 2},
-      {id: 'NJ_6', q: 'Are there at least 2 FOSTAC-certified managers in the store?', w: 2},
-      {id: 'NJ_7', q: 'Is ASM/SM training completed as per the Training Calendar?', w: 2}
+      { id: 'NJ_1', q: 'Is the OJT book available for all partners?', w: 1 },
+      { id: 'NJ_2', q: 'Are trainees referring to the OJT book and completing their skill checks?', w: 1 },
+      { id: 'NJ_3', q: 'Is training progression aligned with the Training Calendar/Plan?', w: 1 },
+      { id: 'NJ_4', q: 'Are team members aware of post-barista training progressions?', w: 1 },
+      { id: 'NJ_5', q: 'Have managers completed SHLP training as per the calendar?', w: 2 },
+      { id: 'NJ_6', q: 'Are there at least 2 FOSTAC-certified managers in the store?', w: 2 },
+      { id: 'NJ_7', q: 'Is ASM/SM training completed as per the Training Calendar?', w: 2 }
     ]
   },
-  { 
-    id: 'PartnerKnowledge', 
-    title: 'Partner Knowledge', 
+  {
+    id: 'PartnerKnowledge',
+    title: 'Partner Knowledge',
     items: [
-      {id: 'PK_1', q: 'Are team members aware of current company communications?', w: 2},
-      {id: 'PK_2', q: 'Ask a team member to conduct a Coffee Tasting & Sampling', w: 2},
-      {id: 'PK_3', q: 'Is Sampling being conducted as per the set guidelines?', w: 2},
-      {id: 'PK_4', q: 'Is Coffee Tasting engaging and effective?', w: 2},
-      {id: 'PK_5', q: 'Are team members aware of manual brewing methods and standards?', w: 2},
-      {id: 'PK_6', q: 'Are partners following grooming standards?', w: 2},
-      {id: 'PK_7', q: 'Ask questions about key topics: COFFEE, LEAST, ROAST, Dial-in, Milk Steaming, LTO, Values(RESPECT), MSDS, Chemcial Dilution, Food Safety, and Security.', w: 3, wneg: -3}
+      { id: 'PK_1', q: 'Are team members aware of current company communications?', w: 2 },
+      { id: 'PK_2', q: 'Ask a team member to conduct a Coffee Tasting & Sampling', w: 2 },
+      { id: 'PK_3', q: 'Is Sampling being conducted as per the set guidelines?', w: 2 },
+      { id: 'PK_4', q: 'Is Coffee Tasting engaging and effective?', w: 2 },
+      { id: 'PK_5', q: 'Are team members aware of manual brewing methods and standards?', w: 2 },
+      { id: 'PK_6', q: 'Are partners following grooming standards?', w: 2 },
+      { id: 'PK_7', q: 'Ask questions about key topics: COFFEE, LEAST, ROAST, Dial-in, Milk Steaming, LTO, Values(RESPECT), MSDS, Chemcial Dilution, Food Safety, and Security.', w: 3, wneg: -3 }
     ]
   },
-  { 
-    id: 'TSA_Food', 
-    title: 'TSA - Food Training Skill Assessment', 
+  {
+    id: 'TSA_Food',
+    title: 'TSA - Food Training Skill Assessment',
     items: [
-      {id: 'FOOD_EMPLOYEE', q: 'Employee Name and ID', w: 0, section: 'Employee Information', type: 'employee'},
+      { id: 'FOOD_EMPLOYEE', q: 'Employee Name and ID', w: 0, section: 'Employee Information', type: 'employee' },
       // Personal Hygiene
-      {id: 'PH_1', q: 'Well-groomed as per TWC standards (uniform, nails, hair)', w: 1, section: 'Personal Hygiene'},
-      {id: 'PH_2', q: 'Washed and sanitized hands every 30 mins', w: 1, section: 'Personal Hygiene'},
-      {id: 'PH_3', q: 'Wears gloves or avoids direct food contact', w: 1, section: 'Personal Hygiene'},
-      
+      { id: 'PH_1', q: 'Well-groomed as per TWC standards (uniform, nails, hair)', w: 1, section: 'Personal Hygiene' },
+      { id: 'PH_2', q: 'Washed and sanitized hands every 30 mins', w: 1, section: 'Personal Hygiene' },
+      { id: 'PH_3', q: 'Wears gloves or avoids direct food contact', w: 1, section: 'Personal Hygiene' },
+
       // Station Readiness  
-      {id: 'SR_1', q: 'All ingredients available for the day', w: 1, section: 'Station Readiness'},
-      {id: 'SR_2', q: 'All smallware available & in correct use', w: 1, section: 'Station Readiness'},
-      {id: 'SR_3', q: 'Station cleaned and sanitized', w: 1, section: 'Station Readiness'},
-      {id: 'SR_4', q: 'Station and smallware organized and clean', w: 1, section: 'Station Readiness'},
-      {id: 'SR_5', q: 'Clean dusters available at the station', w: 1, section: 'Station Readiness'},
-      {id: 'SR_6', q: 'FDU AT LEAST 70% stocked, clean, follows planogram', w: 1, section: 'Station Readiness'},
-      {id: 'SR_7', q: 'MRD stickers used correctly (FDU + Make Line)', w: 1, section: 'Station Readiness'},
-      {id: 'SR_8', q: 'Products stored at correct temperature', w: 1, section: 'Station Readiness'},
-      
+      { id: 'SR_1', q: 'All ingredients available for the day', w: 1, section: 'Station Readiness' },
+      { id: 'SR_2', q: 'All smallware available & in correct use', w: 1, section: 'Station Readiness' },
+      { id: 'SR_3', q: 'Station cleaned and sanitized', w: 1, section: 'Station Readiness' },
+      { id: 'SR_4', q: 'Station and smallware organized and clean', w: 1, section: 'Station Readiness' },
+      { id: 'SR_5', q: 'Clean dusters available at the station', w: 1, section: 'Station Readiness' },
+      { id: 'SR_6', q: 'FDU AT LEAST 70% stocked, clean, follows planogram', w: 1, section: 'Station Readiness' },
+      { id: 'SR_7', q: 'MRD stickers used correctly (FDU + Make Line)', w: 1, section: 'Station Readiness' },
+      { id: 'SR_8', q: 'Products stored at correct temperature', w: 1, section: 'Station Readiness' },
+
       // Food Preparation & Handling
-      {id: 'FP_1', q: 'Recipe followed per SOP (Food Item 1)', w: 1, section: 'Food Preparation & Handling'},
-      {id: 'FP_2', q: 'Build followed per SOP (Food Item 1)', w: 1, section: 'Food Preparation & Handling'},
-      {id: 'FP_3', q: 'Recipe followed per SOP (Food Item 2)', w: 1, section: 'Food Preparation & Handling'},
-      {id: 'FP_4', q: 'Build followed per SOP (Food Item 2)', w: 1, section: 'Food Preparation & Handling'},
-      {id: 'FP_5', q: 'Used correct tools for preparation', w: 1, section: 'Food Preparation & Handling'},
-      {id: 'FP_6', q: 'Used appropriate key to heat/warm food (Merry chef/Oven)', w: 1, section: 'Food Preparation & Handling'},
-      {id: 'FP_7', q: 'Gloves changed correctly (veg/non-veg switch or as per TWC guidelines)', w: 1, section: 'Food Preparation & Handling'},
-      {id: 'FP_8', q: 'Consistently follows Clean-As-You-Go', w: 1, section: 'Food Preparation & Handling'},
-      {id: 'FP_9', q: 'Correct duster used for station cleaning', w: 1, section: 'Food Preparation & Handling'},
-      {id: 'FP_10', q: 'Follows First-In-First-Out for food items', w: 1, section: 'Food Preparation & Handling'},
-      {id: 'FP_11', q: 'Products checked visually before serving', w: 1, section: 'Food Preparation & Handling'},
-      {id: 'FP_12', q: 'Chips, condiments, cutlery, etc., provided per SOP', w: 1, section: 'Food Preparation & Handling'},
-      
+      { id: 'FP_1', q: 'Recipe followed per SOP (Food Item 1)', w: 1, section: 'Food Preparation & Handling' },
+      { id: 'FP_2', q: 'Build followed per SOP (Food Item 1)', w: 1, section: 'Food Preparation & Handling' },
+      { id: 'FP_3', q: 'Recipe followed per SOP (Food Item 2)', w: 1, section: 'Food Preparation & Handling' },
+      { id: 'FP_4', q: 'Build followed per SOP (Food Item 2)', w: 1, section: 'Food Preparation & Handling' },
+      { id: 'FP_5', q: 'Used correct tools for preparation', w: 1, section: 'Food Preparation & Handling' },
+      { id: 'FP_6', q: 'Used appropriate key to heat/warm food (Merry chef/Oven)', w: 1, section: 'Food Preparation & Handling' },
+      { id: 'FP_7', q: 'Gloves changed correctly (veg/non-veg switch or as per TWC guidelines)', w: 1, section: 'Food Preparation & Handling' },
+      { id: 'FP_8', q: 'Consistently follows Clean-As-You-Go', w: 1, section: 'Food Preparation & Handling' },
+      { id: 'FP_9', q: 'Correct duster used for station cleaning', w: 1, section: 'Food Preparation & Handling' },
+      { id: 'FP_10', q: 'Follows First-In-First-Out for food items', w: 1, section: 'Food Preparation & Handling' },
+      { id: 'FP_11', q: 'Products checked visually before serving', w: 1, section: 'Food Preparation & Handling' },
+      { id: 'FP_12', q: 'Chips, condiments, cutlery, etc., provided per SOP', w: 1, section: 'Food Preparation & Handling' },
+
       // Standards Ownership
-      {id: 'SO_1', q: 'Serves only food that meets TWC standards (fresh, safe, proper temp); knows what to do if not', w: 1, section: 'Standards Ownership'}
+      { id: 'SO_1', q: 'Serves only food that meets TWC standards (fresh, safe, proper temp); knows what to do if not', w: 1, section: 'Standards Ownership' }
     ]
   },
-  { 
-    id: 'TSA_Coffee', 
-    title: 'TSA - Coffee Training Skill Assessment', 
+  {
+    id: 'TSA_Coffee',
+    title: 'TSA - Coffee Training Skill Assessment',
     items: [
-      {id: 'COFFEE_EMPLOYEE', q: 'Employee Name and ID', w: 0, section: 'Employee Information', type: 'employee'},
+      { id: 'COFFEE_EMPLOYEE', q: 'Employee Name and ID', w: 0, section: 'Employee Information', type: 'employee' },
       // Personal Hygiene
-      {id: 'PH_1', q: 'Well-groomed as per TWC standards (uniform, nails, hair)', w: 1, section: 'Personal Hygiene'},
-      {id: 'PH_2', q: 'Washed and sanitized hands', w: 1, section: 'Personal Hygiene'},
-      {id: 'PH_3', q: 'Wears gloves at CBS', w: 1, section: 'Personal Hygiene'},
-      
+      { id: 'PH_1', q: 'Well-groomed as per TWC standards (uniform, nails, hair)', w: 1, section: 'Personal Hygiene' },
+      { id: 'PH_2', q: 'Washed and sanitized hands', w: 1, section: 'Personal Hygiene' },
+      { id: 'PH_3', q: 'Wears gloves at CBS', w: 1, section: 'Personal Hygiene' },
+
       // Station Readiness  
-      {id: 'SR_1', q: 'Trainee Ensures that the station is well stocked with Milk, Warm cups, coffee beans, steaming jars, filter papers, stirrers, spoons, blenders and blending jars and scissors', w: 1, section: 'Station Readiness'},
-      {id: 'SR_2', q: 'Trainee ensures all type of milk - Fresh, Skim milk, Oats milk and Almond milk are available', w: 1, section: 'Station Readiness'},
-      {id: 'SR_3', q: 'Trainee Ensures that the leveller and temper is clean and set at the appropriate setting', w: 1, section: 'Station Readiness'},
-      {id: 'SR_4', q: 'Trainee ensure all the smallwares- Stir spoon in clean water, Frothing pitchers, appropriate pumps in syrups are available at the stations', w: 1, section: 'Station Readiness'},
-      {id: 'SR_5', q: 'Trainee ensured that the Espresso dial in is done', w: 1, section: 'Station Readiness'},
-      {id: 'SR_6', q: 'Trainee extract the perfect espresso each time', w: 1, section: 'Station Readiness'},
-      {id: 'SR_7', q: 'Trainee follows the Espresso extraction steps as defined', w: 1, section: 'Station Readiness'},
-      {id: 'SR_8', q: 'Whipped cream is prepared as per standards', w: 1, section: 'Station Readiness'},
-      {id: 'SR_9', q: 'Station and smallware organized and clean', w: 1, section: 'Station Readiness'},
-      {id: 'SR_10', q: 'Clean dusters available at the station', w: 1, section: 'Station Readiness'},
-      {id: 'SR_11', q: 'Station cleaned and sanitized', w: 1, section: 'Station Readiness'},
-      {id: 'SR_12', q: 'MRD stickers used correctly', w: 1, section: 'Station Readiness'},
-      {id: 'SR_13', q: 'Products stored at correct temperature', w: 1, section: 'Station Readiness'},
-      
+      { id: 'SR_1', q: 'Trainee Ensures that the station is well stocked with Milk, Warm cups, coffee beans, steaming jars, filter papers, stirrers, spoons, blenders and blending jars and scissors', w: 1, section: 'Station Readiness' },
+      { id: 'SR_2', q: 'Trainee ensures all type of milk - Fresh, Skim milk, Oats milk and Almond milk are available', w: 1, section: 'Station Readiness' },
+      { id: 'SR_3', q: 'Trainee Ensures that the leveller and temper is clean and set at the appropriate setting', w: 1, section: 'Station Readiness' },
+      { id: 'SR_4', q: 'Trainee ensure all the smallwares- Stir spoon in clean water, Frothing pitchers, appropriate pumps in syrups are available at the stations', w: 1, section: 'Station Readiness' },
+      { id: 'SR_5', q: 'Trainee ensured that the Espresso dial in is done', w: 1, section: 'Station Readiness' },
+      { id: 'SR_6', q: 'Trainee extract the perfect espresso each time', w: 1, section: 'Station Readiness' },
+      { id: 'SR_7', q: 'Trainee follows the Espresso extraction steps as defined', w: 1, section: 'Station Readiness' },
+      { id: 'SR_8', q: 'Whipped cream is prepared as per standards', w: 1, section: 'Station Readiness' },
+      { id: 'SR_9', q: 'Station and smallware organized and clean', w: 1, section: 'Station Readiness' },
+      { id: 'SR_10', q: 'Clean dusters available at the station', w: 1, section: 'Station Readiness' },
+      { id: 'SR_11', q: 'Station cleaned and sanitized', w: 1, section: 'Station Readiness' },
+      { id: 'SR_12', q: 'MRD stickers used correctly', w: 1, section: 'Station Readiness' },
+      { id: 'SR_13', q: 'Products stored at correct temperature', w: 1, section: 'Station Readiness' },
+
       // Coffee Preparation & Handling
-      {id: 'CP_1', q: 'Recipe followed per SOP for Cappuccino', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_2', q: 'Build followed per SOP for Cappuccino', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_3', q: 'Recipe followed per SOP for Latte', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_4', q: 'Build followed per SOP for Latte', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_5', q: 'Recipe followed per SOP for bev 3', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_6', q: 'Build followed per SOP for bev 3', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_7', q: 'Recipe followed per SOP for bev 4', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_8', q: 'Build followed per SOP for bev 4', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_9', q: 'Cappuccino is served with 70:30 milk foam ratio', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_10', q: 'Latte is served with silky smooth foam (90:10 ratio)', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_11', q: 'Milk steaming standards are followed- Milk quantity taken, clean pitcher, and fresh cold milk', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_12', q: 'Latte art is as per described standards', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_13', q: 'Used correct tools for preparation', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_14', q: 'Blenders, Shakers and frothing jugs are washed and clean after every use', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_15', q: 'Appropriate button is used to blend the beverages', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_16', q: 'Toppings and Garnishes are used as per described standards', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_17', q: 'Special instructions are read and followed while preparing the beverage', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_18', q: 'Cold brew is available and brewed as per TWC standards', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_19', q: 'Trainee is aware about the Cold brew', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_20', q: 'Trainee brews the manual brews as per TWC standards', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_21', q: 'Gloves changed correctly (after garbage handling or as per Glove usage policy)', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_22', q: 'Consistently follows Clean-As-You-Go', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_23', q: 'Correct duster used for station cleaning', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_24', q: 'Follows First-In-First-Out for food items', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_25', q: 'Products checked visually before serving', w: 1, section: 'Coffee Preparation & Handling'},
-      {id: 'CP_26', q: 'Condiments, cutlery, etc., provided per SOP', w: 1, section: 'Coffee Preparation & Handling'}
+      { id: 'CP_1', q: 'Recipe followed per SOP for Cappuccino', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_2', q: 'Build followed per SOP for Cappuccino', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_3', q: 'Recipe followed per SOP for Latte', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_4', q: 'Build followed per SOP for Latte', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_5', q: 'Recipe followed per SOP for bev 3', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_6', q: 'Build followed per SOP for bev 3', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_7', q: 'Recipe followed per SOP for bev 4', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_8', q: 'Build followed per SOP for bev 4', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_9', q: 'Cappuccino is served with 70:30 milk foam ratio', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_10', q: 'Latte is served with silky smooth foam (90:10 ratio)', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_11', q: 'Milk steaming standards are followed- Milk quantity taken, clean pitcher, and fresh cold milk', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_12', q: 'Latte art is as per described standards', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_13', q: 'Used correct tools for preparation', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_14', q: 'Blenders, Shakers and frothing jugs are washed and clean after every use', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_15', q: 'Appropriate button is used to blend the beverages', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_16', q: 'Toppings and Garnishes are used as per described standards', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_17', q: 'Special instructions are read and followed while preparing the beverage', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_18', q: 'Cold brew is available and brewed as per TWC standards', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_19', q: 'Trainee is aware about the Cold brew', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_20', q: 'Trainee brews the manual brews as per TWC standards', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_21', q: 'Gloves changed correctly (after garbage handling or as per Glove usage policy)', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_22', q: 'Consistently follows Clean-As-You-Go', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_23', q: 'Correct duster used for station cleaning', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_24', q: 'Follows First-In-First-Out for food items', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_25', q: 'Products checked visually before serving', w: 1, section: 'Coffee Preparation & Handling' },
+      { id: 'CP_26', q: 'Condiments, cutlery, etc., provided per SOP', w: 1, section: 'Coffee Preparation & Handling' }
     ]
   },
-  { 
-    id: 'TSA_CX', 
-    title: 'TSA: Customer Experience', 
+  {
+    id: 'TSA_CX',
+    title: 'TSA: Customer Experience',
     items: [
-      {id: 'CX_EMPLOYEE', q: 'Employee Name and ID', w: 0, section: 'Employee Information', type: 'employee'},
-      
+      { id: 'CX_EMPLOYEE', q: 'Employee Name and ID', w: 0, section: 'Employee Information', type: 'employee' },
+
       // Section 1: Personal Hygiene (3 Points)
-      {id: 'CX_PH_1', q: 'Grooming & Hygiene: Well-groomed as per TWC standards (uniform, nails, hair)', w: 1, section: 'Personal Hygiene'},
-      {id: 'CX_PH_2', q: 'Hand Hygiene: Washed and sanitized hands', w: 1, section: 'Personal Hygiene'},
-      {id: 'CX_PH_3', q: 'Food Handling: Wears gloves or avoids direct food contact', w: 1, section: 'Personal Hygiene'},
-      
+      { id: 'CX_PH_1', q: 'Grooming & Hygiene: Well-groomed as per TWC standards (uniform, nails, hair)', w: 1, section: 'Personal Hygiene' },
+      { id: 'CX_PH_2', q: 'Hand Hygiene: Washed and sanitized hands', w: 1, section: 'Personal Hygiene' },
+      { id: 'CX_PH_3', q: 'Food Handling: Wears gloves or avoids direct food contact', w: 1, section: 'Personal Hygiene' },
+
       // Section 2: Station Readiness (8 Points)
-      {id: 'CX_SR_1', q: 'Washrooms clean and stocked', w: 1, section: 'Station Readiness'},
-      {id: 'CX_SR_2', q: 'Service area clean (floor, chairs, tables)', w: 1, section: 'Station Readiness'},
-      {id: 'CX_SR_3', q: 'Smallwares clean (salvers, plates, cutlery)', w: 1, section: 'Station Readiness'},
-      {id: 'CX_SR_4', q: 'Furniture properly set', w: 1, section: 'Station Readiness'},
-      {id: 'CX_SR_5', q: 'POS, Bars, merchandise, menus, etc. properly stocked', w: 1, section: 'Station Readiness'},
-      {id: 'CX_SR_6', q: 'Float/change available for cash transactions', w: 1, section: 'Station Readiness'},
-      {id: 'CX_SR_7', q: 'Checks communication for product availability', w: 1, section: 'Station Readiness'},
-      {id: 'CX_SR_8', q: 'Verifies temperature, music, table cleanliness, service items, Wi-Fi, and delivery channels', w: 1, section: 'Station Readiness'},
-      
+      { id: 'CX_SR_1', q: 'Washrooms clean and stocked', w: 1, section: 'Station Readiness' },
+      { id: 'CX_SR_2', q: 'Service area clean (floor, chairs, tables)', w: 1, section: 'Station Readiness' },
+      { id: 'CX_SR_3', q: 'Smallwares clean (salvers, plates, cutlery)', w: 1, section: 'Station Readiness' },
+      { id: 'CX_SR_4', q: 'Furniture properly set', w: 1, section: 'Station Readiness' },
+      { id: 'CX_SR_5', q: 'POS, Bars, merchandise, menus, etc. properly stocked', w: 1, section: 'Station Readiness' },
+      { id: 'CX_SR_6', q: 'Float/change available for cash transactions', w: 1, section: 'Station Readiness' },
+      { id: 'CX_SR_7', q: 'Checks communication for product availability', w: 1, section: 'Station Readiness' },
+      { id: 'CX_SR_8', q: 'Verifies temperature, music, table cleanliness, service items, Wi-Fi, and delivery channels', w: 1, section: 'Station Readiness' },
+
       // Section 3: Customer Handling (12 Points)
-      {id: 'CX_CH_1', q: 'Cheerful Greeting: Cheerfully welcomes customers, follows 2-meter rule', w: 1, section: 'Customer Handling'},
-      {id: 'CX_CH_2', q: 'Builds rapport (eye contact, active listening, positive phrases)', w: 1, section: 'Customer Handling'},
-      {id: 'CX_CH_3', q: 'Assists customers to find seating or offers help when needed', w: 1, section: 'Customer Handling'},
-      {id: 'CX_CH_4', q: 'Order Taking Assistance: Upsells using customer interest and product knowledge', w: 1, section: 'Customer Handling'},
-      {id: 'CX_CH_5', q: 'Accurately enters and verifies orders in POS', w: 1, section: 'Customer Handling'},
-      {id: 'CX_CH_6', q: 'Applies applicable discounts correctly', w: 1, section: 'Customer Handling'},
-      {id: 'CX_CH_7', q: 'Processes payments accurately and handles change', w: 1, section: 'Customer Handling'},
-      {id: 'CX_CH_8', q: 'Closes transaction smoothly and provides table tag', w: 1, section: 'Customer Handling'},
-      {id: 'CX_CH_9', q: 'Thanks customer, explains order delivery, listens to feedback', w: 1, section: 'Customer Handling'},
-      {id: 'CX_CH_10', q: 'Friendly & Accurate service: Serves with attention to detail (salver balance, order name, cutlery, etc.)', w: 1, section: 'Customer Handling'},
-      {id: 'CX_CH_11', q: 'Offers follow-up service and leaves customer satisfied', w: 1, section: 'Customer Handling'},
-      {id: 'CX_CH_12', q: 'Clears table with courtesy, thanks guests on exit', w: 1, section: 'Customer Handling'},
-      
+      { id: 'CX_CH_1', q: 'Cheerful Greeting: Cheerfully welcomes customers, follows 2-meter rule', w: 1, section: 'Customer Handling' },
+      { id: 'CX_CH_2', q: 'Builds rapport (eye contact, active listening, positive phrases)', w: 1, section: 'Customer Handling' },
+      { id: 'CX_CH_3', q: 'Assists customers to find seating or offers help when needed', w: 1, section: 'Customer Handling' },
+      { id: 'CX_CH_4', q: 'Order Taking Assistance: Upsells using customer interest and product knowledge', w: 1, section: 'Customer Handling' },
+      { id: 'CX_CH_5', q: 'Accurately enters and verifies orders in POS', w: 1, section: 'Customer Handling' },
+      { id: 'CX_CH_6', q: 'Applies applicable discounts correctly', w: 1, section: 'Customer Handling' },
+      { id: 'CX_CH_7', q: 'Processes payments accurately and handles change', w: 1, section: 'Customer Handling' },
+      { id: 'CX_CH_8', q: 'Closes transaction smoothly and provides table tag', w: 1, section: 'Customer Handling' },
+      { id: 'CX_CH_9', q: 'Thanks customer, explains order delivery, listens to feedback', w: 1, section: 'Customer Handling' },
+      { id: 'CX_CH_10', q: 'Friendly & Accurate service: Serves with attention to detail (salver balance, order name, cutlery, etc.)', w: 1, section: 'Customer Handling' },
+      { id: 'CX_CH_11', q: 'Offers follow-up service and leaves customer satisfied', w: 1, section: 'Customer Handling' },
+      { id: 'CX_CH_12', q: 'Clears table with courtesy, thanks guests on exit', w: 1, section: 'Customer Handling' },
+
       // Section 4: Handling Feedback & Complaints (6 Points)
-      {id: 'CX_FC_1', q: 'What would you do if a customer leaves more than half of the product?', w: 1, section: 'Handling Feedback & Complaints'},
-      {id: 'CX_FC_2', q: 'How do you handle a customer asking for extra protein in a salad?', w: 1, section: 'Handling Feedback & Complaints'},
-      {id: 'CX_FC_3', q: 'What do you do if a customer is angry or irritated?', w: 1, section: 'Handling Feedback & Complaints'},
-      {id: 'CX_FC_4', q: 'What would you do if a customer complains about cold food/coffee?', w: 1, section: 'Handling Feedback & Complaints'},
-      {id: 'CX_FC_5', q: 'How do you manage service if the wrong item (veg/non-veg) is served?', w: 1, section: 'Handling Feedback & Complaints'},
-      {id: 'CX_FC_6', q: 'What do you do if a customer sits for a long time post meal?', w: 1, section: 'Handling Feedback & Complaints'}
+      { id: 'CX_FC_1', q: 'What would you do if a customer leaves more than half of the product?', w: 1, section: 'Handling Feedback & Complaints' },
+      { id: 'CX_FC_2', q: 'How do you handle a customer asking for extra protein in a salad?', w: 1, section: 'Handling Feedback & Complaints' },
+      { id: 'CX_FC_3', q: 'What do you do if a customer is angry or irritated?', w: 1, section: 'Handling Feedback & Complaints' },
+      { id: 'CX_FC_4', q: 'What would you do if a customer complains about cold food/coffee?', w: 1, section: 'Handling Feedback & Complaints' },
+      { id: 'CX_FC_5', q: 'How do you manage service if the wrong item (veg/non-veg) is served?', w: 1, section: 'Handling Feedback & Complaints' },
+      { id: 'CX_FC_6', q: 'What do you do if a customer sits for a long time post meal?', w: 1, section: 'Handling Feedback & Complaints' }
     ]
   },
-  { 
-    id: 'CustomerExperience', 
-    title: 'Customer Experience', 
+  {
+    id: 'CustomerExperience',
+    title: 'Customer Experience',
     items: [
-      {id: 'CX_1', q: 'Is background music at appropriate volume?', w: 1},
-      {id: 'CX_2', q: 'Is store temperature comfortable?', w: 1},
-      {id: 'CX_3', q: 'Are washrooms clean and well-maintained?', w: 1},
-      {id: 'CX_4', q: 'Is Wi-Fi available & functioning properly?', w: 1},
-      {id: 'CX_5', q: 'Are marketing & Visual Merchandise displayes correct?', w: 2},
-      {id: 'CX_6', q: 'Is store furniture clean & well-kept?', w: 1},
-      {id: 'CX_7', q: 'What do you understand by MA, CPI, QA scores?', w: 1},
-      {id: 'CX_8', q: 'What was the latest Mystery Audit score for the store?', w: 1},
-      {id: 'CX_9', q: 'Top 2 CX opportunity areas last month?', w: 1}
+      { id: 'CX_1', q: 'Is background music at appropriate volume?', w: 1 },
+      { id: 'CX_2', q: 'Is store temperature comfortable?', w: 1 },
+      { id: 'CX_3', q: 'Are washrooms clean and well-maintained?', w: 1 },
+      { id: 'CX_4', q: 'Is Wi-Fi available & functioning properly?', w: 1 },
+      { id: 'CX_5', q: 'Are marketing & Visual Merchandise displayes correct?', w: 2 },
+      { id: 'CX_6', q: 'Is store furniture clean & well-kept?', w: 1 },
+      { id: 'CX_7', q: 'What do you understand by MA, CPI, QA scores?', w: 1 },
+      { id: 'CX_8', q: 'What was the latest Mystery Audit score for the store?', w: 1 },
+      { id: 'CX_9', q: 'Top 2 CX opportunity areas last month?', w: 1 }
     ]
   },
-  { 
-    id: 'ActionPlan', 
-    title: 'Action Plan & Continuous Improvement', 
+  {
+    id: 'ActionPlan',
+    title: 'Action Plan & Continuous Improvement',
     items: [
-      {id: 'AP_1', q: 'Concerns addressed within 48hrs?', w: 1, wneg: -1},
-      {id: 'AP_2', q: 'Action points closed/work-in-progress?', w: 2},
-      {id: 'AP_3', q: 'Managers aware of action plan?', w: 2}
+      { id: 'AP_1', q: 'Concerns addressed within 48hrs?', w: 1, wneg: -1 },
+      { id: 'AP_2', q: 'Action points closed/work-in-progress?', w: 2 },
+      { id: 'AP_3', q: 'Managers aware of action plan?', w: 2 }
     ]
   }
 ];
@@ -282,35 +282,35 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
   const { directory: employeeDirectory, loading: employeeLoading } = useEmployeeDirectory();
   const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
-  
+
   // Use comprehensive mapping as data source (Google Sheets)
   const allStores = comprehensiveMapping || [];
-  
+
   // Use config data if available, otherwise fall back to hardcoded SECTIONS
   const sections = config?.CHECKLISTS?.TRAINING || SECTIONS;
-  
+
   const [responses, setResponses] = useState<Record<string, string>>(() => {
-    try { 
-      return JSON.parse(localStorage.getItem('training_resp') || '{}'); 
-    } catch (e) { 
-      return {}; 
+    try {
+      return JSON.parse(localStorage.getItem('training_resp') || '{}');
+    } catch (e) {
+      return {};
     }
   });
 
   const [meta, setMeta] = useState<TrainingMeta>(() => {
     let stored = {};
-    try { 
-      stored = JSON.parse(localStorage.getItem('training_meta') || '{}'); 
-    } catch(e) {}
-    
+    try {
+      stored = JSON.parse(localStorage.getItem('training_meta') || '{}');
+    } catch (e) { }
+
     const urlParams = new URLSearchParams(window.location.search);
     // Support multiple URL parameter names for trainer ID
     const trainerIdFromURL = urlParams.get('trainerId') || urlParams.get('trainer_id') || urlParams.get('id') || urlParams.get('hrId') || urlParams.get('EMPID') || '';
     const trainerNameFromURL = urlParams.get('trainerName') || urlParams.get('trainer_name') || urlParams.get('name') || urlParams.get('hrName') || '';
-    
+
     // If trainer is in URL, use it; otherwise use stored value
     const finalTrainerId = trainerIdFromURL || (stored as any).trainerId || '';
-    
+
     // IMPORTANT: If trainer ID from URL is different from stored, clear the stored name
     // This ensures we look up the correct name from Google Sheets for the new trainer
     let finalTrainerName = '';
@@ -322,7 +322,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       finalTrainerName = (stored as any).trainerName || '';
     }
     // Note: Trainer name will be looked up from Google Sheets in useEffect if empty
-    
+
     return {
       amName: (stored as any).amName || '',
       amId: (stored as any).amId || '',
@@ -348,7 +348,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     // Only lookup if we have trainer ID and either no name, name equals ID, or name is "#N/A" (needs lookup)
     if (meta.trainerId && allStores.length > 0 && (!meta.trainerName || meta.trainerName === meta.trainerId || meta.trainerName === '#N/A' || meta.trainerName.startsWith('#N/A'))) {
       const normalizedTrainerId = normalizeId(meta.trainerId);
-      
+
       // Look for trainer name in the store mapping (using exact Google Sheet column names)
       const storeWithTrainer = allStores.find((store: any) => {
         const trainer1Id = normalizeId(store['Trainer 1 ID'] || store['Trainer 1'] || store.Trainer || '');
@@ -356,12 +356,12 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         const trainer3Id = normalizeId(store['Trainer 3 ID'] || store['Trainer 3'] || '');
         return trainer1Id === normalizedTrainerId || trainer2Id === normalizedTrainerId || trainer3Id === normalizedTrainerId;
       });
-      
+
       if (storeWithTrainer) {
         const trainer1Id = normalizeId(storeWithTrainer['Trainer 1 ID'] || storeWithTrainer['Trainer 1'] || storeWithTrainer.Trainer || '');
         const trainer2Id = normalizeId(storeWithTrainer['Trainer 2 ID'] || storeWithTrainer['Trainer 2'] || '');
         const trainer3Id = normalizeId(storeWithTrainer['Trainer 3 ID'] || storeWithTrainer['Trainer 3'] || '');
-        
+
         let trainerName = '';
         if (trainer1Id === normalizedTrainerId) {
           trainerName = storeWithTrainer['Trainer 1 Name'] || '';
@@ -370,7 +370,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         } else if (trainer3Id === normalizedTrainerId) {
           trainerName = storeWithTrainer['Trainer 3 Name'] || '';
         }
-        
+
         if (trainerName) {
           setMeta(prev => ({
             ...prev,
@@ -386,12 +386,12 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   const [modSearchTerm, setModSearchTerm] = useState('');
   const [showModDropdown, setShowModDropdown] = useState(false);
   const [selectedModIndex, setSelectedModIndex] = useState(-1);
-  
+
   // State for employee dropdowns in TSA sections
   const [employeeSearchTerms, setEmployeeSearchTerms] = useState<Record<string, string>>({});
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState<Record<string, boolean>>({});
   const [selectedEmployeeIndex, setSelectedEmployeeIndex] = useState<Record<string, number>>({});
-  
+
   // Calculate and update stats whenever responses change
   useEffect(() => {
     if (onStatsUpdate) {
@@ -405,7 +405,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
           // Count TSA Food as one item, use automatic scoring
           total++;
           // Check if any response exists for this section
-          const hasResponse = section.items.some(item => 
+          const hasResponse = section.items.some(item =>
             responses[`${section.id}_${item.id}`] && responses[`${section.id}_${item.id}`].trim()
           );
           if (hasResponse) {
@@ -416,7 +416,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         } else if (section.id === 'TSA_Coffee') {
           // Count TSA Coffee as one item, use automatic scoring
           total++;
-          const hasResponse = section.items.some(item => 
+          const hasResponse = section.items.some(item =>
             responses[`${section.id}_${item.id}`] && responses[`${section.id}_${item.id}`].trim()
           );
           if (hasResponse) {
@@ -427,7 +427,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         } else if (section.id === 'TSA_CX') {
           // Count TSA CX as one item, use automatic scoring
           total++;
-          const hasResponse = section.items.some(item => 
+          const hasResponse = section.items.some(item =>
             responses[`${section.id}_${item.id}`] && responses[`${section.id}_${item.id}`].trim()
           );
           if (hasResponse) {
@@ -440,12 +440,12 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
           section.items.forEach(item => {
             // Skip text fields (EMP name/ID) in stats calculation
             if (item.type === 'text') return;
-            
+
             total++;
             const response = responses[`${section.id}_${item.id}`];
             if (response && response.trim()) {
               completed++;
-              
+
               // Calculate score based on response type
               if (response === 'yes' || response === 'Yes') {
                 totalScore += item.w || 1;
@@ -506,7 +506,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   // Build trainers list from comprehensive store mapping - Google Sheets only
   const uniqueTrainers = (() => {
     const trainerMap = new Map<string, string>();
-    
+
     // Collect all trainers with their names from the store mapping (using exact Google Sheet column names)
     allStores.forEach((store: any) => {
       // Trainer 1
@@ -515,14 +515,14 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       if (trainer1Id && !trainerMap.has(trainer1Id)) {
         trainerMap.set(trainer1Id, trainer1Name || trainer1Id);
       }
-      
+
       // Trainer 2
       const trainer2Id = normalizeId(store['Trainer 2 ID'] || store['Trainer 2'] || '');
       const trainer2Name = store['Trainer 2 Name'] || '';
       if (trainer2Id && !trainerMap.has(trainer2Id)) {
         trainerMap.set(trainer2Id, trainer2Name || trainer2Id);
       }
-      
+
       // Trainer 3
       const trainer3Id = normalizeId(store['Trainer 3 ID'] || store['Trainer 3'] || '');
       const trainer3Name = store['Trainer 3 Name'] || '';
@@ -530,12 +530,12 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         trainerMap.set(trainer3Id, trainer3Name || trainer3Id);
       }
     });
-    
+
     const trainers = Array.from(trainerMap.entries()).map(([id, name]) => ({
       id,
       name
     }));
-    
+
     return trainers.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
   })();
 
@@ -550,7 +550,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       'store head',
       'assistant manager'
     ];
-    
+
     // Get the region from the selected store
     let selectedStoreRegion = '';
     if (meta.storeId) {
@@ -562,7 +562,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         selectedStoreRegion = selectedStore['Region'] || selectedStore.region || '';
       }
     }
-    
+
     // Build a set of store IDs in the same region
     const storeIdsInRegion = new Set<string>();
     if (selectedStoreRegion) {
@@ -574,21 +574,21 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         }
       });
     }
-    
+
     const employees = Object.values(employeeDirectory.byId)
       .filter((emp: any) => {
         const designation = (emp.designation || '').toLowerCase().trim();
         const hasAllowedDesignation = allowedDesignations.some(allowed => designation.includes(allowed));
-        
+
         // If no store selected yet, show all managers
         if (!selectedStoreRegion) {
           return hasAllowedDesignation;
         }
-        
+
         // Filter by region - check if employee's store_code is in the same region
         const empStoreCode = normalizeId(emp.store_code || emp.location || '');
         const isInSameRegion = storeIdsInRegion.has(empStoreCode);
-        
+
         return hasAllowedDesignation && isInSameRegion;
       })
       .map((emp: any) => ({
@@ -597,7 +597,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         designation: emp.designation,
         location: emp.location
       }));
-    
+
     return employees.sort((a: any, b: any) => a.name.localeCompare(b.name));
   })();
 
@@ -637,13 +637,13 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         selectedStoreRegion = selectedStore['Region'] || selectedStore.region || '';
       }
     }
-    
+
     // If no store selected, return all employees
     if (!selectedStoreRegion) {
       console.log('TSA: No store selected, showing all employees:', allEmployees.length);
       return allEmployees.sort((a: any, b: any) => a.name.localeCompare(b.name));
     }
-    
+
     // Build a set of store IDs in the same region
     const storeIdsInRegion = new Set<string>();
     allStores.forEach((store: any) => {
@@ -654,18 +654,18 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       }
     });
     console.log('TSA Region Filter:', { region: selectedStoreRegion, storesInRegion: storeIdsInRegion.size });
-    
+
     const filteredEmployees = allEmployees.filter((emp: any) => {
       const empStoreCode = normalizeId(emp.store_code || emp.location || '');
       return storeIdsInRegion.has(empStoreCode);
     });
-    
+
     // If filtering resulted in no employees, return all employees as fallback
     if (filteredEmployees.length === 0) {
       console.log('TSA: Region filtering returned 0 employees, falling back to all employees');
       return allEmployees.sort((a: any, b: any) => a.name.localeCompare(b.name));
     }
-    
+
     console.log('TSA Filtered Employees:', filteredEmployees.length);
     return filteredEmployees.sort((a: any, b: any) => a.name.localeCompare(b.name));
   })();
@@ -691,22 +691,22 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   });
 
   // 2. Trainers - no cascading filter needed (they are the top level)
-  const filteredTrainers = uniqueTrainers.filter(trainer => 
-    trainerSearchTerm === '' || 
+  const filteredTrainers = uniqueTrainers.filter(trainer =>
+    trainerSearchTerm === '' ||
     (trainer.name as string).toLowerCase().includes(trainerSearchTerm.toLowerCase()) ||
     (trainer.id as string).toLowerCase().includes(trainerSearchTerm.toLowerCase())
   );
 
   // 2a. Auditors - same list as trainers but separate filter
-  const filteredAuditors = uniqueTrainers.filter(auditor => 
-    auditorSearchTerm === '' || 
+  const filteredAuditors = uniqueTrainers.filter(auditor =>
+    auditorSearchTerm === '' ||
     (auditor.name as string).toLowerCase().includes(auditorSearchTerm.toLowerCase()) ||
     (auditor.id as string).toLowerCase().includes(auditorSearchTerm.toLowerCase())
   );
 
   // 2b. MOD employees filtered by search term
-  const filteredModEmployees = modEmployees.filter(mod => 
-    modSearchTerm === '' || 
+  const filteredModEmployees = modEmployees.filter(mod =>
+    modSearchTerm === '' ||
     (mod.name as string).toLowerCase().includes(modSearchTerm.toLowerCase()) ||
     (mod.id as string).toLowerCase().includes(modSearchTerm.toLowerCase()) ||
     (mod.designation as string).toLowerCase().includes(modSearchTerm.toLowerCase())
@@ -715,7 +715,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   // 3. Stores filtered by selected Trainer (primary filter) or Area Manager
   const filteredStores = uniqueStores.filter(store => {
     // First apply search filter
-    const matchesSearch = storeSearchTerm === '' || 
+    const matchesSearch = storeSearchTerm === '' ||
       (store.name as string).toLowerCase().includes(storeSearchTerm.toLowerCase()) ||
       (store.id as string).toLowerCase().includes(storeSearchTerm.toLowerCase());
 
@@ -786,7 +786,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   // Auto-fill function with cascading filters (same as HR Checklist)
   const autoFillFields = (field: string, value: string) => {
     let mappingItem: any = null;
-    
+
     switch (field) {
       case 'trainer':
         // Top-level selection: set trainer and clear dependent fields.
@@ -805,7 +805,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
           }));
         }
         break;
-        
+
       case 'am':
         // Find AM from constants (MIDDLE LEVEL - clears Store only)
         {
@@ -823,7 +823,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
           }
         }
         break;
-        
+
       case 'store':
         // Find store in comprehensive store mapping from Google Sheets
         {
@@ -864,10 +864,10 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   };
 
   const [remarks, setRemarks] = useState<Record<string, string>>(() => {
-    try { 
-      return JSON.parse(localStorage.getItem('training_remarks') || '{}'); 
-    } catch (e) { 
-      return {}; 
+    try {
+      return JSON.parse(localStorage.getItem('training_remarks') || '{}');
+    } catch (e) {
+      return {};
     }
   });
 
@@ -886,7 +886,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   const [tsaCXExpanded, setTsaCXExpanded] = useState(false);
 
   // Image editing state
-  const [editingImage, setEditingImage] = useState<{sectionId: string; imageIndex: number; imageData: string} | null>(null);
+  const [editingImage, setEditingImage] = useState<{ sectionId: string; imageIndex: number; imageData: string } | null>(null);
 
   // --- Speech recognition state ---
   const [isSpeechSupported] = useState<boolean>(() => !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition));
@@ -931,8 +931,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     if (!isSpeechSupported) return;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     try {
-  const rec = new SpeechRecognition();
-  rec.lang = (navigator.language || 'en-IN');
+      const rec = new SpeechRecognition();
+      rec.lang = (navigator.language || 'en-IN');
       rec.continuous = true;
       rec.interimResults = false;
 
@@ -966,7 +966,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     return () => {
       try {
         recognitionRef.current && recognitionRef.current.stop();
-      } catch (e) {}
+      } catch (e) { }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSpeechSupported]);
@@ -1085,7 +1085,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     if (commandTimerRef.current) { window.clearInterval(commandTimerRef.current as any); commandTimerRef.current = null; }
     setCommandMode(false);
     setCommandCountdown(0);
-  setVoiceStatus('Listening (automatic)');
+    setVoiceStatus('Listening (automatic)');
   };
 
   // Floating voice blob visibility state derived from isListening/voiceStatus
@@ -1097,7 +1097,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     setShowVoiceBlob(active);
     // Do NOT auto-start recognition when entering commandMode. Use push-to-talk instead.
     if (active && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-      try { navigator.vibrate?.([30, 40, 30]); } catch {}
+      try { navigator.vibrate?.([30, 40, 30]); } catch { }
     }
   }, [isListening, voiceStatus, commandMode]);
 
@@ -1118,7 +1118,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     if (!recognitionRef.current) return;
     try {
       recognitionRef.current.stop();
-    } catch (e) {}
+    } catch (e) { }
     setPushToTalkActive(false);
     setIsListening(false);
     setVoiceStatus('Processing push-to-talk...');
@@ -1285,7 +1285,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         const re = new RegExp('\\b' + k.phrase.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '\\b', 'i');
         const m = re.exec(cmd);
         if (m && typeof m.index === 'number') matches.push({ sectionId: k.sectionId, itemId: k.itemId, index: m.index });
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Use simple heuristics around matches to determine yes/no/na
@@ -1347,7 +1347,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     tsaSection.items.forEach(item => {
       // Skip text fields (EMP name/ID) from scoring
       if (item.type === 'text') return;
-      
+
       const response = responses[`${tsaSection.id}_${item.id}`];
       if (response && response !== 'na') {
         total++;
@@ -1358,9 +1358,9 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     });
 
     if (total === 0) return 0;
-    
+
     const percentage = (correct / total) * 100;
-    
+
     // Auto-assign points based on percentage
     if (percentage >= 85) return 10;
     if (percentage >= 75) return 5;
@@ -1378,7 +1378,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     tsaSection.items.forEach(item => {
       // Skip text fields (EMP name/ID) from scoring
       if (item.type === 'text') return;
-      
+
       const response = responses[`${tsaSection.id}_${item.id}`];
       if (response && response !== 'na') {
         total++;
@@ -1389,9 +1389,9 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     });
 
     if (total === 0) return 0;
-    
+
     const percentage = (correct / total) * 100;
-    
+
     // Auto-assign points based on percentage
     if (percentage >= 85) return 10;
     if (percentage >= 75) return 5;
@@ -1409,7 +1409,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     tsaSection.items.forEach(item => {
       // Skip text fields (EMP name/ID) from scoring
       if (item.type === 'text') return;
-      
+
       const response = responses[`${tsaSection.id}_${item.id}`];
       if (response && response !== 'na') {
         total++;
@@ -1420,9 +1420,9 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     });
 
     if (total === 0) return 0;
-    
+
     const percentage = (correct / total) * 100;
-    
+
     // Auto-assign points based on percentage
     if (percentage >= 85) return 10;
     if (percentage >= 75) return 5;
@@ -1477,7 +1477,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
   const handleImageUpload = (sectionId: string, file: File) => {
     console.log('[ImageUpload] Starting upload for section:', sectionId, 'File:', file.name, 'Size:', file.size, 'Type:', file.type);
-    
+
     const reader = new FileReader();
     reader.onerror = (error) => {
       console.error('[ImageUpload] FileReader error:', error);
@@ -1491,9 +1491,9 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         alert('Failed to load image. Please try again.');
         return;
       }
-      
+
       console.log('[ImageUpload] Result length:', result.length);
-      
+
       // Compress image before storing
       const img = new Image();
       img.onerror = (error) => {
@@ -1510,13 +1510,13 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             alert('Canvas not supported on this device');
             return;
           }
-          
+
           // Limit max dimensions to reduce size
           const MAX_WIDTH = 1200;
           const MAX_HEIGHT = 1200;
           let width = img.width;
           let height = img.height;
-          
+
           if (width > height) {
             if (width > MAX_WIDTH) {
               height *= MAX_WIDTH / width;
@@ -1528,16 +1528,16 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
               height = MAX_HEIGHT;
             }
           }
-          
+
           console.log('[ImageUpload] Resizing to:', width, 'x', height);
           canvas.width = width;
           canvas.height = height;
           ctx.drawImage(img, 0, 0, width, height);
-          
+
           // Compress to JPEG with 0.7 quality
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
           console.log('[ImageUpload] Compressed size:', compressedDataUrl.length);
-          
+
           setSectionImages(prev => ({
             ...prev,
             [sectionId]: [...(prev[sectionId] || []), compressedDataUrl]
@@ -1590,13 +1590,13 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             setEditingImage(null);
             return;
           }
-          
+
           // Limit max dimensions to reduce size
           const MAX_WIDTH = 1200;
           const MAX_HEIGHT = 1200;
           let width = img.width;
           let height = img.height;
-          
+
           if (width > height) {
             if (width > MAX_WIDTH) {
               height *= MAX_WIDTH / width;
@@ -1608,15 +1608,15 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
               height = MAX_HEIGHT;
             }
           }
-          
+
           canvas.width = width;
           canvas.height = height;
           ctx.drawImage(img, 0, 0, width, height);
-          
+
           // Compress to JPEG with 0.7 quality
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
           console.log('[EditImage] Compressed data URL length:', compressedDataUrl.length);
-          
+
           setSectionImages(prev => {
             const updatedImages = [...(prev[editingImage.sectionId] || [])];
             console.log('[EditImage] Updating image at index:', editingImage.imageIndex, 'in section:', editingImage.sectionId);
@@ -1682,7 +1682,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   const handleSubmit = async () => {
     // Check if all required fields are filled
     const incompleteQuestions: string[] = [];
-    
+
     sections.forEach(section => {
       section.items.forEach(item => {
         const questionId = `${section.id}_${item.id}`;
@@ -1694,20 +1694,20 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
     if (incompleteQuestions.length > 0) {
       // Scroll to first unanswered question
-      const firstIncompleteSection = sections.find(section => 
+      const firstIncompleteSection = sections.find(section =>
         section.items.some(item => {
           const questionId = `${section.id}_${item.id}`;
           return !responses[questionId];
         })
       );
-      
+
       if (firstIncompleteSection) {
         const sectionElement = document.getElementById(`section-${firstIncompleteSection.id}`);
         if (sectionElement) {
           sectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }
-      
+
       alert(`Please answer all questions. Missing:\n${incompleteQuestions.slice(0, 3).join('\n')}${incompleteQuestions.length > 3 ? `\n... and ${incompleteQuestions.length - 3} more` : ''}`);
       return;
     }
@@ -1726,13 +1726,13 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       if (auditInfoElement) {
         auditInfoElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-      
+
       alert(`Please fill in all required audit information fields: ${missingFields.join(', ')}`);
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
       // Calculate scores
       let totalScore = 0;
@@ -1769,7 +1769,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             } else if (response === 'no' && item.wneg) {
               sectionScore += item.wneg; // Add negative score
             }
-            
+
             if (response !== 'na') {
               sectionMax += Math.abs(item.w);
             }
@@ -1823,15 +1823,15 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         if (remarks[section.id]) {
           // Convert section names to abbreviations for remarks
           const sectionAbbr = section.id === 'TrainingMaterials' ? 'TM' :
-                             section.id === 'LMS' ? 'LMS' :
-                             section.id === 'Buddy' ? 'Buddy' :
-                             section.id === 'NewJoiner' ? 'NJ' :
-                             section.id === 'PartnerKnowledge' ? 'PK' :
-                             section.id === 'TSA_Food' ? 'TSA_Food' :
-                             section.id === 'TSA_Coffee' ? 'TSA_Coffee' :
-                             section.id === 'TSA_CX' ? 'TSA_CX' :
-                             section.id === 'CustomerExperience' ? 'CX' :
-                             section.id === 'ActionPlan' ? 'AP' : section.id;
+            section.id === 'LMS' ? 'LMS' :
+              section.id === 'Buddy' ? 'Buddy' :
+                section.id === 'NewJoiner' ? 'NJ' :
+                  section.id === 'PartnerKnowledge' ? 'PK' :
+                    section.id === 'TSA_Food' ? 'TSA_Food' :
+                      section.id === 'TSA_Coffee' ? 'TSA_Coffee' :
+                        section.id === 'TSA_CX' ? 'TSA_CX' :
+                          section.id === 'CustomerExperience' ? 'CX' :
+                            section.id === 'ActionPlan' ? 'AP' : section.id;
           formData.append(`${sectionAbbr}_remarks`, remarks[section.id]);
         }
       });
@@ -1839,7 +1839,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       // Add section images as JSON
       formData.append('sectionImages', JSON.stringify(sectionImages));
 
-      const response = await fetch('https://script.google.com/macros/s/AKfycbx-Tgwhe2dboNkyWVVhYSL55RL-Lus4L6a3sZcpZ5RDz0BwZsUqcAZNQYLMFaWpqE6-iQ/exec', {
+      const response = await fetch('https://script.google.com/macros/s/AKfycbzEyJQiAhl3pS90uvkf-3e1mIbq8WNs7-xMtuBwD6eOy85Kkx6EKpzUsHW-oxp6NAoqjQ/exec', {
         method: 'POST',
         body: formData
       });
@@ -1847,10 +1847,10 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       if (response.ok) {
         setSubmitted(true);
         hapticFeedback.success();
-        
+
         // Clear the form
         localStorage.removeItem('training_resp');
-        localStorage.removeItem('training_meta');  
+        localStorage.removeItem('training_meta');
         localStorage.removeItem('training_remarks');
         localStorage.removeItem('training_section_images');
       } else {
@@ -1951,105 +1951,105 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         </div>
       )}
 
-        {/* Floating voice blob (appears when listening/wake word detected) */}
-        {showVoiceBlob && (
-          <div
-            role="status"
-            aria-live="polite"
+      {/* Floating voice blob (appears when listening/wake word detected) */}
+      {showVoiceBlob && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: 'fixed',
+            right: 20,
+            bottom: 24,
+            zIndex: 60,
+            width: 160,
+            maxWidth: '30vw',
+            background: 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(6px)',
+            boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
+            borderRadius: 28,
+            padding: '8px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10
+          }}
+        >
+          <div style={{
+            width: 14,
+            height: 14,
+            borderRadius: 14,
+            background: '#ef4444',
+            boxShadow: '0 0 12px rgba(239,68,68,0.9)',
+            animation: 'prism-voice-pulse 1200ms infinite'
+          }} aria-hidden="true" />
+          <div style={{ fontSize: 12, color: '#0f172a' }}>
+            <div style={{ fontWeight: 600 }}>Listening</div>
+            <div style={{ fontSize: 11, color: '#475569', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lastCommand || voiceStatus}</div>
+          </div>
+          <style>{`@keyframes prism-voice-pulse { 0% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.35); opacity: 0.6 } 100% { transform: scale(1); opacity: 1 } }`}</style>
+        </div>
+      )}
+      {/* Push-to-talk microphone button (hold to talk) - HIDDEN */}
+      {false && (
+        <div style={{ position: 'fixed', right: 22, bottom: 96, zIndex: 80, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end' }}>
+          <button
+            title="Hold to talk"
+            onMouseDown={(e) => { e.preventDefault(); startPushToTalk(); }}
+            onMouseUp={(e) => { e.preventDefault(); stopPushToTalk(); }}
+            onMouseLeave={(e) => { if (pushToTalkActive) stopPushToTalk(); }}
+            onTouchStart={(e) => { e.preventDefault(); startPushToTalk(); }}
+            onTouchEnd={(e) => { e.preventDefault(); stopPushToTalk(); }}
             style={{
-              position: 'fixed',
-              right: 20,
-              bottom: 24,
-              zIndex: 60,
-              width: 160,
-              maxWidth: '30vw',
-              background: 'rgba(255,255,255,0.95)',
-              backdropFilter: 'blur(6px)',
-              boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
-              borderRadius: 28,
-              padding: '8px 12px',
+              width: 64,
+              height: 64,
+              borderRadius: 32,
+              background: pushToTalkActive ? 'linear-gradient(135deg,#ef4444,#f97316)' : 'linear-gradient(135deg,#3b82f6,#06b6d4)',
+              boxShadow: '0 6px 18px rgba(15,23,42,0.16)',
+              border: 'none',
               display: 'flex',
               alignItems: 'center',
-              gap: 10
+              justifyContent: 'center',
+              color: '#fff',
+              fontSize: 14,
+              cursor: 'pointer'
             }}
           >
-            <div style={{
-              width: 14,
-              height: 14,
-              borderRadius: 14,
-              background: '#ef4444',
-              boxShadow: '0 0 12px rgba(239,68,68,0.9)',
-              animation: 'prism-voice-pulse 1200ms infinite'
-            }} aria-hidden="true" />
-            <div style={{ fontSize: 12, color: '#0f172a' }}>
-              <div style={{ fontWeight: 600 }}>Listening</div>
-              <div style={{ fontSize: 11, color: '#475569', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lastCommand || voiceStatus}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M19 11v1a7 7 0 0 1-14 0v-1" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <div style={{ fontSize: 11, marginTop: 4 }}>{pushToTalkActive ? 'Release' : 'Hold'}</div>
             </div>
-            <style>{`@keyframes prism-voice-pulse { 0% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.35); opacity: 0.6 } 100% { transform: scale(1); opacity: 1 } }`}</style>
-          </div>
-        )}
-        {/* Push-to-talk microphone button (hold to talk) - HIDDEN */}
-        {false && (
-          <div style={{ position: 'fixed', right: 22, bottom: 96, zIndex: 80, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end' }}>
-            <button
-              title="Hold to talk"
-              onMouseDown={(e) => { e.preventDefault(); startPushToTalk(); }}
-              onMouseUp={(e) => { e.preventDefault(); stopPushToTalk(); }}
-              onMouseLeave={(e) => { if (pushToTalkActive) stopPushToTalk(); }}
-              onTouchStart={(e) => { e.preventDefault(); startPushToTalk(); }}
-              onTouchEnd={(e) => { e.preventDefault(); stopPushToTalk(); }}
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 32,
-                background: pushToTalkActive ? 'linear-gradient(135deg,#ef4444,#f97316)' : 'linear-gradient(135deg,#3b82f6,#06b6d4)',
-                boxShadow: '0 6px 18px rgba(15,23,42,0.16)',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontSize: 14,
-                cursor: 'pointer'
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M19 11v1a7 7 0 0 1-14 0v-1" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <div style={{ fontSize: 11, marginTop: 4 }}>{pushToTalkActive ? 'Release' : 'Hold'}</div>
+          </button>
+        </div>
+      )}
+      {/* Preview toast for captured voice */}
+      {previewVisible && (
+        <div style={{ position: 'fixed', right: 22 + 80, bottom: 110, zIndex: 100, width: 320, maxWidth: '40vw' }}>
+          <div style={{ background: 'linear-gradient(180deg,#fff,#f8fafc)', border: '1px solid rgba(15,23,42,0.06)', borderRadius: 12, padding: 12, boxShadow: '0 8px 30px rgba(2,6,23,0.12)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>Voice preview</div>
+              <div style={{ fontSize: 12, color: '#64748b' }}>{previewUpdates ? `${previewUpdates.length} changes` : 'No changes'}</div>
+            </div>
+            <div style={{ marginTop: 8, fontSize: 13, color: '#0f172a', maxHeight: 72, overflow: 'auto' }}>{previewTranscript}</div>
+            {previewUpdates && previewUpdates.length > 0 && (
+              <div style={{ marginTop: 8, borderTop: '1px dashed rgba(15,23,42,0.06)', paddingTop: 8 }}>
+                <div style={{ fontSize: 12, color: '#334155', marginBottom: 6 }}>Suggested updates:</div>
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none', maxHeight: 120, overflow: 'auto' }}>
+                  {previewUpdates.slice(0, 6).map((p, idx) => (
+                    <li key={idx} style={{ fontSize: 13, color: '#0f172a', padding: '4px 0' }}>{p.questionId.replace('TrainingMaterials_', '')}: <strong>{p.value}</strong></li>
+                  ))}
+                  {previewUpdates.length > 6 && <li style={{ fontSize: 12, color: '#64748b', paddingTop: 6 }}>and {previewUpdates.length - 6} more...</li>}
+                </ul>
               </div>
-            </button>
-          </div>
-        )}
-        {/* Preview toast for captured voice */}
-        {previewVisible && (
-          <div style={{ position: 'fixed', right: 22 + 80, bottom: 110, zIndex: 100, width: 320, maxWidth: '40vw' }}>
-            <div style={{ background: 'linear-gradient(180deg,#fff,#f8fafc)', border: '1px solid rgba(15,23,42,0.06)', borderRadius: 12, padding: 12, boxShadow: '0 8px 30px rgba(2,6,23,0.12)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>Voice preview</div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>{previewUpdates ? `${previewUpdates.length} changes` : 'No changes'}</div>
-              </div>
-              <div style={{ marginTop: 8, fontSize: 13, color: '#0f172a', maxHeight: 72, overflow: 'auto' }}>{previewTranscript}</div>
-              {previewUpdates && previewUpdates.length > 0 && (
-                <div style={{ marginTop: 8, borderTop: '1px dashed rgba(15,23,42,0.06)', paddingTop: 8 }}>
-                  <div style={{ fontSize: 12, color: '#334155', marginBottom: 6 }}>Suggested updates:</div>
-                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', maxHeight: 120, overflow: 'auto' }}>
-                    {previewUpdates.slice(0, 6).map((p, idx) => (
-                      <li key={idx} style={{ fontSize: 13, color: '#0f172a', padding: '4px 0' }}>{p.questionId.replace('TrainingMaterials_', '')}: <strong>{p.value}</strong></li>
-                    ))}
-                    {previewUpdates.length > 6 && <li style={{ fontSize: 12, color: '#64748b', paddingTop: 6 }}>and {previewUpdates.length - 6} more...</li>}
-                  </ul>
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
-                <button onClick={cancelPreview} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(15,23,42,0.06)', background: '#fff' }}>Cancel</button>
-                <button onClick={applyPreview} style={{ padding: '6px 10px', borderRadius: 8, background: 'linear-gradient(90deg,#10b981,#06b6d4)', color: '#fff', border: 'none' }}>Apply now</button>
-              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
+              <button onClick={cancelPreview} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(15,23,42,0.06)', background: '#fff' }}>Cancel</button>
+              <button onClick={applyPreview} style={{ padding: '6px 10px', borderRadius: 8, background: 'linear-gradient(90deg,#10b981,#06b6d4)', color: '#fff', border: 'none' }}>Apply now</button>
             </div>
           </div>
-        )}
+        </div>
+      )}
       {/* Show submission success screen */}
       {submitted ? (
         <div className="w-full">
@@ -2105,1287 +2105,1279 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             </p>
           </div>
 
-      {/* Meta Information Form - Full Width */}
-      <div id="audit-information" className="bg-gray-50 dark:bg-slate-900 p-3 sm:p-4 border-b border-gray-200 dark:border-slate-700">
-        <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3">
-          Audit Information
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Area Manager
-            </label>
-            <input
-              type="text"
-              value={meta.amId ? `${meta.amName} (${meta.amId})` : ''}
-              readOnly
-              placeholder="Will auto-fill when store is selected..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 cursor-not-allowed"
-            />
-            <div className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-              Auto-filled from store mapping
-            </div>
-          </div>
+          {/* Meta Information Form - Full Width */}
+          <div id="audit-information" className="bg-gray-50 dark:bg-slate-900 p-3 sm:p-4 border-b border-gray-200 dark:border-slate-700">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3">
+              Audit Information
+            </h2>
 
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Trainer (Auditor)
-            </label>
-            <input
-              type="text"
-              value={trainerSearchTerm || (meta.trainerId ? `${meta.trainerName || 'Loading...'} (${meta.trainerId})` : '')}
-              onChange={(e) => {
-                setTrainerSearchTerm(e.target.value);
-                setShowTrainerDropdown(true);
-                setSelectedTrainerIndex(-1);
-              }}
-              onFocus={() => setShowTrainerDropdown(true)}
-              onBlur={() => setTimeout(() => setShowTrainerDropdown(false), 200)}
-              placeholder="Search Trainer..."
-              readOnly={isTrainerIdFromURL && !!meta.trainerId}
-              className={`w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md ${
-                isTrainerIdFromURL && meta.trainerId
-                  ? 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 cursor-not-allowed'
-                  : 'bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100'
-              }`}
-            />
-            
-            {isTrainerIdFromURL && meta.trainerId && (
-              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-                Trainer ID picked from URL parameters
-              </p>
-            )}
-            
-            {showTrainerDropdown && !isTrainerIdFromURL && (
-              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                {uniqueTrainers.length === 0 ? (
-                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No trainers found</div>
-                ) : filteredTrainers.length > 0 ? (
-                  filteredTrainers.map((trainer, index) => (
-                    <button
-                      key={trainer.id}
-                      onClick={() => {
-                        handleMetaChange('trainerId', trainer.id as string);
-                        handleMetaChange('trainerName', trainer.name as string);
-                        autoFillFields('trainer', trainer.name as string);
-                        setTrainerSearchTerm('');
-                        setShowTrainerDropdown(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
-                        index === selectedTrainerIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                      }`}
-                    >
-                      <div className="truncate">{trainer.name} ({trainer.id})</div>
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No trainers found</div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Auditor
-            </label>
-            <input
-              type="text"
-              value={auditorSearchTerm || (meta.auditorId ? `${meta.auditorName || 'Loading...'} (${meta.auditorId})` : '')}
-              onChange={(e) => {
-                setAuditorSearchTerm(e.target.value);
-                setShowAuditorDropdown(true);
-                setSelectedAuditorIndex(-1);
-              }}
-              onFocus={() => setShowAuditorDropdown(true)}
-              onBlur={() => setTimeout(() => setShowAuditorDropdown(false), 200)}
-              placeholder="Search Auditor (can be same as Trainer)..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-            />
-            
-            {showAuditorDropdown && (
-              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                {uniqueTrainers.length === 0 ? (
-                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No auditors found</div>
-                ) : filteredAuditors.length > 0 ? (
-                  filteredAuditors.map((auditor, index) => (
-                    <button
-                      key={auditor.id}
-                      onClick={() => {
-                        handleMetaChange('auditorId', auditor.id as string);
-                        handleMetaChange('auditorName', auditor.name as string);
-                        setAuditorSearchTerm('');
-                        setShowAuditorDropdown(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
-                        index === selectedAuditorIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                      }`}
-                    >
-                      <div className="truncate">{auditor.name} ({auditor.id})</div>
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No auditors found</div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="md:col-span-2" data-tour="store-select">
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                Store Location
-              </label>
-              <input
-                type="text"
-                value={storeSearchTerm || (meta.storeId ? `${meta.storeName} (${meta.storeId})` : '')}
-                onChange={(e) => {
-                  setStoreSearchTerm(e.target.value);
-                  setShowStoreDropdown(true);
-                  setSelectedStoreIndex(-1);
-                }}
-                onFocus={() => setShowStoreDropdown(true)}
-                onBlur={() => setTimeout(() => setShowStoreDropdown(false), 200)}
-                placeholder="Search Store..."
-                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-              />
-              
-              {showStoreDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                  {filteredStores.length > 0 ? (
-                    filteredStores.map((store, index) => (
-                      <button
-                        key={store.id}
-                        onClick={() => {
-                          handleMetaChange('storeId', store.id as string);
-                          handleMetaChange('storeName', store.name as string);
-                          autoFillFields('store', store.id as string);
-                          setStoreSearchTerm('');
-                          setShowStoreDropdown(false);
-                        }}
-                        className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${
-                          index === selectedStoreIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                        }`}
-                      >
-                        <div className="truncate">{store.name} ({store.id})</div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No stores found</div>
-                  )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                  Area Manager
+                </label>
+                <input
+                  type="text"
+                  value={meta.amId ? `${meta.amName} (${meta.amId})` : ''}
+                  readOnly
+                  placeholder="Will auto-fill when store is selected..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 cursor-not-allowed"
+                />
+                <div className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                  Auto-filled from store mapping
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
 
-          <div className="md:col-span-2 relative">
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              MOD (Manager on Duty)
-            </label>
-            <input
-              type="text"
-              value={modSearchTerm || meta.mod}
-              onChange={(e) => {
-                setModSearchTerm(e.target.value);
-                setShowModDropdown(true);
-                setSelectedModIndex(-1);
-              }}
-              onFocus={() => setShowModDropdown(true)}
-              onBlur={() => setTimeout(() => setShowModDropdown(false), 200)}
-              placeholder="Search for Store Manager, ASM, or Shift Supervisor..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-            />
-            
-            {showModDropdown && (
-              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                {employeeLoading ? (
-                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">Loading employees...</div>
-                ) : filteredModEmployees.length > 0 ? (
-                  filteredModEmployees.map((mod, index) => (
-                    <button
-                      key={mod.id}
-                      onClick={() => {
-                        handleMetaChange('mod', mod.name);
-                        setModSearchTerm('');
-                        setShowModDropdown(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm ${
-                        index === selectedModIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                      }`}
-                    >
-                      <div className="font-medium">{mod.name}</div>
-                      <div className="text-xs text-gray-500 dark:text-slate-400">{mod.designation} • {mod.location || mod.id}</div>
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">
-                    {modSearchTerm ? 'No matching managers found' : 'Start typing to search...'}
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                  Trainer (Auditor)
+                </label>
+                <input
+                  type="text"
+                  value={trainerSearchTerm || (meta.trainerId ? `${meta.trainerName || 'Loading...'} (${meta.trainerId})` : '')}
+                  onChange={(e) => {
+                    setTrainerSearchTerm(e.target.value);
+                    setShowTrainerDropdown(true);
+                    setSelectedTrainerIndex(-1);
+                  }}
+                  onFocus={() => setShowTrainerDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowTrainerDropdown(false), 200)}
+                  placeholder="Search Trainer..."
+                  readOnly={isTrainerIdFromURL && !!meta.trainerId}
+                  className={`w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md ${isTrainerIdFromURL && meta.trainerId
+                      ? 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 cursor-not-allowed'
+                      : 'bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100'
+                    }`}
+                />
+
+                {isTrainerIdFromURL && meta.trainerId && (
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                    Trainer ID picked from URL parameters
+                  </p>
+                )}
+
+                {showTrainerDropdown && !isTrainerIdFromURL && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {uniqueTrainers.length === 0 ? (
+                      <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No trainers found</div>
+                    ) : filteredTrainers.length > 0 ? (
+                      filteredTrainers.map((trainer, index) => (
+                        <button
+                          key={trainer.id}
+                          onClick={() => {
+                            handleMetaChange('trainerId', trainer.id as string);
+                            handleMetaChange('trainerName', trainer.name as string);
+                            autoFillFields('trainer', trainer.name as string);
+                            setTrainerSearchTerm('');
+                            setShowTrainerDropdown(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${index === selectedTrainerIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                            }`}
+                        >
+                          <div className="truncate">{trainer.name} ({trainer.id})</div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No trainers found</div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* Training sections - Full Width */}
-      <div className="bg-white dark:bg-slate-800 p-3 sm:p-4" data-tour="checklist-form">
-        {/* Voice controls for quick filling - HIDDEN */}
-        {false && (
-          <div className="mb-4 p-3 border border-dashed rounded bg-gray-50 dark:bg-slate-900/50">
-            <div className="flex items-center justify-between gap-3 mb-2">
-                <div className="flex items-center gap-3">
-                  <div className="text-sm font-medium">Voice Commands</div>
-                  <div className="text-xs text-gray-500 dark:text-slate-400">Push-to-talk: press and hold the mic, speak, then release to apply</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {!isSpeechSupported && (
-                    <div className="text-xs text-red-500">Speech not supported in this browser</div>
-                  )}
-                </div>
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                  Auditor
+                </label>
+                <input
+                  type="text"
+                  value={auditorSearchTerm || (meta.auditorId ? `${meta.auditorName || 'Loading...'} (${meta.auditorId})` : '')}
+                  onChange={(e) => {
+                    setAuditorSearchTerm(e.target.value);
+                    setShowAuditorDropdown(true);
+                    setSelectedAuditorIndex(-1);
+                  }}
+                  onFocus={() => setShowAuditorDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowAuditorDropdown(false), 200)}
+                  placeholder="Search Auditor (can be same as Trainer)..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+                />
+
+                {showAuditorDropdown && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {uniqueTrainers.length === 0 ? (
+                      <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No auditors found</div>
+                    ) : filteredAuditors.length > 0 ? (
+                      filteredAuditors.map((auditor, index) => (
+                        <button
+                          key={auditor.id}
+                          onClick={() => {
+                            handleMetaChange('auditorId', auditor.id as string);
+                            handleMetaChange('auditorName', auditor.name as string);
+                            setAuditorSearchTerm('');
+                            setShowAuditorDropdown(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${index === selectedAuditorIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                            }`}
+                        >
+                          <div className="truncate">{auditor.name} ({auditor.id})</div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No auditors found</div>
+                    )}
+                  </div>
+                )}
               </div>
 
-            <div className="text-sm text-gray-700 dark:text-slate-300 mb-1">Status: <span className="font-medium">{voiceStatus || (isSpeechSupported ? 'Idle' : 'Unavailable')}</span>{commandMode ? <span className="ml-2 text-xs text-green-600"> • Command mode ({commandCountdown}s)</span> : null}</div>
-          </div>
-        )}
-
-        <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3">
-          Training Assessment
-        </h2>
-        
-        <div className="space-y-4">
-          {sections.map((section, sectionIndex) => {
-            // Special handling for TSA Food section
-            if (section.id === 'TSA_Food') {
-              // Group items by subsection for TSA Food
-              const groupedItems = section.items.reduce((groups, item) => {
-                const typedItem = item as SectionItem;
-                const subsection = typedItem.section || 'Other';
-                if (!groups[subsection]) groups[subsection] = [];
-                groups[subsection].push(typedItem);
-                return groups;
-              }, {} as Record<string, SectionItem[]>);
-
-              const tsaScore = calculateTSAFoodScore();
-              const tsaPercentage = () => {
-                let correct = 0, total = 0;
-                section.items.forEach(item => {
-                  const response = responses[`${section.id}_${item.id}`];
-                  if (response && response !== 'na' && item.type !== 'text') {
-                    total++;
-                    if (response === 'yes') correct++;
-                  }
-                });
-                return total > 0 ? ((correct / total) * 100).toFixed(1) : '0';
-              };
-
-              return (
-                <div key={section.id} className="border-l-4 border-orange-500 pl-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
-                        {section.title}
-                      </h3>
-                      <div className="text-sm text-gray-600 dark:text-slate-400 mt-1">
-                        Score: {tsaPercentage()}% = {tsaScore} points 
-                        <span className="ml-2 text-xs">
-                          (≥85% = 10pts, 75-84% = 5pts, &lt;75% = 0pts)
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setTsaExpanded(!tsaExpanded)}
-                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-800 rounded-lg transition-colors shrink-0 w-full sm:w-auto"
-                    >
-                      <span className="text-sm sm:text-base">{tsaExpanded ? 'Collapse' : 'Expand'}</span>
-                      <span className="hidden sm:inline">Assessment</span>
-                      <svg 
-                        className={`w-4 h-4 transition-transform ${tsaExpanded ? 'rotate-180' : ''}`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {tsaExpanded && (
-                    <div className="space-y-4 bg-orange-50 dark:bg-orange-900/10 p-3 border-l-4 border-orange-400 dark:border-orange-500">
-                      {Object.entries(groupedItems).map(([subsectionName, items]) => (
-                        <div key={subsectionName} className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-slate-600">
-                          <h4 className="text-sm font-semibold text-orange-700 dark:text-orange-300 mb-2">
-                            {subsectionName}
-                          </h4>
-                          <div className="space-y-2">
-                            {(items as SectionItem[]).map((item, itemIndex) => (
-                              <div key={item.id} className="p-2 sm:p-3 border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors rounded">
-                                <div className="flex items-start gap-2">
-                                  <span className="inline-flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
-                                    {itemIndex + 1}
-                                  </span>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-slate-100 leading-tight mb-2">
-                                      {item.q}
-                                      {/* Debug: show item type */}
-                                      <span className="ml-2 text-xs text-gray-400">({item.type || 'undefined'})</span>
-                                    </p>
-                                    <div className="">
-                                      {item.type === 'employee' ? (
-                                        <div className="relative">
-                                          <input
-                                            type="text"
-                                            value={employeeSearchTerms[`${section.id}_${item.id}`] || responses[`${section.id}_${item.id}`] || ''}
-                                            onChange={(e) => {
-                                              const fieldKey = `${section.id}_${item.id}`;
-                                              setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: e.target.value }));
-                                              setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
-                                              setSelectedEmployeeIndex(prev => ({ ...prev, [fieldKey]: -1 }));
-                                            }}
-                                            onFocus={() => {
-                                              const fieldKey = `${section.id}_${item.id}`;
-                                              setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
-                                            }}
-                                            onBlur={() => {
-                                              const fieldKey = `${section.id}_${item.id}`;
-                                              setTimeout(() => setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false })), 200);
-                                            }}
-                                            className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
-                                            placeholder="Search employee..."
-                                          />
-                                          
-                                          {showEmployeeDropdown[`${section.id}_${item.id}`] && (
-                                            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                                              {employeeLoading ? (
-                                                <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">Loading employees...</div>
-                                              ) : (() => {
-                                                const searchTerm = employeeSearchTerms[`${section.id}_${item.id}`] || '';
-                                                const filtered = allEmployeesForTSA.filter(emp => 
-                                                  searchTerm === '' || 
-                                                  emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                  emp.id.toLowerCase().includes(searchTerm.toLowerCase())
-                                                );
-                                                
-                                                return filtered.length > 0 ? (
-                                                  filtered.map((emp, index) => (
-                                                    <button
-                                                      key={emp.id}
-                                                      onClick={() => {
-                                                        const fieldKey = `${section.id}_${item.id}`;
-                                                        const value = `${emp.name} (${emp.id})`;
-                                                        handleTextResponse(fieldKey, value);
-                                                        setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: '' }));
-                                                        setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false }));
-                                                      }}
-                                                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm ${
-                                                        index === selectedEmployeeIndex[`${section.id}_${item.id}`] ? 'bg-gray-100 dark:bg-slate-700' : ''
-                                                      }`}
-                                                    >
-                                                      <div className="font-medium">{emp.name}</div>
-                                                      <div className="text-xs text-gray-500 dark:text-slate-400">{emp.id} • {emp.designation}</div>
-                                                    </button>
-                                                  ))
-                                                ) : (
-                                                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">
-                                                    {searchTerm ? 'No matching employees found' : 'Start typing to search...'}
-                                                  </div>
-                                                );
-                                              })()}
-                                            </div>
-                                          )}
-                                        </div>
-                                      ) : item.type === 'text' ? (
-                                        <input
-                                          type="text"
-                                          value={responses[`${section.id}_${item.id}`] || ''}
-                                          onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
-                                          className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
-                                          placeholder="Enter value"
-                                        />
-                                      ) : (
-                                        <div className="flex flex-wrap gap-2 sm:gap-3">
-                                          {['yes', 'no', 'na'].map(option => (
-                                            <label key={option} className="flex items-center space-x-1 cursor-pointer min-w-0 shrink-0">
-                                              <input
-                                                type="radio"
-                                                name={`${section.id}_${item.id}`}
-                                                value={option}
-                                                checked={responses[`${section.id}_${item.id}`] === option}
-                                                onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                                className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500 shrink-0"
-                                              />
-                                              <span className="text-sm text-gray-700 dark:text-slate-300 capitalize">{option}</span>
-                                            </label>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Section Remarks for TSA Food */}
-                  <div className="mt-3">
-                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Section Remarks
-                    </label>
-                    <textarea
-                      value={remarks[section.id] || ''}
-                      onChange={(e) => handleRemarks(section.id, e.target.value)}
-                      placeholder={`Add remarks for ${section.title} section (optional)`}
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-orange-500 dark:focus:border-orange-400 focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Image Upload Section */}
-                  <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-3">
-                      Upload Images
-                    </h3>
-                    
-                    <div className="mb-4 flex flex-col sm:flex-row gap-3">
-                      <input
-                        id={`camera-${section.id}`}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleImageUpload(section.id, file);
-                            e.target.value = '';
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <label
-                        htmlFor={`camera-${section.id}`}
-                        className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        Take Photo
-                      </label>
-                      <input
-                        id={`upload-${section.id}`}
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleImageUpload(section.id, file);
-                            e.target.value = '';
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <label
-                        htmlFor={`upload-${section.id}`}
-                        className="flex-1 px-4 py-2 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-300 dark:border-orange-700 rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Upload Image
-                      </label>
-                    </div>
-
-                    {/* Display uploaded images */}
-                    {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {sectionImages[section.id].map((image, index) => (
-                          <div key={index} className="relative rounded-lg overflow-hidden shadow-sm">
-                            <img
-                              src={image}
-                              alt={`${section.title} - Image ${index + 1}`}
-                              className="w-full h-32 object-cover"
-                            />
-                            <div className="absolute top-2 right-2 flex gap-2">
-                              <button
-                                onClick={() => handleEditImage(section.id, index)}
-                                className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
-                                aria-label="Edit image"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={() => removeImage(section.id, index)}
-                                className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
-                                aria-label="Delete image"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            }
-
-            // Special handling for TSA Coffee section
-            if (section.id === 'TSA_Coffee') {
-              // Group items by subsection for TSA Coffee
-              const groupedItems = section.items.reduce((groups, item) => {
-                const typedItem = item as SectionItem;
-                const subsection = typedItem.section || 'Other';
-                if (!groups[subsection]) groups[subsection] = [];
-                groups[subsection].push(typedItem);
-                return groups;
-              }, {} as Record<string, SectionItem[]>);
-
-              const tsaScore = calculateTSACoffeeScore();
-              const tsaPercentage = () => {
-                let correct = 0, total = 0;
-                section.items.forEach(item => {
-                  const response = responses[`${section.id}_${item.id}`];
-                  if (response && response !== 'na' && item.type !== 'text') {
-                    total++;
-                    if (response === 'yes') correct++;
-                  }
-                });
-                return total > 0 ? ((correct / total) * 100).toFixed(1) : '0';
-              };
-
-              return (
-                <div key={section.id} className="border-l-4 border-yellow-500 pl-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
-                        {section.title}
-                      </h3>
-                      <div className="text-sm text-gray-600 dark:text-slate-400 mt-1">
-                        Score: {tsaPercentage()}% = {tsaScore} points 
-                        <span className="ml-2 text-xs">
-                          (≥85% = 10pts, 75-84% = 5pts, &lt;75% = 0pts)
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setTsaCoffeeExpanded(!tsaCoffeeExpanded)}
-                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg transition-colors shrink-0 w-full sm:w-auto"
-                    >
-                      <span className="text-sm sm:text-base">{tsaCoffeeExpanded ? 'Collapse' : 'Expand'}</span>
-                      <span className="hidden sm:inline">Assessment</span>
-                      <svg 
-                        className={`w-4 h-4 transition-transform ${tsaCoffeeExpanded ? 'rotate-180' : ''}`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {tsaCoffeeExpanded && (
-                    <div className="space-y-4 bg-yellow-50 dark:bg-yellow-900/10 p-3 border-l-4 border-yellow-400 dark:border-yellow-500">
-                      {Object.entries(groupedItems).map(([subsectionName, items]) => (
-                        <div key={subsectionName} className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-slate-600">
-                          <h4 className="text-sm font-semibold text-yellow-700 dark:text-yellow-300 mb-2">
-                            {subsectionName}
-                          </h4>
-                          <div className="space-y-2 sm:space-y-3">
-                            {(items as SectionItem[]).map((item, itemIndex) => (
-                              <div key={item.id} className="p-2 sm:p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                <div className="flex items-start gap-2 sm:gap-3">
-                                  <span className="inline-flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
-                                    {itemIndex + 1}
-                                  </span>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-2 sm:mb-3">
-                                      {item.q}
-                                    </p>
-                                    <div className="">
-                                      {item.type === 'employee' ? (
-                                        <div className="relative">
-                                          <input
-                                            type="text"
-                                            value={employeeSearchTerms[`${section.id}_${item.id}`] || responses[`${section.id}_${item.id}`] || ''}
-                                            onChange={(e) => {
-                                              const fieldKey = `${section.id}_${item.id}`;
-                                              setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: e.target.value }));
-                                              setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
-                                              setSelectedEmployeeIndex(prev => ({ ...prev, [fieldKey]: -1 }));
-                                            }}
-                                            onFocus={() => {
-                                              const fieldKey = `${section.id}_${item.id}`;
-                                              setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
-                                            }}
-                                            onBlur={() => {
-                                              const fieldKey = `${section.id}_${item.id}`;
-                                              setTimeout(() => setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false })), 200);
-                                            }}
-                                            className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
-                                            placeholder="Search employee..."
-                                          />
-                                          
-                                          {showEmployeeDropdown[`${section.id}_${item.id}`] && (
-                                            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                                              {employeeLoading ? (
-                                                <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">Loading employees...</div>
-                                              ) : (() => {
-                                                const searchTerm = employeeSearchTerms[`${section.id}_${item.id}`] || '';
-                                                const filtered = allEmployeesForTSA.filter(emp => 
-                                                  searchTerm === '' || 
-                                                  emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                  emp.id.toLowerCase().includes(searchTerm.toLowerCase())
-                                                );
-                                                
-                                                return filtered.length > 0 ? (
-                                                  filtered.map((emp, index) => (
-                                                    <button
-                                                      key={emp.id}
-                                                      onClick={() => {
-                                                        const fieldKey = `${section.id}_${item.id}`;
-                                                        const value = `${emp.name} (${emp.id})`;
-                                                        handleTextResponse(fieldKey, value);
-                                                        setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: '' }));
-                                                        setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false }));
-                                                      }}
-                                                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm ${
-                                                        index === selectedEmployeeIndex[`${section.id}_${item.id}`] ? 'bg-gray-100 dark:bg-slate-700' : ''
-                                                      }`}
-                                                    >
-                                                      <div className="font-medium">{emp.name}</div>
-                                                      <div className="text-xs text-gray-500 dark:text-slate-400">{emp.id} • {emp.designation}</div>
-                                                    </button>
-                                                  ))
-                                                ) : (
-                                                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">
-                                                    {searchTerm ? 'No matching employees found' : 'Start typing to search...'}
-                                                  </div>
-                                                );
-                                              })()}
-                                            </div>
-                                          )}
-                                        </div>
-                                      ) : item.type === 'text' ? (
-                                        <input
-                                          type="text"
-                                          value={responses[`${section.id}_${item.id}`] || ''}
-                                          onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
-                                          className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
-                                          placeholder="Enter value"
-                                        />
-                                      ) : (                                                                                                                                                                                                                                                 
-                                        <div className="flex flex-wrap gap-2 sm:gap-4">
-                                          {['yes', 'no', 'na'].map(option => (
-                                            <label key={option} className="flex items-center space-x-1 sm:space-x-2 cursor-pointer min-w-0 shrink-0">
-                                              <input
-                                                type="radio"
-                                                name={`${section.id}_${item.id}`}
-                                                value={option}
-                                                checked={responses[`${section.id}_${item.id}`] === option}
-                                                onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                                className="w-4 h-4 text-yellow-600 border-gray-300 dark:border-slate-600 focus:ring-yellow-500 shrink-0"
-                                              />
-                                              <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
-                                            </label>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Section Remarks for TSA Coffee */}
-                  <div className="mt-3">
-                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Section Remarks
-                    </label>
-                    <textarea
-                      value={remarks[section.id] || ''}
-                      onChange={(e) => handleRemarks(section.id, e.target.value)}
-                      placeholder={`Add remarks for ${section.title} section (optional)`}
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Image Upload Section */}
-                  <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-3">
-                      Upload Images
-                    </h3>
-                    
-                    <div className="mb-4 flex flex-col sm:flex-row gap-3">
-                      <input
-                        id={`camera-${section.id}`}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleImageUpload(section.id, file);
-                            e.target.value = '';
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <label
-                        htmlFor={`camera-${section.id}`}
-                        className="flex-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        Take Photo
-                      </label>
-                      <input
-                        id={`upload-${section.id}`}
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleImageUpload(section.id, file);
-                            e.target.value = '';
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <label
-                        htmlFor={`upload-${section.id}`}
-                        className="flex-1 px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Upload Image
-                      </label>
-                    </div>
-
-                    {/* Display uploaded images */}
-                    {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {sectionImages[section.id].map((image, index) => (
-                          <div key={index} className="relative rounded-lg overflow-hidden shadow-sm">
-                            <img
-                              src={image}
-                              alt={`${section.title} - Image ${index + 1}`}
-                              className="w-full h-32 object-cover"
-                            />
-                            <div className="absolute top-2 right-2 flex gap-2">
-                              <button
-                                onClick={() => handleEditImage(section.id, index)}
-                                className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
-                                aria-label="Edit image"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={() => removeImage(section.id, index)}
-                                className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
-                                aria-label="Delete image"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            }
-
-            // Special handling for TSA CX section
-            if (section.id === 'TSA_CX') {
-              // Group items by subsection for TSA CX
-              const groupedItems = section.items.reduce((groups, item) => {
-                const typedItem = item as SectionItem;
-                const subsection = typedItem.section || 'Other';
-                if (!groups[subsection]) groups[subsection] = [];
-                groups[subsection].push(typedItem);
-                return groups;
-              }, {} as Record<string, SectionItem[]>);
-
-              const tsaScore = calculateTSACXScore();
-              const tsaPercentage = () => {
-                let correct = 0, total = 0;
-                section.items.forEach(item => {
-                  const response = responses[`${section.id}_${item.id}`];
-                  if (response && response !== 'na' && item.type !== 'text') {
-                    total++;
-                    if (response === 'yes') correct++;
-                  }
-                });
-                return total > 0 ? ((correct / total) * 100).toFixed(1) : '0';
-              };
-
-              return (
-                <div key={section.id} className="border-l-4 border-blue-500 pl-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
-                        {section.title}
-                      </h3>
-                      <div className="text-sm text-gray-600 dark:text-slate-400 mt-1">
-                        Score: {tsaPercentage()}% = {tsaScore} points 
-                        <span className="ml-2 text-xs">
-                          (≥85% = 10pts, 75-84% = 5pts, &lt;75% = 0pts)
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setTsaCXExpanded(!tsaCXExpanded)}
-                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors shrink-0 w-full sm:w-auto"
-                    >
-                      <span className="text-sm sm:text-base">{tsaCXExpanded ? 'Collapse' : 'Expand'}</span>
-                      <span className="hidden sm:inline">Assessment</span>
-                      <svg 
-                        className={`w-4 h-4 transition-transform ${tsaCXExpanded ? 'rotate-180' : ''}`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {tsaCXExpanded && (
-                    <div className="space-y-4 bg-blue-50 dark:bg-blue-900/10 p-3 border-l-4 border-blue-400 dark:border-blue-500">
-                      {Object.entries(groupedItems).map(([subsectionName, items]) => (
-                        <div key={subsectionName} className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-slate-600">
-                          <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">
-                            {subsectionName}
-                          </h4>
-                          <div className="space-y-2 sm:space-y-3">
-                            {(items as SectionItem[]).map((item, itemIndex) => (
-                              <div key={item.id} className="p-2 sm:p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                <div className="flex items-start gap-2 sm:gap-3">
-                                  <span className="inline-flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
-                                    {itemIndex + 1}
-                                  </span>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-2 sm:mb-3">
-                                      {item.q}
-                                    </p>
-                                    <div className="">
-                                      {item.type === 'employee' ? (
-                                        <div className="relative">
-                                          <input
-                                            type="text"
-                                            value={employeeSearchTerms[`${section.id}_${item.id}`] || responses[`${section.id}_${item.id}`] || ''}
-                                            onChange={(e) => {
-                                              const fieldKey = `${section.id}_${item.id}`;
-                                              setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: e.target.value }));
-                                              setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
-                                              setSelectedEmployeeIndex(prev => ({ ...prev, [fieldKey]: -1 }));
-                                            }}
-                                            onFocus={() => {
-                                              const fieldKey = `${section.id}_${item.id}`;
-                                              setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
-                                            }}
-                                            onBlur={() => {
-                                              const fieldKey = `${section.id}_${item.id}`;
-                                              setTimeout(() => setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false })), 200);
-                                            }}
-                                            className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
-                                            placeholder="Search employee..."
-                                          />
-                                          
-                                          {showEmployeeDropdown[`${section.id}_${item.id}`] && (
-                                            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                                              {employeeLoading ? (
-                                                <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">Loading employees...</div>
-                                              ) : (() => {
-                                                const searchTerm = employeeSearchTerms[`${section.id}_${item.id}`] || '';
-                                                const filtered = allEmployeesForTSA.filter(emp => 
-                                                  searchTerm === '' || 
-                                                  emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                  emp.id.toLowerCase().includes(searchTerm.toLowerCase())
-                                                );
-                                                
-                                                return filtered.length > 0 ? (
-                                                  filtered.map((emp, index) => (
-                                                    <button
-                                                      key={emp.id}
-                                                      onClick={() => {
-                                                        const fieldKey = `${section.id}_${item.id}`;
-                                                        const value = `${emp.name} (${emp.id})`;
-                                                        handleTextResponse(fieldKey, value);
-                                                        setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: '' }));
-                                                        setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false }));
-                                                      }}
-                                                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm ${
-                                                        index === selectedEmployeeIndex[`${section.id}_${item.id}`] ? 'bg-gray-100 dark:bg-slate-700' : ''
-                                                      }`}
-                                                    >
-                                                      <div className="font-medium">{emp.name}</div>
-                                                      <div className="text-xs text-gray-500 dark:text-slate-400">{emp.id} • {emp.designation}</div>
-                                                    </button>
-                                                  ))
-                                                ) : (
-                                                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">
-                                                    {searchTerm ? 'No matching employees found' : 'Start typing to search...'}
-                                                  </div>
-                                                );
-                                              })()}
-                                            </div>
-                                          )}
-                                        </div>
-                                      ) : item.type === 'text' ? (
-                                        <input
-                                          type="text"
-                                          value={responses[`${section.id}_${item.id}`] || ''}
-                                          onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
-                                          className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
-                                          placeholder="Enter value"
-                                        />
-                                      ) : (
-                                        <div className="flex flex-wrap gap-2 sm:gap-4">
-                                          {['yes', 'no', 'na'].map(option => (
-                                            <label key={option} className="flex items-center space-x-1 sm:space-x-2 cursor-pointer min-w-0 shrink-0">
-                                              <input
-                                                type="radio"
-                                                name={`${section.id}_${item.id}`}
-                                                value={option}
-                                                checked={responses[`${section.id}_${item.id}`] === option}
-                                                onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                                className="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-600 focus:ring-blue-500 shrink-0"
-                                              />
-                                              <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
-                                            </label>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Section Remarks for TSA CX */}
-                  <div className="mt-3">
-                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Section Remarks
-                    </label>
-                    <textarea
-                      value={remarks[section.id] || ''}
-                      onChange={(e) => handleRemarks(section.id, e.target.value)}
-                      placeholder={`Add remarks for ${section.title} section (optional)`}
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Image Upload Section */}
-                  <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-3">
-                      Upload Images
-                    </h3>
-                    
-                    <div className="mb-4 flex flex-col sm:flex-row gap-3">
-                      <input
-                        id={`camera-${section.id}`}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleImageUpload(section.id, file);
-                            e.target.value = '';
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <label
-                        htmlFor={`camera-${section.id}`}
-                        className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        Take Photo
-                      </label>
-                      <input
-                        id={`upload-${section.id}`}
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleImageUpload(section.id, file);
-                            e.target.value = '';
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <label
-                        htmlFor={`upload-${section.id}`}
-                        className="flex-1 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Upload Image
-                      </label>
-                    </div>
-
-                    {/* Display uploaded images */}
-                    {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {sectionImages[section.id].map((image, index) => (
-                          <div key={index} className="relative rounded-lg overflow-hidden shadow-sm">
-                            <img
-                              src={image}
-                              alt={`${section.title} - Image ${index + 1}`}
-                              className="w-full h-32 object-cover"
-                            />
-                            <div className="absolute top-2 right-2 flex gap-2">
-                              <button
-                                onClick={() => handleEditImage(section.id, index)}
-                                className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
-                                aria-label="Edit image"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={() => removeImage(section.id, index)}
-                                className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
-                                aria-label="Delete image"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            }
-
-            // Regular sections (non-TSA)
-            return (
-              <div key={section.id} className="border-l-4 border-purple-500 pl-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">
-                  {section.title}
-                </h3>
-                
-                <div className="space-y-2 sm:space-y-3">
-                  {section.items.map((item, itemIndex) => (
-                    <div key={item.id} className="p-3 sm:p-4 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                      <div className="flex items-start gap-2 sm:gap-3">
-                        <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
-                          {itemIndex + 1}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-2 sm:mb-3">
-                            {item.q}
-                          </p>
-                          <div className="flex flex-wrap gap-2 sm:gap-4">
-                            {['yes', 'no', 'na'].map(option => (
-                              <label key={option} className="flex items-center space-x-1 sm:space-x-2 cursor-pointer min-w-0 shrink-0">
-                                <input
-                                  type="radio"
-                                  name={`${section.id}_${item.id}`}
-                                  value={option}
-                                  checked={responses[`${section.id}_${item.id}`] === option}
-                                  onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                  className="w-4 h-4 text-purple-600 border-gray-300 dark:border-slate-600 focus:ring-purple-500 shrink-0"
-                                />
-                                <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Section Remarks */}
-                <div className="mt-3">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
-                    Section Remarks
+              <div className="md:col-span-2" data-tour="store-select">
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                    Store Location
                   </label>
-                  <textarea
-                    value={remarks[section.id] || ''}
-                    onChange={(e) => handleRemarks(section.id, e.target.value)}
-                    placeholder={`Add remarks for ${section.title} section (optional)`}
-                    rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                  <input
+                    type="text"
+                    value={storeSearchTerm || (meta.storeId ? `${meta.storeName} (${meta.storeId})` : '')}
+                    onChange={(e) => {
+                      setStoreSearchTerm(e.target.value);
+                      setShowStoreDropdown(true);
+                      setSelectedStoreIndex(-1);
+                    }}
+                    onFocus={() => setShowStoreDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowStoreDropdown(false), 200)}
+                    placeholder="Search Store..."
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                   />
-                </div>
 
-                {/* Image Upload Section */}
-                <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-3">
-                    Upload Images
-                  </h3>
-                  
-                  <div className="mb-4 flex flex-col sm:flex-row gap-3">
-                    <input
-                      id={`camera-${section.id}`}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          handleImageUpload(section.id, file);
-                          e.target.value = '';
-                        }
-                      }}
-                      className="hidden"
-                    />
-                    <label
-                      htmlFor={`camera-${section.id}`}
-                      className="flex-1 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      Take Photo
-                    </label>
-                    <input
-                      id={`upload-${section.id}`}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          handleImageUpload(section.id, file);
-                          e.target.value = '';
-                        }
-                      }}
-                      className="hidden"
-                    />
-                    <label
-                      htmlFor={`upload-${section.id}`}
-                      className="flex-1 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      Upload Image
-                    </label>
-                  </div>
-
-                  {/* Display uploaded images */}
-                  {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {sectionImages[section.id].map((image, index) => (
-                        <div key={index} className="relative rounded-lg overflow-hidden shadow-sm">
-                          <img
-                            src={image}
-                            alt={`${section.title} - Image ${index + 1}`}
-                            className="w-full h-32 object-cover"
-                          />
-                          <div className="absolute top-2 right-2 flex gap-2">
-                            <button
-                              onClick={() => handleEditImage(section.id, index)}
-                              className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
-                              aria-label="Edit image"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => removeImage(section.id, index)}
-                              className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
-                              aria-label="Delete image"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                  {showStoreDropdown && (
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                      {filteredStores.length > 0 ? (
+                        filteredStores.map((store, index) => (
+                          <button
+                            key={store.id}
+                            onClick={() => {
+                              handleMetaChange('storeId', store.id as string);
+                              handleMetaChange('storeName', store.name as string);
+                              autoFillFields('store', store.id as string);
+                              setStoreSearchTerm('');
+                              setShowStoreDropdown(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${index === selectedStoreIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                              }`}
+                          >
+                            <div className="truncate">{store.name} ({store.id})</div>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No stores found</div>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Submit Buttons */}
-      <div className="w-full px-3 sm:px-4 py-4 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3 max-w-md mx-auto">
-          <button
-            onClick={resetChecklist}
-            className="w-full sm:w-auto px-4 sm:px-5 py-3 bg-transparent border border-gray-300 dark:border-slate-600 text-gray-800 dark:text-slate-100 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 text-sm sm:text-base"
-          >
-            Reset Checklist
-          </button>
+              <div className="md:col-span-2 relative">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                  MOD (Manager on Duty)
+                </label>
+                <input
+                  type="text"
+                  value={modSearchTerm || meta.mod}
+                  onChange={(e) => {
+                    setModSearchTerm(e.target.value);
+                    setShowModDropdown(true);
+                    setSelectedModIndex(-1);
+                  }}
+                  onFocus={() => setShowModDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowModDropdown(false), 200)}
+                  placeholder="Search for Store Manager, ASM, or Shift Supervisor..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+                />
 
-          <button
-            onClick={handleSubmit}
-            disabled={isLoading}
-            data-tour="submit-button"
-            className="w-full sm:w-auto px-4 sm:px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 disabled:opacity-60 text-white rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-400 text-sm sm:text-base"
-          >
-            {isLoading ? 'Submitting...' : 'Submit Training Audit'}
-          </button>
-        </div>
-      </div>
-
-      {/* Image Editor Modal */}
-      {editingImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
-            <ImageEditor
-              imageBase64={editingImage.imageData}
-              onSave={handleSaveEditedImage}
-              onCancel={handleCancelEdit}
-            />
+                {showModDropdown && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {employeeLoading ? (
+                      <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">Loading employees...</div>
+                    ) : filteredModEmployees.length > 0 ? (
+                      filteredModEmployees.map((mod, index) => (
+                        <button
+                          key={mod.id}
+                          onClick={() => {
+                            handleMetaChange('mod', mod.name);
+                            setModSearchTerm('');
+                            setShowModDropdown(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm ${index === selectedModIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                            }`}
+                        >
+                          <div className="font-medium">{mod.name}</div>
+                          <div className="text-xs text-gray-500 dark:text-slate-400">{mod.designation} • {mod.location || mod.id}</div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">
+                        {modSearchTerm ? 'No matching managers found' : 'Start typing to search...'}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+
+          {/* Training sections - Full Width */}
+          <div className="bg-white dark:bg-slate-800 p-3 sm:p-4" data-tour="checklist-form">
+            {/* Voice controls for quick filling - HIDDEN */}
+            {false && (
+              <div className="mb-4 p-3 border border-dashed rounded bg-gray-50 dark:bg-slate-900/50">
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm font-medium">Voice Commands</div>
+                    <div className="text-xs text-gray-500 dark:text-slate-400">Push-to-talk: press and hold the mic, speak, then release to apply</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!isSpeechSupported && (
+                      <div className="text-xs text-red-500">Speech not supported in this browser</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-sm text-gray-700 dark:text-slate-300 mb-1">Status: <span className="font-medium">{voiceStatus || (isSpeechSupported ? 'Idle' : 'Unavailable')}</span>{commandMode ? <span className="ml-2 text-xs text-green-600"> • Command mode ({commandCountdown}s)</span> : null}</div>
+              </div>
+            )}
+
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3">
+              Training Assessment
+            </h2>
+
+            <div className="space-y-4">
+              {sections.map((section, sectionIndex) => {
+                // Special handling for TSA Food section
+                if (section.id === 'TSA_Food') {
+                  // Group items by subsection for TSA Food
+                  const groupedItems = section.items.reduce((groups, item) => {
+                    const typedItem = item as SectionItem;
+                    const subsection = typedItem.section || 'Other';
+                    if (!groups[subsection]) groups[subsection] = [];
+                    groups[subsection].push(typedItem);
+                    return groups;
+                  }, {} as Record<string, SectionItem[]>);
+
+                  const tsaScore = calculateTSAFoodScore();
+                  const tsaPercentage = () => {
+                    let correct = 0, total = 0;
+                    section.items.forEach(item => {
+                      const response = responses[`${section.id}_${item.id}`];
+                      if (response && response !== 'na' && item.type !== 'text') {
+                        total++;
+                        if (response === 'yes') correct++;
+                      }
+                    });
+                    return total > 0 ? ((correct / total) * 100).toFixed(1) : '0';
+                  };
+
+                  return (
+                    <div key={section.id} className="border-l-4 border-orange-500 pl-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
+                            {section.title}
+                          </h3>
+                          <div className="text-sm text-gray-600 dark:text-slate-400 mt-1">
+                            Score: {tsaPercentage()}% = {tsaScore} points
+                            <span className="ml-2 text-xs">
+                              (≥85% = 10pts, 75-84% = 5pts, &lt;75% = 0pts)
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setTsaExpanded(!tsaExpanded)}
+                          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-800 rounded-lg transition-colors shrink-0 w-full sm:w-auto"
+                        >
+                          <span className="text-sm sm:text-base">{tsaExpanded ? 'Collapse' : 'Expand'}</span>
+                          <span className="hidden sm:inline">Assessment</span>
+                          <svg
+                            className={`w-4 h-4 transition-transform ${tsaExpanded ? 'rotate-180' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {tsaExpanded && (
+                        <div className="space-y-4 bg-orange-50 dark:bg-orange-900/10 p-3 border-l-4 border-orange-400 dark:border-orange-500">
+                          {Object.entries(groupedItems).map(([subsectionName, items]) => (
+                            <div key={subsectionName} className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-slate-600">
+                              <h4 className="text-sm font-semibold text-orange-700 dark:text-orange-300 mb-2">
+                                {subsectionName}
+                              </h4>
+                              <div className="space-y-2">
+                                {(items as SectionItem[]).map((item, itemIndex) => (
+                                  <div key={item.id} className="p-2 sm:p-3 border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors rounded">
+                                    <div className="flex items-start gap-2">
+                                      <span className="inline-flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
+                                        {itemIndex + 1}
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-slate-100 leading-tight mb-2">
+                                          {item.q}
+                                          {/* Debug: show item type */}
+                                          <span className="ml-2 text-xs text-gray-400">({item.type || 'undefined'})</span>
+                                        </p>
+                                        <div className="">
+                                          {item.type === 'employee' ? (
+                                            <div className="relative">
+                                              <input
+                                                type="text"
+                                                value={employeeSearchTerms[`${section.id}_${item.id}`] || responses[`${section.id}_${item.id}`] || ''}
+                                                onChange={(e) => {
+                                                  const fieldKey = `${section.id}_${item.id}`;
+                                                  setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: e.target.value }));
+                                                  setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
+                                                  setSelectedEmployeeIndex(prev => ({ ...prev, [fieldKey]: -1 }));
+                                                }}
+                                                onFocus={() => {
+                                                  const fieldKey = `${section.id}_${item.id}`;
+                                                  setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
+                                                }}
+                                                onBlur={() => {
+                                                  const fieldKey = `${section.id}_${item.id}`;
+                                                  setTimeout(() => setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false })), 200);
+                                                }}
+                                                className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                                placeholder="Search employee..."
+                                              />
+
+                                              {showEmployeeDropdown[`${section.id}_${item.id}`] && (
+                                                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                                                  {employeeLoading ? (
+                                                    <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">Loading employees...</div>
+                                                  ) : (() => {
+                                                    const searchTerm = employeeSearchTerms[`${section.id}_${item.id}`] || '';
+                                                    const filtered = allEmployeesForTSA.filter(emp =>
+                                                      searchTerm === '' ||
+                                                      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                      emp.id.toLowerCase().includes(searchTerm.toLowerCase())
+                                                    );
+
+                                                    return filtered.length > 0 ? (
+                                                      filtered.map((emp, index) => (
+                                                        <button
+                                                          key={emp.id}
+                                                          onClick={() => {
+                                                            const fieldKey = `${section.id}_${item.id}`;
+                                                            const value = `${emp.name} (${emp.id})`;
+                                                            handleTextResponse(fieldKey, value);
+                                                            setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: '' }));
+                                                            setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false }));
+                                                          }}
+                                                          className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm ${index === selectedEmployeeIndex[`${section.id}_${item.id}`] ? 'bg-gray-100 dark:bg-slate-700' : ''
+                                                            }`}
+                                                        >
+                                                          <div className="font-medium">{emp.name}</div>
+                                                          <div className="text-xs text-gray-500 dark:text-slate-400">{emp.id} • {emp.designation}</div>
+                                                        </button>
+                                                      ))
+                                                    ) : (
+                                                      <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">
+                                                        {searchTerm ? 'No matching employees found' : 'Start typing to search...'}
+                                                      </div>
+                                                    );
+                                                  })()}
+                                                </div>
+                                              )}
+                                            </div>
+                                          ) : item.type === 'text' ? (
+                                            <input
+                                              type="text"
+                                              value={responses[`${section.id}_${item.id}`] || ''}
+                                              onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
+                                              className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                              placeholder="Enter value"
+                                            />
+                                          ) : (
+                                            <div className="flex flex-wrap gap-2 sm:gap-3">
+                                              {['yes', 'no', 'na'].map(option => (
+                                                <label key={option} className="flex items-center space-x-1 cursor-pointer min-w-0 shrink-0">
+                                                  <input
+                                                    type="radio"
+                                                    name={`${section.id}_${item.id}`}
+                                                    value={option}
+                                                    checked={responses[`${section.id}_${item.id}`] === option}
+                                                    onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                                                    className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500 shrink-0"
+                                                  />
+                                                  <span className="text-sm text-gray-700 dark:text-slate-300 capitalize">{option}</span>
+                                                </label>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Section Remarks for TSA Food */}
+                      <div className="mt-3">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                          Section Remarks
+                        </label>
+                        <textarea
+                          value={remarks[section.id] || ''}
+                          onChange={(e) => handleRemarks(section.id, e.target.value)}
+                          placeholder={`Add remarks for ${section.title} section (optional)`}
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-orange-500 dark:focus:border-orange-400 focus:outline-none"
+                        />
+                      </div>
+
+                      {/* Image Upload Section */}
+                      <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-3">
+                          Upload Images
+                        </h3>
+
+                        <div className="mb-4 flex flex-col sm:flex-row gap-3">
+                          <input
+                            id={`camera-${section.id}`}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleImageUpload(section.id, file);
+                                e.target.value = '';
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor={`camera-${section.id}`}
+                            className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Take Photo
+                          </label>
+                          <input
+                            id={`upload-${section.id}`}
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleImageUpload(section.id, file);
+                                e.target.value = '';
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor={`upload-${section.id}`}
+                            className="flex-1 px-4 py-2 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-300 dark:border-orange-700 rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Upload Image
+                          </label>
+                        </div>
+
+                        {/* Display uploaded images */}
+                        {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {sectionImages[section.id].map((image, index) => (
+                              <div key={index} className="relative rounded-lg overflow-hidden shadow-sm">
+                                <img
+                                  src={image}
+                                  alt={`${section.title} - Image ${index + 1}`}
+                                  className="w-full h-32 object-cover"
+                                />
+                                <div className="absolute top-2 right-2 flex gap-2">
+                                  <button
+                                    onClick={() => handleEditImage(section.id, index)}
+                                    className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                                    aria-label="Edit image"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => removeImage(section.id, index)}
+                                    className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                                    aria-label="Delete image"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Special handling for TSA Coffee section
+                if (section.id === 'TSA_Coffee') {
+                  // Group items by subsection for TSA Coffee
+                  const groupedItems = section.items.reduce((groups, item) => {
+                    const typedItem = item as SectionItem;
+                    const subsection = typedItem.section || 'Other';
+                    if (!groups[subsection]) groups[subsection] = [];
+                    groups[subsection].push(typedItem);
+                    return groups;
+                  }, {} as Record<string, SectionItem[]>);
+
+                  const tsaScore = calculateTSACoffeeScore();
+                  const tsaPercentage = () => {
+                    let correct = 0, total = 0;
+                    section.items.forEach(item => {
+                      const response = responses[`${section.id}_${item.id}`];
+                      if (response && response !== 'na' && item.type !== 'text') {
+                        total++;
+                        if (response === 'yes') correct++;
+                      }
+                    });
+                    return total > 0 ? ((correct / total) * 100).toFixed(1) : '0';
+                  };
+
+                  return (
+                    <div key={section.id} className="border-l-4 border-yellow-500 pl-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
+                            {section.title}
+                          </h3>
+                          <div className="text-sm text-gray-600 dark:text-slate-400 mt-1">
+                            Score: {tsaPercentage()}% = {tsaScore} points
+                            <span className="ml-2 text-xs">
+                              (≥85% = 10pts, 75-84% = 5pts, &lt;75% = 0pts)
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setTsaCoffeeExpanded(!tsaCoffeeExpanded)}
+                          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg transition-colors shrink-0 w-full sm:w-auto"
+                        >
+                          <span className="text-sm sm:text-base">{tsaCoffeeExpanded ? 'Collapse' : 'Expand'}</span>
+                          <span className="hidden sm:inline">Assessment</span>
+                          <svg
+                            className={`w-4 h-4 transition-transform ${tsaCoffeeExpanded ? 'rotate-180' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {tsaCoffeeExpanded && (
+                        <div className="space-y-4 bg-yellow-50 dark:bg-yellow-900/10 p-3 border-l-4 border-yellow-400 dark:border-yellow-500">
+                          {Object.entries(groupedItems).map(([subsectionName, items]) => (
+                            <div key={subsectionName} className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-slate-600">
+                              <h4 className="text-sm font-semibold text-yellow-700 dark:text-yellow-300 mb-2">
+                                {subsectionName}
+                              </h4>
+                              <div className="space-y-2 sm:space-y-3">
+                                {(items as SectionItem[]).map((item, itemIndex) => (
+                                  <div key={item.id} className="p-2 sm:p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                    <div className="flex items-start gap-2 sm:gap-3">
+                                      <span className="inline-flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
+                                        {itemIndex + 1}
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-2 sm:mb-3">
+                                          {item.q}
+                                        </p>
+                                        <div className="">
+                                          {item.type === 'employee' ? (
+                                            <div className="relative">
+                                              <input
+                                                type="text"
+                                                value={employeeSearchTerms[`${section.id}_${item.id}`] || responses[`${section.id}_${item.id}`] || ''}
+                                                onChange={(e) => {
+                                                  const fieldKey = `${section.id}_${item.id}`;
+                                                  setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: e.target.value }));
+                                                  setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
+                                                  setSelectedEmployeeIndex(prev => ({ ...prev, [fieldKey]: -1 }));
+                                                }}
+                                                onFocus={() => {
+                                                  const fieldKey = `${section.id}_${item.id}`;
+                                                  setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
+                                                }}
+                                                onBlur={() => {
+                                                  const fieldKey = `${section.id}_${item.id}`;
+                                                  setTimeout(() => setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false })), 200);
+                                                }}
+                                                className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                                placeholder="Search employee..."
+                                              />
+
+                                              {showEmployeeDropdown[`${section.id}_${item.id}`] && (
+                                                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                                                  {employeeLoading ? (
+                                                    <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">Loading employees...</div>
+                                                  ) : (() => {
+                                                    const searchTerm = employeeSearchTerms[`${section.id}_${item.id}`] || '';
+                                                    const filtered = allEmployeesForTSA.filter(emp =>
+                                                      searchTerm === '' ||
+                                                      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                      emp.id.toLowerCase().includes(searchTerm.toLowerCase())
+                                                    );
+
+                                                    return filtered.length > 0 ? (
+                                                      filtered.map((emp, index) => (
+                                                        <button
+                                                          key={emp.id}
+                                                          onClick={() => {
+                                                            const fieldKey = `${section.id}_${item.id}`;
+                                                            const value = `${emp.name} (${emp.id})`;
+                                                            handleTextResponse(fieldKey, value);
+                                                            setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: '' }));
+                                                            setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false }));
+                                                          }}
+                                                          className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm ${index === selectedEmployeeIndex[`${section.id}_${item.id}`] ? 'bg-gray-100 dark:bg-slate-700' : ''
+                                                            }`}
+                                                        >
+                                                          <div className="font-medium">{emp.name}</div>
+                                                          <div className="text-xs text-gray-500 dark:text-slate-400">{emp.id} • {emp.designation}</div>
+                                                        </button>
+                                                      ))
+                                                    ) : (
+                                                      <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">
+                                                        {searchTerm ? 'No matching employees found' : 'Start typing to search...'}
+                                                      </div>
+                                                    );
+                                                  })()}
+                                                </div>
+                                              )}
+                                            </div>
+                                          ) : item.type === 'text' ? (
+                                            <input
+                                              type="text"
+                                              value={responses[`${section.id}_${item.id}`] || ''}
+                                              onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
+                                              className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                              placeholder="Enter value"
+                                            />
+                                          ) : (
+                                            <div className="flex flex-wrap gap-2 sm:gap-4">
+                                              {['yes', 'no', 'na'].map(option => (
+                                                <label key={option} className="flex items-center space-x-1 sm:space-x-2 cursor-pointer min-w-0 shrink-0">
+                                                  <input
+                                                    type="radio"
+                                                    name={`${section.id}_${item.id}`}
+                                                    value={option}
+                                                    checked={responses[`${section.id}_${item.id}`] === option}
+                                                    onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                                                    className="w-4 h-4 text-yellow-600 border-gray-300 dark:border-slate-600 focus:ring-yellow-500 shrink-0"
+                                                  />
+                                                  <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
+                                                </label>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Section Remarks for TSA Coffee */}
+                      <div className="mt-3">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                          Section Remarks
+                        </label>
+                        <textarea
+                          value={remarks[section.id] || ''}
+                          onChange={(e) => handleRemarks(section.id, e.target.value)}
+                          placeholder={`Add remarks for ${section.title} section (optional)`}
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:outline-none"
+                        />
+                      </div>
+
+                      {/* Image Upload Section */}
+                      <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-3">
+                          Upload Images
+                        </h3>
+
+                        <div className="mb-4 flex flex-col sm:flex-row gap-3">
+                          <input
+                            id={`camera-${section.id}`}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleImageUpload(section.id, file);
+                                e.target.value = '';
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor={`camera-${section.id}`}
+                            className="flex-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Take Photo
+                          </label>
+                          <input
+                            id={`upload-${section.id}`}
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleImageUpload(section.id, file);
+                                e.target.value = '';
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor={`upload-${section.id}`}
+                            className="flex-1 px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Upload Image
+                          </label>
+                        </div>
+
+                        {/* Display uploaded images */}
+                        {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {sectionImages[section.id].map((image, index) => (
+                              <div key={index} className="relative rounded-lg overflow-hidden shadow-sm">
+                                <img
+                                  src={image}
+                                  alt={`${section.title} - Image ${index + 1}`}
+                                  className="w-full h-32 object-cover"
+                                />
+                                <div className="absolute top-2 right-2 flex gap-2">
+                                  <button
+                                    onClick={() => handleEditImage(section.id, index)}
+                                    className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                                    aria-label="Edit image"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => removeImage(section.id, index)}
+                                    className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                                    aria-label="Delete image"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Special handling for TSA CX section
+                if (section.id === 'TSA_CX') {
+                  // Group items by subsection for TSA CX
+                  const groupedItems = section.items.reduce((groups, item) => {
+                    const typedItem = item as SectionItem;
+                    const subsection = typedItem.section || 'Other';
+                    if (!groups[subsection]) groups[subsection] = [];
+                    groups[subsection].push(typedItem);
+                    return groups;
+                  }, {} as Record<string, SectionItem[]>);
+
+                  const tsaScore = calculateTSACXScore();
+                  const tsaPercentage = () => {
+                    let correct = 0, total = 0;
+                    section.items.forEach(item => {
+                      const response = responses[`${section.id}_${item.id}`];
+                      if (response && response !== 'na' && item.type !== 'text') {
+                        total++;
+                        if (response === 'yes') correct++;
+                      }
+                    });
+                    return total > 0 ? ((correct / total) * 100).toFixed(1) : '0';
+                  };
+
+                  return (
+                    <div key={section.id} className="border-l-4 border-blue-500 pl-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
+                            {section.title}
+                          </h3>
+                          <div className="text-sm text-gray-600 dark:text-slate-400 mt-1">
+                            Score: {tsaPercentage()}% = {tsaScore} points
+                            <span className="ml-2 text-xs">
+                              (≥85% = 10pts, 75-84% = 5pts, &lt;75% = 0pts)
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setTsaCXExpanded(!tsaCXExpanded)}
+                          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors shrink-0 w-full sm:w-auto"
+                        >
+                          <span className="text-sm sm:text-base">{tsaCXExpanded ? 'Collapse' : 'Expand'}</span>
+                          <span className="hidden sm:inline">Assessment</span>
+                          <svg
+                            className={`w-4 h-4 transition-transform ${tsaCXExpanded ? 'rotate-180' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {tsaCXExpanded && (
+                        <div className="space-y-4 bg-blue-50 dark:bg-blue-900/10 p-3 border-l-4 border-blue-400 dark:border-blue-500">
+                          {Object.entries(groupedItems).map(([subsectionName, items]) => (
+                            <div key={subsectionName} className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-slate-600">
+                              <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">
+                                {subsectionName}
+                              </h4>
+                              <div className="space-y-2 sm:space-y-3">
+                                {(items as SectionItem[]).map((item, itemIndex) => (
+                                  <div key={item.id} className="p-2 sm:p-3 border border-gray-200 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                    <div className="flex items-start gap-2 sm:gap-3">
+                                      <span className="inline-flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
+                                        {itemIndex + 1}
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-2 sm:mb-3">
+                                          {item.q}
+                                        </p>
+                                        <div className="">
+                                          {item.type === 'employee' ? (
+                                            <div className="relative">
+                                              <input
+                                                type="text"
+                                                value={employeeSearchTerms[`${section.id}_${item.id}`] || responses[`${section.id}_${item.id}`] || ''}
+                                                onChange={(e) => {
+                                                  const fieldKey = `${section.id}_${item.id}`;
+                                                  setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: e.target.value }));
+                                                  setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
+                                                  setSelectedEmployeeIndex(prev => ({ ...prev, [fieldKey]: -1 }));
+                                                }}
+                                                onFocus={() => {
+                                                  const fieldKey = `${section.id}_${item.id}`;
+                                                  setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: true }));
+                                                }}
+                                                onBlur={() => {
+                                                  const fieldKey = `${section.id}_${item.id}`;
+                                                  setTimeout(() => setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false })), 200);
+                                                }}
+                                                className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                                placeholder="Search employee..."
+                                              />
+
+                                              {showEmployeeDropdown[`${section.id}_${item.id}`] && (
+                                                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                                                  {employeeLoading ? (
+                                                    <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">Loading employees...</div>
+                                                  ) : (() => {
+                                                    const searchTerm = employeeSearchTerms[`${section.id}_${item.id}`] || '';
+                                                    const filtered = allEmployeesForTSA.filter(emp =>
+                                                      searchTerm === '' ||
+                                                      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                      emp.id.toLowerCase().includes(searchTerm.toLowerCase())
+                                                    );
+
+                                                    return filtered.length > 0 ? (
+                                                      filtered.map((emp, index) => (
+                                                        <button
+                                                          key={emp.id}
+                                                          onClick={() => {
+                                                            const fieldKey = `${section.id}_${item.id}`;
+                                                            const value = `${emp.name} (${emp.id})`;
+                                                            handleTextResponse(fieldKey, value);
+                                                            setEmployeeSearchTerms(prev => ({ ...prev, [fieldKey]: '' }));
+                                                            setShowEmployeeDropdown(prev => ({ ...prev, [fieldKey]: false }));
+                                                          }}
+                                                          className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm ${index === selectedEmployeeIndex[`${section.id}_${item.id}`] ? 'bg-gray-100 dark:bg-slate-700' : ''
+                                                            }`}
+                                                        >
+                                                          <div className="font-medium">{emp.name}</div>
+                                                          <div className="text-xs text-gray-500 dark:text-slate-400">{emp.id} • {emp.designation}</div>
+                                                        </button>
+                                                      ))
+                                                    ) : (
+                                                      <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">
+                                                        {searchTerm ? 'No matching employees found' : 'Start typing to search...'}
+                                                      </div>
+                                                    );
+                                                  })()}
+                                                </div>
+                                              )}
+                                            </div>
+                                          ) : item.type === 'text' ? (
+                                            <input
+                                              type="text"
+                                              value={responses[`${section.id}_${item.id}`] || ''}
+                                              onChange={(e) => handleTextResponse(`${section.id}_${item.id}`, e.target.value)}
+                                              className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-slate-600 rounded text-xs sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                                              placeholder="Enter value"
+                                            />
+                                          ) : (
+                                            <div className="flex flex-wrap gap-2 sm:gap-4">
+                                              {['yes', 'no', 'na'].map(option => (
+                                                <label key={option} className="flex items-center space-x-1 sm:space-x-2 cursor-pointer min-w-0 shrink-0">
+                                                  <input
+                                                    type="radio"
+                                                    name={`${section.id}_${item.id}`}
+                                                    value={option}
+                                                    checked={responses[`${section.id}_${item.id}`] === option}
+                                                    onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                                                    className="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-600 focus:ring-blue-500 shrink-0"
+                                                  />
+                                                  <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
+                                                </label>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Section Remarks for TSA CX */}
+                      <div className="mt-3">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                          Section Remarks
+                        </label>
+                        <textarea
+                          value={remarks[section.id] || ''}
+                          onChange={(e) => handleRemarks(section.id, e.target.value)}
+                          placeholder={`Add remarks for ${section.title} section (optional)`}
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none"
+                        />
+                      </div>
+
+                      {/* Image Upload Section */}
+                      <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-3">
+                          Upload Images
+                        </h3>
+
+                        <div className="mb-4 flex flex-col sm:flex-row gap-3">
+                          <input
+                            id={`camera-${section.id}`}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleImageUpload(section.id, file);
+                                e.target.value = '';
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor={`camera-${section.id}`}
+                            className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Take Photo
+                          </label>
+                          <input
+                            id={`upload-${section.id}`}
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleImageUpload(section.id, file);
+                                e.target.value = '';
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor={`upload-${section.id}`}
+                            className="flex-1 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Upload Image
+                          </label>
+                        </div>
+
+                        {/* Display uploaded images */}
+                        {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {sectionImages[section.id].map((image, index) => (
+                              <div key={index} className="relative rounded-lg overflow-hidden shadow-sm">
+                                <img
+                                  src={image}
+                                  alt={`${section.title} - Image ${index + 1}`}
+                                  className="w-full h-32 object-cover"
+                                />
+                                <div className="absolute top-2 right-2 flex gap-2">
+                                  <button
+                                    onClick={() => handleEditImage(section.id, index)}
+                                    className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                                    aria-label="Edit image"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => removeImage(section.id, index)}
+                                    className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                                    aria-label="Delete image"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Regular sections (non-TSA)
+                return (
+                  <div key={section.id} className="border-l-4 border-purple-500 pl-4">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">
+                      {section.title}
+                    </h3>
+
+                    <div className="space-y-2 sm:space-y-3">
+                      {section.items.map((item, itemIndex) => (
+                        <div key={item.id} className="p-3 sm:p-4 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                          <div className="flex items-start gap-2 sm:gap-3">
+                            <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
+                              {itemIndex + 1}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-2 sm:mb-3">
+                                {item.q}
+                              </p>
+                              <div className="flex flex-wrap gap-2 sm:gap-4">
+                                {['yes', 'no', 'na'].map(option => (
+                                  <label key={option} className="flex items-center space-x-1 sm:space-x-2 cursor-pointer min-w-0 shrink-0">
+                                    <input
+                                      type="radio"
+                                      name={`${section.id}_${item.id}`}
+                                      value={option}
+                                      checked={responses[`${section.id}_${item.id}`] === option}
+                                      onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                                      className="w-4 h-4 text-purple-600 border-gray-300 dark:border-slate-600 focus:ring-purple-500 shrink-0"
+                                    />
+                                    <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Section Remarks */}
+                    <div className="mt-3">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Section Remarks
+                      </label>
+                      <textarea
+                        value={remarks[section.id] || ''}
+                        onChange={(e) => handleRemarks(section.id, e.target.value)}
+                        placeholder={`Add remarks for ${section.title} section (optional)`}
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Image Upload Section */}
+                    <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-3">
+                        Upload Images
+                      </h3>
+
+                      <div className="mb-4 flex flex-col sm:flex-row gap-3">
+                        <input
+                          id={`camera-${section.id}`}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleImageUpload(section.id, file);
+                              e.target.value = '';
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor={`camera-${section.id}`}
+                          className="flex-1 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          Take Photo
+                        </label>
+                        <input
+                          id={`upload-${section.id}`}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleImageUpload(section.id, file);
+                              e.target.value = '';
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor={`upload-${section.id}`}
+                          className="flex-1 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 rounded-md font-medium text-center cursor-pointer transition-colors flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          Upload Image
+                        </label>
+                      </div>
+
+                      {/* Display uploaded images */}
+                      {sectionImages[section.id] && sectionImages[section.id].length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {sectionImages[section.id].map((image, index) => (
+                            <div key={index} className="relative rounded-lg overflow-hidden shadow-sm">
+                              <img
+                                src={image}
+                                alt={`${section.title} - Image ${index + 1}`}
+                                className="w-full h-32 object-cover"
+                              />
+                              <div className="absolute top-2 right-2 flex gap-2">
+                                <button
+                                  onClick={() => handleEditImage(section.id, index)}
+                                  className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                                  aria-label="Edit image"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => removeImage(section.id, index)}
+                                  className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shadow-lg transition-colors"
+                                  aria-label="Delete image"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Submit Buttons */}
+          <div className="w-full px-3 sm:px-4 py-4 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3 max-w-md mx-auto">
+              <button
+                onClick={resetChecklist}
+                className="w-full sm:w-auto px-4 sm:px-5 py-3 bg-transparent border border-gray-300 dark:border-slate-600 text-gray-800 dark:text-slate-100 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 text-sm sm:text-base"
+              >
+                Reset Checklist
+              </button>
+
+              <button
+                onClick={handleSubmit}
+                disabled={isLoading}
+                data-tour="submit-button"
+                className="w-full sm:w-auto px-4 sm:px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 disabled:opacity-60 text-white rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-400 text-sm sm:text-base"
+              >
+                {isLoading ? 'Submitting...' : 'Submit Training Audit'}
+              </button>
+            </div>
+          </div>
+
+          {/* Image Editor Modal */}
+          {editingImage && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
+                <ImageEditor
+                  imageBase64={editingImage.imageData}
+                  onSave={handleSaveEditedImage}
+                  onCancel={handleCancelEdit}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>

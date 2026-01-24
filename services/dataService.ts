@@ -5,16 +5,16 @@ import { STATIC_TRAINING_DATA } from './staticTrainingData';
 import { STATIC_AM_OPERATIONS_DATA } from './staticOperationsData';
 
 // Google Apps Script endpoint for fetching data - UPDATED with DD/MM/YYYY date formatting
-const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzjSz9tePMAh3bOVfx9-Cnkj8hgZpLhUZ4UPKteSuD40BsDi6PM1v8D3ZSsxQxXYDXgjg/exec';
+const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxGp9HAph2daannyuSsO5CFcIwtJaAH-WtMPyBZ1x9g6NwWcPuNhrJWKiSJeiZW44j91g/exec';
 
 // AM Operations endpoint - UPDATED URL (no CORS headers needed, must match OperationsChecklist submission endpoint)
 const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycby7R8JLMuleKjqzjVOK7fkhMmX7nCT0A-IJ8vK2TiC428hpAeKO-0axtaUfJI6k4WlUcQ/exec';
 
 // Training Audit endpoint - UPDATED URL
-const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx-Tgwhe2dboNkyWVVhYSL55RL-Lus4L6a3sZcpZ5RDz0BwZsUqcAZNQYLMFaWpqE6-iQ/exec';
+const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzEyJQiAhl3pS90uvkf-3e1mIbq8WNs7-xMtuBwD6eOy85Kkx6EKpzUsHW-oxp6NAoqjQ/exec';
 
 // QA Assessment endpoint - UPDATED URL (Data fetched from Google Sheets)
-const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzPjylMnpB7Qx0Erh5u5jYA0WY2rrsdxwt4Y1ahB7KW17mzF4pPG3Qk6PUG7KSzbfIi/exec';
+const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwGIDlsSGyRhR40G0zLmYpbs5C-ShrZffwnKcn3hikZPeDFtcWbeDzewT49yJQ_8YCUkA/exec';
 
 // Finance Audit endpoint - UPDATED URL (Data fetched from Google Sheets)
 const FINANCE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx1WaaEoUTttanmWGS8me3HZNhuqaxVHoPdWN3AdI0i4bLQmHFRztj133Vh8SaoVb2iwg/exec';
@@ -30,11 +30,11 @@ const loadStoreMapping = async (): Promise<any[]> => {
   if (storeMappingCache) {
     return storeMappingCache;
   }
-  
+
   try {
     const base = (import.meta as any).env?.BASE_URL || '/';
     let response;
-    
+
     // Try the comprehensive mapping first
     try {
       response = await fetch(`${base}comprehensive_store_mapping.json`);
@@ -78,39 +78,39 @@ const loadStoreMapping = async (): Promise<any[]> => {
 };
 
 // Get Area Manager data for HR based on mapping
-const getAMForHR = async (hrId: string): Promise<{amId: string, amName: string} | null> => {
+const getAMForHR = async (hrId: string): Promise<{ amId: string, amName: string } | null> => {
   const mappingData = await loadStoreMapping();
-  
+
   // Find stores where this HR is responsible (HRBP > Regional HR > HR Head priority)
-  const hrStores = mappingData.filter((mapping: any) => 
-    mapping['HRBP ID'] === hrId || 
-    mapping['Regional HR ID'] === hrId || 
+  const hrStores = mappingData.filter((mapping: any) =>
+    mapping['HRBP ID'] === hrId ||
+    mapping['Regional HR ID'] === hrId ||
     mapping['HR Head ID'] === hrId ||
-    mapping.hrbpId === hrId || 
-    mapping.regionalHrId === hrId || 
+    mapping.hrbpId === hrId ||
+    mapping.regionalHrId === hrId ||
     mapping.hrHeadId === hrId
   );
-  
+
   if (hrStores.length > 0) {
     // Get the Area Manager from the first store (they should all have the same AM)
     const amId = hrStores[0]['Area Manager ID'] || hrStores[0].areaManagerId;
     const amPerson = AREA_MANAGERS.find(am => am.id === amId);
-    
+
     return {
       amId: amId,
       amName: amPerson?.name || `AM ${amId}`
     };
   }
-  
+
   return null;
 };
 
 // Get stores for an Area Manager
-const getStoresForAM = async (amId: string): Promise<{storeId: string, storeName: string, region: string}[]> => {
+const getStoresForAM = async (amId: string): Promise<{ storeId: string, storeName: string, region: string }[]> => {
   const mappingData = await loadStoreMapping();
-  
+
   return mappingData
-    .filter((mapping: any) => 
+    .filter((mapping: any) =>
       mapping['Area Manager ID'] === amId || mapping.areaManagerId === amId
     )
     .map((mapping: any) => ({
@@ -127,36 +127,36 @@ const getRandomItem = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.le
 const deduplicateSubmissions = (submissions: Submission[]): Submission[] => {
   // Group submissions by employee (empName + empId) and date
   const submissionMap = new Map<string, Submission>();
-  
+
   submissions.forEach(submission => {
     const empKey = `${submission.empName}_${submission.empId}`.toLowerCase();
-    
+
     // Extract date from submission time (ignore time component)
     const submissionDate = parseSubmissionDate(submission.submissionTime);
     if (!submissionDate) {
       return;
     }
-    
+
     const dateKey = `${submissionDate.getFullYear()}-${submissionDate.getMonth()}-${submissionDate.getDate()}`;
     const uniqueKey = `${empKey}_${dateKey}`;
-    
+
     // Check if we already have a submission for this employee on this date
     const existing = submissionMap.get(uniqueKey);
-    
+
     if (!existing) {
       // First submission for this employee on this date
       submissionMap.set(uniqueKey, submission);
     } else {
       // Compare timestamps to keep the latest one
       const existingDate = parseSubmissionDate(existing.submissionTime);
-      
+
       if (existingDate && submissionDate > existingDate) {
         // Current submission is newer, replace the existing one
         submissionMap.set(uniqueKey, submission);
       }
     }
   });
-  
+
   const deduplicated = Array.from(submissionMap.values());
   return deduplicated;
 };
@@ -164,27 +164,27 @@ const deduplicateSubmissions = (submissions: Submission[]): Submission[] => {
 // Helper function to parse submission date/time string
 const parseSubmissionDate = (submissionTime: string): Date | null => {
   if (!submissionTime) return null;
-  
+
   try {
     // Handle ISO format (from mock data)
     if (submissionTime.includes('T')) {
       return new Date(submissionTime);
     }
-    
+
     // Parse DD/MM/YYYY, HH:MM:SS format (from Google Sheets)
     const dateStr = submissionTime.trim().replace(',', '');
     const parts = dateStr.split(' ');
-    
+
     if (parts.length < 1) return null;
-    
+
     // Parse date part (DD/MM/YYYY)
     const dateParts = parts[0].split('/');
     if (dateParts.length !== 3) return null;
-    
+
     const day = parseInt(dateParts[0], 10);
     const month = parseInt(dateParts[1], 10) - 1; // Months are 0-indexed
     const year = parseInt(dateParts[2], 10);
-    
+
     // Parse time part if available (HH:MM:SS)
     let hour = 0, minute = 0, second = 0;
     if (parts.length > 1 && parts[1]) {
@@ -193,7 +193,7 @@ const parseSubmissionDate = (submissionTime: string): Date | null => {
       minute = parseInt(timeParts[1] || '0', 10);
       second = parseInt(timeParts[2] || '0', 10);
     }
-    
+
     return new Date(year, month, day, hour, minute, second);
   } catch (err) {
     return null;
@@ -218,21 +218,21 @@ const generateMockData = async (count: number): Promise<Submission[]> => {
   for (let i = 0; i < count; i++) {
     // Use real mapping data if available, otherwise fallback to constants
     let hr, am, store, storeRegion;
-    
+
     if (hrMappingData.length > 0) {
       const randomMapping = getRandomItem(hrMappingData);
-      
+
       // Get Area Manager from mapping
-      am = AREA_MANAGERS.find(a => a.id === randomMapping.areaManagerId) || 
-           { name: `AM ${randomMapping.areaManagerId}`, id: randomMapping.areaManagerId };
-      
+      am = AREA_MANAGERS.find(a => a.id === randomMapping.areaManagerId) ||
+        { name: `AM ${randomMapping.areaManagerId}`, id: randomMapping.areaManagerId };
+
       // Determine which HR ID to use based on priority: HRBP > Regional HR > HR Head
       let hrId = randomMapping.hrbpId || randomMapping.regionalHrId || randomMapping.hrHeadId;
-      
+
       // Find HR names from constants or use IDs
-      hr = HR_PERSONNEL.find(h => h.id === hrId) || 
-           { name: `HR ${hrId}`, id: hrId };
-           
+      hr = HR_PERSONNEL.find(h => h.id === hrId) ||
+        { name: `HR ${hrId}`, id: hrId };
+
       store = { name: randomMapping['Store Name'] || randomMapping.locationName, id: randomMapping['Store ID'] || randomMapping.storeId };
       storeRegion = randomMapping.region;
     } else {
@@ -245,16 +245,16 @@ const generateMockData = async (count: number): Promise<Submission[]> => {
 
     let totalScore = 0;
     const submission: Partial<Submission> = {};
-    
+
     QUESTIONS.forEach(q => {
       if (q.choices) {
         const choice = getRandomItem(q.choices);
         (submission as any)[q.id] = choice.label;
         totalScore += choice.score;
       } else if (q.id === 'q10') {
-         (submission as any)[q.id] = `Colleague ${i+1}`;
+        (submission as any)[q.id] = `Colleague ${i + 1}`;
       } else {
-         (submission as any)[q.id] = `Suggestion or comment number ${i+1}. Lorem ipsum dolor sit amet.`;
+        (submission as any)[q.id] = `Suggestion or comment number ${i + 1}. Lorem ipsum dolor sit amet.`;
       }
     });
 
@@ -288,11 +288,11 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
   }
 
   const results: Submission[] = [];
-  
+
   for (const row of sheetsData) {
     // Calculate score for this submission
     let totalScore = 0, maxScore = 0;
-    
+
     QUESTIONS.forEach(q => {
       if (q.choices) {
         const response = row[q.id];
@@ -301,7 +301,7 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
           const choiceByLabel = q.choices.find(c => c.label.toLowerCase() === response.toLowerCase().trim());
           const choiceByScore = q.choices.find(c => c.score === Number(response));
           const choice = choiceByLabel || choiceByScore;
-          
+
           if (choice) {
             totalScore += choice.score;
           }
@@ -311,7 +311,7 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
     });
 
     const calculatedPercent = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
-    
+
     // Always use recalculated scores since we updated the scoring system
     // Use calculated scores if the ones from sheets are empty/invalid, otherwise use recalculated
     const finalTotalScore = row.totalScore && !isNaN(Number(row.totalScore)) ? Number(row.totalScore) : totalScore;
@@ -326,7 +326,7 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
     const originalAmName = row['AM Name'] || row.amName || '';
     let amId = originalAmId;
     let amName = originalAmName;
-    
+
     // IMPORTANT: Keep the original HR data from Google Sheets (who actually did the survey)
     // Don't overwrite with store mapping HRBP
     const originalHrId = row['HR ID'] || row.hrId || '';
@@ -334,16 +334,16 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
     let hrId = originalHrId;
     let hrName = originalHrName;
     let region = row['Region'] || row.region || 'Unknown';
-    
+
     // Look up from comprehensive store mapping ONLY if AM/HR data is missing from Google Sheets
     if (row['Store ID'] || row.storeID || row.storeId) {
       const storeId = row['Store ID'] || row.storeID || row.storeId;
       try {
         const mappingData = await loadStoreMapping();
-        const storeMapping = mappingData.find((mapping: any) => 
+        const storeMapping = mappingData.find((mapping: any) =>
           mapping['Store ID'] === storeId || mapping.storeId === storeId
         );
-        
+
         if (storeMapping) {
           // Get Area Manager - ONLY if not provided in Google Sheets
           if (!originalAmId || !originalAmName) {
@@ -354,19 +354,19 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
               amName = amPerson?.name || `AM ${amId}`;
             }
           }
-          
+
           // Only use store mapping HRBP if Google Sheets didn't provide HR data
           if (!originalHrId) {
-            const mappedHrId = storeMapping.HRBP || storeMapping['Regional Training Manager'] || 
-                               storeMapping['HR Head'] || storeMapping.hrbpId || 
-                               storeMapping.regionalHrId || storeMapping.hrHeadId;
+            const mappedHrId = storeMapping.HRBP || storeMapping['Regional Training Manager'] ||
+              storeMapping['HR Head'] || storeMapping.hrbpId ||
+              storeMapping.regionalHrId || storeMapping.hrHeadId;
             if (mappedHrId) {
               hrId = mappedHrId;
               const hrPerson = HR_PERSONNEL.find(hr => hr.id === hrId);
               hrName = hrPerson?.name || `HR ${hrId}`;
             }
           }
-          
+
           // Get Region from mapping only if not in Google Sheets
           const mappedRegion = storeMapping.Region || storeMapping['Region'] || storeMapping.region;
           if (mappedRegion && !row['Region'] && !row.region) {
@@ -417,10 +417,10 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
       maxScore: finalMaxScore,
       percent: finalPercent,
     };
-    
+
     results.push(submission);
   }
-  
+
   return results;
 };
 
@@ -429,12 +429,12 @@ export const fetchSubmissions = async (): Promise<Submission[]> => {
     // Try direct request first (works if CORS is properly configured)
     let response;
     let data;
-    
+
     try {
       // Add cache-busting parameter to force fresh data
       const cacheBuster = `&_t=${Date.now()}`;
       const directUrl = SHEETS_ENDPOINT + '?action=getData' + cacheBuster;
-      
+
       response = await fetch(directUrl, {
         method: 'GET',
         headers: {
@@ -443,7 +443,7 @@ export const fetchSubmissions = async (): Promise<Submission[]> => {
         cache: 'no-cache', // Disable browser caching
         redirect: 'follow',
       });
-      
+
       if (response.ok) {
         data = await response.json();
       } else {
@@ -470,22 +470,27 @@ export const fetchSubmissions = async (): Promise<Submission[]> => {
 
       data = await response.json();
     }
-    
-    // Check if the received data is an array, as expected
-    if (!Array.isArray(data)) {
-        return await generateMockData(20);
+
+    // Handle both direct array format and object with rows property
+    let rowsData: any[];
+    if (Array.isArray(data)) {
+      rowsData = data;
+    } else if (data && typeof data === 'object' && Array.isArray(data.rows)) {
+      rowsData = data.rows;
+    } else {
+      return await generateMockData(20);
     }
-    
-    const submissions = await convertSheetsDataToSubmissions(data);
-    
+
+    const submissions = await convertSheetsDataToSubmissions(rowsData);
+
     // If no real data available, generate mock data for demo purposes
     if (submissions.length === 0) {
       return await generateMockData(20);
     }
-    
+
     // Deduplicate submissions - keep only the latest submission per employee per day
     const deduplicatedSubmissions = deduplicateSubmissions(submissions);
-    
+
     return deduplicatedSubmissions;
   } catch (error) {
     // Return mock data instead of empty array for demo purposes
@@ -528,7 +533,7 @@ export interface AMOperationsSubmission {
 // Helper function to apply region mapping to any dataset
 const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmission[]> => {
   const mappingData = await loadStoreMapping();
-  
+
   const processedData = dataArray.map((row: any) => {
     let region = 'Unknown';
     let menu = '';
@@ -538,9 +543,9 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
     let trainer = '';
     let am = '';
     let regionalTrainingManager = '';
-    
+
     let storeId = row.storeId || row.storeID || row['Store ID'];
-    
+
     // ALWAYS map ALL fields from the comprehensive mapping file based on Store ID
     if (storeId) {
       try {
@@ -550,7 +555,7 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
           const match = mappingStoreId === storeId.toString();
           return match;
         });
-        
+
         // If not found and storeId is numeric, try with S prefix
         if (!storeMapping && !isNaN(storeId) && !storeId.toString().startsWith('S')) {
           const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
@@ -559,25 +564,25 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
             return mappingStoreId === sFormattedId;
           });
         }
-        
+
         // If still not found, try to match by store name if available
         if (!storeMapping && (row.storeName || row['Store Name'])) {
           const submissionStoreName = row.storeName || row['Store Name'];
           storeMapping = mappingData.find(mapping => {
             const mappingStoreName = mapping['Store Name'] || mapping.storeName || '';
             const nameMatch = mappingStoreName.toLowerCase().includes(submissionStoreName.toLowerCase()) ||
-                   submissionStoreName.toLowerCase().includes(mappingStoreName.toLowerCase()) ||
-                   mappingStoreName.toLowerCase() === submissionStoreName.toLowerCase();
+              submissionStoreName.toLowerCase().includes(mappingStoreName.toLowerCase()) ||
+              mappingStoreName.toLowerCase() === submissionStoreName.toLowerCase();
             return nameMatch;
           });
         }
-        
+
         if (storeMapping) {
           // Map all fields from comprehensive mapping - THIS OVERRIDES GOOGLE SHEET DATA
           const originalRegion = row.region;
           const originalStoreName = row.storeName || row['Store Name'];
           const mappedStoreName = storeMapping['Store Name'] || storeMapping.storeName;
-          
+
           region = storeMapping['Region'] || storeMapping.region || 'Unknown';
           menu = storeMapping['Menu'] || storeMapping.menu || '';
           storeType = storeMapping['Store Type'] || storeMapping.storeType || '';
@@ -586,13 +591,13 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
           trainer = storeMapping['Trainer'] || storeMapping.trainer || '';
           am = storeMapping['AM'] || storeMapping.am || '';
           regionalTrainingManager = storeMapping['Regional Training Manager'] || storeMapping.regionalTrainingManager || '';
-          
+
         }
       } catch (error) {
         // Mapping failed, use original values
       }
     }
-    
+
     return {
       ...row,
       region: region,
@@ -606,7 +611,7 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
       regionalTrainingManager: regionalTrainingManager
     };
   });
-  
+
   return processedData as AMOperationsSubmission[];
 };
 
@@ -614,7 +619,7 @@ export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]>
   try {
     const directUrl = AM_OPS_ENDPOINT + '?action=getData';
     console.log('Fetching AM Operations data from:', directUrl);
-    
+
     const response = await fetch(directUrl, {
       method: 'GET',
       headers: {
@@ -622,25 +627,25 @@ export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]>
       },
       redirect: 'follow',
     });
-    
+
     console.log('Response status:', response.status);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Failed to fetch AM Operations data:', response.status, errorText);
       return [];
     }
-    
+
     const data = await response.json();
     console.log('Received data:', data);
     console.log('Data is array?', Array.isArray(data));
     console.log('Data length:', Array.isArray(data) ? data.length : 'N/A');
-    
+
     if (!Array.isArray(data)) {
       console.error('Invalid data format received from AM Operations endpoint:', typeof data);
       return [];
     }
-    
+
     // Map Google Sheets column names to camelCase field names
     const mappedData = data.map((row: any) => {
       return {
@@ -664,16 +669,16 @@ export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]>
         ...row
       };
     });
-    
+
     console.log('Mapped data sample:', mappedData[0]);
-    
+
     // Process data using the helper function to ensure proper region mapping
     const processedData = await applyRegionMapping(mappedData);
     console.log('Processed data length:', processedData.length);
     console.log('Processed data sample:', processedData[0]);
-    
+
     return processedData;
-    
+
   } catch (error) {
     console.error('Error fetching AM Operations data:', error);
     return [];
@@ -707,10 +712,10 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
   try {
     let response;
     let data;
-    
+
     try {
       const directUrl = TRAINING_AUDIT_ENDPOINT + '?action=getData';
-      
+
       response = await fetch(directUrl, {
         method: 'GET',
         headers: {
@@ -718,7 +723,7 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
         },
         redirect: 'follow',
       });
-      
+
       if (response.ok) {
         data = await response.json();
       } else {
@@ -744,55 +749,55 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
 
       data = await response.json();
     }
-    
+
     if (!Array.isArray(data)) {
       return STATIC_TRAINING_DATA as TrainingAuditSubmission[];
     }
-    
+
     // Process data to ensure proper region mapping and TSA score extraction
     const processedData = await Promise.all(data.map(async (row: any) => {
       let region = row.region || 'Unknown';
       let storeId = row.storeId;
       const trainerId = (row.trainerId || '').toLowerCase().trim();
-      
+
       // CRITICAL FIX: Kailash (H2595) should ALWAYS be North region, never West
       if (trainerId === 'h2595' && region === 'West') {
         region = 'North';
       }
-      
+
       // If region is Unknown or empty, try to map from store ID
       if (!region || region === 'Unknown') {
         try {
           if (storeId) {
             const mappingData = await loadStoreMapping();
-            
+
             // Try to find by exact store ID match first
-            let storeMapping = mappingData.find(mapping => 
-              mapping["Store ID"] === storeId.toString() || 
+            let storeMapping = mappingData.find(mapping =>
+              mapping["Store ID"] === storeId.toString() ||
               mapping.storeId === storeId.toString()
             );
-            
+
             // If not found and storeId is numeric, try with S prefix
             if (!storeMapping && !isNaN(storeId) && !storeId.toString().startsWith('S')) {
               const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
-              storeMapping = mappingData.find(mapping => 
-                mapping["Store ID"] === sFormattedId || 
+              storeMapping = mappingData.find(mapping =>
+                mapping["Store ID"] === sFormattedId ||
                 mapping.storeId === sFormattedId
               );
             }
-            
+
             // If still not found, try to match by store name if available
             if (!storeMapping && row.storeName) {
               storeMapping = mappingData.find(mapping => {
                 const mappingStoreName = mapping["Store Name"] || mapping.storeName || '';
                 const submissionStoreName = row.storeName;
-                
+
                 return mappingStoreName.toLowerCase().includes(submissionStoreName.toLowerCase()) ||
-                       submissionStoreName.toLowerCase().includes(mappingStoreName.toLowerCase()) ||
-                       mappingStoreName.toLowerCase() === submissionStoreName.toLowerCase();
+                  submissionStoreName.toLowerCase().includes(mappingStoreName.toLowerCase()) ||
+                  mappingStoreName.toLowerCase() === submissionStoreName.toLowerCase();
               });
             }
-            
+
             if (storeMapping && (storeMapping["Region"] || storeMapping.region)) {
               region = storeMapping["Region"] || storeMapping.region;
             }
@@ -801,14 +806,14 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
           // Mapping failed, use original values
         }
       }
-      
+
       // Extract and map TSA scores - check multiple possible field names
       // The Google Apps Script returns: tsaFoodScore, tsaCoffeeScore, tsaCXScore (camelCase)
       // Also check legacy field names: TSA_TSA_1, TSA_TSA_2, TSA_TSA_3
       const tsaFoodScore = row.tsaFoodScore || row['tsaFoodScore'] || row.TSA_Food_Score || row['TSA_Food_Score'] || row.TSA_TSA_2 || row['TSA_TSA_2'] || '';
       const tsaCoffeeScore = row.tsaCoffeeScore || row['tsaCoffeeScore'] || row.TSA_Coffee_Score || row['TSA_Coffee_Score'] || row.TSA_TSA_1 || row['TSA_TSA_1'] || '';
       const tsaCXScore = row.tsaCXScore || row['tsaCXScore'] || row.TSA_CX_Score || row['TSA_CX_Score'] || row.TSA_TSA_3 || row['TSA_TSA_3'] || '';
-      
+
       return {
         ...row,
         region: region,
@@ -817,9 +822,9 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
         tsaCXScore: tsaCXScore
       };
     }));
-    
+
     return processedData as TrainingAuditSubmission[];
-    
+
   } catch (error) {
     return STATIC_TRAINING_DATA as TrainingAuditSubmission[];
   }
@@ -847,14 +852,14 @@ export const fetchQAData = async (): Promise<QASubmission[]> => {
   try {
     let response;
     let data;
-    
+
     try {
       const directUrl = QA_ENDPOINT + '?action=getData';
-      
+
       // Create an AbortController with 30 second timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
-      
+
       try {
         response = await fetch(directUrl, {
           method: 'GET',
@@ -864,9 +869,9 @@ export const fetchQAData = async (): Promise<QASubmission[]> => {
           redirect: 'follow',
           signal: controller.signal
         });
-        
+
         clearTimeout(timeoutId);
-        
+
         if (response.ok) {
           data = await response.json();
         } else {
@@ -890,52 +895,52 @@ export const fetchQAData = async (): Promise<QASubmission[]> => {
         },
         redirect: 'follow',
       });
-      
+
       if (response.ok) {
         data = await response.json();
       } else {
         throw new Error(`CORS proxy request failed: ${response.status}`);
       }
     }
-    
+
     if (!data || !Array.isArray(data)) {
       return [];
     }
-    
+
     // Process data to ensure region mapping
     const mappingData = await loadStoreMapping();
-    
+
     const processedData = data.map((row: any) => {
       let region = row.region || 'Unknown';
-      
+
       // Try to map region from store data if not already present
       if (region === 'Unknown' || !region) {
         try {
           let storeMapping = null;
           const storeId = row.storeId || row.storeID;
-          
+
           if (storeId) {
             // Try exact match first
-            storeMapping = mappingData.find(mapping => 
+            storeMapping = mappingData.find(mapping =>
               mapping["Store ID"] === storeId || mapping.storeId === storeId
             );
-            
+
             // If not found and it's a number, try finding with store name
             if (!storeMapping) {
               if (row.storeName) {
-                storeMapping = mappingData.find(mapping => 
+                storeMapping = mappingData.find(mapping =>
                   mapping["Store Name"] || mapping.locationName.toLowerCase().includes(row.storeName.toLowerCase()) ||
                   row.storeName.toLowerCase().includes(mapping["Store Name"] || mapping.locationName.toLowerCase())
                 );
               }
             }
-            
+
             // If still not found with S prefix, try with S prefix
             if (!storeMapping && !storeId.toString().startsWith('S')) {
               const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
               storeMapping = mappingData.find(mapping => mapping["Store ID"] || mapping.storeId === sFormattedId);
             }
-            
+
             if (storeMapping && storeMapping["Region"] || storeMapping.region) {
               region = storeMapping["Region"] || storeMapping.region;
             }
@@ -944,15 +949,15 @@ export const fetchQAData = async (): Promise<QASubmission[]> => {
           // Mapping failed, use original values
         }
       }
-      
+
       return {
         ...row,
         region: region
       };
     });
-    
+
     return processedData as QASubmission[];
-    
+
   } catch (error) {
     // Static test data for QA dashboard development (fallback)
     const STATIC_QA_DATA: QASubmission[] = [
@@ -1125,7 +1130,7 @@ export const fetchQAData = async (): Promise<QASubmission[]> => {
         'HygieneCompliance_HC_6': 'no'
       }
     ];
-    
+
     return STATIC_QA_DATA;
   }
 };
@@ -1157,10 +1162,10 @@ export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
   try {
     let response;
     let data;
-    
+
     try {
       const directUrl = FINANCE_ENDPOINT + '?action=getData';
-      
+
       response = await fetch(directUrl, {
         method: 'GET',
         headers: {
@@ -1168,7 +1173,7 @@ export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
         },
         redirect: 'follow',
       });
-      
+
       if (response.ok) {
         data = await response.json();
       } else {
@@ -1185,61 +1190,61 @@ export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
         },
         redirect: 'follow',
       });
-      
+
       if (response.ok) {
         data = await response.json();
       } else {
         throw new Error(`CORS proxy request failed: ${response.status}`);
       }
     }
-    
+
     if (!data || !Array.isArray(data)) {
       return [];
     }
-    
+
     // Process data to ensure region mapping AND complete AM/Store data from comprehensive mapping
     const mappingData = await loadStoreMapping();
-    
+
     const processedData = data.map((row: any) => {
       let region = row.region || 'Unknown';
       let amName = row.amName || '';
       let amId = row.amId || '';
       let storeName = row.storeName || '';
-      
+
       // Try to map complete store data from comprehensive mapping
       try {
         let storeMapping = null;
         const storeId = row.storeId || row.storeID;
-        
+
         if (storeId) {
           // Try exact match first
-          storeMapping = mappingData.find(mapping => 
+          storeMapping = mappingData.find(mapping =>
             mapping["Store ID"] === storeId || mapping.storeId === storeId
           );
-          
+
           // If not found and store ID doesn't start with S, try with S prefix
           if (!storeMapping && !storeId.toString().startsWith('S')) {
             const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
-            storeMapping = mappingData.find(mapping => 
+            storeMapping = mappingData.find(mapping =>
               mapping["Store ID"] === sFormattedId || mapping.storeId === sFormattedId
             );
           }
-          
+
           // If not found, try finding with store name
           if (!storeMapping && row.storeName) {
-            storeMapping = mappingData.find(mapping => 
+            storeMapping = mappingData.find(mapping =>
               (mapping["Store Name"] || mapping.locationName)?.toLowerCase() === row.storeName.toLowerCase() ||
               (mapping["Store Name"] || mapping.locationName)?.toLowerCase().includes(row.storeName.toLowerCase()) ||
               row.storeName.toLowerCase().includes((mapping["Store Name"] || mapping.locationName)?.toLowerCase() || '')
             );
           }
-          
+
           if (storeMapping) {
             // Map Region
             if (storeMapping.Region || storeMapping.region) {
               region = storeMapping.Region || storeMapping.region;
             }
-            
+
             // Map Area Manager data
             if (storeMapping.AM || storeMapping.am) {
               amId = storeMapping.AM || storeMapping.am;
@@ -1249,7 +1254,7 @@ export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
                 amName = row.amName || amId; // Fallback to ID if name not available
               }
             }
-            
+
             // Map Store Name if not present
             if (!storeName && (storeMapping["Store Name"] || storeMapping.locationName)) {
               storeName = storeMapping["Store Name"] || storeMapping.locationName;
@@ -1259,7 +1264,7 @@ export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
       } catch (err) {
         // Mapping failed, use original values
       }
-      
+
       return {
         ...row,
         region: region,
@@ -1268,9 +1273,9 @@ export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
         storeName: storeName
       };
     });
-    
+
     return processedData as FinanceSubmission[];
-    
+
   } catch (error) {
     return [];
   }
@@ -1303,10 +1308,10 @@ export const fetchCampusHiringData = async (): Promise<CampusHiringSubmission[]>
   try {
     let response;
     let data;
-    
+
     try {
       const directUrl = CAMPUS_HIRING_ENDPOINT + '?action=getData';
-      
+
       response = await fetch(directUrl, {
         method: 'GET',
         headers: {
@@ -1314,7 +1319,7 @@ export const fetchCampusHiringData = async (): Promise<CampusHiringSubmission[]>
         },
         redirect: 'follow',
       });
-      
+
       if (response.ok) {
         data = await response.json();
       } else {
@@ -1331,18 +1336,18 @@ export const fetchCampusHiringData = async (): Promise<CampusHiringSubmission[]>
         },
         redirect: 'follow',
       });
-      
+
       if (response.ok) {
         data = await response.json();
       } else {
         throw new Error(`CORS proxy request failed: ${response.status}`);
       }
     }
-    
+
     if (!data || !Array.isArray(data)) {
       return [];
     }
-    
+
     // Process and return the data
     const processedData = data.map((row: any) => {
       // Normalize field names in case they come in different formats
@@ -1371,9 +1376,9 @@ export const fetchCampusHiringData = async (): Promise<CampusHiringSubmission[]>
         ...row // Include all other fields (questions, weights, etc.)
       };
     });
-    
+
     return processedData;
-    
+
   } catch (error) {
     return [];
   }

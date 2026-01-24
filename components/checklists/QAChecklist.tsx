@@ -9,7 +9,7 @@ import { useComprehensiveMapping, useAreaManagers, useStoreDetails } from '../..
 import ImageEditor from '../ImageEditor';
 
 // Google Sheets endpoint for logging data - Updated to capture all 116 questions
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzPjylMnpB7Qx0Erh5u5jYA0WY2rrsdxwt4Y1ahB7KW17mzF4pPG3Qk6PUG7KSzbfIi/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwGIDlsSGyRhR40G0zLmYpbs5C-ShrZffwnKcn3hikZPeDFtcWbeDzewT49yJQ_8YCUkA/exec';
 
 // Google Sheets endpoint for draft management
 const DRAFT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxCtm2UGYSLsR6ZhJ9jxr_pHBwU3dVnJQhqg1VQ1asrf7aX4rW6rxopGKlrOvgXr-QShg/exec';
@@ -52,19 +52,19 @@ interface QAChecklistProps {
 
 const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, editMode = false, existingSubmission }) => {
   const { config, loading: configLoading } = useConfig();
-  
+
   // Always use QA_SECTIONS from qaQuestions.ts (all 116 questions)
   const sections = QA_SECTIONS;
-  
+
   const [responses, setResponses] = useState<SurveyResponse>(() => {
     // If in edit mode, populate from existing submission
     if (editMode && existingSubmission) {
       return existingSubmission.responses || {};
     }
-    try { 
-      return JSON.parse(localStorage.getItem('qa_resp') || '{}'); 
-    } catch (e) { 
-      return {}; 
+    try {
+      return JSON.parse(localStorage.getItem('qa_resp') || '{}');
+    } catch (e) {
+      return {};
     }
   });
 
@@ -105,16 +105,16 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         city: existingSubmission.city || ''
       };
     }
-    
+
     let stored = {};
-    try { 
-      stored = JSON.parse(localStorage.getItem('qa_meta') || '{}'); 
-    } catch(e) {}
-    
+    try {
+      stored = JSON.parse(localStorage.getItem('qa_meta') || '{}');
+    } catch (e) { }
+
     const urlParams = new URLSearchParams(window.location.search);
     const qaId = urlParams.get('EMPID') || urlParams.get('qaId') || urlParams.get('qa_id') || (stored as any).qaId || '';
     const qaName = urlParams.get('name') || urlParams.get('qaName') || urlParams.get('qa_name') || (stored as any).qaName || '';
-    
+
     return {
       qaName: qaName,
       qaId: qaId,
@@ -134,14 +134,14 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   const [showDraftList, setShowDraftList] = useState(false);
   const [drafts, setDrafts] = useState<DraftMetadata[]>([]);
   const [draftsLoading, setDraftsLoading] = useState(false);
-  
+
   // Image editor state
   const [editingImage, setEditingImage] = useState<{ questionId: string; imageIndex: number; imageData: string } | null>(null);
-  
+
   // Load comprehensive mapping data
   const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
   const { areaManagers, loading: amLoading } = useAreaManagers();
-  
+
   // Convert comprehensive mapping to store format
   const allStores = useMemo(() => {
     return comprehensiveMapping.map(store => ({
@@ -151,7 +151,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       amId: store['AM']
     })).sort((a, b) => a.name.localeCompare(b.name));
   }, [comprehensiveMapping]);
-  
+
   const [amSearchTerm, setAmSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
   const [showAmDropdown, setShowAmDropdown] = useState(false);
@@ -180,24 +180,24 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     if (!DRAFT_ENDPOINT || !meta.qaId) {
       return;
     }
-    
+
     setDraftsLoading(true);
     try {
       const url = `${DRAFT_ENDPOINT}?action=getDrafts&qaId=${encodeURIComponent(meta.qaId)}`;
-      
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Accept': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.drafts) {
         setDrafts(data.drafts);
       } else {
@@ -277,26 +277,26 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   // Update stats whenever responses change
   useEffect(() => {
     const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
-    const answeredQuestions = Object.keys(responses).filter(key => 
+    const answeredQuestions = Object.keys(responses).filter(key =>
       responses[key] && responses[key] !== '' && !key.includes('_remarks')
     ).length;
-    
+
     // Calculate score properly (same logic as submission)
     let totalScore = 0;
     let maxScore = 0;
-    
+
     sections.forEach(section => {
       section.items.forEach(item => {
         const response = responses[`${section.id}_${item.id}`];
-        
+
         // Skip NA responses - don't add to max score
         if (response === 'na') {
           return;
         }
-        
+
         // Add to max score (only if not NA)
         maxScore += item.w;
-        
+
         // Calculate score based on response type
         if (section.id === 'ZeroTolerance') {
           // Zero Tolerance: compliant = full points, non-compliant = 0
@@ -313,9 +313,9 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         }
       });
     });
-    
+
     const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100 * 100) / 100 : 0;
-    
+
     onStatsUpdate({
       completed: answeredQuestions,
       total: totalQuestions,
@@ -325,7 +325,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
   const filteredAreaManagers = useMemo(() => {
     if (!amSearchTerm) return areaManagers;
-    return areaManagers.filter(am => 
+    return areaManagers.filter(am =>
       am.name.toLowerCase().includes(amSearchTerm.toLowerCase()) ||
       am.id.toLowerCase().includes(amSearchTerm.toLowerCase())
     );
@@ -333,7 +333,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
   const filteredStores = useMemo(() => {
     if (!storeSearchTerm) return allStores;
-    return allStores.filter(store => 
+    return allStores.filter(store =>
       store.name.toLowerCase().includes(storeSearchTerm.toLowerCase()) ||
       store.id.toLowerCase().includes(storeSearchTerm.toLowerCase())
     );
@@ -358,22 +358,22 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       alert('Draft endpoint not configured. Cannot save draft.');
       return;
     }
-    
+
     if (!meta.qaId || !meta.qaName) {
       alert('Please fill in QA Auditor details before saving draft.');
       return;
     }
-    
+
     const draftId = currentDraftId || `draft_${Date.now()}`;
     const timestamp = new Date().toLocaleString('en-GB', { hour12: false });
-    
+
     // Calculate completion percentage
     const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
-    const answeredQuestions = Object.keys(responses).filter(key => 
+    const answeredQuestions = Object.keys(responses).filter(key =>
       responses[key] && responses[key] !== '' && !key.includes('_remarks')
     ).length;
     const completionPercentage = Math.round((answeredQuestions / totalQuestions) * 100);
-    
+
     setIsLoading(true);
     try {
       const params = new URLSearchParams({
@@ -394,14 +394,14 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         signaturesJSON: JSON.stringify(signatures),
         metaJSON: JSON.stringify(meta)
       });
-      
+
       await fetch(DRAFT_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params.toString()
       });
-      
+
       // Update local draft list
       const draftMetadata: DraftMetadata = {
         id: draftId,
@@ -411,7 +411,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         qaName: meta.qaName || 'Unknown',
         completionPercentage
       };
-      
+
       const existingDraftIndex = drafts.findIndex(d => d.id === draftId);
       let updatedDrafts;
       if (existingDraftIndex >= 0) {
@@ -422,7 +422,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       }
       setDrafts(updatedDrafts);
       setCurrentDraftId(draftId);
-      
+
       hapticFeedback.success();
       alert('Draft saved successfully to Google Sheets! You can resume it later.');
     } catch (error) {
@@ -432,18 +432,18 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       setIsLoading(false);
     }
   };
-  
+
   const loadDraft = async (draftId: string) => {
     if (!DRAFT_ENDPOINT) {
       alert('Draft endpoint not configured. Cannot load draft.');
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const response = await fetch(`${DRAFT_ENDPOINT}?action=loadDraft&draftId=${encodeURIComponent(draftId)}`);
       const data = await response.json();
-      
+
       if (data.success && data.data?.draft) {
         const draft = data.data.draft;
         setResponses(draft.responses || {});
@@ -464,38 +464,38 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       setIsLoading(false);
     }
   };
-  
+
   const deleteDraft = async (draftId: string) => {
     if (!confirm('Are you sure you want to delete this draft?')) return;
-    
+
     if (!DRAFT_ENDPOINT) {
       alert('Draft endpoint not configured. Cannot delete draft.');
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const params = new URLSearchParams({
         action: 'deleteDraft',
         draftId: draftId
       });
-      
+
       await fetch(DRAFT_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params.toString()
       });
-      
+
       // Remove from local draft list
       const updatedDrafts = drafts.filter(d => d.id !== draftId);
       setDrafts(updatedDrafts);
-      
+
       // If we're currently viewing this draft, clear it
       if (currentDraftId === draftId) {
         setCurrentDraftId(null);
       }
-      
+
       hapticFeedback.success();
       alert('Draft deleted successfully.');
     } catch (error) {
@@ -505,17 +505,17 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       setIsLoading(false);
     }
   };
-  
+
   const startNewChecklist = () => {
     if (!confirm('Start a new checklist? Current progress will be cleared unless you save it as a draft first.')) return;
-    
+
     // Clear current checklist data from localStorage
     localStorage.removeItem('qa_resp');
     localStorage.removeItem('qa_meta');
     localStorage.removeItem('qa_images');
     localStorage.removeItem('qa_remarks');
     localStorage.removeItem('qa_signatures');
-    
+
     // Reset all state
     setResponses({});
     setMeta({
@@ -531,16 +531,16 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     setSignatures({ auditor: '', sm: '' });
     setCurrentDraftId(null);
     setSubmitted(false);
-    
+
     hapticFeedback.success();
   };
 
   const handleSubmit = async () => {
     const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
-    const answeredQuestions = Object.keys(responses).filter(key => 
+    const answeredQuestions = Object.keys(responses).filter(key =>
       responses[key] && responses[key] !== '' && !key.includes('_remarks')
     ).length;
-    
+
     if (answeredQuestions < totalQuestions) {
       alert(`Please answer all questions. You have answered ${answeredQuestions} out of ${totalQuestions} questions.`);
       return;
@@ -548,7 +548,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
     const requiredFields = ['qaName', 'qaId', 'amName', 'amId', 'storeName', 'storeId', 'city'];
     const missingFields = requiredFields.filter(field => !meta[field as keyof SurveyMeta]);
-    
+
     if (missingFields.length > 0) {
       alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
       return;
@@ -562,19 +562,19 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       // Other sections: compliant (full points), partially-compliant (half points), not-compliant (0), na (excluded)
       let totalScore = 0;
       let maxScore = 0;
-      
+
       sections.forEach(section => {
         section.items.forEach(item => {
           const response = responses[`${section.id}_${item.id}`];
-          
+
           // Skip NA responses - don't add to max score
           if (response === 'na') {
             return;
           }
-          
+
           // Add to max score (only if not NA)
           maxScore += item.w;
-          
+
           // Calculate score based on response type
           if (section.id === 'ZeroTolerance') {
             // Zero Tolerance: compliant = full points, non-compliant = 0
@@ -591,7 +591,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
           }
         });
       });
-      
+
       const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100 * 100) / 100 : 0;
 
       // Detect region and correct store ID from comprehensive mapping
@@ -600,21 +600,21 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       try {
         if (meta.storeId && comprehensiveMapping.length > 0) {
           let storeMapping = comprehensiveMapping.find(item => item['Store ID'] === meta.storeId);
-          
+
           // Try with S prefix if not found
           if (!storeMapping && !isNaN(Number(meta.storeId)) && !meta.storeId.startsWith('S')) {
             const sFormattedId = `S${meta.storeId.padStart(3, '0')}`;
             storeMapping = comprehensiveMapping.find(item => item['Store ID'] === sFormattedId);
           }
-          
+
           // Try by store name if still not found
           if (!storeMapping && meta.storeName) {
-            storeMapping = comprehensiveMapping.find(item => 
+            storeMapping = comprehensiveMapping.find(item =>
               item['Store Name'].toLowerCase().includes(meta.storeName.toLowerCase()) ||
               meta.storeName.toLowerCase().includes(item['Store Name'].toLowerCase())
             );
           }
-          
+
           if (storeMapping) {
             detectedRegion = storeMapping.Region || '';
             correctedStoreId = storeMapping['Store ID'];
@@ -627,11 +627,11 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       // Prepare data for Google Sheets
       console.log('📝 Question Remarks being submitted:', questionRemarks);
       console.log('📝 Total remarks count:', Object.keys(questionRemarks).length);
-      
+
       const params: Record<string, string> = {
-        submissionTime: editMode && existingSubmission?.submissionTime 
-          ? existingSubmission.submissionTime 
-          : new Date().toLocaleString('en-GB', {hour12: false}),
+        submissionTime: editMode && existingSubmission?.submissionTime
+          ? existingSubmission.submissionTime
+          : new Date().toLocaleString('en-GB', { hour12: false }),
         qaName: meta.qaName || '',
         qaId: meta.qaId || '',
         amName: meta.amName || '',
@@ -663,30 +663,60 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       };
 
       const bodyString = new URLSearchParams(params).toString();
-      
-      // Use fetch with a timeout to prevent hanging
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-      
-      try {
-        const response = await fetch(LOG_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: bodyString,
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-      } catch (err: any) {
-        clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-          // Request timeout - but data likely submitted
-        } else {
-          throw err;
+
+      // Retry logic with exponential backoff for Google Apps Script quota limits
+      const maxRetries = 3;
+      let retryCount = 0;
+      let lastError: any = null;
+
+      while (retryCount <= maxRetries) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+
+          console.log(`📤 Attempt ${retryCount + 1}/${maxRetries + 1}: Submitting QA checklist...`);
+
+          const response = await fetch(LOG_ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: bodyString,
+            mode: 'no-cors',
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          // Success - exit retry loop
+          console.log('✅ QA checklist submitted successfully');
+          break;
+
+        } catch (err: any) {
+          lastError = err;
+          retryCount++;
+
+          if (err.name === 'AbortError') {
+            console.warn(`⏱️ Request timeout on attempt ${retryCount}/${maxRetries + 1}`);
+          } else {
+            console.warn(`⚠️ Network error on attempt ${retryCount}/${maxRetries + 1}:`, err.message);
+          }
+
+          // If we haven't exceeded max retries, wait before retrying
+          if (retryCount <= maxRetries) {
+            // Exponential backoff: 2s, 4s, 8s
+            const delayMs = Math.pow(2, retryCount) * 1000;
+            console.log(`⏳ Waiting ${delayMs / 1000}s before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          } else {
+            // All retries failed - show user-friendly message
+            console.error('❌ All retry attempts failed:', lastError);
+            alert('Failed to submit after multiple attempts. The Google server may be busy. Please try again in a few minutes.');
+            throw new Error('Submission failed after retries');
+          }
         }
       }
-      
+
       // Delete draft if submission was successful
       if (currentDraftId) {
         localStorage.removeItem(`qa_draft_${currentDraftId}`);
@@ -695,16 +725,16 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         localStorage.setItem('qa_drafts', JSON.stringify(updatedDrafts));
         setCurrentDraftId(null);
       }
-      
+
       // Clear current checklist data from localStorage
       localStorage.removeItem('qa_resp');
       localStorage.removeItem('qa_meta');
       localStorage.removeItem('qa_images');
       localStorage.removeItem('qa_remarks');
       localStorage.removeItem('qa_signatures');
-      
+
       setSubmitted(true);
-      
+
       // If in edit mode, show success message and allow parent to handle modal close
       if (editMode) {
         alert(editMode ? 'Assessment updated successfully!' : 'Assessment submitted successfully!');
@@ -713,7 +743,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
           window.location.reload(); // Reload to show updated data
         }, 500);
       }
-      
+
     } catch (error) {
       console.error('Error submitting QA survey:', error);
       alert('Error submitting survey. Please try again.');
@@ -795,7 +825,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
   const handleSaveEditedImage = (editedImageData: string) => {
     if (!editingImage) return;
-    
+
     setQuestionImages(prev => {
       const updated = { ...prev };
       const images = [...(updated[editingImage.questionId] || [])];
@@ -803,7 +833,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       updated[editingImage.questionId] = images;
       return updated;
     });
-    
+
     setEditingImage(null);
   };
 
@@ -825,12 +855,12 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    
+
     const x = ('touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left) * scaleX;
     const y = ('touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top) * scaleY;
 
     setLastPoint(prev => ({ ...prev, [type]: { x, y } }));
-    
+
     ctx.beginPath();
     ctx.moveTo(x, y);
   };
@@ -847,7 +877,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    
+
     const currentX = ('touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left) * scaleX;
     const currentY = ('touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top) * scaleY;
 
@@ -870,14 +900,14 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
     ctx.beginPath();
     ctx.moveTo(midX, midY);
-    
+
     setLastPoint(prev => ({ ...prev, [type]: { x: currentX, y: currentY } }));
   };
 
   const stopDrawing = (type: 'auditor' | 'sm') => {
     setIsDrawing(prev => ({ ...prev, [type]: false }));
     setLastPoint(prev => ({ ...prev, [type]: null }));
-    
+
     const canvas = type === 'auditor' ? auditorCanvasRef.current : smCanvasRef.current;
     if (!canvas) return;
 
@@ -968,13 +998,13 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
       // Generate realistic test responses for ALL sections
       const testResponses: SurveyResponse = {};
-      
+
       sections.forEach(section => {
         section.items.forEach((item, index) => {
           // Create realistic distribution based on section type
           const rand = Math.random();
           let answer;
-          
+
           if (section.id === 'ZeroTolerance') {
             // Zero Tolerance: mostly compliant, occasionally non-compliant
             answer = rand < 0.90 ? 'compliant' : 'non-compliant';
@@ -985,10 +1015,10 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
             else if (rand < 0.95) answer = 'not-compliant';  // 10% not compliant
             else answer = 'na';  // 5% na
           }
-          
+
           testResponses[`${section.id}_${item.id}`] = answer;
         });
-        
+
         // Add comprehensive remarks for each section
         if (section.id === 'ZeroTolerance') {
           testResponses[`${section.id}_remarks`] = 'All critical food safety standards met. Date tags properly labeled. TDS within acceptable range. No pest activity observed.';
@@ -1004,7 +1034,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       });
 
       setResponses(testResponses);
-      
+
       // Show success message
       alert('Entire form autofilled with test data! All 116 questions completed. You can now review and submit.');
     }
@@ -1037,7 +1067,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 pb-6 sm:pb-8">
       {isLoading && <LoadingOverlay />}
-      
+
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-4 sm:p-6 border border-orange-200 dark:border-orange-800">
         <div className="flex items-start justify-between gap-4">
@@ -1049,7 +1079,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
               Comprehensive quality and safety assessment covering zero tolerance, maintenance, operations, and hygiene standards.
             </p>
           </div>
-          
+
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-2">
             <button
@@ -1067,7 +1097,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
               </svg>
               {draftsLoading ? 'Loading...' : `Drafts ${drafts.length > 0 ? `(${drafts.length})` : ''}`}
             </button>
-            
+
             <button
               onClick={saveDraft}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
@@ -1077,7 +1107,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
               </svg>
               Save Draft
             </button>
-            
+
             <button
               onClick={startNewChecklist}
               className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
@@ -1089,7 +1119,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
             </button>
           </div>
         </div>
-        
+
         {/* Current Draft Indicator */}
         {currentDraftId && (
           <div className="mt-3 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-md text-sm text-blue-800 dark:text-blue-200">
@@ -1126,7 +1156,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
               </svg>
             </button>
           </div>
-          
+
           {draftsLoading ? (
             <div className="text-center py-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1144,11 +1174,10 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
               {drafts.map(draft => (
                 <div
                   key={draft.id}
-                  className={`p-4 border rounded-lg ${
-                    currentDraftId === draft.id
+                  className={`p-4 border rounded-lg ${currentDraftId === draft.id
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
-                  } transition-colors`}
+                    } transition-colors`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
@@ -1180,7 +1209,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="flex gap-2">
                       <button
                         onClick={() => loadDraft(draft.id)}
@@ -1208,7 +1237,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">
           Assessment Information
         </h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
@@ -1253,7 +1282,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
               placeholder="Search Area Manager..."
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
             />
-            
+
             {showAmDropdown && (
               <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
                 {filteredAreaManagers.length > 0 ? (
@@ -1266,9 +1295,8 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                         setAmSearchTerm('');
                         setShowAmDropdown(false);
                       }}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${
-                        index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                      }`}
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                        }`}
                     >
                       {am.name.split(' ')[0]}
                     </button>
@@ -1297,7 +1325,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
               placeholder="Search Store..."
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
             />
-            
+
             {showStoreDropdown && (
               <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
                 {filteredStores.length > 0 ? (
@@ -1310,9 +1338,8 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                         setStoreSearchTerm('');
                         setShowStoreDropdown(false);
                       }}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${
-                        index === selectedStoreIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                      }`}
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${index === selectedStoreIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                        }`}
                     >
                       {store.name} ({store.id})
                     </button>
@@ -1358,167 +1385,167 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4 sm:mb-6">
           Quality Assessment
         </h2>
-        
+
         <div className="space-y-6 sm:space-y-8">
           {sections.map((section, sectionIndex) => {
             // Generate section prefix for serial numbers (ZT, S, M, etc.)
-            const sectionPrefix = section.id === 'ZeroTolerance' ? 'ZT' : 
-                                 section.id === 'Store' ? 'S' : 
-                                 section.id === 'Maintenance' ? 'M' : 
-                                 section.id === 'A' ? 'A' : 
-                                 section.id === 'HR' ? 'HR' : 
-                                 section.id.substring(0, 2).toUpperCase();
-            
+            const sectionPrefix = section.id === 'ZeroTolerance' ? 'ZT' :
+              section.id === 'Store' ? 'S' :
+                section.id === 'Maintenance' ? 'M' :
+                  section.id === 'A' ? 'A' :
+                    section.id === 'HR' ? 'HR' :
+                      section.id.substring(0, 2).toUpperCase();
+
             // Ensure options exist, fallback to default
             const sectionOptions = section.options || (section.id === 'ZeroTolerance' ? ['compliant', 'non-compliant'] : ['compliant', 'partially-compliant', 'not-compliant', 'na']);
-            
-            return (
-            <div key={section.id} className="border-l-4 border-orange-500 pl-3 sm:pl-4">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3 sm:mb-4 text-orange-700 dark:text-orange-300">
-                {section.title}
-              </h3>
-              
-              <div className="space-y-4">
-                {section.items?.map((item, itemIndex) => {
-                  const serialNumber = `${sectionPrefix}-${itemIndex + 1}`;
-                  return (
-                  <div key={item.id} className="p-3 sm:p-4 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                    <div className="flex items-start gap-2 sm:gap-3 mb-3">
-                      <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-md text-xs font-bold flex-shrink-0">
-                        {serialNumber}
-                      </span>
-                      <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-slate-100 leading-relaxed flex-1">
-                        {item.q}
-                      </p>
-                    </div>
-                    
-                    {/* Response Options - Stacked on mobile, wrapped on desktop */}
-                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3 mb-3 pl-0 sm:pl-9">
-                      {sectionOptions.map(option => (
-                        <label key={option} className="flex items-center gap-2 sm:gap-2 cursor-pointer p-2 sm:p-0 rounded hover:bg-gray-100 dark:hover:bg-slate-700 sm:hover:bg-transparent transition-colors min-h-[44px] sm:min-h-0">
-                          <input
-                            type="radio"
-                            name={`${section.id}_${item.id}`}
-                            value={option}
-                            checked={responses[`${section.id}_${item.id}`] === option}
-                            onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                            className="w-5 h-5 sm:w-4 sm:h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500 flex-shrink-0"
-                          />
-                          <span className="text-sm sm:text-sm text-gray-700 dark:text-slate-300 font-medium">
-                            {option === 'compliant' ? 'Compliance' : 
-                             option === 'partially-compliant' ? 'Partial Compliance' :
-                             option === 'not-compliant' ? 'Non-Compliance' :
-                             option === 'non-compliant' ? 'Non-Compliance' :
-                             'N/A'}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
 
-                    {/* Image Upload Section - Multiple Images Support */}
-                    <div className="pl-0 sm:pl-9">
-                      <div className="space-y-3">
-                        {/* Upload Buttons - Always Visible with MULTIPLE selection */}
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <label className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            📷 Camera
-                            <input
-                              type="file"
-                              accept="image/*"
-                              capture="environment"
-                              onChange={(e) => {
-                                const files = e.target.files;
-                                if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
-                                e.target.value = ''; // Reset input to allow same file again
-                              }}
-                              className="hidden"
-                            />
-                          </label>
-                          
-                          <label className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            🖼️ Gallery (Multiple)
-                            <input
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              onChange={(e) => {
-                                const files = e.target.files;
-                                if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
-                                e.target.value = ''; // Reset input to allow same file again
-                              }}
-                              className="hidden"
-                            />
-                          </label>
+            return (
+              <div key={section.id} className="border-l-4 border-orange-500 pl-3 sm:pl-4">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3 sm:mb-4 text-orange-700 dark:text-orange-300">
+                  {section.title}
+                </h3>
+
+                <div className="space-y-4">
+                  {section.items?.map((item, itemIndex) => {
+                    const serialNumber = `${sectionPrefix}-${itemIndex + 1}`;
+                    return (
+                      <div key={item.id} className="p-3 sm:p-4 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div className="flex items-start gap-2 sm:gap-3 mb-3">
+                          <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-md text-xs font-bold flex-shrink-0">
+                            {serialNumber}
+                          </span>
+                          <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-slate-100 leading-relaxed flex-1">
+                            {item.q}
+                          </p>
                         </div>
 
-                        {/* Display Uploaded Images */}
-                        {questionImages[`${section.id}_${item.id}`] && questionImages[`${section.id}_${item.id}`].length > 0 && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {questionImages[`${section.id}_${item.id}`].map((image, idx) => (
-                              <div key={idx} className="relative">
-                                <img 
-                                  src={image} 
-                                  alt={`Upload ${idx + 1}`} 
-                                  className="w-full h-48 object-cover rounded-lg border-2 border-gray-300 dark:border-slate-600"
-                                />
-                                {/* Edit Button */}
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingImage({ questionId: `${section.id}_${item.id}`, imageIndex: idx, imageData: image })}
-                                  className="absolute top-2 left-2 p-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
-                                  title="Edit image"
-                                >
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                  </svg>
-                                </button>
-                                {/* Delete Button */}
-                                <button
-                                  type="button"
-                                  onClick={() => removeImage(`${section.id}_${item.id}`, idx)}
-                                  className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
-                                  title="Remove image"
-                                >
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                </button>
-                                {/* Image Counter */}
-                                <div className="absolute bottom-2 left-2 px-2 py-1 bg-black bg-opacity-60 text-white text-xs rounded">
-                                  {idx + 1} of {questionImages[`${section.id}_${item.id}`].length}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                        {/* Response Options - Stacked on mobile, wrapped on desktop */}
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3 mb-3 pl-0 sm:pl-9">
+                          {sectionOptions.map(option => (
+                            <label key={option} className="flex items-center gap-2 sm:gap-2 cursor-pointer p-2 sm:p-0 rounded hover:bg-gray-100 dark:hover:bg-slate-700 sm:hover:bg-transparent transition-colors min-h-[44px] sm:min-h-0">
+                              <input
+                                type="radio"
+                                name={`${section.id}_${item.id}`}
+                                value={option}
+                                checked={responses[`${section.id}_${item.id}`] === option}
+                                onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                                className="w-5 h-5 sm:w-4 sm:h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500 flex-shrink-0"
+                              />
+                              <span className="text-sm sm:text-sm text-gray-700 dark:text-slate-300 font-medium">
+                                {option === 'compliant' ? 'Compliance' :
+                                  option === 'partially-compliant' ? 'Partial Compliance' :
+                                    option === 'not-compliant' ? 'Non-Compliance' :
+                                      option === 'non-compliant' ? 'Non-Compliance' :
+                                        'N/A'}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
 
-                      {/* Per-Question Remarks - Inline after each point */}
-                      <div className="mt-3">
-                        <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                          💬 Comments / NC Description for {serialNumber}
-                        </label>
-                        <textarea
-                          value={questionRemarks[`${section.id}_${item.id}`] || ''}
-                          onChange={(e) => setQuestionRemarks(prev => ({ ...prev, [`${section.id}_${item.id}`]: e.target.value }))}
-                          placeholder="Add comments or describe non-compliance for this point..."
-                          rows={2}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        />
+                        {/* Image Upload Section - Multiple Images Support */}
+                        <div className="pl-0 sm:pl-9">
+                          <div className="space-y-3">
+                            {/* Upload Buttons - Always Visible with MULTIPLE selection */}
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                📷 Camera
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  capture="environment"
+                                  onChange={(e) => {
+                                    const files = e.target.files;
+                                    if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
+                                    e.target.value = ''; // Reset input to allow same file again
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+
+                              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                🖼️ Gallery (Multiple)
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  onChange={(e) => {
+                                    const files = e.target.files;
+                                    if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
+                                    e.target.value = ''; // Reset input to allow same file again
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+
+                            {/* Display Uploaded Images */}
+                            {questionImages[`${section.id}_${item.id}`] && questionImages[`${section.id}_${item.id}`].length > 0 && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {questionImages[`${section.id}_${item.id}`].map((image, idx) => (
+                                  <div key={idx} className="relative">
+                                    <img
+                                      src={image}
+                                      alt={`Upload ${idx + 1}`}
+                                      className="w-full h-48 object-cover rounded-lg border-2 border-gray-300 dark:border-slate-600"
+                                    />
+                                    {/* Edit Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingImage({ questionId: `${section.id}_${item.id}`, imageIndex: idx, imageData: image })}
+                                      className="absolute top-2 left-2 p-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                      title="Edit image"
+                                    >
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                      </svg>
+                                    </button>
+                                    {/* Delete Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => removeImage(`${section.id}_${item.id}`, idx)}
+                                      className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                      title="Remove image"
+                                    >
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                    {/* Image Counter */}
+                                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-black bg-opacity-60 text-white text-xs rounded">
+                                      {idx + 1} of {questionImages[`${section.id}_${item.id}`].length}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Per-Question Remarks - Inline after each point */}
+                          <div className="mt-3">
+                            <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                              💬 Comments / NC Description for {serialNumber}
+                            </label>
+                            <textarea
+                              value={questionRemarks[`${section.id}_${item.id}`] || ''}
+                              onChange={(e) => setQuestionRemarks(prev => ({ ...prev, [`${section.id}_${item.id}`]: e.target.value }))}
+                              placeholder="Add comments or describe non-compliance for this point..."
+                              rows={2}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
             );
           })}
         </div>
@@ -1529,7 +1556,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4 sm:mb-6">
           Signatures
         </h2>
-        
+
         <div className="space-y-6 md:space-y-0 md:grid md:grid-cols-2 md:gap-6">
           {/* Auditor Signature */}
           <div className="space-y-3">
@@ -1558,7 +1585,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                   stopDrawing('auditor');
                 }}
                 className="w-full h-auto touch-none rounded-lg"
-                style={{ 
+                style={{
                   touchAction: 'none',
                   cursor: 'crosshair',
                   WebkitTouchCallout: 'none',
@@ -1578,8 +1605,8 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
               Clear Signature
             </button>
             <p className="text-sm text-gray-600 dark:text-slate-400 text-center font-medium">
-              {typeof window !== 'undefined' && 'ontouchstart' in window 
-                ? '✍️ Draw with your finger' 
+              {typeof window !== 'undefined' && 'ontouchstart' in window
+                ? '✍️ Draw with your finger'
                 : '🖱️ Draw with your mouse'}
             </p>
           </div>
@@ -1611,7 +1638,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                   stopDrawing('sm');
                 }}
                 className="w-full h-auto touch-none rounded-lg"
-                style={{ 
+                style={{
                   touchAction: 'none',
                   cursor: 'crosshair',
                   WebkitTouchCallout: 'none',
@@ -1631,8 +1658,8 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
               Clear Signature
             </button>
             <p className="text-sm text-gray-600 dark:text-slate-400 text-center font-medium">
-              {typeof window !== 'undefined' && 'ontouchstart' in window 
-                ? '✍️ Draw with your finger' 
+              {typeof window !== 'undefined' && 'ontouchstart' in window
+                ? '✍️ Draw with your finger'
                 : '🖱️ Draw with your mouse'}
             </p>
           </div>

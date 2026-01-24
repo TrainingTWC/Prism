@@ -8,7 +8,7 @@ import { STORES_PROMISE, MAPPED_STORES } from '../mappedStores';
 import { useConfig } from '../contexts/ConfigContext';
 
 // Google Sheets endpoint for logging data
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxW541QsQc98NKMVh-lnNBnINskIqD10CnQHvGsW_R2SLASGSdBDN9lTGj1gznlNbHORQ/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwhLhe3zHEn8MF3pnhJQ8-N3kfnw8iMKNKUHsPRgiMradXIov8Bx6GFsBcRGxAO4ilmRw/exec';
 
 interface SurveyResponse {
   [key: string]: string;
@@ -630,15 +630,36 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
       encodeURIComponent(k) + '=' + encodeURIComponent((params as any)[k])
     ).join('&');
 
+    console.log('HR Connect Survey: Submitting to', LOG_ENDPOINT);
+    console.log('HR Connect Survey: Params:', params);
+
     try {
-      await fetch(LOG_ENDPOINT, {
+      const response = await fetch(LOG_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
         body
       });
-      console.log('Data successfully logged to Google Sheets');
+      
+      console.log('HR Connect Survey: Response status', response.status, response.ok);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('HR Connect Survey: Submission failed', errorText);
+        throw new Error(`Failed to submit survey: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log('HR Connect Survey: Success response:', result);
+      
+      if (result.status === 'ERROR') {
+        console.error('HR Connect Survey: Server returned error:', result.message);
+        throw new Error(result.message || 'Server error');
+      }
+      
+      console.log('HR Connect Survey: Data successfully logged to Google Sheets');
     } catch (error) {
-      console.error('Error logging data to Google Sheets:', error);
+      console.error('HR Connect Survey: Error logging data to Google Sheets:', error);
+      throw error; // Re-throw to trigger the error alert in onSubmit
     }
   };
 

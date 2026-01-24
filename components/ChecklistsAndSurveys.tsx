@@ -54,7 +54,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     if (authUserRole === 'campus-hiring' && !activeChecklist) {
       setActiveChecklist('campus-hiring');
     }
-  }, [authUserRole]);
+  }, [authUserRole, activeChecklist]);
 
   // Auto-open bench planning for bench-planning role users
   useEffect(() => {
@@ -62,7 +62,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
       setActiveChecklist('bench-planning');
       // Don't auto-set subsection - let user choose between barista-sm and sm-asm
     }
-  }, [authUserRole]);
+  }, [authUserRole, activeChecklist]);
 
   // Remove the bench-planning-sm-asm auto-open effect since we no longer have that separate role
 

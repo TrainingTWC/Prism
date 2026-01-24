@@ -31,30 +31,30 @@ export async function fetchEmployeeDirectory(): Promise<EmployeeDirectory> {
 
   try {
     console.log('[Employee Directory] Fetching from Google Sheets:', EMPLOYEE_API_URL);
-    
+
     const response = await fetch(EMPLOYEE_API_URL);
-    
+
     if (!response.ok) {
       console.error('[Employee Directory] HTTP error:', response.status, response.statusText);
       return { byId: {}, nameById: {} };
     }
-    
+
     const data = await response.json();
-    
+
     if (data.error) {
       console.error('[Employee Directory] API error:', data.error);
       return { byId: {}, nameById: {} };
     }
-    
+
     const employees = data.employees || [];
     console.log('[Employee Directory] Received', employees.length, 'employees');
-    
+
     const byId: Record<string, EmployeeRow> = {};
     const nameById: Record<string, string> = {};
 
     for (const emp of employees) {
       if (!emp.employee_code) continue;
-      
+
       const key = normalizeId(emp.employee_code);
       byId[key] = {
         employee_code: emp.employee_code,
@@ -70,7 +70,7 @@ export async function fetchEmployeeDirectory(): Promise<EmployeeDirectory> {
 
     console.log('[Employee Directory] Processed', Object.keys(byId).length, 'unique employees');
     return { byId, nameById };
-    
+
   } catch (error) {
     console.error('[Employee Directory] Fetch failed:', error);
     return { byId: {}, nameById: {} };

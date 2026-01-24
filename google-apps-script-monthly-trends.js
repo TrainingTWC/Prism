@@ -1,8 +1,8 @@
 /**
- * Google Apps Script for Monthly Trends Dashboard
+ * Google Apps Script for Training Audits Data
  * 
- * This script exposes your "Monthly_Trends" sheet data as a JSON endpoint
- * that your dashboard can fetch from automatically.
+ * This script exposes Training_Audits sheet data as a JSON endpoint.
+ * The React app will handle monthly aggregation calculations.
  * 
  * Setup Instructions:
  * 1. Open your Google Sheet
@@ -15,18 +15,17 @@
  * 8. Who has access: "Anyone" (or "Anyone with the link")
  * 9. Click "Deploy"
  * 10. Copy the web app URL
- * 11. Update your dashboard to fetch from this URL
  */
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
-// Name of the sheet tab containing monthly trends data
-const SHEET_NAME = 'Monthly_Trends';
+// Name of the sheet tab containing training audit data
+var TRAINING_AUDITS_SHEET_NAME = 'Training_Audits';
 
 // Optional: Enable caching to improve performance (cache for 5 minutes)
-const CACHE_DURATION = 300; // seconds
+var MONTHLY_TRENDS_CACHE_DURATION = 300; // seconds
 
 // ============================================================================
 // MAIN ENDPOINT HANDLER
@@ -70,7 +69,7 @@ function doGet(e) {
     if (!noCache && data.rows.length > 0) {
       const cache = CacheService.getScriptCache();
       const cacheKey = 'monthly_trends_' + JSON.stringify(params);
-      cache.put(cacheKey, JSON.stringify(data), CACHE_DURATION);
+      cache.put(cacheKey, JSON.stringify(data), MONTHLY_TRENDS_CACHE_DURATION);
     }
     
     return createJsonResponse(data);
@@ -90,92 +89,67 @@ function doGet(e) {
 // ============================================================================
 
 /**
- * Reads data from the Monthly_Trends sheet and returns as JSON
+ * Reads raw data from Training_Audits sheet and returns as JSON
+ * The React app will handle aggregation and calculations
  * 
- * @param {Object} filters - Optional filters (store_id, period, metric)
+ * @param {Object} filters - Optional filters
  * @return {Object} - JSON object with rows array
  */
 function getMonthlyTrendsData(filters = {}) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAME);
+  const sheet = ss.getSheetByName(TRAINING_AUDITS_SHEET_NAME);
   
   if (!sheet) {
     return {
       ok: false,
-      error: `Sheet "${SHEET_NAME}" not found`,
-      message: `Please create a sheet tab named "${SHEET_NAME}" in your Google Sheet`,
+      error: `Sheet "${TRAINING_AUDITS_SHEET_NAME}" not found`,
+      message: `Please create a sheet tab named "${TRAINING_AUDITS_SHEET_NAME}" in your Google Sheet`,
+      rows: []
+    };
+  }
+  
+  const lastRow = sheet.getLastRow();
+  
+  if (lastRow <= 1) {
+    return {
+      ok: true,
       rows: [],
       metadata: {
-        sheet_name: SHEET_NAME,
+        sheet_name: TRAINING_AUDITS_SHEET_NAME,
         last_updated: new Date().toISOString(),
         total_rows: 0
       }
     };
   }
   
-  // Get the last row with data to avoid processing empty cells
-  const lastRow = sheet.getLastRow();
+  // Read all data
+  const dataRange = sheet.getRange(1, 1, lastRow, sheet.getLastColumn());
+  const values = dataRange.getValues();
+  const headers = values[0];
   
-  // If sheet is empty or only has headers
-  if (lastRow <= 1) {
-    return {
-      ok: true,
-      rows: [],
-      metadata: {
-        sheet_name: SHEET_NAME,
-        last_updated: new Date().toISOString(),
-        total_rows: 0,
-        message: 'Sheet is empty or only contains headers. Please add data rows.'
-      }
-    };
-  }
-  
-  // Read data in smaller chunks to avoid "argument too large" error
-  const CHUNK_SIZE = 100;
-  const headers = sheet.getRange(1, 1, 1, 15).getValues()[0]; // Only read first 15 columns
   const rows = [];
   
-  // Process data in chunks
-  for (let startRow = 2; startRow <= lastRow; startRow += CHUNK_SIZE) {
-    const numRows = Math.min(CHUNK_SIZE, lastRow - startRow + 1);
-    const chunkValues = sheet.getRange(startRow, 1, numRows, 15).getValues();
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
     
-    for (let i = 0; i < chunkValues.length; i++) {
-      const row = chunkValues[i];
-      
-      // Skip empty rows
-      if (!row[0]) continue;
-      
-      const rowObj = {};
-      for (let j = 0; j < headers.length; j++) {
-        const header = headers[j];
-        const value = row[j];
-        
-        // Convert numeric strings to numbers for metric_value
-        if (header === 'metric_value' && typeof value === 'string') {
-          rowObj[header] = parseFloat(value) || value;
-        } else {
-          rowObj[header] = value;
-        }
-      }
-      
-      // Apply filters if specified
-      if (filters.store_id && rowObj.store_id !== filters.store_id) continue;
-      if (filters.period && rowObj.observed_period !== filters.period) continue;
-      if (filters.metric && rowObj.metric_name !== filters.metric) continue;
-      
-      rows.push(rowObj);
+    // Skip empty rows
+    if (!row[0]) continue;
+    
+    const rowObj = {};
+    for (let j = 0; j < headers.length; j++) {
+      rowObj[headers[j]] = row[j];
     }
+    
+    rows.push(rowObj);
   }
   
   return {
     ok: true,
     rows: rows,
     metadata: {
-      sheet_name: SHEET_NAME,
+      sheet_name: TRAINING_AUDITS_SHEET_NAME,
       last_updated: new Date().toISOString(),
-      total_rows: rows.length,
-      filters_applied: Object.keys(filters).length > 0 ? filters : null
+      total_rows: rows.length
     }
   };
 }
@@ -320,9 +294,9 @@ function getSummaryStats() {
  * 2. Add trigger: onSheetEdit → From spreadsheet → On edit
  */
 function onSheetEdit(e) {
-  // Clear cache when the Monthly_Trends sheet is edited
-  if (e.source.getActiveSheet().getName() === SHEET_NAME) {
-    Logger.log('Monthly_Trends sheet edited, clearing cache...');
+  // Clear cache when the Training_Audits sheet is edited
+  if (e.source.getActiveSheet().getName() === TRAINING_AUDITS_SHEET_NAME) {
+    Logger.log('Training_Audits sheet edited, clearing cache...');
     clearCache();
   }
 }
