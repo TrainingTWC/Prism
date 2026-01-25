@@ -1853,15 +1853,31 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       const totalSubmissions = filteredAMOperations.length;
 
       // Debug each score calculation
+      console.log('🔍 Operations Dashboard Stats - Debugging scores:');
       const scores = filteredAMOperations.map((s, idx) => {
         const rawScore = s.percentageScore || '0';
         const parsed = parseFloat(rawScore);
+        console.log(`Submission ${idx + 1}:`, {
+          percentageScore: s.percentageScore,
+          rawScore,
+          parsed,
+          storeId: s.storeId,
+          submissionTime: s.submissionTime
+        });
         return parsed;
       });
 
       const avgScore = totalSubmissions > 0
         ? scores.reduce((acc, s) => acc + s, 0) / totalSubmissions
         : 0;
+      
+      console.log('📊 Final Operations Stats:', {
+        totalSubmissions,
+        scores,
+        avgScore,
+        roundedAvgScore: Math.round(avgScore)
+      });
+
       const uniqueTrainers = new Set(filteredAMOperations.map(s => normalizeId((s as any).trainerId) || normalizeId((s as any).trainer) || normalizeId((s as any).hrId))).size;
       const uniqueStores = new Set(filteredAMOperations.map(s => s.storeId)).size;
 

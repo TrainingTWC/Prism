@@ -106,7 +106,6 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
-    console.error('Error in doPost:', error);
     return ContentService
       .createTextOutput(JSON.stringify({
         success: false, 
@@ -130,7 +129,6 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
-    console.error('Error in doGet:', error);
     return ContentService
       .createTextOutput(JSON.stringify({error: 'Server error: ' + error.message}))
       .setMimeType(ContentService.MimeType.JSON);
@@ -143,7 +141,6 @@ function getData() {
     var sheet = ss.getSheetByName('AM Ops Checklist');
     
     if (!sheet) {
-      console.log("Sheet 'AM Ops Checklist' not found");
       return ContentService
         .createTextOutput(JSON.stringify([]))
         .setMimeType(ContentService.MimeType.JSON);
@@ -151,7 +148,6 @@ function getData() {
     
     var lastRow = sheet.getLastRow();
     if (lastRow <= 1) {
-      console.log("No data found in AM Ops Checklist sheet");
       return ContentService
         .createTextOutput(JSON.stringify([]))
         .setMimeType(ContentService.MimeType.JSON);
@@ -163,8 +159,6 @@ function getData() {
     var headers = values[0];
     var dataRows = values.slice(1);
     
-    console.log("Found " + dataRows.length + " AM Operations submissions");
-    
     // Convert to objects with proper structure
     var submissions = dataRows.map(function(row) {
       var submission = {};
@@ -174,10 +168,16 @@ function getData() {
         submission[header] = row[index] || '';
       });
       
-      // Calculate percentage score
-      var overallScore = parseFloat(submission['Overall Score'] || '0');
-      var maxPossibleScore = 63; // Total questions in AM Operations checklist
-      submission.percentageScore = Math.round((overallScore / maxPossibleScore) * 100);
+      // Use the existing Percentage Score column from the sheet (already calculated correctly)
+      if (submission['Percentage Score']) {
+        var percentStr = String(submission['Percentage Score']).replace('%', '').trim();
+        submission.percentageScore = Math.round(parseFloat(percentStr) || 0);
+      } else {
+        // Fallback: calculate from Overall Score if Percentage Score column doesn't exist
+        var overallScore = parseFloat(submission['Overall Score'] || '0');
+        var maxPossibleScore = 63;
+        submission.percentageScore = Math.round((overallScore / maxPossibleScore) * 100);
+      }
       
       // Format submission time
       if (submission['Submission Time']) {
@@ -192,14 +192,11 @@ function getData() {
       return submission;
     });
     
-    console.log("Returning " + submissions.length + " processed AM Operations submissions");
-    
     return ContentService
       .createTextOutput(JSON.stringify(submissions))
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
-    console.error('Error in getData:', error);
     return ContentService
       .createTextOutput(JSON.stringify({error: 'Failed to fetch data: ' + error.message}))
       .setMimeType(ContentService.MimeType.JSON);
@@ -212,12 +209,8 @@ function testSetup() {
   var sheet = ss.getSheetByName('AM Ops Checklist');
   
   if (!sheet) {
-    console.log("Creating 'AM Ops Checklist' sheet...");
     sheet = ss.insertSheet('AM Ops Checklist');
   }
-  
-  console.log("AM Ops Checklist sheet found/created successfully");
-  console.log("Sheet has " + sheet.getLastRow() + " rows");
   
   return "Setup complete";
 }

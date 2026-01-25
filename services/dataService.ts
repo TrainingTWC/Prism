@@ -8,7 +8,7 @@ import { STATIC_AM_OPERATIONS_DATA } from './staticOperationsData';
 const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxGp9HAph2daannyuSsO5CFcIwtJaAH-WtMPyBZ1x9g6NwWcPuNhrJWKiSJeiZW44j91g/exec';
 
 // AM Operations endpoint - UPDATED URL (no CORS headers needed, must match OperationsChecklist submission endpoint)
-const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycby7R8JLMuleKjqzjVOK7fkhMmX7nCT0A-IJ8vK2TiC428hpAeKO-0axtaUfJI6k4WlUcQ/exec';
+const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz2z24Tk0uiR8Ir0qGAlPGmfap6-i-gjeM4StMUJ-cPrp8ET6YkYrmzdGtxoCmLkcYhLQ/exec';
 
 // Training Audit endpoint - UPDATED URL
 const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzEyJQiAhl3pS90uvkf-3e1mIbq8WNs7-xMtuBwD6eOy85Kkx6EKpzUsHW-oxp6NAoqjQ/exec';
@@ -20,7 +20,7 @@ const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwGIDlsSGyRhR40G0zL
 const FINANCE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx1WaaEoUTttanmWGS8me3HZNhuqaxVHoPdWN3AdI0i4bLQmHFRztj133Vh8SaoVb2iwg/exec';
 
 // Campus Hiring endpoint - UPDATED URL
-const CAMPUS_HIRING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyalNdIb_BrBEGmMXfysS9Qp88SGMg5BXg7m9X41walQ2nhYZDgUy6vCTOCB4whsoJNrA/exec';
+const CAMPUS_HIRING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbPYyW_kPmdL5Fnq1AUyhgLyvYmInBj9EzQSrmdFdqO4FJe2O8_flX6rxNaZNaVhjs_Q/exec';
 
 // Cache for store mapping data
 let storeMappingCache: any[] | null = null;
@@ -648,6 +648,18 @@ export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]>
 
     // Map Google Sheets column names to camelCase field names
     const mappedData = data.map((row: any) => {
+      // Map percentageScore with multiple fallbacks
+      let percentageScore = row['Percentage Score'] || row.percentageScore || row['Overall Score'] || '';
+      
+      // If percentageScore is empty or zero, try to calculate from totalScore and maxScore
+      if (!percentageScore || percentageScore === '0' || percentageScore === 0) {
+        const totalScore = parseFloat(row['Total Score'] || row.totalScore || '0');
+        const maxScore = parseFloat(row['Max Score'] || row.maxScore || '63');
+        if (totalScore > 0 && maxScore > 0) {
+          percentageScore = Math.round((totalScore / maxScore) * 100).toString();
+        }
+      }
+      
       return {
         submissionTime: row['Submission Time'] || row.submissionTime || '',
         hrName: row['HR Name'] || row.hrName || '',
@@ -664,7 +676,7 @@ export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]>
         manpowerFulfilment: row['Manpower Fulfilment'] || row.manpowerFulfilment || '',
         totalScore: row['Total Score'] || row.totalScore || '',
         maxScore: row['Max Score'] || row.maxScore || '',
-        percentageScore: row['Percentage Score'] || row.percentageScore || '',
+        percentageScore: percentageScore,
         // Copy all other fields (question responses, etc.)
         ...row
       };
