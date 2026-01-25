@@ -676,20 +676,20 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
             </div>
           )}
           
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {READINESS_ITEMS.map((item, index) => (
-              <div key={index} className="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
-                <div className="flex items-start justify-between gap-4">
+              <div key={index} className="border border-gray-200 dark:border-slate-700 rounded-lg p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
                   <div className="flex-1">
-                    <p className="text-gray-900 dark:text-slate-100">{item}</p>
+                    <p className="text-sm sm:text-base text-gray-900 dark:text-slate-100">{item}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5 sm:gap-2 justify-end">
                     {[1, 2, 3, 4, 5].map(score => (
                       <button
                         key={score}
                         onClick={() => canEdit && setReadinessScores(prev => ({ ...prev, [index]: score }))}
                         disabled={!canEdit}
-                        className={`w-10 h-10 rounded-lg font-medium transition-all ${
+                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-medium text-sm sm:text-base transition-all shrink-0 ${
                           readinessScores[index] === score
                             ? 'bg-blue-600 text-white shadow-lg scale-110'
                             : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
@@ -1000,20 +1000,20 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
             Evaluation Criteria (Score each section 1-5)
           </h3>
           
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {INTERVIEW_SECTIONS.map((section, index) => (
-              <div key={index} className="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
-                <div className="flex items-center justify-between gap-4">
+              <div key={index} className="border border-gray-200 dark:border-slate-700 rounded-lg p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900 dark:text-slate-100">{section}</p>
+                    <p className="font-medium text-sm sm:text-base text-gray-900 dark:text-slate-100">{section}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5 sm:gap-2 justify-end">
                     {[1, 2, 3, 4, 5].map(score => (
                       <button
                         key={score}
                         onClick={() => isPanelist && setInterviewScores(prev => ({ ...prev, [index]: score }))}
                         disabled={!isPanelist}
-                        className={`w-10 h-10 rounded-lg font-medium transition-all ${
+                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-medium text-sm sm:text-base transition-all shrink-0 ${
                           interviewScores[index] === score
                             ? 'bg-purple-600 text-white shadow-lg scale-110'
                             : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
@@ -1111,27 +1111,27 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
   }
   
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto px-2 sm:px-4">
       
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-6 mb-6 border border-purple-200 dark:border-purple-800">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
-            <Users className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">
-              Bench Planning | Barista to Shift Manager
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-3 sm:p-6 mb-4 sm:mb-6 border border-purple-200 dark:border-purple-800">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Users className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 dark:text-purple-400 shrink-0" />
+            <h1 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-slate-100 leading-tight">
+              Bench Planning | Barista to SM
             </h1>
           </div>
           {/* Exit Button */}
           <button
             onClick={handleExit}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-md"
+            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-md shrink-0 self-start sm:self-auto"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />
             Exit
           </button>
         </div>
-        <p className="text-gray-600 dark:text-slate-400">
+        <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400">
           Comprehensive readiness assessment, self-evaluation, and interview process for bench candidates.
         </p>
       </div>
@@ -1236,19 +1236,19 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
       
       {/* Tab Navigation */}
       {!notEligible && candidateData && (
-        <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-slate-700">
+        <div className="flex gap-1 sm:gap-2 mb-4 sm:mb-6 border-b border-gray-200 dark:border-slate-700 overflow-x-auto scrollbar-hide -mx-2 sm:mx-0 px-2 sm:px-0">
           <button
             onClick={() => setActiveTab('readiness')}
-            className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors border-b-2 ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${
               activeTab === 'readiness'
                 ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400'
                 : 'text-gray-600 dark:text-slate-400 border-transparent hover:text-gray-900 dark:hover:text-slate-200'
             }`}
           >
-            <ClipboardCheck className="w-5 h-5" />
-            <span>Readiness Checklist</span>
-            {readinessStatus === 'passed' && <CheckCircle className="w-4 h-4 text-green-600" />}
-            {assessmentLocked && <Lock className="w-4 h-4" />}
+            <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span>Readiness</span>
+            {readinessStatus === 'passed' && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
+            {assessmentLocked && <Lock className="w-3 h-3 sm:w-4 sm:h-4" />}
           </button>
           
           {/* Only show Assessment and Interview tabs for candidates */}
@@ -1256,27 +1256,27 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
             <>
             <button
               onClick={() => setActiveTab('assessment')}
-              className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors border-b-2 ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${
                 activeTab === 'assessment'
                   ? 'text-green-600 dark:text-green-400 border-green-600 dark:border-green-400'
                   : 'text-gray-600 dark:text-slate-400 border-transparent hover:text-gray-900 dark:hover:text-slate-200'
               }`}
             >
-              <Brain className="w-5 h-5" />
-              <span>Self Assessment</span>
-              {assessmentLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4 text-green-600" />}
-              {assessmentPassed && <CheckCircle className="w-4 h-4 text-green-600" />}
+              <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Assessment</span>
+              {assessmentLocked ? <Lock className="w-3 h-3 sm:w-4 sm:h-4" /> : <Unlock className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
+              {assessmentPassed && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
             </button>
             
             <button
               onClick={() => setActiveTab('interview')}
-              className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors border-b-2 ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${
                 activeTab === 'interview'
                   ? 'text-purple-600 dark:text-purple-400 border-purple-600 dark:border-purple-400'
                   : 'text-gray-600 dark:text-slate-400 border-transparent hover:text-gray-900 dark:hover:text-slate-200'
               }`}
             >
-              <MessageSquare className="w-5 h-5" />
+              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Interview</span>
               {interviewLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4 text-green-600" />}
             </button>
