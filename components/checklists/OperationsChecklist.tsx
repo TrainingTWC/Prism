@@ -698,7 +698,35 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     const answeredQuestions = Object.keys(responses).filter(key => responses[key] && responses[key] !== '').length;
 
     if (answeredQuestions < totalQuestions) {
+      // Find first unanswered question and scroll to it
+      let firstUnansweredId: string | null = null;
+      
+      for (const section of sections) {
+        for (const item of section.items) {
+          const questionKey = `${section.id}_${item.id}`;
+          if (!responses[questionKey] || responses[questionKey] === '') {
+            firstUnansweredId = questionKey;
+            break;
+          }
+        }
+        if (firstUnansweredId) break;
+      }
+
+      // Scroll to first unanswered question
+      if (firstUnansweredId) {
+        const element = document.getElementById(firstUnansweredId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Add a brief highlight effect
+          element.classList.add('ring-4', 'ring-red-500', 'ring-opacity-50');
+          setTimeout(() => {
+            element.classList.remove('ring-4', 'ring-red-500', 'ring-opacity-50');
+          }, 2000);
+        }
+      }
+
       alert(`Please answer all questions. You have answered ${answeredQuestions} out of ${totalQuestions} questions.`);
+      hapticFeedback.error();
       return;
     }
 
@@ -707,7 +735,10 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     const missingFields = requiredFields.filter(field => !metadata[field as keyof ChecklistMeta] || metadata[field as keyof ChecklistMeta].trim() === '');
 
     if (missingFields.length > 0) {
+      // Scroll to top where metadata is
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      hapticFeedback.error();
       return;
     }
 
@@ -1018,6 +1049,16 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
+      {/* Submitting Banner */}
+      {isLoading && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 px-6 shadow-lg animate-pulse">
+          <div className="max-w-6xl mx-auto flex items-center justify-center gap-3">
+            <div className="animate-spin h-6 w-6 border-3 border-white border-t-transparent rounded-full"></div>
+            <span className="text-lg font-semibold">Submitting Checklist...</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-6 border border-orange-200 dark:border-orange-800">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
@@ -1345,7 +1386,11 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
               {section.items.map((item, index) => {
                 const questionKey = `${section.id}_${item.id}`;
                 return (
-                  <div key={item.id} className="p-4 border border-gray-200 dark:border-slate-600 rounded-lg">
+                  <div 
+                    key={item.id} 
+                    id={questionKey}
+                    className="p-4 border border-gray-200 dark:border-slate-600 rounded-lg transition-all duration-300"
+                  >
                     <div className="mb-3">
                       <span className="inline-flex items-center justify-center w-8 h-8 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-sm font-medium mr-3">
                         {index + 1}
