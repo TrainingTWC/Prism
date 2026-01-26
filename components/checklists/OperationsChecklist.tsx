@@ -725,8 +725,11 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         }
       }
 
-      alert(`Please answer all questions. You have answered ${answeredQuestions} out of ${totalQuestions} questions.`);
       hapticFeedback.error();
+      // Delay alert to let scroll complete
+      setTimeout(() => {
+        alert(`Please answer all questions. You have answered ${answeredQuestions} out of ${totalQuestions} questions.`);
+      }, 300);
       return;
     }
 
@@ -737,8 +740,21 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     if (missingFields.length > 0) {
       // Scroll to top where metadata is
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      
+      // Highlight the metadata section
+      const metadataSection = document.querySelector('.bg-white.dark\\:bg-slate-800.rounded-lg.shadow-lg');
+      if (metadataSection) {
+        metadataSection.classList.add('ring-4', 'ring-red-500', 'ring-opacity-50');
+        setTimeout(() => {
+          metadataSection.classList.remove('ring-4', 'ring-red-500', 'ring-opacity-50');
+        }, 2000);
+      }
+      
       hapticFeedback.error();
+      // Delay alert to let scroll complete
+      setTimeout(() => {
+        alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      }, 300);
       return;
     }
 
@@ -1051,10 +1067,10 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
       {/* Submitting Banner */}
       {isLoading && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 px-6 shadow-lg animate-pulse">
+        <div className="fixed inset-x-0 top-0 z-[9999] bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 px-6 shadow-2xl border-b-4 border-orange-600">
           <div className="max-w-6xl mx-auto flex items-center justify-center gap-3">
             <div className="animate-spin h-6 w-6 border-3 border-white border-t-transparent rounded-full"></div>
-            <span className="text-lg font-semibold">Submitting Checklist...</span>
+            <span className="text-lg font-bold tracking-wide">Submitting Checklist...</span>
           </div>
         </div>
       )}
