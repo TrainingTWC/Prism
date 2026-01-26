@@ -245,6 +245,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       { id: 'shlp', label: 'SHLP Certification', access: 'shlp-dashboard' },
       { id: 'campus-hiring', label: 'Campus Hiring', access: 'campus-hiring-dashboard' },
       { id: 'trainer-calendar', label: 'Trainer Calendar', access: 'trainer-calendar-dashboard' },
+      { id: 'bench-planning', label: 'Bench Planning (Barista to SM)', access: 'bench-planning-dashboard' },
+      { id: 'bench-planning-sm-asm', label: 'Bench Planning (SM to ASM)', access: 'bench-planning-sm-asm-dashboard' },
       { id: 'consolidated', label: 'Consolidated View', access: 'all' }
     ];
 
