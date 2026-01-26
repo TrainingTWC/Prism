@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
 
 // Google Sheets endpoint for logging AM Operations data - UPDATED URL (no CORS headers needed)
-const AM_OPS_LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycby7R8JLMuleKjqzjVOK7fkhMmX7nCT0A-IJ8vK2TiC428hpAeKO-0axtaUfJI6k4WlUcQ/exec';
+const AM_OPS_LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz2z24Tk0uiR8Ir0qGAlPGmfap6-i-gjeM4StMUJ-cPrp8ET6YkYrmzdGtxoCmLkcYhLQ/exec';
 
 interface ChecklistMeta {
   hrName: string;
@@ -141,55 +141,6 @@ const SECTIONS: ChecklistSection[] = [
       { id: 'EX_4', q: 'Have top performers been recognized?' },
       { id: 'EX_5', q: 'Have wins been celebrated and improvement areas communicated?' },
       { id: 'EX_6', q: 'Has the team been motivated for ongoing improvement?' }
-    ]
-  },
-  {
-    id: 'SHLP',
-    title: 'SHLP Certification Tool',
-    items: [
-      // Store Readiness
-      { id: 'SHLP_1', q: 'Complete Opening, Mid, and Closing checklists' },
-      { id: 'SHLP_2', q: 'Ensure store readiness before opening' },
-      { id: 'SHLP_3', q: 'VM of food case & merchandise wall' },
-      { id: 'SHLP_4', q: 'Marketing & promo collaterals' },
-      { id: 'SHLP_5', q: 'Complete all closing tasks' },
-      // Product Quality & Standards
-      { id: 'SHLP_6', q: 'Dial-in checks for coffee & food' },
-      { id: 'SHLP_7', q: 'No sub-standard products served' },
-      { id: 'SHLP_8', q: 'SOPs & recipes followed' },
-      { id: 'SHLP_9', q: 'Understand COGS, wastage & variance' },
-      { id: 'SHLP_10', q: 'Sampling & coffee tasting' },
-      // Cash & Administration
-      { id: 'SHLP_11', q: 'Petty cash, float & safe check' },
-      { id: 'SHLP_12', q: 'Cash log book handover' },
-      { id: 'SHLP_13', q: 'Arrange POS float/change' },
-      { id: 'SHLP_14', q: 'GRN & petty cash entries' },
-      { id: 'SHLP_15', q: 'Ordering flow/schedule' },
-      // Team Management
-      { id: 'SHLP_16', q: 'Team briefing' },
-      { id: 'SHLP_17', q: 'Shift goals & targets' },
-      { id: 'SHLP_18', q: 'Motivate team to follow standards' },
-      { id: 'SHLP_19', q: 'Plan team breaks' },
-      { id: 'SHLP_20', q: 'Identify bottlenecks & support' },
-      { id: 'SHLP_21', q: 'Recognize top performers' },
-      { id: 'SHLP_22', q: 'Task-specific feedback' },
-      { id: 'SHLP_23', q: 'Share inputs with SM' },
-      // Operations & Availability
-      { id: 'SHLP_24', q: 'Product availability monitoring' },
-      { id: 'SHLP_25', q: 'Lean period training' },
-      { id: 'SHLP_26', q: 'Peak period utilisation' },
-      { id: 'SHLP_27', q: 'Deployment adjustment' },
-      { id: 'SHLP_28', q: 'Shift priority changes' },
-      { id: 'SHLP_29', q: 'Receiving/storing/thawing' },
-      { id: 'SHLP_30', q: 'Remove thawing products' },
-      // Safety & Compliance
-      { id: 'SHLP_31', q: 'Key handling & handover' },
-      { id: 'SHLP_32', q: 'Lost & Found SOP' },
-      { id: 'SHLP_33', q: 'Maintenance logging' },
-      // Business Acumen
-      { id: 'SHLP_34', q: 'Sales analysis (WoW, MoM – ADS, ADT, FIPT, LTO)' },
-      { id: 'SHLP_35', q: 'BSC understanding' },
-      { id: 'SHLP_36', q: 'Controllables (EB units, COGS)' }
     ]
   }
 ];
