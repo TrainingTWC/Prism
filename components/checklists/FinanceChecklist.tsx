@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
 
 // Google Sheets endpoint for Finance Audit (QA Pattern)
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzh9_N3moOrM0MAzmY_rcujkncxLwXYNQMMTiRFIpVZEMRog6j2ioXobdrGItm9os7CLw/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbztOXEO9ZKR4_j3_3CQbbmawlAvWTFwH6UVYd4u3ZxBRLXJ37UZNeM7ReU8-1df7zzl6w/exec';
 
 interface SurveyResponse {
   [key: string]: string;
@@ -35,56 +35,76 @@ interface FinanceChecklistProps {
 const FINANCE_SECTIONS = [
   {
     id: 'CashManagement',
-    title: 'Cash Management',
+    title: 'Cash Management & Settlement',
     items: [
-      { id: 'CM_1', q: 'Daily cash reconciliation completed and documented with proper signatures', w: 3 },
-      { id: 'CM_2', q: 'Cash drawer balancing performed at shift changes with variance reports', w: 3 },
-      { id: 'CM_3', q: 'Petty cash properly managed with supporting receipts and authorization', w: 2 },
-      { id: 'CM_4', q: 'Cash security measures in place and followed (locked till, limited access)', w: 3 },
-      { id: 'CM_5', q: 'Daily cash deposit procedures followed and documented', w: 3 },
-      { id: 'CM_6', q: 'Cash variances investigated and reported promptly to management', w: 2 },
-      { id: 'CM_7', q: 'Adequate change fund maintained at all times for operations', w: 2 },
-      { id: 'CM_8', q: 'Counterfeit currency detection procedures in place and staff trained', w: 2 }
+      { id: 'CM_1', q: 'Were no discrepancies found during the cash drawer verification?', w: 2 },
+      { id: 'CM_2', q: 'Were no discrepancies found during the petty cash verification?', w: 2 },
+      { id: 'CM_3', q: 'Sale cash is not being used for petty cash or other purposes', w: 2 },
+      { id: 'CM_4', q: 'Has banking of cash been done accurately for the last 3 days?', w: 2 },
+      { id: 'CM_5', q: 'Was the previous day’s batch correctly settled in the EDC machine?', w: 2 },
+      { id: 'CM_6', q: 'Has the petty cash claim process been properly followed with supporting documents?', w: 2 }
     ]
   },
   {
-    id: 'SalesRevenue',
-    title: 'Sales & Revenue Tracking',
+    id: 'Section2',
+    title: 'Section 2: Billing & Transactions',
     items: [
-      { id: 'SR_1', q: 'Daily sales reports generated and reviewed accurately by management', w: 3 },
-      { id: 'SR_2', q: 'POS system data reconciled with physical cash and documented', w: 3 },
-      { id: 'SR_3', q: 'Promotional discounts properly tracked and authorized with approvals', w: 2 },
-      { id: 'SR_4', q: 'Refund and void transaction procedures followed with proper documentation', w: 3 },
-      { id: 'SR_5', q: 'Revenue trend analysis conducted regularly and variances investigated', w: 2 },
-      { id: 'SR_6', q: 'Sales tax calculations verified and properly recorded', w: 2 },
-      { id: 'SR_7', q: 'Credit card settlement procedures followed and reconciled daily', w: 3 }
+      { id: 'Q7', q: 'Is billing completed for all products served to customers?', w: 1 },
+      { id: 'Q8', q: 'Are there no open transactions pending in the POS system?', w: 1 },
+      { id: 'Q9', q: 'Are discount codes and vouchers applied correctly and as per policy?', w: 1 },
+      { id: 'Q10', q: 'Is the employee meal process followed as per policy?', w: 1 }
     ]
   },
   {
-    id: 'InventoryFinance',
-    title: 'Inventory & Financial Controls',
+    id: 'Section3',
+    title: 'Section 3: Product & Inventory Compliance',
     items: [
-      { id: 'IF_1', q: 'Inventory valuation methods consistently applied and documented', w: 3 },
-      { id: 'IF_2', q: 'Physical inventory counts conducted regularly and variances investigated', w: 3 },
-      { id: 'IF_3', q: 'Stock movement properly recorded and authorized', w: 2 },
-      { id: 'IF_4', q: 'Vendor payment procedures followed with proper approvals', w: 3 },
-      { id: 'IF_5', q: 'Purchase orders properly authorized and documented', w: 2 },
-      { id: 'IF_6', q: 'Expense categorization accurate and consistent with guidelines', w: 2 },
-      { id: 'IF_7', q: 'Cost of goods sold calculations verified and accurate', w: 3 },
-      { id: 'IF_8', q: 'Wastage and shrinkage properly documented and investigated', w: 2 }
+      { id: 'Q11', q: 'Were no expired items found during the audit?', w: 1 },
+      { id: 'Q12', q: 'Is FIFO / FEFO strictly followed for all food and beverage items?', w: 1 },
+      { id: 'Q13', q: 'Are all local purchase items correctly updated in the system?', w: 1 },
+      { id: 'Q14', q: 'Is the inventory posted in the system with complete and accurate details?', w: 1 },
+      { id: 'Q15', q: 'Is the MRD for all products properly updated?', w: 1 },
+      { id: 'Q16', q: 'Are all products available and actively used as per the menu?', w: 1 },
+      { id: 'Q17', q: 'Are products properly displayed or stored according to storage SOPs?', w: 1 }
     ]
   },
   {
-    id: 'ComplianceReporting',
-    title: 'Compliance & Reporting',
+    id: 'Section4',
+    title: 'Section 4: Documentation & Tracking',
     items: [
-      { id: 'CR_1', q: 'Monthly financial statements prepared accurately and on time', w: 3 },
-      { id: 'CR_2', q: 'Tax compliance requirements met and documented', w: 3 },
-      { id: 'CR_3', q: 'Audit trail maintained for all financial transactions', w: 3 },
-      { id: 'CR_4', q: 'Internal controls testing performed and documented', w: 2 },
-      { id: 'CR_5', q: 'Regulatory reporting requirements met and filed on time', w: 3 },
-      { id: 'CR_6', q: 'Documentation retention policies followed for financial records', w: 2 },
-      { id: 'CR_7', q: 'Budget variance analysis performed and reviewed monthly', w: 2 }
+      { id: 'Q18', q: 'Are all manual transactions properly approved and recorded?', w: 1 },
+      { id: 'Q19', q: 'Is the cash log book updated daily and verified by the store manager?', w: 1 },
+      { id: 'Q20', q: 'Are bank/cash deposit slips maintained and filed systematically?', w: 1 },
+      { id: 'Q21', q: 'Are stock delivery challans filed and updated properly?', w: 1 }
+    ]
+  },
+  {
+    id: 'Section5',
+    title: 'Section 5: POS System & SOP',
+    items: [
+      { id: 'Q22', q: 'Is wastage correctly recorded and disposed as per SOP?', w: 1 },
+      { id: 'Q23', q: 'Are TI / TO / GRN entries done accurately and posted in the system?', w: 1 },
+      { id: 'Q24', q: 'Is the POS and store system used only for designated operational tasks?', w: 1 },
+      { id: 'Q25', q: 'Is the store team aware of SOPs and compliance requirements?', w: 1 }
+    ]
+  },
+  {
+    id: 'Section6',
+    title: 'Section 6: Licenses & Certificates',
+    items: [
+      { id: 'Q26', q: 'Are trade licenses available and displayed with proper validity?', w: 1 },
+      { id: 'Q27', q: 'Are Shop & Establishment licenses available and displayed with proper validity?', w: 1 },
+      { id: 'Q28', q: 'Is the FSSAI license available and displayed with proper validity?', w: 1 },
+      { id: 'Q29', q: 'Is the GST certificate available and displayed with proper validity?', w: 1 }
+    ]
+  },
+  {
+    id: 'Section7',
+    title: 'Section 7: CCTV Monitoring',
+    items: [
+      { id: 'Q30', q: 'Is the CCTV system functioning properly?', w: 1 },
+      { id: 'Q31', q: 'Is there a backup of 30 / 60 days of footage with proper coverage of critical areas?', w: 1 },
+      { id: 'Q32', q: 'Are no SOP, compliance, or integrity violations observed in CCTV sample review?', w: 1 }
     ]
   }
 ];
@@ -99,6 +119,22 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   const [responses, setResponses] = useState<SurveyResponse>(() => {
     try {
       return JSON.parse(localStorage.getItem('finance_resp') || '{}');
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const [questionImages, setQuestionImages] = useState<Record<string, string[]>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('finance_images') || '{}');
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const [questionRemarks, setQuestionRemarks] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('finance_remarks') || '{}');
     } catch (e) {
       return {};
     }
@@ -203,6 +239,16 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   useEffect(() => {
     localStorage.setItem('finance_resp', JSON.stringify(responses));
   }, [responses]);
+
+  // Save questionImages to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('finance_images', JSON.stringify(questionImages));
+  }, [questionImages]);
+
+  // Save questionRemarks to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('finance_remarks', JSON.stringify(questionRemarks));
+  }, [questionRemarks]);
 
   // Save meta to localStorage whenever it changes
   useEffect(() => {
@@ -392,6 +438,77 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
     setResponses(prev => ({ ...prev, [questionId]: value }));
   };
 
+  const handleImageUpload = (questionId: string, files: FileList) => {
+    // Process multiple files
+    Array.from(files).forEach(file => {
+      // Compress and resize image to reduce storage size
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          // Create canvas for compression
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+
+          // Calculate new dimensions (max 800px width/height for faster processing)
+          const maxDimension = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height && width > maxDimension) {
+            height = (height * maxDimension) / width;
+            width = maxDimension;
+          } else if (height > maxDimension) {
+            width = (width * maxDimension) / height;
+            height = maxDimension;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          // Draw and compress image (0.6 quality for smaller size and faster upload)
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+
+          // Update state with compressed image
+          setQuestionImages(prev => {
+            try {
+              const newImages = {
+                ...prev,
+                [questionId]: [...(prev[questionId] || []), compressedBase64]
+              };
+              // Test if it fits in localStorage
+              const testString = JSON.stringify(newImages);
+              if (testString.length > 5000000) { // ~5MB limit
+                alert('Storage limit reached. Please remove some images before adding more.');
+                return prev;
+              }
+              return newImages;
+            } catch (error) {
+              alert('Failed to add image. Storage limit may be reached.');
+              return prev;
+            }
+          });
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (questionId: string, imageIndex: number) => {
+    setQuestionImages(prev => {
+      const updated = { ...prev };
+      const images = updated[questionId] || [];
+      updated[questionId] = images.filter((_, idx) => idx !== imageIndex);
+      if (updated[questionId].length === 0) {
+        delete updated[questionId];
+      }
+      return updated;
+    });
+  };
+
   const handleSubmit = async () => {
     const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
     const answeredQuestions = Object.keys(responses).filter(key =>
@@ -496,6 +613,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       console.log('Total responses object:', responses);
       console.log('Responses keys:', Object.keys(responses));
       console.log('Sections being used:', sections);
+      console.log('Question Images:', questionImages);
+      console.log('Question Remarks:', questionRemarks);
 
       // Add all question responses
       sections.forEach(section => {
@@ -505,12 +624,26 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
           const responseValue = responses[questionKey];
           console.log(`  - Question ${questionKey}: ${responseValue}`);
           params[questionKey] = responseValue || '';
+          
+          // Add per-question remarks with _remark suffix
+          const remarkValue = questionRemarks[questionKey] || '';
+          params[`${questionKey}_remark`] = remarkValue;
+          
+          // Add image count with _imageCount suffix
+          const imageCount = questionImages[questionKey]?.length || 0;
+          params[`${questionKey}_imageCount`] = String(imageCount);
         });
         // Add section remarks
         const remarksKey = `${section.id}_remarks`;
         console.log(`  - Remarks ${remarksKey}: ${responses[remarksKey]}`);
         params[remarksKey] = responses[remarksKey] || '';
       });
+
+      // Add all images as JSON (for storage and future use)
+      params.questionImagesJSON = JSON.stringify(questionImages);
+      
+      // Add all question remarks as JSON (for proper storage)
+      params.questionRemarksJSON = JSON.stringify(questionRemarks);
 
       // Debug: Log final params
       console.log('Final params being sent:', params);
@@ -545,6 +678,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   const resetSurvey = () => {
     if (confirm('Are you sure you want to reset the survey? All responses will be lost.')) {
       setResponses({});
+      setQuestionImages({});
+      setQuestionRemarks({});
       setMeta({
         financeAuditorName: '',
         financeAuditorId: '',
@@ -556,6 +691,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       setSignatures({ auditor: '', sm: '' });
       setSubmitted(false);
       localStorage.removeItem('finance_resp');
+      localStorage.removeItem('finance_images');
+      localStorage.removeItem('finance_remarks');
       localStorage.removeItem('finance_meta');
       localStorage.removeItem('finance_signatures');
 
@@ -739,7 +876,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         <div className="space-y-8">
           {sections.map((section, sectionIndex) => (
             <div key={section.id} className="border-l-4 border-emerald-500 pl-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4 text-emerald-700 dark:text-emerald-300">
+              <h3 className="text-lg font-semibold text-emerald-700 dark:text-emerald-300 mb-4">
                 {section.title}
               </h3>
 
@@ -770,6 +907,95 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
                               <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
                             </label>
                           ))}
+                        </div>
+
+                        {/* Image Upload Section - Multiple Images Support */}
+                        <div className="mt-3">
+                          <div className="space-y-3">
+                            {/* Upload Buttons - Always Visible with MULTIPLE selection */}
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                📷 Camera
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  capture="environment"
+                                  onChange={(e) => {
+                                    const files = e.target.files;
+                                    if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
+                                    e.target.value = ''; // Reset input to allow same file again
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+
+                              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                🖼️ Gallery (Multiple)
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  onChange={(e) => {
+                                    const files = e.target.files;
+                                    if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
+                                    e.target.value = ''; // Reset input to allow same file again
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+
+                            {/* Display Uploaded Images */}
+                            {questionImages[`${section.id}_${item.id}`] && questionImages[`${section.id}_${item.id}`].length > 0 && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {questionImages[`${section.id}_${item.id}`].map((image, idx) => (
+                                  <div key={idx} className="relative">
+                                    <img
+                                      src={image}
+                                      alt={`Upload ${idx + 1}`}
+                                      className="w-full h-48 object-cover rounded-lg border-2 border-gray-300 dark:border-slate-600"
+                                    />
+                                    {/* Delete Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => removeImage(`${section.id}_${item.id}`, idx)}
+                                      className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                      title="Remove image"
+                                    >
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                    {/* Image Counter */}
+                                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-black bg-opacity-60 text-white text-xs rounded">
+                                      {idx + 1} of {questionImages[`${section.id}_${item.id}`].length}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Per-Question Remarks */}
+                          <div className="mt-3">
+                            <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                              💬 Comments / Remarks for Question {itemIndex + 1}
+                            </label>
+                            <textarea
+                              value={questionRemarks[`${section.id}_${item.id}`] || ''}
+                              onChange={(e) => setQuestionRemarks(prev => ({ ...prev, [`${section.id}_${item.id}`]: e.target.value }))}
+                              placeholder="Add comments or remarks for this question..."
+                              rows={2}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>

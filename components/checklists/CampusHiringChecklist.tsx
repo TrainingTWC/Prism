@@ -1727,7 +1727,7 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
       }
 
       // Submit to Google Apps Script
-      const scriptUrl = config.CAMPUS_HIRING_SCRIPT_URL || '';
+      const scriptUrl = 'https://script.google.com/macros/s/AKfycbxbPYyW_kPmdL5Fnq1AUyhgLyvYmInBj9EzQSrmdFdqO4FJe2O8_flX6rxNaZNaVhjs_Q/exec';
 
       if (!scriptUrl) {
         throw new Error('Campus Hiring Script URL not configured. Please contact administrator.');
