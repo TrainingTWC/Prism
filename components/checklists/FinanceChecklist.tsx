@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
 
 // Google Sheets endpoint for Finance Audit (QA Pattern)
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx1WaaEoUTttanmWGS8me3HZNhuqaxVHoPdWN3AdI0i4bLQmHFRztj133Vh8SaoVb2iwg/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzh9_N3moOrM0MAzmY_rcujkncxLwXYNQMMTiRFIpVZEMRog6j2ioXobdrGItm9os7CLw/exec';
 
 interface SurveyResponse {
   [key: string]: string;
@@ -92,8 +92,9 @@ const FINANCE_SECTIONS = [
 const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUpdate }) => {
   const { config, loading: configLoading } = useConfig();
 
-  // Use config data if available, otherwise fall back to hardcoded FINANCE_SECTIONS
-  const sections = config?.CHECKLISTS?.FINANCE || FINANCE_SECTIONS;
+  // IMPORTANT: Use hardcoded FINANCE_SECTIONS to ensure correct question IDs
+  // DO NOT use config as it has different ID format (FIN_CM_1 vs CM_1)
+  const sections = FINANCE_SECTIONS;
 
   const [responses, setResponses] = useState<SurveyResponse>(() => {
     try {
@@ -423,15 +424,23 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       let totalScore = 0;
       let maxScore = 0;
 
-      sections.forEach(section => {
-        section.items.forEach(item => {
+      console.log('=== SCORE CALCULATION DEBUG ===');
+      console.log('Number of sections:', sections.length);
+      
+      sections.forEach((section, sIdx) => {
+        console.log(`Section ${sIdx}: ${section.id}, items: ${section.items ? section.items.length : 'NO ITEMS!'}`);
+        section.items.forEach((item, iIdx) => {
           maxScore += item.w;
           const response = responses[`${section.id}_${item.id}`];
+          console.log(`  Item ${iIdx}: ${item.id}, weight: ${item.w}, response: ${response}`);
           if (response === 'yes') {
             totalScore += item.w;
           }
         });
       });
+
+      console.log(`Total Score: ${totalScore}, Max Score: ${maxScore}`);
+      console.log('=== END SCORE CALCULATION ===');
 
       const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
 
@@ -482,15 +491,31 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         smSignature: signatures.sm || ''
       };
 
+      // Debug: Log responses object
+      console.log('=== FINANCE AUDIT DEBUG ===');
+      console.log('Total responses object:', responses);
+      console.log('Responses keys:', Object.keys(responses));
+      console.log('Sections being used:', sections);
+
       // Add all question responses
       sections.forEach(section => {
+        console.log(`Processing section: ${section.id}`);
         section.items.forEach(item => {
           const questionKey = `${section.id}_${item.id}`;
-          params[questionKey] = responses[questionKey] || '';
+          const responseValue = responses[questionKey];
+          console.log(`  - Question ${questionKey}: ${responseValue}`);
+          params[questionKey] = responseValue || '';
         });
         // Add section remarks
-        params[`${section.id}_remarks`] = responses[`${section.id}_remarks`] || '';
+        const remarksKey = `${section.id}_remarks`;
+        console.log(`  - Remarks ${remarksKey}: ${responses[remarksKey]}`);
+        params[remarksKey] = responses[remarksKey] || '';
       });
+
+      // Debug: Log final params
+      console.log('Final params being sent:', params);
+      console.log('Params keys:', Object.keys(params));
+      console.log('=== END DEBUG ===');
 
       // Send as URL-encoded form data (like QA checklist)
       const response = await fetch(LOG_ENDPOINT, {

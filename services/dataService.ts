@@ -17,7 +17,7 @@ const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzEyJQi
 const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwGIDlsSGyRhR40G0zLmYpbs5C-ShrZffwnKcn3hikZPeDFtcWbeDzewT49yJQ_8YCUkA/exec';
 
 // Finance Audit endpoint - UPDATED URL (Data fetched from Google Sheets)
-const FINANCE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx1WaaEoUTttanmWGS8me3HZNhuqaxVHoPdWN3AdI0i4bLQmHFRztj133Vh8SaoVb2iwg/exec';
+const FINANCE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzh9_N3moOrM0MAzmY_rcujkncxLwXYNQMMTiRFIpVZEMRog6j2ioXobdrGItm9os7CLw/exec';
 
 // Campus Hiring endpoint - UPDATED URL
 const CAMPUS_HIRING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbPYyW_kPmdL5Fnq1AUyhgLyvYmInBj9EzQSrmdFdqO4FJe2O8_flX6rxNaZNaVhjs_Q/exec';

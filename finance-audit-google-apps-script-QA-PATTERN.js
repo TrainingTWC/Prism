@@ -199,6 +199,11 @@ function doPost(e) {
     // Parse the form data
     const params = e.parameter;
     Logger.log('Received parameters count: ' + Object.keys(params).length);
+    Logger.log('=== ALL RECEIVED PARAMETERS ===');
+    for (let key in params) {
+      Logger.log(key + ' = ' + params[key]);
+    }
+    Logger.log('=== END PARAMETERS ===');
     console.log('Received parameters:', JSON.stringify(params));
     
     // Get current timestamp
@@ -270,7 +275,11 @@ function doPost(e) {
       params.ComplianceReporting_CR_5 || '',        // AQ: CR_5
       params.ComplianceReporting_CR_6 || '',        // AR: CR_6
       params.ComplianceReporting_CR_7 || '',        // AS: CR_7
-      params.ComplianceReporting_remarks || ''      // AT: Compliance Reporting Remarks
+      params.ComplianceReporting_remarks || '',     // AT: Compliance Reporting Remarks
+      
+      // Signatures
+      params.auditorSignature || '',                // AU: Auditor Signature
+      params.smSignature || ''                      // AV: SM Signature
     ];
     
     Logger.log('Row data prepared with ' + rowData.length + ' fields');
