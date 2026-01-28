@@ -229,6 +229,21 @@ const SECTIONS: ChecklistSection[] = [
     items: [
       { id: 'EndTime', q: 'Milk Based Beverages End time:', w: 0 }
     ]
+  },
+  // Sensory Score (for sensory scoresheet type)
+  {
+    id: 'SensoryScore',
+    title: 'Sensory Score',
+    items: [
+      { id: 'Aroma', q: 'Aroma', w: 10 },
+      { id: 'Flavor', q: 'Flavor', w: 10 },
+      { id: 'Aftertaste', q: 'Aftertaste', w: 10 },
+      { id: 'Acidity', q: 'Acidity', w: 10 },
+      { id: 'Body', q: 'Body', w: 10 },
+      { id: 'Balance', q: 'Balance', w: 10 },
+      { id: 'Overall', q: 'Overall', w: 10 },
+      { id: 'CupImage', q: 'Upload cup images', w: 10 }
+    ]
   }
 ];
 
@@ -578,7 +593,7 @@ const BrewLeagueAMRound: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto bg-white dark:bg-slate-900 rounded-lg shadow-lg">
-      <LoadingOverlay isLoading={isLoading} />
+      <LoadingOverlay isVisible={isLoading} />
 
       {/* Header */}
       <div className="bg-gradient-to-r from-amber-600 to-orange-600 text-white p-6 rounded-t-lg">
