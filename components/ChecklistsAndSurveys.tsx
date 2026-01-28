@@ -14,6 +14,7 @@ import SHLPChecklist from './checklists/SHLPChecklist';
 import BenchPlanningChecklist from './checklists/BenchPlanningChecklist';
 import BenchPlanningSMASMChecklist from './checklists/BenchPlanningSMASMChecklist';
 import BrewLeagueRegionRound from './checklists/BrewLeagueRegionRound';
+import BrewLeagueAMRound from './checklists/BrewLeagueAMRound';
 import BrewLeagueDashboard from './checklists/BrewLeagueDashboard';
 
 interface ChecklistsAndSurveysProps {
@@ -187,9 +188,6 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                 <p className="text-sm text-gray-600 dark:text-slate-400">
                   Area Manager level competition scoresheet
                 </p>
-                <span className="mt-4 text-sm text-amber-600 dark:text-amber-400 font-medium">
-                  Coming Soon
-                </span>
               </div>
             </button>
 
@@ -313,12 +311,15 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
       if (brewLeagueSubSection === 'region') {
         return <BrewLeagueRegionRound />;
       }
-      // Placeholders for other rounds
+      if (brewLeagueSubSection === 'am') {
+        return <BrewLeagueAMRound />;
+      }
+      // Placeholder for Store Round
       return (
         <div className="text-center py-12">
           <Trophy className="w-16 h-16 text-amber-600 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
-            {brewLeagueSubSection === 'store' ? 'Store Round' : 'AM Round'}
+            Store Round
           </h3>
           <p className="text-gray-600 dark:text-slate-400">
             Coming soon! This scoresheet will be available shortly.

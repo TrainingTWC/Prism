@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, TrendingUp, Users, Award, MapPin, Coffee, Target, BarChart3, Calendar, Filter } from 'lucide-react';
 
-// Google Sheets endpoint for fetching Brew League data
-const BREW_LEAGUE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxIGr_utWW1EySanNuTjzG254uCvZiPcE1ZkGtxy6ubiPzGqAmaNHgoR2NrH-R4TXyn8w/exec';
+// Google Sheets endpoints for fetching Brew League data
+const BREW_LEAGUE_REGION_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxIGr_utWW1EySanNuTjzG254uCvZiPcE1ZkGtxy6ubiPzGqAmaNHgoR2NrH-R4TXyn8w/exec';
+const BREW_LEAGUE_AM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwVN9hWkzScxgOGCJfNqXEh6EOIpBHHckWi9nYULWuRc7wAuxs7po9BmSF2vYkpmvFQ6g/exec';
 
 interface BrewLeagueSubmission {
   timestamp: string;
@@ -14,12 +15,14 @@ interface BrewLeagueSubmission {
   machineType: 'manual' | 'automatic';
   storeName: string;
   storeID: string;
+  areaManager?: string; // NEW: AM field for AM Round
   region: string;
   totalScore: number;
   maxScore: number;
   percentage: number;
   submissionTime?: string;
   sections: Record<string, number>;
+  roundType?: 'region' | 'am'; // NEW: Track which round this is from
 }
 
 const BrewLeagueDashboard: React.FC = () => {
@@ -29,57 +32,92 @@ const BrewLeagueDashboard: React.FC = () => {
   const [filterScoresheet, setFilterScoresheet] = useState<string>('all');
   const [filterMachine, setFilterMachine] = useState<string>('all');
   const [filterEmployee, setFilterEmployee] = useState<string>('all');
+  const [filterRound, setFilterRound] = useState<string>('all'); // NEW: Round filter
 
-  // Fetch data from Google Sheets
+  // Fetch data from Google Sheets (both Region and AM Round)
   useEffect(() => {
     const fetchBrewLeagueData = async () => {
       try {
-        console.log('Fetching Brew League data from:', BREW_LEAGUE_ENDPOINT);
+        console.log('Fetching Brew League data from both endpoints...');
         
-        const response = await fetch(BREW_LEAGUE_ENDPOINT, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
-          redirect: 'follow',
-        });
+        // Fetch both Region and AM Round data in parallel
+        const [regionResponse, amResponse] = await Promise.all([
+          fetch(BREW_LEAGUE_REGION_ENDPOINT, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            redirect: 'follow',
+          }),
+          fetch(BREW_LEAGUE_AM_ENDPOINT, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            redirect: 'follow',
+          })
+        ]);
         
-        if (!response.ok) {
-          console.error('Failed to fetch Brew League data:', response.status);
-          setLoading(false);
-          return;
+        let allSubmissions: BrewLeagueSubmission[] = [];
+        
+        // Process Region Round data
+        if (regionResponse.ok) {
+          const regionData = await regionResponse.json();
+          console.log('Received Region Round data:', regionData);
+          
+          if (Array.isArray(regionData)) {
+            const mappedRegion: BrewLeagueSubmission[] = regionData.map((row: any) => ({
+              timestamp: row['Timestamp'] || row.timestamp || '',
+              participantName: row['Participant Name'] || row.participantName || '',
+              participantEmpID: row['Participant Emp ID'] || row['Participant Emp. ID'] || row.participantEmpID || '',
+              judgeName: row['Judge Name'] || row.judgeName || '',
+              judgeID: row['Judge Emp ID'] || row['Judge ID'] || row.judgeID || '',
+              scoresheetType: (row['Scoresheet Type'] || row.scoresheetType || 'technical').toLowerCase() as 'technical' | 'sensory',
+              machineType: (row['Machine Type'] || row.machineType || 'manual').toLowerCase() as 'manual' | 'automatic',
+              storeName: row['Store Name'] || row.storeName || '',
+              storeID: row['Store ID'] || row.storeID || '',
+              region: row['Region'] || row.region || '',
+              totalScore: Number(row['Total Score'] || row.totalScore || 0),
+              maxScore: Number(row['Max Score'] || row.maxScore || 0),
+              percentage: Number(row['Percentage'] || row.percentage || 0),
+              submissionTime: row['Submission Time'] || row.submissionTime || '',
+              roundType: 'region',
+              sections: {}
+            }));
+            allSubmissions = [...allSubmissions, ...mappedRegion];
+          }
         }
         
-        const data = await response.json();
-        console.log('Received Brew League data:', data);
-        
-        if (!Array.isArray(data)) {
-          console.error('Invalid data format received');
-          setLoading(false);
-          return;
+        // Process AM Round data
+        if (amResponse.ok) {
+          const amData = await amResponse.json();
+          console.log('Received AM Round data:', amData);
+          
+          // Handle both array and {data: array} response formats
+          const amArray = Array.isArray(amData) ? amData : (amData.data || []);
+          
+          if (Array.isArray(amArray)) {
+            const mappedAM: BrewLeagueSubmission[] = amArray.map((row: any) => ({
+              timestamp: row['Timestamp'] || row.timestamp || '',
+              participantName: row['Participant Name'] || row.participantName || '',
+              participantEmpID: row['Participant Emp ID'] || row['Participant Emp. ID'] || row.participantEmpID || '',
+              judgeName: row['Judge Name'] || row.judgeName || '',
+              judgeID: row['Judge Emp ID'] || row['Judge ID'] || row.judgeID || '',
+              scoresheetType: (row['Scoresheet Type'] || row.scoresheetType || 'technical').toLowerCase() as 'technical' | 'sensory',
+              machineType: (row['Machine Type'] || row.machineType || 'manual').toLowerCase() as 'manual' | 'automatic',
+              storeName: row['Store Name'] || row.storeName || '',
+              storeID: row['Store ID'] || row.storeID || '',
+              areaManager: row['Area Manager'] || row.areaManager || '',
+              region: row['Region'] || row.region || '',
+              totalScore: Number(row['Total Score'] || row.totalScore || 0),
+              maxScore: Number(row['Max Score'] || row.maxScore || 0),
+              percentage: Number(row['Percentage'] || row.percentage || 0),
+              submissionTime: row['Submission Time'] || row.submissionTime || '',
+              roundType: 'am',
+              sections: {}
+            }));
+            allSubmissions = [...allSubmissions, ...mappedAM];
+          }
         }
         
-        // Map Google Sheets column names to interface fields
-        const mappedData: BrewLeagueSubmission[] = data.map((row: any) => ({
-          timestamp: row['Timestamp'] || row.timestamp || '',
-          participantName: row['Participant Name'] || row.participantName || '',
-          participantEmpID: row['Participant Emp ID'] || row['Participant Emp. ID'] || row.participantEmpID || '',
-          judgeName: row['Judge Name'] || row.judgeName || '',
-          judgeID: row['Judge Emp ID'] || row['Judge ID'] || row.judgeID || '',
-          scoresheetType: (row['Scoresheet Type'] || row.scoresheetType || 'technical').toLowerCase() as 'technical' | 'sensory',
-          machineType: (row['Machine Type'] || row.machineType || 'manual').toLowerCase() as 'manual' | 'automatic',
-          storeName: row['Store Name'] || row.storeName || '',
-          storeID: row['Store ID'] || row.storeID || '',
-          region: row['Region'] || row.region || '',
-          totalScore: Number(row['Total Score'] || row.totalScore || 0),
-          maxScore: Number(row['Max Score'] || row.maxScore || 0),
-          percentage: Number(row['Percentage'] || row.percentage || 0),
-          submissionTime: row['Submission Time'] || row.submissionTime || '',
-          sections: {} // Can be expanded if needed
-        }));
-        
-        console.log('Mapped Brew League data:', mappedData);
-        setSubmissions(mappedData);
+        console.log('Total submissions loaded:', allSubmissions.length);
+        setSubmissions(allSubmissions);
         setLoading(false);
         
       } catch (error) {
@@ -96,6 +134,7 @@ const BrewLeagueDashboard: React.FC = () => {
     if (filterScoresheet !== 'all' && sub.scoresheetType !== filterScoresheet) return false;
     if (filterMachine !== 'all' && sub.machineType !== filterMachine) return false;
     if (filterEmployee !== 'all' && sub.participantEmpID !== filterEmployee) return false;
+    if (filterRound !== 'all' && sub.roundType !== filterRound) return false; // NEW: Round filter
     return true;
   });
 
@@ -150,7 +189,19 @@ const BrewLeagueDashboard: React.FC = () => {
             <Filter size={20} className="text-gray-600 dark:text-slate-400" />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Filters</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Round</label>
+              <select 
+                value={filterRound}
+                onChange={(e) => setFilterRound(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+              >
+                <option value="all">All Rounds</option>
+                <option value="region">Region Round</option>
+                <option value="am">AM Round</option>
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Employee</label>
               <select 
@@ -333,6 +384,16 @@ const BrewLeagueDashboard: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-slate-400">
+                      <span className="flex items-center gap-1">
+                        <Trophy size={12} />
+                        {sub.roundType === 'am' ? 'AM Round' : 'Region Round'}
+                      </span>
+                      {sub.roundType === 'am' && sub.areaManager && (
+                        <span className="flex items-center gap-1">
+                          <Users size={12} />
+                          AM: {sub.areaManager}
+                        </span>
+                      )}
                       <span className="flex items-center gap-1">
                         <MapPin size={12} />
                         {sub.region}
