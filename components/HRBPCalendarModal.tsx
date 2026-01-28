@@ -15,9 +15,53 @@ interface DayData {
 }
 
 const HRBPCalendarModal: React.FC<HRBPCalendarModalProps> = ({ hrbp, submissions, onClose }) => {
-  // Initialize selectedMonth - for now, start with current month and let user navigate
-  // TODO: Later we can make this smarter based on actual submission data
-  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  // Initialize selectedMonth to the most recent month with submissions
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    // Find all submissions for this HRBP
+    const hrbpSubs = submissions.filter(sub => sub.hrId === hrbp.id);
+    
+    if (hrbpSubs.length === 0) {
+      return new Date(); // Default to current month if no submissions
+    }
+    
+    // Parse dates and find the most recent one
+    let mostRecentDate = null;
+    hrbpSubs.forEach(sub => {
+      try {
+        let date = null;
+        if (sub.submissionTime.includes('T') && sub.submissionTime.match(/^\d{4}-\d{2}-\d{2}T/)) {
+          const [datePart] = sub.submissionTime.split('T');
+          const [year, month, day] = datePart.split('-');
+          date = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
+        } else if (sub.submissionTime.includes('/')) {
+          const parts = sub.submissionTime.split(',')[0].trim().split(' ')[0].split('/');
+          if (parts.length === 3) {
+            // M/D/YYYY format (American format)
+            const month = parseInt(parts[0], 10) - 1;
+            const day = parseInt(parts[1], 10);
+            const year = parseInt(parts[2], 10);
+            date = new Date(year, month, day);
+          }
+        }
+        
+        if (date && !isNaN(date.getTime())) {
+          if (!mostRecentDate || date > mostRecentDate) {
+            mostRecentDate = date;
+          }
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+    });
+    
+    // Return the first day of the most recent month with data
+    if (mostRecentDate) {
+      return new Date(mostRecentDate.getFullYear(), mostRecentDate.getMonth(), 1);
+    }
+    
+    return new Date(); // Fallback to current month
+  });
+  
   const [selectedDay, setSelectedDay] = useState<DayData | null>(null);
 
   // Parse submission date from string format (DD/MM/YYYY, HH:MM:SS or DD-MM-YYYY ISO-like)
@@ -25,18 +69,15 @@ const HRBPCalendarModal: React.FC<HRBPCalendarModalProps> = ({ hrbp, submissions
     if (!dateStr) return null;
     
     try {
-      // Handle ISO-like format that's actually DD-MM-YYYY (e.g., 2025-12-11T... should be 12th November 2025)
+      // Handle ISO format YYYY-MM-DD (standard format)
       if (dateStr.includes('T') && dateStr.match(/^\d{4}-\d{2}-\d{2}T/)) {
         const [datePart] = dateStr.split('T');
-        const [year, dayMonth, day] = datePart.split('-');
+        const [year, month, day] = datePart.split('-');
         
-        // The format is actually YYYY-DD-MM, not YYYY-MM-DD
-        // So 2025-12-11 means 2025, day=12, month=11 (November)
+        // ISO format is YYYY-MM-DD
         const actualYear = parseInt(year, 10);
-        const actualDay = parseInt(dayMonth, 10);
-        const actualMonth = parseInt(day, 10) - 1; // JS months are 0-based (0=Jan, 10=Nov)
-        
-        console.log(`Parsing ISO-like date: ${dateStr} -> Year: ${actualYear}, Month: ${actualMonth + 1} (${new Date(0, actualMonth).toLocaleString('default', { month: 'long' })}), Day: ${actualDay}`);
+        const actualMonth = parseInt(month, 10) - 1; // JS months are 0-based
+        const actualDay = parseInt(day, 10);
         
         return new Date(actualYear, actualMonth, actualDay);
       }
@@ -49,76 +90,24 @@ const HRBPCalendarModal: React.FC<HRBPCalendarModalProps> = ({ hrbp, submissions
       // DD/MM/YYYY format
       const parts = dateStr.split(',')[0].trim().split(' ')[0].split('/');
       if (parts.length === 3) {
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1; // JS months are 0-based (0=Jan, 11=Dec)
-        const year = parseInt(parts[2], 10);
+        // Google Sheets uses M/D/YYYY format (American format)
+        // So 9/25/2025 means September 25, 2025
+        const month = parseInt(parts[0], 10) - 1; // First part is month (0-based for JS)
+        const day = parseInt(parts[1], 10);         // Second part is day
+        const year = parseInt(parts[2], 10);        // Third part is year
         
-        console.log(`Parsing DD/MM/YYYY date: ${dateStr} -> Day: ${day}, Month: ${month+1}, Year: ${year}`);
-        
-        const parsedDate = new Date(year, month, day);
-        
-        // Additional validation - ensure the parsed date makes sense
-        if (parsedDate.getFullYear() !== year || parsedDate.getMonth() !== month || parsedDate.getDate() !== day) {
-          console.warn(`Date parsing validation failed for: ${dateStr}`);
-          return null;
-        }
-        
-        return parsedDate;
+        return new Date(year, month, day);
       }
       
-      // Fallback - try direct parsing but this might be wrong for DD-MM-YYYY formats
-      console.warn(`Fallback parsing for: ${dateStr}`);
       return new Date(dateStr);
     } catch (error) {
-      console.error(`Error parsing date: ${dateStr}`, error);
       return null;
     }
   };
 
   // Filter submissions for this HRBP
   const hrbpSubmissions = useMemo(() => {
-    const filtered = submissions.filter(sub => sub.hrId === hrbp.id);
-    
-    // Debug logging for Pooja's submissions
-    if (hrbp.id === 'HC002') {
-      console.log(`Pooja (HC002) submissions found:`, filtered.length);
-      
-      // Analyze what months have data
-      const monthsWithData = new Set<string>();
-      filtered.forEach((sub, idx) => {
-        console.log(`  [${idx}] ${sub.submissionTime} -> ${sub.storeName || 'Unknown Store'}`);
-        
-        // Try to parse the date and see what month it belongs to - use same logic as parseDate function
-        let parsedDate = null;
-        if (sub.submissionTime.includes('T') && sub.submissionTime.match(/^\d{4}-\d{2}-\d{2}T/)) {
-          // Handle DD-MM-YYYY ISO-like format
-          const [datePart] = sub.submissionTime.split('T');
-          const [year, dayMonth, day] = datePart.split('-');
-          const actualYear = parseInt(year, 10);
-          const actualDay = parseInt(dayMonth, 10);
-          const actualMonth = parseInt(day, 10) - 1;
-          parsedDate = new Date(actualYear, actualMonth, actualDay);
-        } else if (sub.submissionTime.includes('/')) {
-          // DD/MM/YYYY format
-          const parts = sub.submissionTime.split(',')[0].trim().split(' ')[0].split('/');
-          if (parts.length === 3) {
-            const day = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10) - 1;
-            const year = parseInt(parts[2], 10);
-            parsedDate = new Date(year, month, day);
-          }
-        }
-        
-        if (parsedDate && !isNaN(parsedDate.getTime())) {
-          const monthYear = `${parsedDate.getFullYear()}-${parsedDate.getMonth() + 1}`;
-          monthsWithData.add(monthYear);
-        }
-      });
-      
-      console.log(`Months with data for Pooja:`, Array.from(monthsWithData));
-    }
-    
-    return filtered;
+    return submissions.filter(sub => sub.hrId === hrbp.id);
   }, [submissions, hrbp.id]);
 
   // Group submissions by date
@@ -130,11 +119,6 @@ const HRBPCalendarModal: React.FC<HRBPCalendarModalProps> = ({ hrbp, submissions
       if (!date) return;
       
       const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-      
-      // Debug logging for Pooja's date grouping
-      if (hrbp.id === 'HC002') {
-        console.log(`  Grouping: ${sub.submissionTime} -> Date: ${date.toDateString()}, Key: ${dateKey}`);
-      }
       
       if (!grouped.has(dateKey)) {
         grouped.set(dateKey, {
@@ -156,8 +140,10 @@ const HRBPCalendarModal: React.FC<HRBPCalendarModalProps> = ({ hrbp, submissions
       dayData.avgScore = dayData.count > 0 ? Math.round(totalScore / dayData.count) : 0;
     });
     
+
+    
     return grouped;
-  }, [hrbpSubmissions]);
+  }, [hrbpSubmissions, hrbp.name]);
 
   // Generate calendar days for the selected month
   const calendarDays = useMemo(() => {
@@ -200,11 +186,28 @@ const HRBPCalendarModal: React.FC<HRBPCalendarModalProps> = ({ hrbp, submissions
   const changeMonth = (offset: number) => {
     const newDate = new Date(selectedMonth);
     newDate.setMonth(newDate.getMonth() + offset);
+    
+    // Prevent navigating to future months
+    const today = new Date();
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    // If trying to navigate to a future month, don't allow it
+    if (newDate > currentMonthStart) {
+      return;
+    }
+    
     setSelectedMonth(newDate);
     setSelectedDay(null);
   };
 
   const monthName = selectedMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  // Check if we're at the current month (to disable "next month" button)
+  const isCurrentMonth = useMemo(() => {
+    const today = new Date();
+    return selectedMonth.getFullYear() === today.getFullYear() && 
+           selectedMonth.getMonth() === today.getMonth();
+  }, [selectedMonth]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
@@ -219,12 +222,15 @@ const HRBPCalendarModal: React.FC<HRBPCalendarModalProps> = ({ hrbp, submissions
               <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400 mt-1">
                 Day-wise Survey Activity
               </p>
-              {/* Quick navigation to November 2025 */}
+              {/* Quick navigation to current month */}
               <button
-                onClick={() => setSelectedMonth(new Date(2025, 10, 1))} // November 2025 (month 10 = November)
+                onClick={() => {
+                  const today = new Date();
+                  setSelectedMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+                }}
                 className="text-xs mt-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50"
               >
-                Go to November 2025
+                Go to Current Month
               </button>
             </div>
             <button
@@ -257,7 +263,12 @@ const HRBPCalendarModal: React.FC<HRBPCalendarModalProps> = ({ hrbp, submissions
             
             <button
               onClick={() => changeMonth(1)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              disabled={isCurrentMonth}
+              className={`p-2 rounded-lg transition-colors ${
+                isCurrentMonth 
+                  ? 'opacity-30 cursor-not-allowed' 
+                  : 'hover:bg-gray-100 dark:hover:bg-slate-700'
+              }`}
             >
               <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

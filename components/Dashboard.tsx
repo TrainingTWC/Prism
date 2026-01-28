@@ -95,9 +95,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
   const HR_PERSONNEL = config?.HR_PERSONNEL || DEFAULT_HR_PERSONNEL;
 
-  console.log('Dashboard: OPERATIONS_QUESTIONS length:', OPERATIONS_QUESTIONS.length);
-  console.log('Dashboard: Sample OPERATIONS_QUESTIONS:', OPERATIONS_QUESTIONS.slice(0, 3));
-
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [amOperationsData, setAMOperationsData] = useState<AMOperationsSubmission[]>([]);
   const [trainingData, setTrainingData] = useState<TrainingAuditSubmission[]>([]);
@@ -1904,13 +1901,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     // Calculate total employees from Supabase directory - only if fully loaded
     const totalEmployees = (!employeeLoading && employeeDirectory?.byId) ? Object.keys(employeeDirectory.byId).length : 0;
 
-    // IMPORTANT: If employee directory is not loaded, we cannot calculate accurate percentages
-    // Show a warning and use surveyed employees as the denominator
-    if (totalEmployees === 0) {
-      console.warn('⚠️ Employee directory not loaded! Percentage calculations will be inaccurate.');
-      console.warn('Make sure Supabase employee directory is properly configured and loaded.');
-    }
-
     const idealConnects = totalEmployees * 12; // 12 connects per employee per year
     // Actual connects = unique employees who have submitted (not total submissions)
     const actualConnects = uniqueEmployees;
@@ -1931,15 +1921,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         }
       });
     }
-
-    console.log('📍 Store mapping debug:', {
-      compStoreMappingLoaded: !!compStoreMapping,
-      totalMappingRows: compStoreMapping?.length || 0,
-      storeToRegionSize: storeToRegionMap.size,
-      storeToAMSize: storeToAMMap.size,
-      sampleStoreRegion: Array.from(storeToRegionMap.entries()).slice(0, 3),
-      sampleStoreAM: Array.from(storeToAMMap.entries()).slice(0, 3)
-    });
 
     // Count employees per Region, Store, and AM from employee directory
     const employeesPerRegion: { [key: string]: number } = {};
@@ -1967,14 +1948,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         }
       });
     }
-
-    console.log('👥 Employee distribution:', {
-      totalEmployees,
-      employeesPerRegion,
-      employeesPerStore: Object.keys(employeesPerStore).length + ' stores',
-      employeesPerAM: Object.keys(employeesPerAM).length + ' AMs',
-      sampleEmployeesPerStore: Object.entries(employeesPerStore).slice(0, 5)
-    });
 
     // Regional breakdown - initialize with all regions from employee directory
     const byRegion: { [key: string]: { connects: number; employees: Set<string>; submissions: number; totalEmployees: number } } = {};
@@ -2054,19 +2027,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
     Object.keys(byStore).forEach(storeId => {
       byStore[storeId].connects = byStore[storeId].employees.size;
-    });
-
-    console.log('🏪 Store breakdown debug:', {
-      totalStores: Object.keys(byStore).length,
-      storesWithEmployees: Object.values(byStore).filter(s => s.totalEmployees > 0).length,
-      storesWithSubmissions: Object.values(byStore).filter(s => s.submissions > 0).length,
-      sampleStores: Object.entries(byStore).slice(0, 5).map(([id, data]) => ({
-        id,
-        name: data.storeName,
-        employees: data.totalEmployees,
-        connects: data.connects,
-        submissions: data.submissions
-      }))
     });
 
     // AM breakdown - initialize with all AMs from employee directory
