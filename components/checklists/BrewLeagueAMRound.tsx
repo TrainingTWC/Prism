@@ -254,7 +254,6 @@ const LOG_ENDPOINTS = [
 
 const BrewLeagueAMRound: React.FC = () => {
   const urlParams = new URLSearchParams(window.location.search);
-  const judgeName = urlParams.get('judgeName') || urlParams.get('name') || '';
   const judgeId = urlParams.get('judgeId') || urlParams.get('EMPID') || '';
 
   const [resp, setResp] = useState<Record<string, string>>(() => {
@@ -271,9 +270,10 @@ const BrewLeagueAMRound: React.FC = () => {
   });
 
   // Form fields
+  const [judgeName, setJudgeName] = useState(() => localStorage.getItem('brewLeagueAMJudgeName') || '');
   const [participantName, setParticipantName] = useState(() => localStorage.getItem('brewLeagueAMParticipantName') || '');
   const [participantEmpID, setParticipantEmpID] = useState(() => localStorage.getItem('brewLeagueAMParticipantEmpID') || '');
-  const [areaManager, setAreaManager] = useState(() => localStorage.getItem('brewLeagueAMAreaManager') || ''); // NEW: AM field
+  const [areaManager, setAreaManager] = useState(() => localStorage.getItem('brewLeagueAMAreaManager') || '');
   const [scoresheetType, setScoresheetType] = useState<'technical' | 'sensory'>(() => (localStorage.getItem('brewLeagueAMScoresheetType') || 'technical') as 'technical' | 'sensory');
   const [machineType, setMachineType] = useState<'manual' | 'automatic'>(() => (localStorage.getItem('brewLeagueAMMachineType') || 'manual') as 'manual' | 'automatic');
   const [storeName, setStoreName] = useState(() => localStorage.getItem('brewLeagueAMStoreName') || '');
@@ -284,6 +284,9 @@ const BrewLeagueAMRound: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Persist form fields
+  useEffect(() => {
+    localStorage.setItem('brewLeagueAMJudgeName', judgeName);
+  }, [judgeName]);
   useEffect(() => {
     localStorage.setItem('brewLeagueAMParticipantName', participantName);
   }, [participantName]);
@@ -365,6 +368,7 @@ const BrewLeagueAMRound: React.FC = () => {
       setResp({});
       setImgs({});
       setRemarks({});
+      setJudgeName('');
       setParticipantName('');
       setParticipantEmpID('');
       setAreaManager('');
@@ -376,6 +380,7 @@ const BrewLeagueAMRound: React.FC = () => {
       localStorage.removeItem('brewLeagueAMResp');
       localStorage.removeItem('brewLeagueAMImgs');
       localStorage.removeItem('brewLeagueAMRemarks');
+      localStorage.removeItem('brewLeagueAMJudgeName');
       localStorage.removeItem('brewLeagueAMParticipantName');
       localStorage.removeItem('brewLeagueAMParticipantEmpID');
       localStorage.removeItem('brewLeagueAMAreaManager');
@@ -605,20 +610,33 @@ const BrewLeagueAMRound: React.FC = () => {
       </div>
 
       <div className="p-6">
-        {/* Judge Info (Auto-filled from URL) */}
+        {/* Judge Information */}
         <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
-          <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+          <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
             <Coffee className="w-5 h-5" />
             Judge Information
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <span className="font-medium text-blue-700 dark:text-blue-300">Name:</span>{' '}
-              <span className="text-blue-900 dark:text-blue-100">{judgeName || 'Not provided'}</span>
+              <label className="block text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">Judge Name *</label>
+              <input
+                type="text"
+                value={judgeName}
+                onChange={e => setJudgeName(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+                placeholder="Enter judge name"
+              />
             </div>
             <div>
-              <span className="font-medium text-blue-700 dark:text-blue-300">Judge ID:</span>{' '}
-              <span className="text-blue-900 dark:text-blue-100">{judgeId || 'Not provided'}</span>
+              <label className="block text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">Judge Emp ID</label>
+              <input
+                type="text"
+                value={judgeId}
+                readOnly
+                className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-md bg-blue-100 dark:bg-blue-900/30 text-gray-900 dark:text-slate-100 cursor-not-allowed"
+                placeholder="From URL parameter"
+              />
             </div>
           </div>
         </div>
