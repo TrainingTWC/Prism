@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { UserRole } from '../../roleMapping';
-import { Users, ClipboardCheck, Brain, MessageSquare, Save, CheckCircle, AlertCircle, ArrowLeft, Lock, Unlock, XCircle, LogOut } from 'lucide-react';
+import { Users, ClipboardCheck, Brain, MessageSquare, Save, CheckCircle, AlertCircle, ArrowLeft, Lock, Unlock, XCircle, LogOut, LayoutDashboard } from 'lucide-react';
 import LoadingOverlay from '../LoadingOverlay';
 import { hapticFeedback } from '../../utils/haptics';
 import { BenchCandidate, ReadinessChecklistItem } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import BenchPlanningPanelistDashboard from './BenchPlanningPanelistDashboard';
 
 interface BenchPlanningChecklistProps {
   userRole: UserRole;
@@ -15,7 +16,7 @@ interface BenchPlanningChecklistProps {
 type TabType = 'readiness' | 'assessment' | 'interview';
 
 // Google Apps Script endpoint - UPDATE THIS with your deployed script URL
-const BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwd6tVOZrLU92ogmLbzQ7AHK2jr3L-HHGjPE10jUFqk8yjonyzJhlpmB8ycoWTSNkQhYw/exec';
+const BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzG5BCTTDL3OWdKMGVqFvJ_jyfQBZDYJqZe2iwXBZJijmMEz4EVLdOdMgdZIgCagC6UgA/exec';
 
 // Readiness checklist items from the image
 const READINESS_ITEMS = [
@@ -32,16 +33,15 @@ const READINESS_ITEMS = [
   'Handles guest concerns or complaints calmly and confidently.'
 ];
 
-// Interview sections from the image
+// Interview sections - Core Competencies
 const INTERVIEW_SECTIONS = [
-  'Product & Process Knowledge',
-  'Food Safety Understanding',
-  'Leadership & Initiative',
-  'Guest Service Excellence',
-  'Communication Skills',
-  'Problem Solving',
-  'Team Management',
-  'Adaptability'
+  'Responsibility',
+  'Empathy',
+  'Service Excellence',
+  'Performance with Purpose',
+  'Ethics and Integrity',
+  'Collaboration',
+  'Trust'
 ];
 
 // Assessment Questions (15 questions) - Shuffled to match backend
@@ -207,7 +207,7 @@ const ASSESSMENT_QUESTIONS = [
       A: "Mix with dairy",
       B: "Use less milk to stretch stock",
       C: "Hope it lasts",
-      D: "Inform manager, 86/limit SKU, suggest alternatives"
+      D: "Inform manager, off/limit SKU, suggest alternatives"
     },
     correctAnswer: "D"
   }
@@ -234,6 +234,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
   const [managerCandidates, setManagerCandidates] = useState<BenchCandidate[]>([]);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [notEligible, setNotEligible] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   
   // Readiness Checklist State
   const [readinessScores, setReadinessScores] = useState<{ [key: number]: number }>({});
@@ -254,9 +255,14 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
   const [interviewScores, setInterviewScores] = useState<{ [key: number]: number }>({});
   const [interviewRemarks, setInterviewRemarks] = useState('');
   const [interviewLocked, setInterviewLocked] = useState(true);
+  const [interviewCompleted, setInterviewCompleted] = useState(false);
   
   // Determine user type (manager, candidate, or panelist)
   const [userType, setUserType] = useState<'manager' | 'candidate' | 'panelist' | 'admin'>('candidate');
+  const [isPanelistConfirmed, setIsPanelistConfirmed] = useState(false);
+  
+  // Panelist view state - dashboard or interview form
+  const [panelistView, setPanelistView] = useState<'dashboard' | 'interview'>('dashboard');
   
   // Get auth context for logout
   const { logout, userRole: authRole } = useAuth();
@@ -275,29 +281,52 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
       const response = await fetch(`${BENCH_PLANNING_ENDPOINT}?action=getManagerCandidates&managerId=${managerId}&_t=${new Date().getTime()}`);
       const data = await response.json();
       
-      if (data.success && data.candidates) {
+      if (data.success && data.candidates && data.candidates.length > 0) {
         setManagerCandidates(data.candidates);
-      } else {
-        console.error('Failed to load manager candidates:', data.message);
+        setUserType('manager');
+        return true;
       }
+      return false;
     } catch (error) {
-      console.error('Error loading manager candidates:', error);
+      console.log('Not a manager:', error.message);
+      return false;
     } finally {
       setLoadingCandidates(false);
     }
   };
-  
+
+  // Load panelist's candidates from Google Sheets
+  const loadPanelistCandidates = async (panelistId: string) => {
+    try {
+      setLoadingCandidates(true);
+      const response = await fetch(`${BENCH_PLANNING_ENDPOINT}?action=getPanelistCandidates&panelistId=${panelistId}&_t=${new Date().getTime()}`);
+      const data = await response.json();
+      
+      if (data.success && data.candidates && data.candidates.length > 0) {
+        setManagerCandidates(data.candidates); // Reuse same state
+        setUserType('panelist');
+        setIsPanelistConfirmed(true);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.log('Not a panelist:', error.message);
+      return false;
+    } finally {
+      setLoadingCandidates(false);
+    }
+  };
+
   // Load candidate data from Google Sheets
   const loadCandidateData = async (employeeId: string) => {
     try {
-      setLoading(true);
-      setNotEligible(false);
+      setLoadingCandidates(true);
       const response = await fetch(`${BENCH_PLANNING_ENDPOINT}?action=getCandidateData&employeeId=${employeeId}&_t=${new Date().getTime()}`);
       const data = await response.json();
       
       if (data.success && data.candidate) {
         setCandidateData(data.candidate);
-        setNotEligible(false);
+        setUserType('candidate');
         
         // Load statuses
         if (data.readinessStatus) {
@@ -316,6 +345,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
         
         if (data.interviewStatus) {
           setInterviewLocked(!data.interviewStatus.unlocked);
+          setInterviewCompleted(data.interviewStatus.completed || false);
         }
         
         // Determine user type (case-insensitive comparison)
@@ -328,48 +358,93 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
           setUserType('manager');
         } else if (panelistIdUpper === userIdUpper) {
           setUserType('panelist');
-        } else if (employeeIdUpper === userIdUpper) {
-          setUserType('candidate');
         }
-      } else {
-        // Candidate not found in the list
-        setCandidateData(null);
-        // Don't set notEligible immediately - wait to see if they have manager candidates
-        // setNotEligible(true);
+        return true;
       }
+      return false;
     } catch (error) {
-      console.error('Error loading candidate data:', error);
-      setErrorMessage('Failed to load candidate data');
+      console.log('Not a candidate:', error.message);
+      return false;
     } finally {
-      setLoading(false);
+      setLoadingCandidates(false);
     }
   };
   
-  // Load data on component mount if user ID is available
+  // Load data on component mount if user ID is available - SEQUENTIAL CHECKS
   useEffect(() => {
-    if (userId) {
-      // Try to load as candidate first
-      loadCandidateData(userId);
-      // Also try to load as manager to get their candidates
-      loadManagerCandidates(userId);
-    }
+    const checkUserAccess = async () => {
+      if (!userId) {
+        setInitialLoadComplete(true);
+        return;
+      }
+      
+      console.log('[BENCH PLANNING] Starting sequential check for user:', userId);
+      setLoading(true);
+      setNotEligible(false);
+      
+      // Step 1: Check if user is a panelist (highest priority)
+      console.log('[BENCH PLANNING] Step 1: Checking panelist role...');
+      const isPanelist = await loadPanelistCandidates(userId);
+      console.log('[BENCH PLANNING] Panelist check result:', isPanelist);
+      if (isPanelist) {
+        console.log('[BENCH PLANNING] User is panelist, stopping checks');
+        setLoading(false);
+        setInitialLoadComplete(true);
+        return;
+      }
+      
+      // Step 2: Check if user is a candidate
+      console.log('[BENCH PLANNING] Step 2: Checking candidate role...');
+      const isCandidate = await loadCandidateData(userId);
+      console.log('[BENCH PLANNING] Candidate check result:', isCandidate);
+      if (isCandidate) {
+        console.log('[BENCH PLANNING] User is candidate, stopping checks');
+        setLoading(false);
+        setInitialLoadComplete(true);
+        return;
+      }
+      
+      // Step 3: Check if user is a manager
+      console.log('[BENCH PLANNING] Step 3: Checking manager role...');
+      const isManager = await loadManagerCandidates(userId);
+      console.log('[BENCH PLANNING] Manager check result:', isManager);
+      if (isManager) {
+        console.log('[BENCH PLANNING] User is manager, stopping checks');
+        setLoading(false);
+        setInitialLoadComplete(true);
+        return;
+      }
+      
+      // User not found in any role - show access denied
+      console.log('[BENCH PLANNING] User not found in any role, showing access denied');
+      setNotEligible(true);
+      setLoading(false);
+      setInitialLoadComplete(true);
+    };
+    
+    checkUserAccess();
   }, [userId]);
   
   // After both data loads complete, determine eligibility
   useEffect(() => {
     // Only set notEligible if:
-    // 1. User is not a candidate (no candidateData)
-    // 2. User is not a manager (no managerCandidates)
-    // 3. Loading is complete
-    if (!loading && !loadingCandidates && !candidateData && managerCandidates.length === 0 && userId) {
+    // 1. Initial load is complete
+    // 2. User is not a candidate (no candidateData)
+    // 3. User is not a manager/panelist (no managerCandidates)
+    // 4. Loading is complete
+    // 5. User is not a confirmed panelist
+    if (initialLoadComplete && !loading && !loadingCandidates && !candidateData && managerCandidates.length === 0 && !isPanelistConfirmed && userId) {
       setNotEligible(true);
+    } else if ((candidateData || managerCandidates.length > 0 || isPanelistConfirmed) && notEligible) {
+      // Reset notEligible if we find they are eligible
+      setNotEligible(false);
     }
-  }, [loading, loadingCandidates, candidateData, managerCandidates, userId]);
+  }, [initialLoadComplete, loading, loadingCandidates, candidateData, managerCandidates, isPanelistConfirmed, userId, notEligible]);
   
-  // Set user type to manager/admin if manager candidates are loaded but user is not a candidate
+  // Set user type to manager/admin if candidates are loaded but user is not a candidate
   useEffect(() => {
-    if (managerCandidates.length > 0 && !candidateData) {
-      // If we have manager candidates but no candidate data, user is a manager or admin
+    if (managerCandidates.length > 0 && !candidateData && !isPanelistConfirmed) {
+      // If we have manager candidates but no candidate data and not a panelist, user is a manager or admin
       if (userRole === 'admin') {
         setUserType('admin');
       } else {
@@ -378,7 +453,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
       // Clear the not eligible flag since they're a valid manager
       setNotEligible(false);
     }
-  }, [managerCandidates, candidateData, userRole]);
+  }, [managerCandidates, candidateData, userRole, isPanelistConfirmed]);
   
   // Submit Readiness Checklist
   const handleSubmitReadiness = async () => {
@@ -541,6 +616,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
       });
       
       setSubmitStatus('success');
+      setInterviewCompleted(true); // Lock interview after submission
       hapticFeedback.success();
       setTimeout(() => setSubmitStatus('idle'), 3000);
     } catch (error) {
@@ -621,7 +697,8 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
           </div>
         )}
         
-        {/* Readiness Checklist Items */}
+        {/* Readiness Checklist Items - Hide for panelists viewing dashboard */}
+        {!(isPanelistConfirmed && panelistView === 'dashboard') && (
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">
             Readiness Criteria (Score each item 1-5)
@@ -952,8 +1029,24 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
   // Render Interview Tab
   const renderInterviewTab = () => {
     const isPanelist = userType === 'panelist' || userType === 'admin';
+    const canEdit = isPanelist && !interviewCompleted;
     
-    if (interviewLocked) {
+    // Show completed message if interview is already done
+    if (interviewCompleted) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <CheckCircle className="w-16 h-16 text-green-600 dark:text-green-400 mb-4" />
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+            Interview Complete
+          </h3>
+          <p className="text-gray-600 dark:text-slate-400 text-center max-w-md">
+            The interview evaluation has been submitted successfully.
+          </p>
+        </div>
+      );
+    }
+    
+    if (interviewLocked && !isPanelist) {
       return (
         <div className="flex flex-col items-center justify-center py-12">
           <Lock className="w-16 h-16 text-gray-400 dark:text-slate-600 mb-4" />
@@ -986,7 +1079,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
           </div>
         )}
         
-        {!isPanelist && (
+        {!canEdit && (
           <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm text-blue-900 dark:text-blue-100">
               ℹ️ This interview evaluation is filled by the designated panelist only.
@@ -997,7 +1090,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
         {/* Interview Sections */}
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">
-            Evaluation Criteria (Score each section 1-5)
+            Interview Questions - Score each section from 1 (Poor) to 5 (Excellent)
           </h3>
           
           <div className="space-y-3 sm:space-y-4">
@@ -1011,13 +1104,13 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
                     {[1, 2, 3, 4, 5].map(score => (
                       <button
                         key={score}
-                        onClick={() => isPanelist && setInterviewScores(prev => ({ ...prev, [index]: score }))}
-                        disabled={!isPanelist}
+                        onClick={() => canEdit && setInterviewScores(prev => ({ ...prev, [index]: score }))}
+                        disabled={!canEdit}
                         className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-medium text-sm sm:text-base transition-all shrink-0 ${
                           interviewScores[index] === score
                             ? 'bg-purple-600 text-white shadow-lg scale-110'
                             : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                        } ${!isPanelist ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                        } ${!canEdit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         {score}
                       </button>
@@ -1035,8 +1128,8 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
             </label>
             <textarea
               value={interviewRemarks}
-              onChange={(e) => isPanelist && setInterviewRemarks(e.target.value)}
-              disabled={!isPanelist}
+              onChange={(e) => canEdit && setInterviewRemarks(e.target.value)}
+              disabled={!canEdit}
               rows={4}
               className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 disabled:opacity-50"
               placeholder="Add your overall evaluation comments..."
@@ -1044,7 +1137,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
           </div>
           
           {/* Submit Button */}
-          {isPanelist && (
+          {canEdit && (
             <button
               onClick={handleSubmitInterview}
               disabled={loading || Object.keys(interviewScores).length < INTERVIEW_SECTIONS.length}
@@ -1059,7 +1152,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
     );
   };
   
-  if (loading) {
+  if (loading || loadingCandidates || !initialLoadComplete) {
     return (
       <div className="max-w-6xl mx-auto animate-pulse p-4 md:p-6 transition-all duration-300 ease-in-out">
         {/* Full Page Skeleton Header */}
@@ -1163,8 +1256,40 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
         </div>
       )}
       
-      {/* Candidate Selection (for managers/panelists/admins) */}
-      {!candidateData && !notEligible && (userType === 'manager' || userType === 'panelist' || userType === 'admin') && (
+      {/* Panelist Dashboard View */}
+      {!notEligible && isPanelistConfirmed && !candidateData && panelistView === 'dashboard' && (
+        <BenchPlanningPanelistDashboard
+          panelistId={userId}
+          panelistName={userName || 'Panelist'}
+          onTakeInterview={(candidate) => {
+            setPanelistView('interview');
+            setActiveTab('interview'); // Automatically show interview tab for panelists
+            setCandidateSearchId(candidate.employeeId);
+            loadCandidateData(candidate.employeeId);
+          }}
+        />
+      )}
+      
+      {/* Back to Dashboard button for panelists */}
+      {!notEligible && isPanelistConfirmed && candidateData && panelistView === 'interview' && (
+        <div className="mb-6">
+          <button
+            onClick={() => {
+              setPanelistView('dashboard');
+              setCandidateData(null);
+              setCandidateSearchId('');
+              setActiveTab('readiness'); // Reset tab when returning to dashboard
+            }}
+            className="flex items-center gap-2 px-4 py-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors font-medium"
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            Back to Candidate List
+          </button>
+        </div>
+      )}
+      
+      {/* Candidate Selection (for managers/admins only - panelists use dashboard) */}
+      {!candidateData && !notEligible && (userType === 'manager' || userType === 'admin') && (
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6 mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">
             {userType === 'manager' ? 'Select Your Team Member' : 'Load Candidate Data'}
@@ -1205,10 +1330,10 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
             </div>
           )}
           
-          {/* Fallback search for panelists/admins or if no candidates found */}
+          {/* Fallback search for admins or if no candidates found */}
           {(userType !== 'manager' || managerCandidates.length === 0) && (
             <div className="space-y-4">
-              {userType === 'manager' && !loadingCandidates && (
+              {userType === 'manager' && !loadingCandidates && managerCandidates.length === 0 && (
                 <p className="text-sm text-yellow-600 dark:text-yellow-400 mb-2">
                   No team members found. You can search manually:
                 </p>
@@ -1235,8 +1360,10 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
       )}
       
       {/* Tab Navigation */}
-      {!notEligible && candidateData && (
+      {!notEligible && candidateData && !(isPanelistConfirmed && panelistView === 'dashboard') && (
         <div className="flex gap-1 sm:gap-2 mb-4 sm:mb-6 border-b border-gray-200 dark:border-slate-700 overflow-x-auto scrollbar-hide -mx-2 sm:mx-0 px-2 sm:px-0">
+          {/* Hide Readiness tab for panelists viewing interview */}
+          {!(isPanelistConfirmed && panelistView === 'interview') && (
           <button
             onClick={() => setActiveTab('readiness')}
             className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${
@@ -1250,10 +1377,13 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
             {readinessStatus === 'passed' && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
             {assessmentLocked && <Lock className="w-3 h-3 sm:w-4 sm:h-4" />}
           </button>
+          )}
           
-          {/* Only show Assessment and Interview tabs for candidates */}
-          {userType === 'candidate' && (
+          {/* Show Assessment and Interview tabs for candidates, panelists, and admins */}
+          {(userType === 'candidate' || userType === 'panelist' || userType === 'admin') && (
             <>
+            {/* Hide Assessment tab for panelists viewing interview */}
+            {!(isPanelistConfirmed && panelistView === 'interview') && (
             <button
               onClick={() => setActiveTab('assessment')}
               className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${
@@ -1267,6 +1397,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
               {assessmentLocked ? <Lock className="w-3 h-3 sm:w-4 sm:h-4" /> : <Unlock className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
               {assessmentPassed && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
             </button>
+            )}
             
             <button
               onClick={() => setActiveTab('interview')}
@@ -1301,7 +1432,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
       )}
       
       {/* Tab Content */}
-      {!notEligible && (
+      {!notEligible && !(isPanelistConfirmed && panelistView === 'dashboard') && (
         <div className="mb-8">
           {activeTab === 'readiness' && renderReadinessTab()}
           {activeTab === 'assessment' && renderAssessmentTab()}

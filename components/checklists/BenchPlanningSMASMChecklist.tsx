@@ -32,16 +32,15 @@ const READINESS_ITEMS = [
   'Shows commitment to TWC values and acts as a role model for the team'
 ];
 
-// Interview sections for SM to ASM level
+// Interview sections - Core Competencies
 const INTERVIEW_SECTIONS = [
-  'Operational Excellence & Process Management',
-  'Team Leadership & People Development',
-  'Guest Experience & Service Excellence',
-  'Business Acumen & Cost Management',
-  'Problem Solving & Decision Making',
-  'Communication & Stakeholder Management',
-  'Adaptability & Change Management',
-  'Strategic Thinking & Initiative'
+  'Responsibility',
+  'Empathy',
+  'Service Excellence',
+  'Performance with Purpose',
+  'Ethics and Integrity',
+  'Collaboration',
+  'Trust'
 ];
 
 // Assessment Questions for SM to ASM level (Shuffled)
