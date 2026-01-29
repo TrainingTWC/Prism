@@ -385,7 +385,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                       alt="Prism Logo"
                       className="w-8 h-8 object-contain align-middle"
                     />
-                    <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent">
+                    <h1 className="text-xl sm:text-2xl font-black uppercase tracking-wide bg-gradient-to-r from-purple-600 via-blue-500 to-cyan-400 dark:from-purple-400 dark:via-blue-300 dark:to-cyan-300 bg-clip-text text-transparent">
                       PRISM
                     </h1>
                   </div>
