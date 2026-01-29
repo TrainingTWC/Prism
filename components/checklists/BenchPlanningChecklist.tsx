@@ -445,7 +445,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
   useEffect(() => {
     if (managerCandidates.length > 0 && !candidateData && !isPanelistConfirmed) {
       // If we have manager candidates but no candidate data and not a panelist, user is a manager or admin
-      if (userRole === 'admin') {
+      if (authRole === 'admin') {
         setUserType('admin');
       } else {
         setUserType('manager');
@@ -453,7 +453,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
       // Clear the not eligible flag since they're a valid manager
       setNotEligible(false);
     }
-  }, [managerCandidates, candidateData, userRole, isPanelistConfirmed]);
+  }, [managerCandidates, candidateData, authRole, isPanelistConfirmed]);
   
   // Submit Readiness Checklist
   const handleSubmitReadiness = async () => {
@@ -808,6 +808,7 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
             </button>
           )}
         </div>
+        )}
       </div>
     );
   };
@@ -1364,40 +1365,40 @@ const BenchPlanningChecklist: React.FC<BenchPlanningChecklistProps> = ({
         <div className="flex gap-1 sm:gap-2 mb-4 sm:mb-6 border-b border-gray-200 dark:border-slate-700 overflow-x-auto scrollbar-hide -mx-2 sm:mx-0 px-2 sm:px-0">
           {/* Hide Readiness tab for panelists viewing interview */}
           {!(isPanelistConfirmed && panelistView === 'interview') && (
-          <button
-            onClick={() => setActiveTab('readiness')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${
-              activeTab === 'readiness'
-                ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400'
-                : 'text-gray-600 dark:text-slate-400 border-transparent hover:text-gray-900 dark:hover:text-slate-200'
-            }`}
-          >
-            <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span>Readiness</span>
-            {readinessStatus === 'passed' && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
-            {assessmentLocked && <Lock className="w-3 h-3 sm:w-4 sm:h-4" />}
-          </button>
+            <button
+              onClick={() => setActiveTab('readiness')}
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${
+                activeTab === 'readiness'
+                  ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400'
+                  : 'text-gray-600 dark:text-slate-400 border-transparent hover:text-gray-900 dark:hover:text-slate-200'
+              }`}
+            >
+              <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Readiness</span>
+              {readinessStatus === 'passed' && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
+              {assessmentLocked && <Lock className="w-3 h-3 sm:w-4 sm:h-4" />}
+            </button>
           )}
           
           {/* Show Assessment and Interview tabs for candidates, panelists, and admins */}
           {(userType === 'candidate' || userType === 'panelist' || userType === 'admin') && (
             <>
-            {/* Hide Assessment tab for panelists viewing interview */}
-            {!(isPanelistConfirmed && panelistView === 'interview') && (
-            <button
-              onClick={() => setActiveTab('assessment')}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${
-                activeTab === 'assessment'
-                  ? 'text-green-600 dark:text-green-400 border-green-600 dark:border-green-400'
-                  : 'text-gray-600 dark:text-slate-400 border-transparent hover:text-gray-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Assessment</span>
-              {assessmentLocked ? <Lock className="w-3 h-3 sm:w-4 sm:h-4" /> : <Unlock className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
-              {assessmentPassed && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
-            </button>
-            )}
+              {/* Hide Assessment tab for panelists viewing interview */}
+              {!(isPanelistConfirmed && panelistView === 'interview') && (
+                <button
+                  onClick={() => setActiveTab('assessment')}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${
+                    activeTab === 'assessment'
+                      ? 'text-green-600 dark:text-green-400 border-green-600 dark:border-green-400'
+                      : 'text-gray-600 dark:text-slate-400 border-transparent hover:text-gray-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Assessment</span>
+                  {assessmentLocked ? <Lock className="w-3 h-3 sm:w-4 sm:h-4" /> : <Unlock className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
+                  {assessmentPassed && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
+                </button>
+              )}
             
             <button
               onClick={() => setActiveTab('interview')}

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { UserRole } from '../../roleMapping';
-import { Users, ClipboardCheck, Brain, MessageSquare, Save, CheckCircle, AlertCircle, ArrowLeft, Lock, Unlock, XCircle, LogOut } from 'lucide-react';
+import { Users, ClipboardCheck, Brain, MessageSquare, Save, CheckCircle, AlertCircle, ArrowLeft, Lock, Unlock, XCircle, LogOut, LayoutDashboard } from 'lucide-react';
 import LoadingOverlay from '../LoadingOverlay';
 import { hapticFeedback } from '../../utils/haptics';
 import { BenchCandidate, ReadinessChecklistItem } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import BenchPlanningSMASMPanelistDashboard from './BenchPlanningSMASMPanelistDashboard';
 
 interface BenchPlanningChecklistProps {
   userRole: UserRole;
@@ -15,7 +16,7 @@ interface BenchPlanningChecklistProps {
 type TabType = 'readiness' | 'assessment' | 'interview';
 
 // Google Apps Script endpoint - UPDATE THIS with your deployed SM-ASM script URL
-const BENCH_PLANNING_SM_ASM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyRq-5FtJvRkuHamVgCJs6HHBex6UTHQzz1xE5rrlYLaedJH7XKs230DQVrpaPri5caLg/exec';
+const BENCH_PLANNING_SM_ASM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxBQ48dky4VXZXf621Jauf663-_gtyC4pLEl2r3QdQ3LyK6XxOl82pnT38F5P5PACx8Xg/exec';
 
 // Readiness checklist items for SM to ASM level
 const READINESS_ITEMS = [
@@ -311,6 +312,10 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
   
   // Determine user type (manager, candidate, or panelist)
   const [userType, setUserType] = useState<'manager' | 'candidate' | 'panelist' | 'admin'>('candidate');
+  const [isPanelistConfirmed, setIsPanelistConfirmed] = useState(false);
+  
+  // Panelist view state - dashboard or interview form
+  const [panelistView, setPanelistView] = useState<'dashboard' | 'interview'>('dashboard');
   
   // Get auth context for logout
   const { logout, userRole: authRole } = useAuth();
@@ -336,6 +341,31 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
       }
     } catch (error) {
       console.error('Error loading manager candidates:', error);
+    } finally {
+      setLoadingCandidates(false);
+    }
+  };
+  
+  // Load panelist's assigned candidates
+  const loadPanelistCandidates = async (panelistId: string): Promise<boolean> => {
+    try {
+      setLoadingCandidates(true);
+      console.log('[SM-ASM BENCH] Checking if user is a panelist:', panelistId);
+      const response = await fetch(
+        `${BENCH_PLANNING_SM_ASM_ENDPOINT}?action=getPanelistCandidates&panelistId=${panelistId}&_t=${new Date().getTime()}`
+      );
+      const data = await response.json();
+      
+      if (data.success && data.candidates && data.candidates.length > 0) {
+        console.log('[SM-ASM BENCH] User is a panelist with', data.candidates.length, 'candidates');
+        setIsPanelistConfirmed(true);
+        setUserType('panelist');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.log('Not a panelist:', error.message);
+      return false;
     } finally {
       setLoadingCandidates(false);
     }
@@ -399,26 +429,55 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
     }
   };
   
-  // Load data on component mount if user ID is available
+  // Load data on component mount if user ID is available - SEQUENTIAL CHECKS
   useEffect(() => {
-    if (userId) {
-      // Try to load as candidate first
-      loadCandidateData(userId);
-      // Also try to load as manager to get their candidates
-      loadManagerCandidates(userId);
-    }
+    const checkUserAccess = async () => {
+      if (!userId) {
+        return;
+      }
+      
+      console.log('[SM-ASM BENCH] Starting sequential check for user:', userId);
+      setLoading(true);
+      setNotEligible(false);
+      
+      // Step 1: Check if user is a panelist (highest priority)
+      console.log('[SM-ASM BENCH] Step 1: Checking panelist role...');
+      const isPanelist = await loadPanelistCandidates(userId);
+      console.log('[SM-ASM BENCH] Panelist check result:', isPanelist);
+      if (isPanelist) {
+        setLoading(false);
+        return; // Stop here, user is confirmed panelist
+      }
+      
+      // Step 2: Check if user is a candidate
+      console.log('[SM-ASM BENCH] Step 2: Checking candidate role...');
+      await loadCandidateData(userId);
+      
+      // Step 3: Also check if user is a manager
+      console.log('[SM-ASM BENCH] Step 3: Checking manager role...');
+      await loadManagerCandidates(userId);
+      
+      setLoading(false);
+    };
+    
+    checkUserAccess();
   }, [userId]);
   
   // After both data loads complete, determine eligibility
   useEffect(() => {
+    // If user is confirmed as panelist, candidate, or manager - they are eligible
+    if (isPanelistConfirmed || candidateData || managerCandidates.length > 0) {
+      setNotEligible(false);
+    } 
     // Only set notEligible if:
-    // 1. User is not a candidate (no candidateData)
-    // 2. User is not a manager (no managerCandidates)
-    // 3. Loading is complete
-    if (!loading && !loadingCandidates && !candidateData && managerCandidates.length === 0 && userId) {
+    // 1. User is not a panelist (not isPanelistConfirmed)
+    // 2. User is not a candidate (no candidateData)
+    // 3. User is not a manager (no managerCandidates)
+    // 4. Loading is complete
+    else if (!loading && !loadingCandidates && userId) {
       setNotEligible(true);
     }
-  }, [loading, loadingCandidates, candidateData, managerCandidates, userId]);
+  }, [loading, loadingCandidates, isPanelistConfirmed, candidateData, managerCandidates, userId]);
   
   // Set assessment questions from hardcoded data when assessment is unlocked
   useEffect(() => {
@@ -431,7 +490,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
   useEffect(() => {
     if (managerCandidates.length > 0 && !candidateData) {
       // If we have manager candidates but no candidate data, user is a manager or admin
-      if (userRole === 'admin') {
+      if (authRole === 'admin') {
         setUserType('admin');
       } else {
         setUserType('manager');
@@ -439,7 +498,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
       // Clear the not eligible flag since they're a valid manager
       setNotEligible(false);
     }
-  }, [managerCandidates, candidateData, userRole]);
+  }, [managerCandidates, candidateData, authRole]);
   
   // Submit Readiness Checklist
   const handleSubmitReadiness = async () => {
@@ -1224,8 +1283,40 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
         </div>
       )}
       
-      {/* Candidate Selection (for managers/panelists/admins) */}
-      {!candidateData && !notEligible && (userType === 'manager' || userType === 'panelist' || userType === 'admin') && (
+      {/* Panelist Dashboard View */}
+      {!notEligible && isPanelistConfirmed && !candidateData && panelistView === 'dashboard' && (
+        <BenchPlanningSMASMPanelistDashboard
+          panelistId={userId}
+          panelistName={userName || 'Panelist'}
+          onTakeInterview={(candidate) => {
+            setPanelistView('interview');
+            setActiveTab('interview'); // Automatically show interview tab for panelists
+            setCandidateSearchId(candidate.employeeId);
+            loadCandidateData(candidate.employeeId);
+          }}
+        />
+      )}
+      
+      {/* Back to Dashboard button for panelists */}
+      {!notEligible && isPanelistConfirmed && candidateData && panelistView === 'interview' && (
+        <div className="mb-6">
+          <button
+            onClick={() => {
+              setPanelistView('dashboard');
+              setCandidateData(null);
+              setCandidateSearchId('');
+              setActiveTab('readiness'); // Reset tab when returning to dashboard
+            }}
+            className="flex items-center gap-2 px-4 py-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors font-medium"
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            Back to Candidate List
+          </button>
+        </div>
+      )}
+      
+      {/* Candidate Selection (for managers/admins only - panelists use dashboard) */}
+      {!candidateData && !notEligible && (userType === 'manager' || userType === 'admin') && (
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6 mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">
             {userType === 'manager' ? 'Select Your Team Member' : 'Load Candidate Data'}
@@ -1362,7 +1453,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
       )}
       
       {/* Tab Content */}
-      {!notEligible && (
+      {!notEligible && !(isPanelistConfirmed && panelistView === 'dashboard') && (
         <div className="mb-8">
           {activeTab === 'readiness' && renderReadinessTab()}
           {activeTab === 'assessment' && renderAssessmentTab()}

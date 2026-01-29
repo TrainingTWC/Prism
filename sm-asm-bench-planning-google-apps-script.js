@@ -337,6 +337,9 @@ function doGet(e) {
       case 'getManagerCandidates':
         return getManagerCandidates(e.parameter.managerId);
       
+      case 'getPanelistCandidates':
+        return getPanelistCandidates(e.parameter.panelistId);
+      
       case 'getDashboardData':
         return getDashboardData();
       
@@ -926,6 +929,112 @@ function getManagerCandidates(managerId) {
 
   } catch (error) {
     return createResponse(false, 'Error retrieving manager candidates: ' + error.toString());
+  }
+}
+
+/**
+ * Get panelist's assigned candidates with their progress
+ */
+function getPanelistCandidates(panelistId) {
+  try {
+    if (!panelistId) {
+      return createResponse(false, 'Panelist ID is required');
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const candidatesSheet = ss.getSheetByName(SHEETS.CANDIDATES);
+    
+    if (!candidatesSheet) {
+      return createResponse(false, 'Candidates sheet not found');
+    }
+
+    const candidatesData = candidatesSheet.getDataRange().getValues();
+    
+    // Get progress data from other sheets
+    const readinessSheet = ss.getSheetByName(SHEETS.READINESS);
+    const readinessData = readinessSheet ? readinessSheet.getDataRange().getValues().slice(1) : [];
+    
+    const assessmentSheet = ss.getSheetByName(SHEETS.ASSESSMENT);
+    const assessmentData = assessmentSheet ? assessmentSheet.getDataRange().getValues().slice(1) : [];
+    
+    const interviewSheet = ss.getSheetByName(SHEETS.INTERVIEW);
+    const interviewData = interviewSheet ? interviewSheet.getDataRange().getValues().slice(1) : [];
+    
+    const candidates = [];
+
+    // Filter candidates by panelist ID (column index 4) and add their scores
+    for (let i = 1; i < candidatesData.length; i++) {
+      const row = candidatesData[i];
+      if (row[0] && row[4] && row[4].toString().toUpperCase() === panelistId.toUpperCase()) {
+        const employeeId = row[0];
+        const storeId = row[6] || 'Unknown';
+        const reportingManagerId = row[2];
+        
+        // Lookup store and manager info
+        const lookupInfo = getStoreAndManagerInfo(storeId, reportingManagerId);
+        let region = row[7] || 'Unknown';
+        if (region === 'Unknown' || !region) {
+          region = lookupInfo.region;
+        }
+        
+        // Get readiness score
+        const readinessRow = readinessData.find(r => r[1] && r[1].toString().toUpperCase() === employeeId.toString().toUpperCase());
+        let readinessStatus = 'Not Started';
+        let readinessScore = null;
+        if (readinessRow) {
+          const totalScore = readinessRow[6];
+          const maxScore = readinessRow[7];
+          const passed = readinessRow[8];
+          readinessScore = parseFloat(((totalScore / maxScore) * 100).toFixed(2));
+          readinessStatus = passed ? 'Passed' : 'Failed';
+        }
+        
+        // Get assessment score
+        const assessmentRow = assessmentData.find(r => r[1] && r[1].toString().toUpperCase() === employeeId.toString().toUpperCase());
+        let assessmentStatus = 'Not Started';
+        let assessmentScore = null;
+        if (assessmentRow) {
+          assessmentScore = parseFloat(assessmentRow[7]); // Percentage column
+          const passed = assessmentRow[4];
+          assessmentStatus = passed ? 'Passed' : 'Completed';
+        }
+        
+        // Get interview status
+        const interviewRow = interviewData.find(r => r[1] && r[1].toString().toUpperCase() === employeeId.toString().toUpperCase());
+        let interviewStatus = 'Not Started';
+        let interviewScore = null;
+        if (interviewRow) {
+          const totalScore = interviewRow[6];
+          const maxScore = interviewRow[7];
+          interviewScore = parseFloat(((totalScore / maxScore) * 100).toFixed(2));
+          interviewStatus = 'Completed';
+        }
+        
+        candidates.push({
+          employeeId: row[0],
+          employeeName: row[1],
+          managerId: lookupInfo.managerId,
+          managerName: lookupInfo.managerName,
+          panelistId: row[4],
+          panelistName: row[5],
+          storeId: storeId,
+          storeName: lookupInfo.storeName,
+          region: region,
+          assessmentUnlockDateTime: row[8] || '',
+          readinessStatus: readinessStatus,
+          readinessScore: readinessScore,
+          assessmentStatus: assessmentStatus,
+          assessmentScore: assessmentScore,
+          interviewStatus: interviewStatus,
+          interviewScore: interviewScore
+        });
+      }
+    }
+
+    return createResponse(true, 'Panelist candidates retrieved successfully', { candidates });
+
+  } catch (error) {
+    return createResponse(false, 'Error retrieving panelist candidates: ' + error.toString());
   }
 }
 
