@@ -795,6 +795,13 @@ const BrewLeagueAMRound: React.FC = () => {
                 const key = `${sec.id}_${it.id}`;
                 const isTimeField = it.q.includes('time:') || it.q.includes('time');
                 const isBeverageSelect = it.id === 'BeverageType';
+                // Specific time fields that need Capture Time button
+                const isSpecificTimeField = (
+                  (sec.id === 'EspressoDialIn' && it.id === 'DialInStartTime') ||
+                  (sec.id === 'DialInEndTime' && it.id === 'DialInEndTime') ||
+                  (sec.id === 'MilkBasedBeverages' && it.id === 'StartTime') ||
+                  (sec.id === 'EndTime' && it.id === 'EndTime')
+                );
 
                 if (isBeverageSelect) {
                   return (
@@ -820,7 +827,23 @@ const BrewLeagueAMRound: React.FC = () => {
                   <div key={key} className="p-4 border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700/50">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <span className="font-medium text-gray-900 dark:text-slate-100 flex-1">{it.q}</span>
-                      {(sec.id === 'SensoryScore' && it.id === 'CupImage') ? (
+                      {isSpecificTimeField ? (
+                        <div className="flex items-center gap-2">
+                          <button 
+                            type="button" 
+                            onClick={() => handleCaptureTime(sec, it)} 
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center gap-2 transition-colors"
+                          >
+                            <Clock size={16} />
+                            Capture Time
+                          </button>
+                          {resp[key] && (
+                            <span className="text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 px-3 py-2 rounded-md border border-gray-300 dark:border-slate-600">
+                              {resp[key]}
+                            </span>
+                          )}
+                        </div>
+                      ) : (sec.id === 'SensoryScore' && it.id === 'CupImage') ? (
                         <div>
                           <input 
                             type="file" 
