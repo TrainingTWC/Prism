@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Settings, GraduationCap, CheckCircle, DollarSign, ArrowLeft, Home, Brain, FileText, Calendar, Trophy, Coffee, BarChart3, Briefcase } from 'lucide-react';
+import { Users, Settings, GraduationCap, CheckCircle, DollarSign, ArrowLeft, Home, Brain, FileText, Calendar, Trophy, Coffee, BarChart3, Briefcase, LogOut } from 'lucide-react';
 import { UserRole } from '../roleMapping';
 import { useAuth } from '../contexts/AuthContext';
+import ThemeToggle from './ThemeToggle';
 import HRChecklist from './checklists/HRChecklist';
 import OperationsChecklist from './checklists/OperationsChecklist';
 import TrainingChecklist from './checklists/TrainingChecklist';
@@ -26,7 +27,7 @@ type BrewLeagueSubType = 'store' | 'am' | 'region' | 'dashboard';
 type BenchPlanningSubType = 'barista-sm' | 'sm-asm';
 
 const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole }) => {
-  const { userRole: authUserRole, hasPermission } = useAuth();
+  const { userRole: authUserRole, hasPermission, logout } = useAuth();
   const [activeChecklist, setActiveChecklist] = useState<ChecklistType | null>(null);
   const [brewLeagueSubSection, setBrewLeagueSubSection] = useState<BrewLeagueSubType | null>(null);
   const [benchPlanningSubSection, setBenchPlanningSubSection] = useState<BenchPlanningSubType | null>(null);
@@ -376,8 +377,22 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
           <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 py-3 sm:px-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                {/* Hide back button for campus-hiring, bench-planning, and bench-planning-sm-asm roles */}
-                {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && authUserRole !== 'bench-planning-sm-asm' && (
+                {/* Show PRISM branding for brew-league role */}
+                {authUserRole === 'brew-league' && (
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={`${(import.meta as any).env?.BASE_URL || '/'}prism-logo-kittl.svg`}
+                      alt="Prism Logo"
+                      className="w-8 h-8 object-contain align-middle"
+                    />
+                    <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent">
+                      PRISM
+                    </h1>
+                  </div>
+                )}
+                
+                {/* Hide back button for campus-hiring, bench-planning, bench-planning-sm-asm, and brew-league roles */}
+                {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && authUserRole !== 'bench-planning-sm-asm' && authUserRole !== 'brew-league' && (
                   <button
                     onClick={benchPlanningSubSection ? handleBackToBenchPlanning : brewLeagueSubSection ? handleBackToBrewLeague : handleBackToOverview}
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
@@ -388,8 +403,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                 )}
                 
                 <nav className="flex items-center space-x-2 text-sm">
-                  {/* Hide breadcrumb for campus-hiring, bench-planning, and bench-planning-sm-asm roles */}
-                  {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && authUserRole !== 'bench-planning-sm-asm' && (
+                  {/* Hide breadcrumb for campus-hiring, bench-planning, bench-planning-sm-asm, and brew-league roles */}
+                  {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && authUserRole !== 'bench-planning-sm-asm' && authUserRole !== 'brew-league' && (
                     <>
                       <button
                         onClick={handleBackToOverview}
@@ -437,9 +452,30 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                 </nav>
               </div>
               
-              <div className="text-sm text-gray-500 dark:text-slate-400">
-                {checklistStats[activeChecklist]?.completed || 0}/{checklistStats[activeChecklist]?.total || 0} completed
-              </div>
+              {/* Show theme toggle and logout for brew-league role */}
+              {authUserRole === 'brew-league' && (
+                <div className="flex items-center gap-3">
+                  <ThemeToggle />
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to sign out?')) {
+                        logout();
+                      }
+                    }}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                    aria-label="Sign out"
+                  >
+                    <LogOut className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+                  </button>
+                </div>
+              )}
+              
+              {/* Hide completion stats for campus-hiring, bench-planning, bench-planning-sm-asm, and brew-league roles */}
+              {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && authUserRole !== 'bench-planning-sm-asm' && authUserRole !== 'brew-league' && (
+                <div className="text-sm text-gray-500 dark:text-slate-400">
+                  {checklistStats[activeChecklist]?.completed || 0}/{checklistStats[activeChecklist]?.total || 0} completed
+                </div>
+              )}
             </div>
           </div>
 
