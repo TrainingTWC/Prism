@@ -521,13 +521,22 @@ function getCandidateData(employeeId) {
       const assessmentRow = assessmentData.slice(1).find(row => row[1] && row[1].toString().toUpperCase() === employeeId.toUpperCase());
       
       if (assessmentRow) {
+        // Parse answers JSON
+        let answersJSON = null;
+        try {
+          answersJSON = assessmentRow[3] ? JSON.parse(assessmentRow[3]) : null;
+        } catch (e) {
+          answersJSON = null;
+        }
+        
         assessmentStatus = {
           unlocked: true,
           attempted: true,
           passed: assessmentRow[4] || false,
           score: assessmentRow[7] || 0,  // Column 7 is Percentage
           totalScore: assessmentRow[5] || 0,
-          maxScore: assessmentRow[6] || 0
+          maxScore: assessmentRow[6] || 0,
+          answers: answersJSON  // Include raw answers for frontend recalculation
         };
       }
     }
@@ -1120,8 +1129,10 @@ function getDashboardData() {
       let readinessStatus = 'Not Started';
       let readinessScore = null;
       if (readinessRow) {
-        const passed = readinessRow[8];
-        readinessScore = readinessRow[7];
+        const totalScore = readinessRow[6]; // Column 6 is Total Score
+        const maxScore = readinessRow[7]; // Column 7 is Max Score
+        const passed = readinessRow[8]; // Column 8 is Passed boolean
+        readinessScore = parseFloat(((totalScore / maxScore) * 100).toFixed(2));
         readinessStatus = passed ? 'Passed' : 'Failed';
       }
       
@@ -1129,8 +1140,8 @@ function getDashboardData() {
       let assessmentStatus = 'Not Started';
       let assessmentScore = null;
       if (assessmentRow) {
-        assessmentScore = assessmentRow[4];
-        const passed = assessmentRow[5];
+        assessmentScore = parseFloat(assessmentRow[7]); // Column 7 is Percentage
+        const passed = assessmentRow[4]; // Column 4 is Passed boolean
         assessmentStatus = passed ? 'Passed' : 'Completed';
       }
       
@@ -1138,7 +1149,9 @@ function getDashboardData() {
       let interviewStatus = 'Not Started';
       let interviewScore = null;
       if (interviewRow) {
-        interviewScore = interviewRow[4];
+        const totalScore = interviewRow[6]; // Column 6 is Total Score
+        const maxScore = interviewRow[7]; // Column 7 is Max Score
+        interviewScore = parseFloat(((totalScore / maxScore) * 100).toFixed(2));
         interviewStatus = 'Completed';
       }
       

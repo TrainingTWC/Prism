@@ -16,7 +16,7 @@ interface BenchPlanningChecklistProps {
 type TabType = 'readiness' | 'assessment' | 'interview';
 
 // Google Apps Script endpoint - UPDATE THIS with your deployed SM-ASM script URL
-const BENCH_PLANNING_SM_ASM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxBQ48dky4VXZXf621Jauf663-_gtyC4pLEl2r3QdQ3LyK6XxOl82pnT38F5P5PACx8Xg/exec';
+const BENCH_PLANNING_SM_ASM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyMynWOxjrwi4892AKUTVgFizmGzkn_CEKUPyv7PHpTAFmSNGbpx1kJMS8Y3wVNV-eJnA/exec';
 
 // Readiness checklist items for SM to ASM level
 const READINESS_ITEMS = [
@@ -48,223 +48,223 @@ const INTERVIEW_SECTIONS = [
 const ASSESSMENT_QUESTIONS = [
   {
     id: 1,
-    question: "You're promoted over a peer who expected the role. They're demotivated and disengaging. You:",
+    question: "Last month's total sales were ₹5,50,000. This month it dropped by 10%. What are this month's sales?",
     options: {
-      A: "Involve HR directly",
-      B: "Let them cool off on their own",
-      C: "Assign fewer responsibilities",
-      D: "Address it 1:1, acknowledge the situation, and re-engage"
-    },
-    correctAnswer: "D"
-  },
-  {
-    id: 2,
-    question: "During peak time, your POS system crashes. What's your action?",
-    options: {
-      A: "Use manual billing after informing the AM",
-      B: "Stop service",
-      C: "Inform customers and close the store",
-      D: "Wait for IT"
+      A: "₹4,95,000",
+      B: "₹4,85,000",
+      C: "₹5,25,000",
+      D: "₹5,00,000"
     },
     correctAnswer: "A"
   },
   {
-    id: 3,
-    question: "Your average daily sales are ₹18,000. Your gross margin is 60%. What is your approximate monthly gross profit (30 days)?",
+    id: 2,
+    question: "You have ₹1,20,000 as your monthly budget for inventory. You've already spent ₹86,000. How much balance remains?",
     options: {
-      A: "₹3,60,000",
-      B: "₹3,24,000",
-      C: "₹4,20,000",
-      D: "₹3,00,000"
+      A: "₹36,000",
+      B: "₹38,000",
+      C: "₹34,000",
+      D: "₹40,000"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 3,
+    question: "The cost of making one beverage is ₹55, and it is sold at ₹130. What is the profit margin per drink?",
+    options: {
+      A: "₹65",
+      B: "₹75",
+      C: "₹85",
+      D: "₹95"
     },
     correctAnswer: "B"
   },
   {
     id: 4,
-    question: "How often should you appreciate your team?",
+    question: "Your store's target is ₹6,00,000. You've achieved ₹4,20,000 in 20 days. What's the required daily average for the remaining 10 days?",
     options: {
-      A: "Once a month",
-      B: "Only for major achievements",
-      C: "Rarely",
-      D: "Publicly and often for small wins"
+      A: "₹15,000",
+      B: "₹18,000",
+      C: "₹20,000",
+      D: "₹22,000"
     },
-    correctAnswer: "D"
+    correctAnswer: "B"
   },
   {
     id: 5,
-    question: "The cost of making one beverage is ₹55, and it is sold at ₹130. What is the profit margin per drink?",
+    question: "Your average daily sales are ₹18,000. Your gross margin is 60%. What is your approximate monthly gross profit (30 days)?",
     options: {
-      A: "₹85",
-      B: "₹95",
-      C: "₹75",
-      D: "₹65"
+      A: "₹3,00,000",
+      B: "₹3,60,000",
+      C: "₹3,24,000",
+      D: "₹4,20,000"
     },
     correctAnswer: "C"
   },
   {
     id: 6,
-    question: "You observe shortcuts being taken during cleaning. You:",
+    question: "A beverage's ingredient cost is ₹35. If wastage is 8% and spoilage loss is 5%, what is the adjusted cost per beverage?",
     options: {
-      A: "Inform area manager",
-      B: "Coach the team",
-      C: "Ignore — it's minor",
-      D: "Suspend team"
+      A: "₹37.50",
+      B: "₹38.85",
+      C: "₹40.25",
+      D: "₹41.20"
     },
-    correctAnswer: "B"
+    correctAnswer: "D"
   },
   {
     id: 7,
     question: "A barista makes an error in a drink three times in one shift. What's your first response?",
     options: {
-      A: "Replace them on shift",
-      B: "Observe and retrain",
-      C: "Issue warning letter",
-      D: "Ignore – busy shift"
+      A: "Issue warning letter",
+      B: "Ignore – busy shift",
+      C: "Observe and retrain",
+      D: "Replace them on shift"
+    },
+    correctAnswer: "C"
+  },
+  {
+    id: 8,
+    question: "If A is faster than B, B is faster than C, but C is most accurate, whom do you schedule during a high-accuracy order window?",
+    options: {
+      A: "A",
+      B: "C",
+      C: "B",
+      D: "A and C"
     },
     correctAnswer: "B"
   },
   {
-    id: 8,
-    question: "You have ₹1,20,000 as your monthly budget for inventory. You've already spent ₹86,000. How much balance remains?",
-    options: {
-      A: "₹38,000",
-      B: "₹40,000",
-      C: "₹36,000",
-      D: "₹34,000"
-    },
-    correctAnswer: "D"
-  },
-  {
     id: 9,
-    question: "A delivery vendor is late for the third time in a week, impacting morning prep. What's the ideal response?",
+    question: "You need 5 staff to manage the floor, but one has called in sick. What do you do first?",
     options: {
-      A: "Apologize publicly and take it offline",
-      B: "Accept and move on",
-      C: "Raise an SLA concern and request urgent resolution",
-      D: "Cancel the vendor immediately"
+      A: "Call backup staff",
+      B: "Reduce service area",
+      C: "Skip Breaks",
+      D: "Do nothing"
     },
-    correctAnswer: "C"
+    correctAnswer: "A"
   },
   {
     id: 10,
-    question: "You need 5 staff to manage the floor, but one has called in sick. What do you do first?",
+    question: "A customer orders 4 beverages, but the system only bills for 3. What do you do?",
     options: {
-      A: "Do nothing",
-      B: "Skip Breaks",
-      C: "Call backup staff",
-      D: "Reduce service area"
+      A: "Let it go",
+      B: "Inform customer and add item",
+      C: "Adjust from another order",
+      D: "Pay difference yourself"
     },
-    correctAnswer: "C"
+    correctAnswer: "B"
   },
   {
     id: 11,
-    question: "Last month's total sales were ₹5,50,000. This month it dropped by 10%. What are this month's sales?",
+    question: "You have to reduce 10 labor hours per week while maintaining service. Which solution is most efficient?",
     options: {
-      A: "₹5,00,000",
-      B: "₹4,95,000",
-      C: "₹5,25,000",
-      D: "₹4,85,000"
+      A: "Reduce each staff's shift by 30 minutes",
+      B: "Remove one low traffic shift/lean shift entirely",
+      C: "Shorten peak hours",
+      D: "Cut breaks"
     },
     correctAnswer: "B"
   },
   {
     id: 12,
-    question: "You've received a customer complaint on social media about rude service. What is your priority?",
+    question: "A system generates the following pattern of sales increase: 5%, 10%, 15%, 20%… What would be the % increase in the 6th week?",
     options: {
-      A: "Give discount on next visit",
-      B: "Delete the comment",
-      C: "Privately message the customer",
-      D: "Apologize publicly and take it offline"
+      A: "30%",
+      B: "35%",
+      C: "40%",
+      D: "25%"
     },
     correctAnswer: "D"
   },
   {
     id: 13,
-    question: "Your store's target is ₹6,00,000. You've achieved ₹4,20,000 in 20 days. What's the required daily average for the remaining 10 days?",
+    question: "During peak time, your POS system crashes. What's your action?",
     options: {
-      A: "₹22,000",
-      B: "₹15,000",
-      C: "₹18,000",
-      D: "₹20,000"
+      A: "Stop service",
+      B: "Use manual billing after informing the AM",
+      C: "Wait for IT",
+      D: "Inform customers and close the store"
     },
-    correctAnswer: "C"
+    correctAnswer: "B"
   },
   {
     id: 14,
-    question: "Your team consistently meets targets, but morale is low. You:",
+    question: "You're promoted over a peer who expected the role. They're demotivated and disengaging. You:",
     options: {
-      A: "Increase targets",
-      B: "Avoid change",
-      C: "Let them continue",
-      D: "Celebrate small wins"
+      A: "Assign fewer responsibilities",
+      B: "Address it 1:1, acknowledge the situation, and re-engage",
+      C: "Let them cool off on their own",
+      D: "Involve HR directly"
     },
-    correctAnswer: "D"
+    correctAnswer: "B"
   },
   {
     id: 15,
-    question: "You have to reduce 10 labor hours per week while maintaining service. Which solution is most efficient?",
+    question: "You are asked to lead two new stores temporarily, but your own store is under-staffed. What's your approach?",
     options: {
-      A: "Cut breaks",
-      B: "Shorten peak hours",
-      C: "Remove one low traffic shift/lean shift entirely",
-      D: "Reduce each staff's shift by 30 minutes"
+      A: "Delegate internally and develop one team member as acting lead",
+      B: "Decline the opportunity",
+      C: "Ask for external support",
+      D: "Take it on and manage all yourself"
     },
-    correctAnswer: "C"
+    correctAnswer: "A"
   },
   {
     id: 16,
-    question: "If A is faster than B, B is faster than C, but C is most accurate, whom do you schedule during a high-accuracy order window?",
+    question: "How often should you appreciate your team?",
     options: {
-      A: "A and C",
-      B: "A",
-      C: "C",
-      D: "B"
+      A: "Only for major achievements",
+      B: "Rarely",
+      C: "Publicly and often for small wins",
+      D: "Once a month"
     },
     correctAnswer: "C"
   },
   {
     id: 17,
-    question: "A customer orders 4 beverages, but the system only bills for 3. What do you do?",
+    question: "Your team consistently meets targets, but morale is low. You:",
     options: {
-      A: "Adjust from another order",
-      B: "Pay difference yourself",
-      C: "Inform customer and add item",
-      D: "Let it go"
+      A: "Celebrate small wins",
+      B: "Increase targets",
+      C: "Let them continue",
+      D: "Avoid change"
     },
-    correctAnswer: "C"
+    correctAnswer: "A"
   },
   {
     id: 18,
-    question: "You are asked to lead two new stores temporarily, but your own store is under-staffed. What's your approach?",
+    question: "You've received a customer complaint on social media about rude service. What is your priority?",
     options: {
-      A: "Ask for external support",
-      B: "Take it on and manage all yourself",
-      C: "Delegate internally and develop one team member as acting lead",
-      D: "Decline the opportunity"
+      A: "Delete the comment",
+      B: "Apologize publicly and take it offline",
+      C: "Privately message the customer",
+      D: "Give discount on next visit"
+    },
+    correctAnswer: "B"
+  },
+  {
+    id: 19,
+    question: "A delivery vendor is late for the third time in a week, impacting morning prep. What's the ideal response?",
+    options: {
+      A: "Cancel the vendor immediately",
+      B: "Apologize publicly and take it offline",
+      C: "Raise an SLA concern and request urgent resolution",
+      D: "Accept and move on"
     },
     correctAnswer: "C"
   },
   {
-    id: 19,
-    question: "A beverage's ingredient cost is ₹35. If wastage is 8% and spoilage loss is 5%, what is the adjusted cost per beverage?",
-    options: {
-      A: "₹40.25",
-      B: "₹41.20",
-      C: "₹37.50",
-      D: "₹38.85"
-    },
-    correctAnswer: "B"
-  },
-  {
     id: 20,
-    question: "A system generates the following pattern of sales increase: 5%, 10%, 15%, 20%… What would be the % increase in the 6th week?",
+    question: "You observe shortcuts being taken during cleaning. You:",
     options: {
-      A: "35%",
-      B: "25%",
-      C: "40%",
-      D: "30%"
+      A: "Suspend team",
+      B: "Inform area manager",
+      C: "Coach the team",
+      D: "Ignore — it's minor"
     },
-    correctAnswer: "B"
+    correctAnswer: "C"
   }
 ];
 
@@ -392,10 +392,58 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
         }
         
         if (data.assessmentStatus) {
-          setAssessmentStatus(data.assessmentStatus);
+          console.log('[SM-ASM ASSESSMENT] Raw assessment data received:', {
+            attempted: data.assessmentStatus.attempted,
+            hasAnswers: !!data.assessmentStatus.answers,
+            answersType: typeof data.assessmentStatus.answers,
+            score: data.assessmentStatus.score,
+            passed: data.assessmentStatus.passed,
+            answers: data.assessmentStatus.answers
+          });
+          
+          // If assessment was attempted and we have answers, recalculate score on frontend
+          if (data.assessmentStatus.attempted && data.assessmentStatus.answers) {
+            const answers = data.assessmentStatus.answers;
+            let correctCount = 0;
+            
+            // Count correct answers using current frontend question definitions
+            ASSESSMENT_QUESTIONS.forEach(question => {
+              const userAnswer = answers[question.id];
+              if (userAnswer === question.correctAnswer) {
+                correctCount++;
+              }
+            });
+            
+            const totalQuestions = ASSESSMENT_QUESTIONS.length;
+            const recalculatedScore = parseFloat(((correctCount / totalQuestions) * 100).toFixed(2));
+            const recalculatedPassed = recalculatedScore >= 80;
+            
+            console.log('[SM-ASM ASSESSMENT] Recalculated score:', {
+              correctCount,
+              totalQuestions,
+              score: recalculatedScore,
+              passed: recalculatedPassed,
+              originalScore: data.assessmentStatus.score,
+              originalPassed: data.assessmentStatus.passed
+            });
+            
+            // Use recalculated values
+            setAssessmentStatus({
+              ...data.assessmentStatus,
+              score: recalculatedScore,
+              passed: recalculatedPassed,
+              totalScore: correctCount,
+              maxScore: totalQuestions
+            });
+            setAssessmentPassed(recalculatedPassed);
+          } else {
+            console.log('[SM-ASM ASSESSMENT] Using original score (no answers available for recalculation)');
+            setAssessmentStatus(data.assessmentStatus);
+            setAssessmentPassed(data.assessmentStatus.passed);
+          }
+          
           setAssessmentLocked(!data.assessmentStatus.unlocked);
           setAssessmentAttempted(data.assessmentStatus.attempted);
-          setAssessmentPassed(data.assessmentStatus.passed);
         }
         
         if (data.interviewStatus) {
