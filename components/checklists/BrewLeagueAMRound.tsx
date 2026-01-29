@@ -3,6 +3,7 @@ import { Download, RotateCcw, Clock, Camera, Trophy, Coffee } from 'lucide-react
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import LoadingOverlay from '../LoadingOverlay';
+import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 
 // Define section structure
 interface ChecklistItem {
@@ -255,6 +256,11 @@ const LOG_ENDPOINTS = [
 const BrewLeagueAMRound: React.FC = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const judgeId = urlParams.get('judgeId') || urlParams.get('EMPID') || '';
+  
+  // Employee directory for searchable dropdown
+  const { directory: employeeDirectory, loading: employeeLoading } = useEmployeeDirectory();
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
 
   const [resp, setResp] = useState<Record<string, string>>(() => {
     const saved = localStorage.getItem('brewLeagueAMResp');
@@ -327,7 +333,8 @@ const BrewLeagueAMRound: React.FC = () => {
     if (scoresheetType === 'sensory') {
       return SECTIONS.filter(s => s.id === 'SensoryScore');
     }
-    return SECTIONS;
+    // For technical scoresheet, exclude SensoryScore section
+    return SECTIONS.filter(s => s.id !== 'SensoryScore');
   };
 
   const handleOption = (sec: ChecklistSection, it: ChecklistItem, opt: string) => {
@@ -643,16 +650,58 @@ const BrewLeagueAMRound: React.FC = () => {
 
         {/* Participant Details */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          <div>
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Participant Name *</label>
             <input
               type="text"
-              value={participantName}
-              onChange={e => setParticipantName(e.target.value)}
+              value={employeeSearchTerm || participantName}
+              onChange={(e) => {
+                setEmployeeSearchTerm(e.target.value);
+                setShowEmployeeDropdown(true);
+              }}
+              onFocus={() => setShowEmployeeDropdown(true)}
+              onBlur={() => setTimeout(() => setShowEmployeeDropdown(false), 200)}
               required
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-              placeholder="Enter participant name"
+              placeholder="Search employee..."
             />
+            {showEmployeeDropdown && (
+              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                {employeeLoading ? (
+                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">Loading employees...</div>
+                ) : (() => {
+                  const allEmployees = Object.values(employeeDirectory.byId);
+                  const filtered = allEmployees.filter(emp =>
+                    employeeSearchTerm === '' ||
+                    emp.empname.toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
+                    emp.employee_code.toLowerCase().includes(employeeSearchTerm.toLowerCase())
+                  );
+
+                  return filtered.length > 0 ? (
+                    filtered.slice(0, 50).map((emp) => (
+                      <button
+                        key={emp.employee_code}
+                        type="button"
+                        onClick={() => {
+                          setParticipantName(emp.empname);
+                          setParticipantEmpID(emp.employee_code);
+                          setEmployeeSearchTerm('');
+                          setShowEmployeeDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm"
+                      >
+                        <div className="font-medium">{emp.empname}</div>
+                        <div className="text-xs text-gray-500 dark:text-slate-400">{emp.employee_code}{emp.designation ? ` • ${emp.designation}` : ''}</div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">
+                      {employeeSearchTerm ? 'No matching employees found' : 'Start typing to search...'}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Participant Emp. ID *</label>
@@ -662,7 +711,8 @@ const BrewLeagueAMRound: React.FC = () => {
               onChange={e => setParticipantEmpID(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-              placeholder="Enter employee ID"
+              placeholder="Auto-filled from employee selection"
+              readOnly
             />
           </div>
           <div>
@@ -770,23 +820,7 @@ const BrewLeagueAMRound: React.FC = () => {
                   <div key={key} className="p-4 border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700/50">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <span className="font-medium text-gray-900 dark:text-slate-100 flex-1">{it.q}</span>
-                      {isTimeField ? (
-                        <div className="flex items-center gap-2">
-                          <button 
-                            type="button" 
-                            onClick={() => handleCaptureTime(sec, it)} 
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center gap-2 transition-colors"
-                          >
-                            <Clock size={16} />
-                            Capture Time
-                          </button>
-                          {resp[key] && (
-                            <span className="text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 px-3 py-2 rounded-md border border-gray-300 dark:border-slate-600">
-                              {resp[key]}
-                            </span>
-                          )}
-                        </div>
-                      ) : (sec.id === 'SensoryScore' && it.id === 'CupImage') ? (
+                      {(sec.id === 'SensoryScore' && it.id === 'CupImage') ? (
                         <div>
                           <input 
                             type="file" 

@@ -3,6 +3,8 @@ import { Download, RotateCcw, Clock, Camera, Trophy, Coffee } from 'lucide-react
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import LoadingOverlay from '../LoadingOverlay';
+import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
+import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 
 // Define section structure
 interface ChecklistItem {
@@ -313,6 +315,11 @@ const BrewLeagueRegionRound: React.FC = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const judgeName = urlParams.get('judgeName') || urlParams.get('name') || '';
   const judgeId = urlParams.get('judgeId') || urlParams.get('EMPID') || '';
+  
+  // Employee directory for searchable dropdown
+  const { directory: employeeDirectory, loading: employeeLoading } = useEmployeeDirectory();
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
 
   const [resp, setResp] = useState<Record<string, string>>(() => {
     const saved = localStorage.getItem('brewLeagueRegionResp');
@@ -722,14 +729,58 @@ const BrewLeagueRegionRound: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 cursor-not-allowed"
               />
             </div>
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Participant Name *</label>
               <input 
-                value={participantName} 
-                onChange={e => setParticipantName(e.target.value)} 
+                type="text"
+                value={employeeSearchTerm || participantName} 
+                onChange={(e) => {
+                  setEmployeeSearchTerm(e.target.value);
+                  setShowEmployeeDropdown(true);
+                }}
+                onFocus={() => setShowEmployeeDropdown(true)}
+                onBlur={() => setTimeout(() => setShowEmployeeDropdown(false), 200)}
                 required 
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+                placeholder="Search employee..."
               />
+              {showEmployeeDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                  {employeeLoading ? (
+                    <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">Loading employees...</div>
+                  ) : (() => {
+                    const allEmployees = Object.values(employeeDirectory.byId);
+                    const filtered = allEmployees.filter(emp =>
+                      employeeSearchTerm === '' ||
+                      emp.empname.toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
+                      emp.employee_code.toLowerCase().includes(employeeSearchTerm.toLowerCase())
+                    );
+
+                    return filtered.length > 0 ? (
+                      filtered.slice(0, 50).map((emp) => (
+                        <button
+                          key={emp.employee_code}
+                          type="button"
+                          onClick={() => {
+                            setParticipantName(emp.empname);
+                            setParticipantEmpID(emp.employee_code);
+                            setEmployeeSearchTerm('');
+                            setShowEmployeeDropdown(false);
+                          }}
+                          className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm"
+                        >
+                          <div className="font-medium">{emp.empname}</div>
+                          <div className="text-xs text-gray-500 dark:text-slate-400">{emp.employee_code}{emp.designation ? ` • ${emp.designation}` : ''}</div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">
+                        {employeeSearchTerm ? 'No matching employees found' : 'Start typing to search...'}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Participant Emp. ID *</label>
@@ -738,6 +789,8 @@ const BrewLeagueRegionRound: React.FC = () => {
                 onChange={e => setParticipantEmpID(e.target.value)} 
                 required 
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+                placeholder="Auto-filled from employee selection"
+                readOnly
               />
             </div>
             <div>
