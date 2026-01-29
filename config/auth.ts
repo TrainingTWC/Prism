@@ -83,6 +83,11 @@ export const AUTH_CONFIG: AuthConfig = {
       permissions: ['shlp'],
       dashboardAccess: [] // No dashboard access - checklist only
     },
+    'brew-league': {
+      password: 'BrewLeague2025!',
+      permissions: ['brew-league'],
+      dashboardAccess: [] // No dashboard access - checklist only (has internal dashboard)
+    },
     admin: {
       password: 'AdminView2024!',
       permissions: ['operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'bench-planning', 'bench-planning-sm-asm', 'dashboard'],

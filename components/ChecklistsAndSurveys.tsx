@@ -65,6 +65,14 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     }
   }, [authUserRole, activeChecklist]);
 
+  // Auto-open brew league for brew-league role users
+  useEffect(() => {
+    if (authUserRole === 'brew-league' && !activeChecklist) {
+      setActiveChecklist('brew-league');
+      // Don't auto-set subsection - let user choose between rounds and dashboard
+    }
+  }, [authUserRole, activeChecklist]);
+
   // Remove the bench-planning-sm-asm auto-open effect since we no longer have that separate role
 
   // Filter checklists based on user permissions
@@ -153,27 +161,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
-              onClick={() => setBrewLeagueSubSection('store')}
-              className="group p-6 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-amber-400 dark:hover:border-amber-400 bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all duration-200"
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-amber-500 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
-                  <Coffee className="w-8 h-8" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
-                  Store Round
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-slate-400">
-                  Store-level competition scoresheet
-                </p>
-                <span className="mt-4 text-sm text-amber-600 dark:text-amber-400 font-medium">
-                  Coming Soon
-                </span>
-              </div>
-            </button>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
               onClick={() => setBrewLeagueSubSection('am')}
               className="group p-6 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-amber-400 dark:hover:border-amber-400 bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all duration-200"
@@ -188,6 +176,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                 <p className="text-sm text-gray-600 dark:text-slate-400">
                   Area Manager level competition scoresheet
                 </p>
+                <span className="mt-4 text-sm text-amber-600 dark:text-amber-400 font-medium group-hover:text-amber-700 dark:group-hover:text-amber-300">
+                  Open →
+                </span>
               </div>
             </button>
 

@@ -184,6 +184,26 @@ const AppContent: React.FC = () => {
     tabs.push({ id: 'admin', label: 'Admin', icon: HelpCircle });
   }
 
+  // If user has brew-league role, only show the brew league section
+  if (authUserRole === 'brew-league') {
+    const brewLeagueRole = {
+      userId: 'brew-league',
+      name: 'Brew League Access',
+      role: 'brew-league' as const,
+      allowedStores: [],
+      allowedAMs: [],
+      allowedHRs: []
+    };
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
+        <Header />
+        <main className="p-2 sm:p-4 lg:p-8">
+          <ChecklistsAndSurveys userRole={brewLeagueRole} />
+        </main>
+      </div>
+    );
+  }
+
   // If user has forms role, only show the forms section
   if (authUserRole === 'forms') {
     const formsRole = {
