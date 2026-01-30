@@ -187,43 +187,6 @@ const SECTIONS: ChecklistSection[] = [
       { id: 'CupWiped', q: 'Did the barista wipe the cup before serving', w: 2 }
     ]
   },
-  // Milk Cup-3
-  {
-    id: 'MilkCup3',
-    title: 'Milk Cup-3',
-    items: [
-      { id: 'BeverageType', q: 'Select Beverage type for Cup-3:', w: 0 }
-    ]
-  },
-  // Cup-3 Steaming
-  {
-    id: 'Cup3Steaming',
-    title: 'Cup-3 Steaming',
-    items: [
-      { id: 'SteamingPurged', q: 'Steaming wand is purged before use', w: 3 },
-      { id: 'CleanPitcher', q: 'Is the Barista uses a clean milk pitcher for every order', w: 2 },
-      { id: 'RightPitcher', q: 'Is the barista using the right milk pitcher for the intended beverage size', w: 3 },
-      { id: 'ColdMilk', q: 'In the barista using cold milk stored in the chiller', w: 3 },
-      { id: 'MilkPouch', q: 'Is the milk pouch stored in the 900ml pitcher', w: 1 },
-      { id: 'RightMilkAmount', q: 'Is the barista taking the right amount of milk for the intended beverage size', w: 3 },
-      { id: 'FoamConsistency', q: 'Is the barista able to create the right consistency of foam for a latte/ Cappuccino/Flat white', w: 3 },
-      { id: 'SteamingWiped', q: 'Steaming wand is wiped & purged after use', w: 3 },
-      { id: 'GreenClothSteam', q: 'Did the barista use the right green cloth to wipe the steam wand', w: 3 },
-      { id: 'GreenClothStored', q: 'Did the barista store the green cloth in the GN pan after use', w: 2 }
-    ]
-  },
-  // Cup-3 Pouring
-  {
-    id: 'Cup3Pouring',
-    title: 'Cup-3 Pouring',
-    items: [
-      { id: 'EspressoPulled', q: 'Did the barista pulled the espresso shot within 30 seconds of steaming the milk', w: 3 },
-      { id: 'MillPoured', q: 'Did the barista pour the milk within 30 seconds of pulling the shot', w: 3 },
-      { id: 'PouringHeight', q: 'Milk poured from the correct height', w: 2 },
-      { id: 'LatteArtPattern', q: 'Did the barista able to create a  latte art pattern', w: 5 },
-      { id: 'CupWiped', q: 'Did the barista wipe the cup before serving', w: 2 }
-    ]
-  },
   {
     id: 'EndTime',
     title: 'Milk End Time',
@@ -236,14 +199,18 @@ const SECTIONS: ChecklistSection[] = [
     id: 'SensoryScore',
     title: 'Sensory Score',
     items: [
-      { id: 'Aroma', q: 'Aroma', w: 10 },
-      { id: 'Flavor', q: 'Flavor', w: 10 },
-      { id: 'Aftertaste', q: 'Aftertaste', w: 10 },
-      { id: 'Acidity', q: 'Acidity', w: 10 },
-      { id: 'Body', q: 'Body', w: 10 },
-      { id: 'Balance', q: 'Balance', w: 10 },
-      { id: 'Overall', q: 'Overall', w: 10 },
-      { id: 'CupImage', q: 'Upload cup images', w: 10 }
+      { id: 'LatteArtStandard', q: 'Was the Latte art created as per TWC std (Cappuccino- Heart , Latte- Tulip/ Rosetta , Flat white - Single dot )', w: 5 },
+      { id: 'ShinyGlossy', q: 'Was it shiny and glossy?', w: 3 },
+      { id: 'NoBubbles', q: 'No visible bubbles on the surface', w: 3 },
+      { id: 'ArtInCenter', q: 'Is the latte art in the centre of the cup', w: 3 },
+      { id: 'VisibleContrast', q: 'Is there a visible contrast between the crema and the latte art', w: 3 },
+      { id: 'ArtFacingCustomer', q: 'Is the latte art facing the customer with the handle on the right side', w: 5 },
+      { id: 'ArtCoverage', q: 'Did the latte art cover 70% of the cup surface', w: 3 },
+      { id: 'FrothLevel', q: 'Was the froth level present as per TWC standard (Three Swipes- cappuccino, Two Swipes- Latte & One swipe- Flatwhite)', w: 4 },
+      { id: 'FrothRatio', q: 'Is the froth level was as per Twc standard (70/30 in cappucctino, 90/10 in latte and micro form in flat white)', w: 5 },
+      { id: 'CupImages', q: 'Cup 1& 2 - Images (Together)', w: 5 },
+      { id: 'BaristaSmile', q: 'Did the barista smile and have an engaging interaction with the judge', w: 3 },
+      { id: 'CleanCounter', q: 'Did the barista leave the counter clean after finishing his/her performance', w: 3 }
     ]
   }
 ];
@@ -486,9 +453,6 @@ const BrewLeagueAMRound: React.FC = () => {
       MilkCup2Score: (sectionScores.MilkCup2 || 0).toString(),
       Cup2SteamingScore: (sectionScores.Cup2Steaming || 0).toString(),
       Cup2PouringScore: (sectionScores.Cup2Pouring || 0).toString(),
-      MilkCup3Score: (sectionScores.MilkCup3 || 0).toString(),
-      Cup3SteamingScore: (sectionScores.Cup3Steaming || 0).toString(),
-      Cup3PouringScore: (sectionScores.Cup3Pouring || 0).toString(),
       EndTimeScore: (sectionScores.EndTime || 0).toString(),
       dialInTimeTaken,
       milkTimeTaken,

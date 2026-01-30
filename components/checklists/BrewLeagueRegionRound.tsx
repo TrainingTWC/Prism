@@ -4,7 +4,6 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import LoadingOverlay from '../LoadingOverlay';
 import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
-import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 
 // Define section structure
 interface ChecklistItem {
