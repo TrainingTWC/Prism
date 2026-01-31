@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import LoadingOverlay from '../LoadingOverlay';
 import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
+import { useComprehensiveMapping, useAreaManagers } from '../../hooks/useComprehensiveMapping';
 
 // Define section structure
 interface ChecklistItem {
@@ -208,7 +209,7 @@ const SECTIONS: ChecklistSection[] = [
       { id: 'ArtCoverage', q: 'Did the latte art cover 70% of the cup surface', w: 3 },
       { id: 'FrothLevel', q: 'Was the froth level present as per TWC standard (Three Swipes- cappuccino, Two Swipes- Latte & One swipe- Flatwhite)', w: 4 },
       { id: 'FrothRatio', q: 'Is the froth level was as per Twc standard (70/30 in cappucctino, 90/10 in latte and micro form in flat white)', w: 5 },
-      { id: 'CupImages', q: 'Cup 1& 2 - Images (Together)', w: 5 },
+      { id: 'CupImages', q: 'Cup 1& 2 - Images (Together)', w: 0 },
       { id: 'BaristaSmile', q: 'Did the barista smile and have an engaging interaction with the judge', w: 3 },
       { id: 'CleanCounter', q: 'Did the barista leave the counter clean after finishing his/her performance', w: 3 }
     ]
@@ -228,6 +229,10 @@ const BrewLeagueAMRound: React.FC = () => {
   const { directory: employeeDirectory, loading: employeeLoading } = useEmployeeDirectory();
   const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
+
+  // Comprehensive mapping for autofill
+  const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
+  const { areaManagers, loading: amLoading } = useAreaManagers();
 
   const [resp, setResp] = useState<Record<string, string>>(() => {
     const saved = localStorage.getItem('brewLeagueAMResp');
@@ -284,6 +289,55 @@ const BrewLeagueAMRound: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('brewLeagueAMRegion', region);
   }, [region]);
+
+  // Autofill participant details based on Employee ID
+  useEffect(() => {
+    if (!participantEmpID || employeeLoading || mappingLoading || amLoading) return;
+
+    // Look up employee in directory
+    const normalizedEmpId = participantEmpID.toString().trim().toUpperCase();
+    const employee = employeeDirectory.byId[normalizedEmpId];
+
+    if (employee) {
+      // Autofill participant name
+      if (!participantName || participantName === '') {
+        setParticipantName(employee.empname || '');
+      }
+
+      // Look up store from comprehensive mapping using employee's store_code or location
+      const employeeStoreCode = employee.store_code || employee.location;
+      
+      if (employeeStoreCode && comprehensiveMapping.length > 0) {
+        // Try to find store in comprehensive mapping
+        const normalizedStoreCode = employeeStoreCode.toString().trim().toUpperCase();
+        const storeData = comprehensiveMapping.find(s => 
+          s['Store ID']?.toString().trim().toUpperCase() === normalizedStoreCode ||
+          s['Store Name']?.toLowerCase().includes(employeeStoreCode.toLowerCase())
+        );
+
+        if (storeData) {
+          // Autofill store details
+          if (!storeName || storeName === '') {
+            setStoreName(storeData['Store Name'] || '');
+          }
+          if (!storeID || storeID === '') {
+            setStoreID(storeData['Store ID'] || '');
+          }
+          if (!region || region === '') {
+            setRegion(storeData['Region'] || '');
+          }
+
+          // Autofill area manager if available
+          if (storeData.AM && areaManagers.length > 0 && (!areaManager || areaManager === '')) {
+            const am = areaManagers.find(a => a.id === storeData.AM);
+            if (am) {
+              setAreaManager(am.name || '');
+            }
+          }
+        }
+      }
+    }
+  }, [participantEmpID, employeeDirectory, comprehensiveMapping, areaManagers, employeeLoading, mappingLoading, amLoading]);
 
   // Persist responses
   useEffect(() => {
@@ -724,26 +778,70 @@ const BrewLeagueAMRound: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Scoresheet Type *</label>
-            <select
-              value={scoresheetType}
-              onChange={e => setScoresheetType(e.target.value as 'technical' | 'sensory')}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-            >
-              <option value="technical">Technical</option>
-              <option value="sensory">Sensory</option>
-            </select>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Scoresheet Type *</label>
+            <div className="relative inline-flex p-1 bg-gray-200 dark:bg-slate-700 rounded-full">
+              <button
+                type="button"
+                onClick={() => setScoresheetType('technical')}
+                className={`relative z-10 px-6 py-2 text-sm font-medium rounded-full transition-all duration-300 ${
+                  scoresheetType === 'technical'
+                    ? 'text-white'
+                    : 'text-gray-700 dark:text-slate-300'
+                }`}
+              >
+                Technical
+              </button>
+              <button
+                type="button"
+                onClick={() => setScoresheetType('sensory')}
+                className={`relative z-10 px-6 py-2 text-sm font-medium rounded-full transition-all duration-300 ${
+                  scoresheetType === 'sensory'
+                    ? 'text-white'
+                    : 'text-gray-700 dark:text-slate-300'
+                }`}
+              >
+                Sensory
+              </button>
+              <div
+                className={`absolute top-1 bottom-1 bg-amber-600 rounded-full transition-all duration-300 ease-in-out ${
+                  scoresheetType === 'technical' ? 'left-1' : 'left-1/2'
+                }`}
+                style={{ width: 'calc(50% - 0.25rem)' }}
+              />
+            </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Machine Type *</label>
-            <select
-              value={machineType}
-              onChange={e => setMachineType(e.target.value as 'manual' | 'automatic')}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-            >
-              <option value="manual">Manual</option>
-              <option value="automatic">Automatic</option>
-            </select>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Machine Type *</label>
+            <div className="relative inline-flex p-1 bg-gray-200 dark:bg-slate-700 rounded-full">
+              <button
+                type="button"
+                onClick={() => setMachineType('manual')}
+                className={`relative z-10 px-6 py-2 text-sm font-medium rounded-full transition-all duration-300 ${
+                  machineType === 'manual'
+                    ? 'text-white'
+                    : 'text-gray-700 dark:text-slate-300'
+                }`}
+              >
+                Manual
+              </button>
+              <button
+                type="button"
+                onClick={() => setMachineType('automatic')}
+                className={`relative z-10 px-6 py-2 text-sm font-medium rounded-full transition-all duration-300 ${
+                  machineType === 'automatic'
+                    ? 'text-white'
+                    : 'text-gray-700 dark:text-slate-300'
+                }`}
+              >
+                Automatic
+              </button>
+              <div
+                className={`absolute top-1 bottom-1 bg-amber-600 rounded-full transition-all duration-300 ease-in-out ${
+                  machineType === 'manual' ? 'left-1' : 'left-1/2'
+                }`}
+                style={{ width: 'calc(50% - 0.25rem)' }}
+              />
+            </div>
           </div>
         </div>
 
