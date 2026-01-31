@@ -40,7 +40,7 @@ export const AUTH_CONFIG: AuthConfig = {
   roles: {
     operations: {
       password: 'OpsAccess2024!',
-      permissions: ['operations', 'shlp', 'bench-planning', 'bench-planning-sm-asm', 'dashboard'],
+      permissions: ['operations', 'shlp', 'bench-planning', 'bench-planning-sm-asm', 'brew-league', 'dashboard'],
       dashboardAccess: ['operations-dashboard', 'operations-analytics', 'operations-reports', 'shlp-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
     },
     hr: {
@@ -55,7 +55,7 @@ export const AUTH_CONFIG: AuthConfig = {
     },
     training: {
       password: 'TrainingHub2024!',
-      permissions: ['training', 'shlp', 'bench-planning', 'bench-planning-sm-asm', 'dashboard', 'learning-management'],
+      permissions: ['training', 'shlp', 'bench-planning', 'bench-planning-sm-asm', 'brew-league', 'dashboard', 'learning-management'],
       dashboardAccess: ['training-dashboard', 'training-reports', 'learning-analytics', 'training-audit', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'shlp-dashboard']
     },
     forms: {
@@ -90,12 +90,12 @@ export const AUTH_CONFIG: AuthConfig = {
     },
     admin: {
       password: 'AdminView2024!',
-      permissions: ['operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'bench-planning', 'bench-planning-sm-asm', 'dashboard'],
+      permissions: ['operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'bench-planning', 'bench-planning-sm-asm', 'brew-league', 'dashboard'],
       dashboardAccess: ['all', 'campus-hiring-dashboard']
     },
     editor: {
       password: 'Editornotcreator2025!',
-      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'bench-planning', 'bench-planning-sm-asm', 'dashboard'],
+      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'bench-planning', 'bench-planning-sm-asm', 'brew-league', 'dashboard'],
       dashboardAccess: ['all', 'campus-hiring-dashboard', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
     }
   },
