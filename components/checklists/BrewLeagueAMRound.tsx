@@ -200,6 +200,7 @@ const SECTIONS: ChecklistSection[] = [
     id: 'SensoryScore',
     title: 'Sensory Score',
     items: [
+      { id: 'CupImages', q: 'Cup 1& 2 - Images (Together)', w: 0 },
       { id: 'LatteArtStandard', q: 'Was the Latte art created as per TWC std (Cappuccino- Heart , Latte- Tulip/ Rosetta , Flat white - Single dot )', w: 5 },
       { id: 'ShinyGlossy', q: 'Was it shiny and glossy?', w: 3 },
       { id: 'NoBubbles', q: 'No visible bubbles on the surface', w: 3 },
@@ -209,7 +210,6 @@ const SECTIONS: ChecklistSection[] = [
       { id: 'ArtCoverage', q: 'Did the latte art cover 70% of the cup surface', w: 3 },
       { id: 'FrothLevel', q: 'Was the froth level present as per TWC standard (Three Swipes- cappuccino, Two Swipes- Latte & One swipe- Flatwhite)', w: 4 },
       { id: 'FrothRatio', q: 'Is the froth level was as per Twc standard (70/30 in cappucctino, 90/10 in latte and micro form in flat white)', w: 5 },
-      { id: 'CupImages', q: 'Cup 1& 2 - Images (Together)', w: 0 },
       { id: 'BaristaSmile', q: 'Did the barista smile and have an engaging interaction with the judge', w: 3 },
       { id: 'CleanCounter', q: 'Did the barista leave the counter clean after finishing his/her performance', w: 3 }
     ]
@@ -464,7 +464,7 @@ const BrewLeagueAMRound: React.FC = () => {
       sec.items.forEach(it => {
         const key = `${sec.id}_${it.id}`;
         const r = resp[key];
-        if (sec.id === 'SensoryScore' && it.id === 'CupImage') {
+        if (sec.id === 'SensoryScore' && it.id === 'CupImages') {
           const hasImgs = imgs['SensoryScore'] && imgs['SensoryScore'].length > 0;
           if (hasImgs) secTotal += it.w;
           secMax += Math.abs(it.w);
@@ -915,7 +915,7 @@ const BrewLeagueAMRound: React.FC = () => {
                             </span>
                           )}
                         </div>
-                      ) : (sec.id === 'SensoryScore' && it.id === 'CupImage') ? (
+                      ) : (sec.id === 'SensoryScore' && it.id === 'CupImages') ? (
                         <div>
                           <input 
                             type="file" 
