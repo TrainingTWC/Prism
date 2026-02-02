@@ -200,7 +200,7 @@ const SECTIONS: ChecklistSection[] = [
     id: 'SensoryScore',
     title: 'Sensory Score',
     items: [
-      { id: 'CupImages', q: 'Cup 1& 2 - Images (Together)', w: 0 },
+      { id: 'CupImages', q: 'Cup 1 & 2 - Images (Together)', w: 0 },
       { id: 'LatteArtStandard', q: 'Was the Latte art created as per TWC std (Cappuccino- Heart , Latte- Tulip/ Rosetta , Flat white - Single dot )', w: 5 },
       { id: 'ShinyGlossy', q: 'Was it shiny and glossy?', w: 3 },
       { id: 'NoBubbles', q: 'No visible bubbles on the surface', w: 3 },
@@ -238,10 +238,7 @@ const BrewLeagueAMRound: React.FC = () => {
     const saved = localStorage.getItem('brewLeagueAMResp');
     return saved ? JSON.parse(saved) : {};
   });
-  const [imgs, setImgs] = useState<Record<string, string[]>>(() => {
-    const saved = localStorage.getItem('brewLeagueAMImgs');
-    return saved ? JSON.parse(saved) : {};
-  });
+  const [imgs, setImgs] = useState<Record<string, string[]>>({});
   const [remarks, setRemarks] = useState<Record<string, string>>(() => {
     const saved = localStorage.getItem('brewLeagueAMRemarks');
     return saved ? JSON.parse(saved) : {};
@@ -343,9 +340,8 @@ const BrewLeagueAMRound: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('brewLeagueAMResp', JSON.stringify(resp));
   }, [resp]);
-  useEffect(() => {
-    localStorage.setItem('brewLeagueAMImgs', JSON.stringify(imgs));
-  }, [imgs]);
+  // Note: Images are NOT persisted to localStorage to avoid QuotaExceededError
+  // Images are only kept in memory until form submission
   useEffect(() => {
     localStorage.setItem('brewLeagueAMRemarks', JSON.stringify(remarks));
   }, [remarks]);
@@ -416,7 +412,6 @@ const BrewLeagueAMRound: React.FC = () => {
       setStoreID('');
       setRegion('');
       localStorage.removeItem('brewLeagueAMResp');
-      localStorage.removeItem('brewLeagueAMImgs');
       localStorage.removeItem('brewLeagueAMRemarks');
       localStorage.removeItem('brewLeagueAMJudgeName');
       localStorage.removeItem('brewLeagueAMParticipantName');
