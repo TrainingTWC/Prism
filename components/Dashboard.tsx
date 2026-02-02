@@ -889,47 +889,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         const submissionDate = submission.submissionTime || submission.timestamp || (submission as any).submittedAt;
         if (!submissionDate) return false;
 
-        // Parse date using same logic as HRBPCalendarModal
-        let date: Date | null = null;
-        const dateStr = String(submissionDate).trim();
+        // Use the existing parseSheetDate helper for consistent date parsing
+        const date = parseSheetDate(String(submissionDate));
+        
+        if (!date || isNaN(date.getTime())) return false;
 
-        try {
-          // Handle ISO-like format that's actually DD-MM-YYYY (e.g., 2025-12-11T... should be 12th November 2025)
-          if (dateStr.includes('T') && dateStr.match(/^\d{4}-\d{2}-\d{2}T/)) {
-            const [datePart] = dateStr.split('T');
-            const [year, dayMonth, day] = datePart.split('-');
-
-            // The format is actually YYYY-DD-MM, not YYYY-MM-DD
-            // So 2025-12-11 means 2025, day=12, month=11 (November)
-            const actualYear = parseInt(year, 10);
-            const actualDay = parseInt(dayMonth, 10);
-            const actualMonth = parseInt(day, 10) - 1; // JS months are 0-based (0=Jan, 10=Nov)
-
-            date = new Date(actualYear, actualMonth, actualDay);
-          } else if (dateStr.includes('/')) {
-            // DD/MM/YYYY format
-            const parts = dateStr.split(',')[0].trim().split(' ')[0].split('/');
-            if (parts.length === 3) {
-              const day = parseInt(parts[0], 10);
-              const month = parseInt(parts[1], 10) - 1; // JS months are 0-based (0=Jan, 11=Dec)
-              const year = parseInt(parts[2], 10);
-
-              date = new Date(year, month, day);
-
-              // Validation - ensure the parsed date makes sense
-              if (date.getFullYear() !== year || date.getMonth() !== month || date.getDate() !== day) {
-                return false;
-              }
-            }
-          }
-
-          if (!date || isNaN(date.getTime())) return false;
-
-          const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          return submissionMonth === filters.month;
-        } catch (error) {
-          return false;
-        }
+        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        return submissionMonth === filters.month;
       });
     }
 
