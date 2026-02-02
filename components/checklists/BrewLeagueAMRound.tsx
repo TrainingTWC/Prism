@@ -354,7 +354,17 @@ const BrewLeagueAMRound: React.FC = () => {
     if (scoresheetType === 'sensory') {
       return SECTIONS.filter(s => s.id === 'SensoryScore');
     }
-    // For technical scoresheet, exclude SensoryScore section
+    // For technical scoresheet with automatic machine, exclude dial-in sections
+    if (scoresheetType === 'technical' && machineType === 'automatic') {
+      return SECTIONS.filter(s => 
+        s.id !== 'SensoryScore' && 
+        s.id !== 'EspressoDialIn' && 
+        s.id !== 'EspressoDialInShot1' && 
+        s.id !== 'EspressoDialInShot2' && 
+        s.id !== 'DialInEndTime'
+      );
+    }
+    // For technical scoresheet with manual machine, exclude SensoryScore section only
     return SECTIONS.filter(s => s.id !== 'SensoryScore');
   };
 
