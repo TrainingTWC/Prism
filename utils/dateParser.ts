@@ -34,29 +34,18 @@ export const parseSubmissionDate = (dateStr: any): Date | null => {
       
       date = new Date(year, month - 1, day);
       console.log(`✓ Parsed DD/MM/YYYY: "${cleanedStr}" -> Day=${day}, Month=${month}, Year=${year} -> ${date.toDateString()}`);
-    } else if (cleanedStr.includes('T') || cleanedStr.includes('Z')) {
-      // Handle ISO format dates (legacy data that was incorrectly stored)
-      // IMPORTANT: ISO dates like "2025-06-11" were meant to be DD/MM (Nov 6), not MM/DD (Jun 11)
-      // So we need to swap month and day for these legacy dates
+    } else if (cleanedStr.includes('T') || cleanedStr.includes('Z') || /^\d{4}-\d{2}-\d{2}/.test(cleanedStr)) {
+      // Handle ISO format dates (YYYY-MM-DD)
+      // ISO format should be parsed correctly as-is without swapping
       const isoMatch = cleanedStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
       if (isoMatch) {
         const year = parseInt(isoMatch[1], 10);
-        const isoMonth = parseInt(isoMatch[2], 10); // This was supposed to be day
-        const isoDay = parseInt(isoMatch[3], 10);   // This was supposed to be month
+        const month = parseInt(isoMatch[2], 10);
+        const day = parseInt(isoMatch[3], 10);
         
-        // Swap them to correct the legacy data: treat as DD/MM/YYYY
-        const day = isoDay;    // 11 becomes day
-        const month = isoMonth; // 06 becomes month (June -> but should be day 06)
-        
-        // Actually, we need to swap: YYYY-MM-DD where MM should have been DD and DD should have been MM
-        // "2025-06-11" means it stored month=06, day=11, but original was 11/06/2025 (DD/MM)
-        // So: day should be 11, month should be 06... wait that's correct for November 6!
-        // Let me reconsider: if original was "06/11/2025" (6th November), 
-        // Google stored it as "2025-06-11" thinking it was June 11
-        // So we need: day=06 (first number), month=11 (second number)
-        
-        date = new Date(year, isoDay - 1, isoMonth); // Swap: use isoDay as month-1, isoMonth as day
-        console.log(`✓ Parsed ISO (SWAPPED for legacy): "${cleanedStr}" -> Original ISO: ${year}-${isoMonth}-${isoDay}, Corrected to Day=${isoMonth}, Month=${isoDay}, Year=${year} -> ${date.toDateString()}`);
+        // Parse as standard ISO: YYYY-MM-DD
+        date = new Date(year, month - 1, day);
+        console.log(`✓ Parsed ISO: "${cleanedStr}" -> Year=${year}, Month=${month}, Day=${day} -> ${date.toDateString()}`);
       } else {
         date = new Date(cleanedStr);
         console.log(`✓ Parsed ISO/other: "${cleanedStr}" -> ${date.toDateString()}`);

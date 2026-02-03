@@ -5,6 +5,7 @@
  */
 
 import { ResponseDistribution } from './questionAnalysisService';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 /**
  * Analyze comments for a specific question using AI
@@ -55,7 +56,7 @@ const generateScoreOnlySummary = (distribution: ResponseDistribution): string =>
 };
 
 /**
- * Use GitHub Models API to analyze employee comments
+ * Use Google Gemini API to analyze employee comments
  * CRITICAL: Only report what's actually in the text
  */
 const generateAICommentAnalysis = async (
@@ -91,38 +92,23 @@ ${remarks.map((r, i) => `${i + 1}. ${r}`).join('\n')}
 Provide a 1-2 sentence summary of what employees ACTUALLY wrote about this question. Only mention topics that employees specifically discussed.`;
 
   try {
-    const endpoint = 'https://models.inference.ai.azure.com/chat/completions';
-    const token = import.meta.env.VITE_GITHUB_TOKEN;
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     
-    if (!token) {
-      console.warn('No GitHub token available for AI analysis');
+    if (!apiKey) {
+      console.warn('No Gemini API key available for AI analysis');
       return generateScoreOnlySummary(distribution);
     }
     
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.3,
-        max_tokens: 150
-      })
-    });
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
-    if (!response.ok) {
-      console.error('AI API error:', response.status);
-      return generateScoreOnlySummary(distribution);
-    }
+    const result = await model.generateContent([
+      { text: systemPrompt },
+      { text: userPrompt }
+    ]);
     
-    const data = await response.json();
-    const aiSummary = data.choices[0]?.message?.content?.trim();
+    const response = result.response;
+    const aiSummary = response.text()?.trim();
     
     if (aiSummary) {
       return aiSummary;
@@ -131,7 +117,7 @@ Provide a 1-2 sentence summary of what employees ACTUALLY wrote about this quest
     }
     
   } catch (error) {
-    console.error('Error calling AI API:', error);
+    console.error('Error calling Gemini API:', error);
     return generateScoreOnlySummary(distribution);
   }
 };
