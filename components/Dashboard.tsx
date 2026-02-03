@@ -158,15 +158,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const parseSheetDate = (dateStr: string): Date | null => {
     if (!dateStr) return null;
     try {
-      // Handle ISO format (2026-06-01T10:12:31.000Z)
-      // Note: ISO dates from Google Sheets with DD/MM/YYYY have month/day swapped
-      if (dateStr.includes('T') || dateStr.includes('Z')) {
+      // Handle ISO format (2026-01-15T10:12:31.000Z or 2026-01-15)
+      if (dateStr.includes('T') || dateStr.includes('Z') || /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+        // Standard ISO format - no swapping needed
         const isoDate = new Date(dateStr);
-        // Swap month and day since source was DD/MM/YYYY but ISO treats it as YYYY-MM-DD
-        const day = isoDate.getMonth() + 1; // What ISO thought was month is actually day
-        const month = isoDate.getDate() - 1; // What ISO thought was day is actually month (0-indexed)
-        const year = isoDate.getFullYear();
-        return new Date(year, month, day);
+        if (!isNaN(isoDate.getTime())) {
+          return isoDate;
+        }
       }
 
       // Handle DD/MM/YYYY HH:mm:ss format
@@ -885,18 +883,55 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
     // Filter by month (for all dashboards)
     if (filters.month) {
+      console.log('📅 Month filter active:', filters.month);
+      let matchCount = 0;
+      let totalProcessed = 0;
+      
       filtered = filtered.filter(submission => {
         const submissionDate = submission.submissionTime || submission.timestamp || (submission as any).submittedAt;
-        if (!submissionDate) return false;
-
-        // Use the existing parseSheetDate helper for consistent date parsing
-        const date = parseSheetDate(String(submissionDate));
+        totalProcessed++;
         
-        if (!date || isNaN(date.getTime())) return false;
+        if (!submissionDate) {
+          console.warn(`❌ No date found for submission ${totalProcessed}`);
+          return false;
+        }
 
-        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        return submissionMonth === filters.month;
+        try {
+          // Use the existing parseSheetDate helper for consistent date parsing
+          const date = parseSheetDate(String(submissionDate));
+          
+          if (!date || isNaN(date.getTime())) {
+            console.warn(`❌ Invalid date parsed from: "${submissionDate}"`);
+            return false;
+          }
+
+          // Create month string in YYYY-MM format (pad month with zero)
+          const month = date.getMonth() + 1; // getMonth() returns 0-11, so add 1
+          const submissionMonth = `${date.getFullYear()}-${month.toString().padStart(2, '0')}`;
+          
+          // Debug first 5 entries
+          if (totalProcessed <= 5) {
+            console.log(`🔍 Submission ${totalProcessed}:`, {
+              rawDate: submissionDate,
+              parsedDate: date.toISOString(),
+              submissionMonth,
+              filterMonth: filters.month,
+              matches: submissionMonth === filters.month
+            });
+          }
+          
+          // Compare with filter month
+          const matches = submissionMonth === filters.month;
+          if (matches) matchCount++;
+          
+          return matches;
+        } catch (error) {
+          console.warn('❌ Error parsing date for month filter:', submissionDate, error);
+          return false;
+        }
       });
+      
+      console.log(`✅ Month filter results: ${matchCount} matches out of ${totalProcessed} submissions`);
     }
 
     return filtered;
@@ -4413,65 +4448,24 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                   })()}
                                 </span>
                               )}
+                              {/* Active filters display */}
+                              {(filters.region || filters.am || filters.store) && (
+                                <span className="ml-2 text-xs text-gray-600 dark:text-slate-400">
+                                  • Filtered by {filters.region && 'Region'}{filters.region && filters.am && ', '}{filters.am && 'AM'}{(filters.region || filters.am) && filters.store && ', '}{filters.store && 'Store'}
+                                </span>
+                              )}
                             </p>
                           </div>
                         </div>
 
-                        {/* Filters */}
-                        <div className="flex flex-wrap gap-2">
-                          <select
-                            value={filters.region}
-                            onChange={(e) => handleFilterChange('region', e.target.value)}
-                            className="text-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="">All Regions</option>
-                            {REGIONS.map(region => (
-                              <option key={region} value={region}>{region}</option>
-                            ))}
-                          </select>
-
-                          <select
-                            value={filters.am}
-                            onChange={(e) => handleFilterChange('am', e.target.value)}
-                            className="text-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="">All AMs</option>
-                            {AREA_MANAGERS.map(am => (
-                              <option key={am.id} value={am.id}>{am.name}</option>
-                            ))}
-                          </select>
-
-                          <select
-                            value={filters.store}
-                            onChange={(e) => handleFilterChange('store', e.target.value)}
-                            className="text-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="">All Stores</option>
-                            {allStores.map(store => (
-                              <option key={store.id} value={store.id}>{store.name}</option>
-                            ))}
-                          </select>
-
-                          <select
-                            value={filters.month}
-                            onChange={(e) => handleFilterChange('month', e.target.value)}
-                            className="text-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="">All Time</option>
-                            <option value="2024-12">Dec 2024</option>
-                            <option value="2025-01">Jan 2025</option>
-                            <option value="2025-02">Feb 2025</option>
-                            <option value="2025-03">Mar 2025</option>
-                            <option value="2025-04">Apr 2025</option>
-                            <option value="2025-05">May 2025</option>
-                            <option value="2025-06">Jun 2025</option>
-                            <option value="2025-07">Jul 2025</option>
-                            <option value="2025-08">Aug 2025</option>
-                            <option value="2025-09">Sep 2025</option>
-                            <option value="2025-10">Oct 2025</option>
-                            <option value="2025-11">Nov 2025</option>
-                            <option value="2025-12">Dec 2025</option>
-                          </select>
+                        {/* Info: Uses main filters */}
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500 dark:text-slate-400">
+                            <svg className="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Uses dashboard filters above
+                          </p>
                         </div>
                       </div>
 
