@@ -320,8 +320,7 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
     const finalPercent = calculatedPercent;
 
     // Get proper mappings for the store
-    // Try both formats: with spaces (from Google Sheets) and without (from local data)
-    // IMPORTANT: Preserve AM and HR data from Google Sheets as primary source
+    // NEW LOGIC: First get employee's store from Employee Master, then lookup HRBP from Store Mapping
     const originalAmId = row['AM ID'] || row.amId || '';
     const originalAmName = row['AM Name'] || row.amName || '';
     let amId = originalAmId;
@@ -335,13 +334,34 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
     let hrName = originalHrName;
     let region = row['Region'] || row.region || 'Unknown';
 
-    // Look up from comprehensive store mapping ONLY if AM/HR data is missing from Google Sheets
-    if (row['Store ID'] || row.storeID || row.storeId) {
-      const storeId = row['Store ID'] || row.storeID || row.storeId;
+    // Step 1: Get the employee's store from Employee Master sheet
+    const empId = row['Emp ID'] || row.empId || '';
+    let actualStoreId = row['Store ID'] || row.storeID || row.storeId || '';
+    
+    if (empId) {
+      try {
+        // Import and use employee directory service
+        const { fetchEmployeeDirectory } = await import('./employeeDirectoryService');
+        const employeeDir = await fetchEmployeeDirectory();
+        const normalizedEmpId = empId.toString().trim().toUpperCase();
+        const employee = employeeDir.byId[normalizedEmpId];
+        
+        if (employee && employee.store_code) {
+          // Use the employee's actual store from Employee Master
+          actualStoreId = employee.store_code;
+          console.log(`[HR Survey] Employee ${empId} belongs to store ${actualStoreId} (from Employee Master)`);
+        }
+      } catch (error) {
+        console.warn('[HR Survey] Could not fetch employee directory:', error);
+      }
+    }
+
+    // Step 2: Look up Store Mapping using the employee's actual store
+    if (actualStoreId) {
       try {
         const mappingData = await loadStoreMapping();
         const storeMapping = mappingData.find((mapping: any) =>
-          mapping['Store ID'] === storeId || mapping.storeId === storeId
+          mapping['Store ID'] === actualStoreId || mapping.storeId === actualStoreId
         );
 
         if (storeMapping) {
@@ -355,26 +375,29 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
             }
           }
 
-          // Only use store mapping HRBP if Google Sheets didn't provide HR data
+          // Get HRBP (HR ID 1) from Store Mapping - this is the correct HRBP for the employee's store
           if (!originalHrId) {
-            const mappedHrId = storeMapping.HRBP || storeMapping['Regional Training Manager'] ||
-              storeMapping['HR Head'] || storeMapping.hrbpId ||
+            const mappedHrId = storeMapping.HRBP || storeMapping['HRBP ID'] || storeMapping.hrbpId || 
+              storeMapping['Regional Training Manager'] || storeMapping['HR Head'] || 
               storeMapping.regionalHrId || storeMapping.hrHeadId;
             if (mappedHrId) {
               hrId = mappedHrId;
               const hrPerson = HR_PERSONNEL.find(hr => hr.id === hrId);
               hrName = hrPerson?.name || `HR ${hrId}`;
+              console.log(`[HR Survey] HRBP for store ${actualStoreId}: ${hrName} (${hrId})`);
             }
           }
 
-          // Get Region from mapping only if not in Google Sheets
+          // Get Region from mapping
           const mappedRegion = storeMapping.Region || storeMapping['Region'] || storeMapping.region;
           if (mappedRegion && !row['Region'] && !row.region) {
             region = mappedRegion;
           }
+        } else {
+          console.warn(`[HR Survey] Store ${actualStoreId} not found in Store Mapping`);
         }
       } catch (error) {
-        // Mapping failed, use original values
+        console.error('[HR Survey] Error looking up store mapping:', error);
       }
     }
 

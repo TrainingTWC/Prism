@@ -475,10 +475,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           const region = item.Region || item.region;
           const amId = item['AM'] || item.amId;
           const amName = item['AM Name'] || item.amName;
-          const hrbpId = item['HRBP'] || item.hrbpId;
-          const regionalHrId = item['Regional HR'] || item.regionalHrId;
-          const hrHeadId = item['HR Head'] || item.hrHeadId;
-          const lmsHeadId = item['E-Learning Specialist'] || item.lmsHeadId;
+          // Get HRBP 1, 2, and 3 IDs from Store Mapping for HR dropdown
+          const hrbp1Id = item['HRBP 1 ID'] || item['HRBP 1'] || item['HRBP'];
+          const hrbp2Id = item['HRBP 2 ID'] || item['HRBP 2'];
+          const hrbp3Id = item['HRBP 3 ID'] || item['HRBP 3'];
 
           if (storeId && !storeMap.has(storeId)) {
             storeMap.set(storeId, { name: storeName, id: storeId, region });
@@ -494,15 +494,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             }
           }
 
-          [
-            { id: hrbpId, type: 'HRBP' },
-            { id: regionalHrId, type: 'Regional HR' },
-            { id: hrHeadId, type: 'HR Head' },
-            { id: lmsHeadId, type: 'LMS Head' }
-          ].forEach(({ id, type }) => {
-            if (id && !hrMap.has(id)) {
-              const hrFromConstants = HR_PERSONNEL.find(hr => String(hr.id).toLowerCase() === String(id).toLowerCase());
-              hrMap.set(id, { name: hrFromConstants?.name || `${type} ${id}`, id });
+          // Add all HRBPs (1, 2, 3) to HR dropdown
+          [hrbp1Id, hrbp2Id, hrbp3Id].forEach(hrbpId => {
+            if (hrbpId && !hrMap.has(hrbpId)) {
+              const hrFromConstants = HR_PERSONNEL.find(hr => String(hr.id).toLowerCase() === String(hrbpId).toLowerCase());
+              hrMap.set(hrbpId, { name: hrFromConstants?.name || `HRBP ${hrbpId}`, id: hrbpId });
             }
           });
         });

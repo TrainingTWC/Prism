@@ -6,6 +6,7 @@ import { hapticFeedback } from '../utils/haptics';
 import LoadingOverlay from './LoadingOverlay';
 import { STORES_PROMISE, MAPPED_STORES } from '../mappedStores';
 import { useConfig } from '../contexts/ConfigContext';
+import { loadComprehensiveMapping } from '../utils/mappingUtils';
 
 // Google Sheets endpoint for logging data
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwhLhe3zHEn8MF3pnhJQ8-N3kfnw8iMKNKUHsPRgiMradXIov8Bx6GFsBcRGxAO4ilmRw/exec';
@@ -49,15 +50,17 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
   });
 
   const [meta, setMeta] = useState<SurveyMeta>(() => {
-    let stored = {};
-    try { 
-      stored = JSON.parse(localStorage.getItem('hr_meta') || '{}'); 
+    // Clear localStorage on mount to force fresh HR selection from Store Mapping only
+    try {
+      localStorage.removeItem('hr_meta');
+      localStorage.removeItem('hr_resp');
+      console.log('🗑️ Cleared localStorage on mount - will validate against Store Mapping');
     } catch(e) {}
     
-    // Get HR info from URL parameters (only HR fills survey)
+    // Get HR info from URL parameters ONLY (not from localStorage)
     const urlParams = new URLSearchParams(window.location.search);
-    const hrId = urlParams.get('hrId') || urlParams.get('hr_id') || (stored as any).hrId || '';
-    const hrName = urlParams.get('hrName') || urlParams.get('hr_name') || (stored as any).hrName || '';
+    const hrId = urlParams.get('hrId') || urlParams.get('hr_id') || '';
+    const hrName = urlParams.get('hrName') || urlParams.get('hr_name') || '';
     
     console.log('🚀 Initial HR lookup - ID:', hrId, 'Name:', hrName);
     console.log('📋 HR_PERSONNEL array:', HR_PERSONNEL);
@@ -96,22 +99,24 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
     const result = {
       hrName: finalHrName,
       hrId: finalHrId,
-      amName: (stored as any).amName || '', // AM will be auto-filled from HR mapping
-      amId: (stored as any).amId || '',     // AM will be auto-filled from HR mapping
-      empName: (stored as any).empName || '',
-      empId: (stored as any).empId || '',
-      storeName: (stored as any).storeName || '',
-      storeId: (stored as any).storeId || ''
+      amName: '', // Never use stored values
+      amId: '',
+      empName: '',
+      empId: '',
+      storeName: '',
+      storeId: ''
     };
     
-    console.log('🎯 Initial meta state:', result);
+    console.log('🎯 Initial meta state (from URL only):', result);
     return result;
   });
 
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingHRData, setLoadingHRData] = useState(true);
   const [allStores, setAllStores] = useState<Store[]>([]);
   const [filteredStoresByHR, setFilteredStoresByHR] = useState<Store[]>([]);
+  const [hrPersonnelFromMapping, setHrPersonnelFromMapping] = useState<Array<{id: string, name: string}>>([]);
   
   // Search states for dropdowns
   const [amSearchTerm, setAmSearchTerm] = useState('');
@@ -392,9 +397,77 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
     return matchingStores;
   }, [userRole, allStores, filteredStoresByHR, meta.hrId, meta.amId]);
 
+  // Load HR personnel from Store Mapping sheet's HRBP 1, 2, and 3 ID columns
+  useEffect(() => {
+    const loadHRPersonnel = async () => {
+      setLoadingHRData(true);
+      try {
+        const mappingData = await loadComprehensiveMapping();
+        const hrMap = new Map<string, string>();
+        
+        mappingData.forEach((item: any) => {
+          // Get HRBP 1, 2, and 3 IDs from Store Mapping
+          const hrbp1Id = item['HRBP 1 ID'] || item['HRBP 1'] || item['HRBP'];
+          const hrbp2Id = item['HRBP 2 ID'] || item['HRBP 2'];
+          const hrbp3Id = item['HRBP 3 ID'] || item['HRBP 3'];
+          
+          // Add all HRBPs to the map
+          [hrbp1Id, hrbp2Id, hrbp3Id].forEach(hrbpId => {
+            if (hrbpId && !hrMap.has(hrbpId)) {
+              // Try to get name from HR_PERSONNEL constants, otherwise use ID
+              const hrFromConstants = HR_PERSONNEL.find(hr => 
+                String(hr.id).toLowerCase() === String(hrbpId).toLowerCase()
+              );
+              hrMap.set(hrbpId, hrFromConstants?.name || `HRBP ${hrbpId}`);
+            }
+          });
+        });
+        
+        const hrList = Array.from(hrMap.entries()).map(([id, name]) => ({ id, name }));
+        hrList.sort((a, b) => a.name.localeCompare(b.name));
+        
+        console.log('✅ Loaded HR personnel from Store Mapping (HRBP 1, 2, 3):', hrList.length, 'HRBPs');
+        console.log('📋 Valid HR IDs from Store Mapping:', hrList.map(hr => `${hr.name} (${hr.id})`).join(', '));
+        
+        // Validate current HR in meta against loaded list - clear if not found
+        if (meta.hrId) {
+          const isValidHR = hrList.some(hr => hr.id.toLowerCase() === meta.hrId.toLowerCase());
+          if (!isValidHR) {
+            console.warn(`❌ Invalid HR detected: ${meta.hrName} (${meta.hrId}) not found in Store Mapping. Clearing all data.`);
+            setMeta({
+              hrName: '',
+              hrId: '',
+              amName: '',
+              amId: '',
+              empName: '',
+              empId: '',
+              storeName: '',
+              storeId: ''
+            });
+            // Clear localStorage as well
+            localStorage.removeItem('hr_meta');
+            localStorage.removeItem('hr_resp');
+          } else {
+            console.log(`✅ Valid HR confirmed: ${meta.hrName} (${meta.hrId})`);
+          }
+        }
+        
+        setHrPersonnelFromMapping(hrList);
+      } catch (error) {
+        console.error('❌ Failed to load HR personnel from Store Mapping:', error);
+        setHrPersonnelFromMapping([]);
+      } finally {
+        setLoadingHRData(false);
+      }
+    };
+    
+    loadHRPersonnel();
+  }, []);
+
   const availableHRPersonnel = useMemo(() => {
-    return HR_PERSONNEL.filter(hr => canAccessHR(userRole, hr.id));
-  }, [userRole]);
+    // ONLY use HR personnel from Store Mapping - no fallback to constants
+    return hrPersonnelFromMapping.filter(hr => canAccessHR(userRole, hr.id));
+  }, [userRole, hrPersonnelFromMapping]);
 
   // Filtered search results
   const filteredAreaManagers = useMemo(() => {
@@ -677,7 +750,12 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
                 HR Name 
                 {meta.hrName && <span className="text-green-600 dark:text-green-400 text-xs">(Auto-filled from URL)</span>}
               </span>
-              {meta.hrName ? (
+              {loadingHRData ? (
+                <div className="p-3 border border-gray-300 dark:border-slate-600 rounded bg-gray-100 dark:bg-slate-600 text-gray-500 dark:text-slate-400 flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 dark:border-white"></div>
+                  Loading HR data from Store Mapping...
+                </div>
+              ) : meta.hrName ? (
                 <input 
                   className="p-3 border border-gray-300 dark:border-slate-600 rounded bg-gray-100 dark:bg-slate-600 text-gray-900 dark:text-slate-200" 
                   value={meta.hrName} 
