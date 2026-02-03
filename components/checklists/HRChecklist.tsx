@@ -40,10 +40,50 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
   // Use config data if available, otherwise fall back to hardcoded constants
   const QUESTIONS = config?.QUESTIONS || DEFAULT_QUESTIONS;
   const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
-  const HR_PERSONNEL = config?.HR_PERSONNEL || DEFAULT_HR_PERSONNEL;
   
   // Use comprehensive mapping as store data source (same as SHLP)
   const allStores = comprehensiveMapping || [];
+  
+  // Load HR personnel from Store Mapping (HRBP 1, 2, 3 columns)
+  const HR_PERSONNEL = useMemo(() => {
+    if (!allStores || allStores.length === 0) {
+      console.log('[HRChecklist] ⏳ Waiting for Store Mapping to load HR personnel');
+      return [];
+    }
+    
+    const hrSet = new Set<string>();
+    const hrPersonnel: Array<{ id: string; name: string }> = [];
+    
+    allStores.forEach((store: any) => {
+      // Check HRBP 1, 2, 3 ID columns
+      const hrbp1Id = (store['HRBP 1 ID'] || store.hrbp1Id || '').toString().trim();
+      const hrbp2Id = (store['HRBP 2 ID'] || store.hrbp2Id || '').toString().trim();
+      const hrbp3Id = (store['HRBP 3 ID'] || store.hrbp3Id || '').toString().trim();
+      
+      [hrbp1Id, hrbp2Id, hrbp3Id].forEach((hrId) => {
+        if (hrId && !hrSet.has(hrId)) {
+          hrSet.add(hrId);
+          hrPersonnel.push({ id: hrId, name: hrId });
+        }
+      });
+    });
+    
+    console.log(`[HRChecklist] ✅ Loaded ${hrPersonnel.length} HR personnel from Store Mapping (HRBP 1, 2, 3 ID)`);
+    console.log('[HRChecklist] 📋 Valid HR IDs from Store Mapping:', Array.from(hrSet));
+    return hrPersonnel;
+  }, [allStores]);
+  
+  // Validate HR selection against Store Mapping data
+  useEffect(() => {
+    if (HR_PERSONNEL.length > 0 && meta.hrId) {
+      const isValid = HR_PERSONNEL.some(hr => hr.id === meta.hrId);
+      if (!isValid) {
+        console.log(`[HRChecklist] ❌ Invalid HR detected: ${meta.hrId} - Not in Store Mapping. Clearing...`);
+        setMeta(prev => ({ ...prev, hrId: '', hrName: '' }));
+        localStorage.removeItem('hr_meta');
+      }
+    }
+  }, [HR_PERSONNEL, meta.hrId]);
   
   const [responses, setResponses] = useState<SurveyResponse>(() => {
     try { 
@@ -260,8 +300,11 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
   }, [userRole, allStores, filteredStoresByHR, meta.hrId, meta.amId]);
 
   const availableHRPersonnel = useMemo(() => {
+    if (HR_PERSONNEL.length === 0) {
+      return [];
+    }
     return HR_PERSONNEL.filter(hr => canAccessHR(userRole, hr.id));
-  }, [userRole]);
+  }, [HR_PERSONNEL, userRole]);
 
   const filteredAreaManagers = useMemo(() => {
     if (!amSearchTerm) return availableAreaManagers;

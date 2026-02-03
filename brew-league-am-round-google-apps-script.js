@@ -159,32 +159,38 @@ function doGet(e) {
       return createJsonResponse([]);
     }
     
-    // Check if first row contains headers or data
-    // If first row starts with a date/timestamp, assume no headers
-    const firstCell = data[0][0];
+    // Always use row 1 as headers if it exists, otherwise use CONFIG.HEADERS
     let headers;
     let rows;
     
-    // Check if first cell is a date or looks like a timestamp
-    const hasHeaders = !(firstCell instanceof Date || 
-                        (typeof firstCell === 'string' && firstCell.match(/^\d{4}-\d{2}-\d{2}/)) ||
-                        (typeof firstCell === 'number' && firstCell > 40000)); // Excel date serial
-    
-    if (hasHeaders) {
-      // Sheet has headers in first row
+    // Check if sheet has at least one row
+    if (data.length >= 1) {
+      // Always assume first row is headers
       headers = data[0];
       rows = data.slice(1);
+      
+      // If first row looks like data (starts with date), use CONFIG.HEADERS instead
+      const firstCell = data[0][0];
+      if (firstCell instanceof Date || 
+          (typeof firstCell === 'string' && firstCell.match(/^\d{4}-\d{2}-\d{2}/)) ||
+          (typeof firstCell === 'number' && firstCell > 40000)) {
+        // First row is data, not headers
+        headers = CONFIG.HEADERS;
+        rows = data;
+      }
     } else {
-      // Sheet has no headers, use CONFIG.HEADERS
       headers = CONFIG.HEADERS;
-      rows = data;
+      rows = [];
     }
     
-    // Convert to JSON objects
+    // Convert to JSON objects - ensure proper mapping
     let jsonData = rows.map(function(row) {
       const obj = {};
       headers.forEach(function(header, index) {
-        obj[header] = row[index];
+        // Ensure we're mapping correctly with proper header names
+        if (header && index < row.length) {
+          obj[header] = row[index];
+        }
       });
       return obj;
     });

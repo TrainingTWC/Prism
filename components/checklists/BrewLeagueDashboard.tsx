@@ -76,24 +76,36 @@ const BrewLeagueDashboard: React.FC = () => {
           const regionArray = Array.isArray(regionData) ? regionData : (regionData.data || []);
           
           if (Array.isArray(regionArray) && regionArray.length > 0) {
-            const mappedRegion: BrewLeagueSubmission[] = regionArray.map((row: any) => ({
-              timestamp: row['Timestamp'] || row.timestamp || '',
-              participantName: row['Participant Name'] || row.participantName || '',
-              participantEmpID: row['Participant Emp ID'] || row['Participant Emp. ID'] || row.participantEmpID || '',
-              judgeName: row['Judge Name'] || row.judgeName || '',
-              judgeID: row['Judge Emp ID'] || row['Judge ID'] || row.judgeID || '',
-              scoresheetType: (row['Scoresheet Type'] || row.scoresheetType || 'technical').toLowerCase() as 'technical' | 'sensory',
-              machineType: (row['Machine Type'] || row.machineType || 'manual').toLowerCase() as 'manual' | 'automatic',
-              storeName: row['Store Name'] || row.storeName || '',
-              storeID: row['Store ID'] || row.storeID || '',
-              region: row['Region'] || row.region || '',
-              totalScore: Number(row['Total Score'] || row.totalScore || 0),
-              maxScore: Number(row['Max Score'] || row.maxScore || 0),
-              percentage: Number(row['Percentage'] || row.percentage || 0),
-              submissionTime: row['Submission Time'] || row.submissionTime || '',
-              roundType: 'region',
-              sections: {}
-            }));
+            const mappedRegion: BrewLeagueSubmission[] = regionArray.map((row: any) => {
+              // Parse timestamp properly
+              let timestamp = row['Timestamp'] || row.timestamp || '';
+              if (timestamp instanceof Date) {
+                timestamp = timestamp.toISOString();
+              } else if (typeof timestamp === 'number') {
+                // Handle Excel date serial numbers
+                const excelEpoch = new Date(1899, 11, 30);
+                timestamp = new Date(excelEpoch.getTime() + timestamp * 86400000).toISOString();
+              }
+              
+              return {
+                timestamp,
+                participantName: row['Participant Name'] || row.participantName || '',
+                participantEmpID: row['Participant Emp ID'] || row['Participant Emp. ID'] || row.participantEmpID || '',
+                judgeName: row['Judge Name'] || row.judgeName || '',
+                judgeID: row['Judge Emp ID'] || row['Judge ID'] || row.judgeID || '',
+                scoresheetType: (row['Scoresheet Type'] || row.scoresheetType || 'technical').toLowerCase() as 'technical' | 'sensory',
+                machineType: (row['Machine Type'] || row.machineType || 'manual').toLowerCase() as 'manual' | 'automatic',
+                storeName: row['Store Name'] || row.storeName || '',
+                storeID: row['Store ID'] || row.storeID || '',
+                region: row['Region'] || row.region || '',
+                totalScore: Number(row['Total Score'] || row.totalScore || 0),
+                maxScore: Number(row['Max Score'] || row.maxScore || 0),
+                percentage: Number(row['Percentage'] || row.percentage || 0),
+                submissionTime: row['Submission Time'] || row.submissionTime || '',
+                roundType: 'region' as const,
+                sections: {}
+              };
+            });
             allSubmissions = [...allSubmissions, ...mappedRegion];
             regionCount = mappedRegion.length;
             console.log(`✅ Loaded ${regionCount} Region Round submissions`);
@@ -113,28 +125,47 @@ const BrewLeagueDashboard: React.FC = () => {
           const amArray = Array.isArray(amData) ? amData : (amData.data || []);
           
           if (Array.isArray(amArray) && amArray.length > 0) {
-            const mappedAM: BrewLeagueSubmission[] = amArray.map((row: any) => ({
-              timestamp: row['Timestamp'] || row.timestamp || '',
-              participantName: row['Participant Name'] || row.participantName || '',
-              participantEmpID: row['Participant Emp ID'] || row['Participant Emp. ID'] || row.participantEmpID || '',
-              judgeName: row['Judge Name'] || row.judgeName || '',
-              judgeID: row['Judge Emp ID'] || row['Judge ID'] || row.judgeID || '',
-              scoresheetType: (row['Scoresheet Type'] || row.scoresheetType || 'technical').toLowerCase() as 'technical' | 'sensory',
-              machineType: (row['Machine Type'] || row.machineType || 'manual').toLowerCase() as 'manual' | 'automatic',
-              storeName: row['Store Name'] || row.storeName || '',
-              storeID: row['Store ID'] || row.storeID || '',
-              areaManager: row['Area Manager'] || row.areaManager || '',
-              region: row['Region'] || row.region || '',
-              totalScore: Number(row['Total Score'] || row.totalScore || 0),
-              maxScore: Number(row['Max Score'] || row.maxScore || 0),
-              percentage: Number(row['Percentage'] || row.percentage || 0),
-              submissionTime: row['Submission Time'] || row.submissionTime || '',
-              roundType: 'am',
-              sections: {}
-            }));
+            const mappedAM: BrewLeagueSubmission[] = amArray.map((row: any) => {
+              // Parse timestamp properly
+              let timestamp = row['Timestamp'] || row.timestamp || '';
+              if (timestamp instanceof Date) {
+                timestamp = timestamp.toISOString();
+              } else if (typeof timestamp === 'number') {
+                // Handle Excel date serial numbers
+                const excelEpoch = new Date(1899, 11, 30);
+                timestamp = new Date(excelEpoch.getTime() + timestamp * 86400000).toISOString();
+              }
+              
+              return {
+                timestamp,
+                participantName: row['Participant Name'] || row.participantName || '',
+                participantEmpID: row['Participant Emp ID'] || row['Participant Emp. ID'] || row.participantEmpID || '',
+                judgeName: row['Judge Name'] || row.judgeName || '',
+                judgeID: row['Judge Emp ID'] || row['Judge ID'] || row.judgeID || '',
+                scoresheetType: (row['Scoresheet Type'] || row.scoresheetType || 'technical').toLowerCase() as 'technical' | 'sensory',
+                machineType: (row['Machine Type'] || row.machineType || 'manual').toLowerCase() as 'manual' | 'automatic',
+                storeName: row['Store Name'] || row.storeName || '',
+                storeID: row['Store ID'] || row.storeID || '',
+                areaManager: row['Area Manager'] || row.areaManager || '',
+                region: row['Region'] || row.region || '',
+                totalScore: Number(row['Total Score'] || row.totalScore || 0),
+                maxScore: Number(row['Max Score'] || row.maxScore || 0),
+                percentage: Number(row['Percentage'] || row.percentage || 0),
+                submissionTime: row['Submission Time'] || row.submissionTime || '',
+                roundType: 'am' as const,
+                sections: {}
+              };
+            });
             allSubmissions = [...allSubmissions, ...mappedAM];
             amCount = mappedAM.length;
             console.log(`✅ Loaded ${amCount} AM Round submissions`);
+            console.log('Sample AM submission:', mappedAM[0]);
+            console.log('Raw AM data first row:', amArray[0]);
+            console.log('Percentage fields check:', {
+              'Percentage': amArray[0]?.['Percentage'],
+              'percentage': amArray[0]?.['percentage'],
+              'Parsed': Number(amArray[0]?.['Percentage'] || amArray[0]?.['percentage'] || 0)
+            });
           } else {
             console.warn('⚠️ AM Round data is empty or invalid format');
           }
@@ -466,7 +497,9 @@ const BrewLeagueDashboard: React.FC = () => {
                       </span>
                     </div>
                     <div className="mt-2 text-xs text-gray-500 dark:text-slate-500">
-                      {new Date(sub.timestamp).toLocaleString()}
+                      {sub.timestamp && !isNaN(new Date(sub.timestamp).getTime()) 
+                        ? new Date(sub.timestamp).toLocaleString()
+                        : 'Date unavailable'}
                     </div>
                   </div>
                 ))}
