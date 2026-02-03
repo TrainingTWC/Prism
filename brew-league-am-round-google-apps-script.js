@@ -159,8 +159,26 @@ function doGet(e) {
       return createJsonResponse([]);
     }
     
-    const headers = data[0];
-    const rows = data.slice(1);
+    // Check if first row contains headers or data
+    // If first row starts with a date/timestamp, assume no headers
+    const firstCell = data[0][0];
+    let headers;
+    let rows;
+    
+    // Check if first cell is a date or looks like a timestamp
+    const hasHeaders = !(firstCell instanceof Date || 
+                        (typeof firstCell === 'string' && firstCell.match(/^\d{4}-\d{2}-\d{2}/)) ||
+                        (typeof firstCell === 'number' && firstCell > 40000)); // Excel date serial
+    
+    if (hasHeaders) {
+      // Sheet has headers in first row
+      headers = data[0];
+      rows = data.slice(1);
+    } else {
+      // Sheet has no headers, use CONFIG.HEADERS
+      headers = CONFIG.HEADERS;
+      rows = data;
+    }
     
     // Convert to JSON objects
     let jsonData = rows.map(function(row) {
