@@ -28,6 +28,7 @@ interface BrewLeagueSubmission {
 const BrewLeagueDashboard: React.FC = () => {
   const [submissions, setSubmissions] = useState<BrewLeagueSubmission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filterRegion, setFilterRegion] = useState<string>('all');
   const [filterScoresheet, setFilterScoresheet] = useState<string>('all');
   const [filterMachine, setFilterMachine] = useState<string>('all');
@@ -38,6 +39,8 @@ const BrewLeagueDashboard: React.FC = () => {
   useEffect(() => {
     const fetchBrewLeagueData = async () => {
       try {
+        setLoading(true);
+        setError(null);
         console.log('Fetching Brew League data from both endpoints...');
         
         // Fetch both Region and AM Round data in parallel
@@ -46,23 +49,34 @@ const BrewLeagueDashboard: React.FC = () => {
             method: 'GET',
             headers: { 'Accept': 'application/json' },
             redirect: 'follow',
+          }).catch(err => {
+            console.error('Region Round fetch failed:', err);
+            return null;
           }),
           fetch(BREW_LEAGUE_AM_ENDPOINT, {
             method: 'GET',
             headers: { 'Accept': 'application/json' },
             redirect: 'follow',
+          }).catch(err => {
+            console.error('AM Round fetch failed:', err);
+            return null;
           })
         ]);
         
         let allSubmissions: BrewLeagueSubmission[] = [];
+        let regionCount = 0;
+        let amCount = 0;
         
         // Process Region Round data
-        if (regionResponse.ok) {
+        if (regionResponse && regionResponse.ok) {
           const regionData = await regionResponse.json();
-          console.log('Received Region Round data:', regionData);
+          console.log('✅ Received Region Round data:', regionData);
           
-          if (Array.isArray(regionData)) {
-            const mappedRegion: BrewLeagueSubmission[] = regionData.map((row: any) => ({
+          // Handle both array and {data: array} response formats
+          const regionArray = Array.isArray(regionData) ? regionData : (regionData.data || []);
+          
+          if (Array.isArray(regionArray) && regionArray.length > 0) {
+            const mappedRegion: BrewLeagueSubmission[] = regionArray.map((row: any) => ({
               timestamp: row['Timestamp'] || row.timestamp || '',
               participantName: row['Participant Name'] || row.participantName || '',
               participantEmpID: row['Participant Emp ID'] || row['Participant Emp. ID'] || row.participantEmpID || '',
@@ -81,18 +95,24 @@ const BrewLeagueDashboard: React.FC = () => {
               sections: {}
             }));
             allSubmissions = [...allSubmissions, ...mappedRegion];
+            regionCount = mappedRegion.length;
+            console.log(`✅ Loaded ${regionCount} Region Round submissions`);
+          } else {
+            console.warn('⚠️ Region Round data is empty or invalid format');
           }
+        } else {
+          console.warn('⚠️ Region Round endpoint failed or not ok');
         }
         
         // Process AM Round data
-        if (amResponse.ok) {
+        if (amResponse && amResponse.ok) {
           const amData = await amResponse.json();
-          console.log('Received AM Round data:', amData);
+          console.log('✅ Received AM Round data:', amData);
           
           // Handle both array and {data: array} response formats
           const amArray = Array.isArray(amData) ? amData : (amData.data || []);
           
-          if (Array.isArray(amArray)) {
+          if (Array.isArray(amArray) && amArray.length > 0) {
             const mappedAM: BrewLeagueSubmission[] = amArray.map((row: any) => ({
               timestamp: row['Timestamp'] || row.timestamp || '',
               participantName: row['Participant Name'] || row.participantName || '',
@@ -113,15 +133,27 @@ const BrewLeagueDashboard: React.FC = () => {
               sections: {}
             }));
             allSubmissions = [...allSubmissions, ...mappedAM];
+            amCount = mappedAM.length;
+            console.log(`✅ Loaded ${amCount} AM Round submissions`);
+          } else {
+            console.warn('⚠️ AM Round data is empty or invalid format');
           }
+        } else {
+          console.warn('⚠️ AM Round endpoint failed or not ok');
         }
         
-        console.log('Total submissions loaded:', allSubmissions.length);
+        console.log(`📊 Total submissions loaded: ${allSubmissions.length} (Region: ${regionCount}, AM: ${amCount})`);
+        
+        if (allSubmissions.length === 0) {
+          setError('No submissions found. Please ensure data is logged in the Google Sheets.');
+        }
+        
         setSubmissions(allSubmissions);
         setLoading(false);
         
       } catch (error) {
-        console.error('Error fetching Brew League data:', error);
+        console.error('❌ Error fetching Brew League data:', error);
+        setError(`Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'}`);
         setLoading(false);
       }
     };
@@ -182,6 +214,32 @@ const BrewLeagueDashboard: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-sm">!</div>
+              <div>
+                <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">Error Loading Data</h3>
+                <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-2">
+                  Please check the browser console for more details.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-12">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-amber-600 border-t-transparent mb-4"></div>
+              <p className="text-gray-600 dark:text-slate-400">Loading Brew League data...</p>
+            </div>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
