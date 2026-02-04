@@ -180,13 +180,13 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
         
         const normalizedHrId = meta.hrId.toUpperCase();
         
-        // Find stores where HR matches any of: HRBP 1/2/3, Regional HR, HR Head
+        // Find stores where HR matches any of: HRBP 1/2/3 ID, Regional HR ID, HR Head ID
         const hrStores = allStores.filter((store: any) => {
-          const hrbp1 = (store['HRBP 1'] || store.hrbpId || '').toString().toUpperCase();
-          const hrbp2 = (store['HRBP 2'] || '').toString().toUpperCase();
-          const hrbp3 = (store['HRBP 3'] || '').toString().toUpperCase();
-          const regionalHr = (store['Regional HR'] || store.regionalHrId || '').toString().toUpperCase();
-          const hrHead = (store['HR Head'] || store.hrHeadId || '').toString().toUpperCase();
+          const hrbp1 = (store['HRBP 1 ID'] || store['HRBP 1'] || store.hrbpId || '').toString().toUpperCase();
+          const hrbp2 = (store['HRBP 2 ID'] || store['HRBP 2'] || '').toString().toUpperCase();
+          const hrbp3 = (store['HRBP 3 ID'] || store['HRBP 3'] || '').toString().toUpperCase();
+          const regionalHr = (store['Regional HR ID'] || store['Regional HR'] || store.regionalHrId || '').toString().toUpperCase();
+          const hrHead = (store['HR Head ID'] || store['HR Head'] || store.hrHeadId || '').toString().toUpperCase();
           
           return hrbp1 === normalizedHrId || 
                  hrbp2 === normalizedHrId || 

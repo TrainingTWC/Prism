@@ -494,11 +494,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             }
           }
 
-          // Add all HRBPs (1, 2, 3) to HR dropdown
+          // Add all HRBPs (1, 2, 3) to HR dropdown - use ID as name (no constants fallback)
           [hrbp1Id, hrbp2Id, hrbp3Id].forEach(hrbpId => {
             if (hrbpId && !hrMap.has(hrbpId)) {
-              const hrFromConstants = HR_PERSONNEL.find(hr => String(hr.id).toLowerCase() === String(hrbpId).toLowerCase());
-              hrMap.set(hrbpId, { name: hrFromConstants?.name || `HRBP ${hrbpId}`, id: hrbpId });
+              hrMap.set(hrbpId, { name: hrbpId, id: hrbpId });
             }
           });
         });
@@ -552,7 +551,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             { name: 'Koramangala 1', id: 'S001' }
           ]);
           setAllAreaManagers(AREA_MANAGERS);
-          setAllHRPersonnel(HR_PERSONNEL);
+          setAllHRPersonnel([]); // Empty array - must load from Store Mapping
           setAllTrainers(TRAINER_PERSONNEL);
           setHrMappingData([]);
           setCompStoreMapping([]);
