@@ -2363,7 +2363,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
         // Trainer filter (HR field in training context)
         if (filters.trainer) {
-          const t = HR_PERSONNEL.find(h => h.id === filters.trainer) || AREA_MANAGERS.find(a => a.id === filters.trainer);
+          const t = allHRPersonnel.find(h => h.id === filters.trainer) || AREA_MANAGERS.find(a => a.id === filters.trainer);
           meta.trainerName = t?.name || filters.trainer;
           meta.trainerId = filters.trainer;
         } else if (reportData.length > 0 && reportData.length === 1) {
@@ -2437,7 +2437,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         }
 
         if (filters.trainer) {
-          const t = HR_PERSONNEL.find(h => h.id === filters.trainer) || AREA_MANAGERS.find(a => a.id === filters.trainer);
+          const t = allHRPersonnel.find(h => h.id === filters.trainer) || AREA_MANAGERS.find(a => a.id === filters.trainer);
           meta.trainerName = t?.name || filters.trainer;
           meta.trainerId = filters.trainer;
         } else if (reportData.length > 0 && reportData.length === 1) {
@@ -2579,7 +2579,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
         // HR Person filter
         if (filters.hrPerson) {
-          const hr = HR_PERSONNEL.find(h => h.id === filters.hrPerson);
+          const hr = allHRPersonnel.find(h => h.id === filters.hrPerson);
           meta.hrPersonName = hr?.name || filters.hrPerson;
           meta.hrPersonId = filters.hrPerson;
         } else if (reportData.length > 0 && reportData.length === 1) {
@@ -2647,11 +2647,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
         // Trainer filter - get name from personnel list
         if (filters.trainer) {
-          const t = HR_PERSONNEL.find(h => h.id === filters.trainer) || AREA_MANAGERS.find(a => a.id === filters.trainer);
+          const t = allHRPersonnel.find(h => h.id === filters.trainer) || AREA_MANAGERS.find(a => a.id === filters.trainer);
           meta.trainerName = t?.name || filters.trainer;
         } else if (firstRecord) {
           const trainerId = firstRecord['Trainer'] || '';
-          const trainerInfo = HR_PERSONNEL.find(h => h.id === trainerId) || AREA_MANAGERS.find(a => a.id === trainerId);
+          const trainerInfo = allHRPersonnel.find(h => h.id === trainerId) || AREA_MANAGERS.find(a => a.id === trainerId);
           meta.trainerName = trainerInfo?.name || trainerId;
         }
 
@@ -2717,7 +2717,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           };
         } else if (filters.trainer) {
           // Trainer filter used as trainer selection for training dashboard
-          const trainerInfo = HR_PERSONNEL.find(hr => hr.id === filters.trainer) || AREA_MANAGERS.find(am => am.id === filters.trainer);
+          const trainerInfo = allHRPersonnel.find(hr => hr.id === filters.trainer) || AREA_MANAGERS.find(am => am.id === filters.trainer);
           entityDetails = {
             'Trainer Name': trainerInfo?.name || filters.trainer,
             'Trainer ID': filters.trainer,
@@ -2773,7 +2773,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           'Data Type': dataType
         };
       } else if (filters.trainer) {
-        const hrInfo = HR_PERSONNEL.find(hr => hr.id === filters.trainer);
+        const hrInfo = allHRPersonnel.find(hr => hr.id === filters.trainer);
         // dashboardType may be a union; perform a runtime string check for 'training'
         const roleName = String(dashboardType) === 'training' ? 'Trainer' : 'HR Personnel';
         reportTitle = `${dataType} ${roleName} Report`;
@@ -3470,7 +3470,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         const amInfo = AREA_MANAGERS.find(am => am.id === filters.am);
         filename = `HRConnect_AM_${(amInfo?.name || filters.am).replace(/\s+/g, '_')}`;
       } else if (filters.trainer) {
-        const hrInfo = HR_PERSONNEL.find(hr => hr.id === filters.trainer);
+        const hrInfo = allHRPersonnel.find(hr => hr.id === filters.trainer);
         filename = `HRConnect_HR_${(hrInfo?.name || filters.trainer).replace(/\s+/g, '_')}`;
       } else if (filters.region) {
         filename = `HRConnect_Region_${filters.region.replace(/\s+/g, '_')}`;
@@ -3608,7 +3608,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         const am = AREA_MANAGERS.find(a => a.id === filters.am);
         filenamePart = am?.name || filters.am;
       } else if (filters.hrPerson) {
-        const hr = HR_PERSONNEL.find(h => h.id === filters.hrPerson);
+        const hr = allHRPersonnel.find(h => h.id === filters.hrPerson);
         filenamePart = hr?.name || filters.hrPerson;
       }
 
@@ -4686,7 +4686,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
                           // Filter out leadership roles (LMS Head, Training Head, Sarit)
                           const excludedIds = ['H541', 'H3237', 'H2081']; // LMS Head, Training Head, Sarit
-                          const activeHRBPs = HR_PERSONNEL.filter(hr => !excludedIds.includes(hr.id));
+                          const activeHRBPs = allHRPersonnel.filter(hr => !excludedIds.includes(hr.id));
 
                           // First, add all active HRBPs with 0 count
                           activeHRBPs.forEach(hr => {
@@ -4751,7 +4751,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
                           // Filter out leadership roles (LMS Head, Training Head, Sarit)
                           const excludedIds = ['H541', 'H3237', 'H2081']; // LMS Head, Training Head, Sarit
-                          const activeHRBPs = HR_PERSONNEL.filter(hr => !excludedIds.includes(hr.id));
+                          const activeHRBPs = allHRPersonnel.filter(hr => !excludedIds.includes(hr.id));
 
                           // First, add all active HRBPs with 0 count
                           activeHRBPs.forEach(hr => {

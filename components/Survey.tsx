@@ -61,38 +61,10 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
     const hrName = urlParams.get('hrName') || urlParams.get('hr_name') || '';
     
     console.log('🚀 Initial HR lookup - ID:', hrId, 'Name:', hrName);
-    console.log('📋 HR_PERSONNEL array:', HR_PERSONNEL);
     
-    // Function to find HR by ID
-    const findHRById = (id: string) => {
-      if (!id) return null;
-      return HR_PERSONNEL.find(hr => hr.id === id || hr.id.toLowerCase() === id.toLowerCase());
-    };
-    
-    // Determine final HR name and ID
-    let finalHrName = hrName;
+    // Use ID as both name and ID (loaded from Store Mapping)
+    let finalHrName = hrName || hrId;
     let finalHrId = hrId;
-    
-    // If we have an HR ID, always try to get the name from it
-    if (hrId) {
-      const hrPerson = findHRById(hrId);
-      if (hrPerson) {
-        finalHrName = hrPerson.name;
-        finalHrId = hrPerson.id; // Use the exact ID format from constants
-        console.log('✅ Found HR person by ID:', hrPerson);
-      } else {
-        console.warn('❌ No HR person found for ID:', hrId);
-        console.log('🔍 Available HR IDs:', HR_PERSONNEL.map(hr => hr.id));
-      }
-    }
-    // If we have a name but no ID, try to find the ID
-    else if (hrName && !hrId) {
-      const hrPerson = HR_PERSONNEL.find(hr => hr.name === hrName);
-      if (hrPerson) {
-        finalHrId = hrPerson.id;
-        console.log('✅ Found HR ID by name:', hrPerson);
-      }
-    }
     
     const result = {
       hrName: finalHrName,
@@ -170,37 +142,9 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
           const hrPerson = HR_PERSONNEL.find(hr => hr.name === finalHrName);
           if (hrPerson) {
             finalHrId = hrPerson.id;
-            console.log('✅ Found HR ID by name:', hrPerson);
-          }
-        }
-        
-        const newMeta = {
-          ...prev,
-          hrName: finalHrName,
-          hrId: finalHrId,
-          // Reset other fields when HR changes
-          amName: finalHrId !== prev.hrId ? '' : prev.amName,
-          amId: finalHrId !== prev.hrId ? '' : prev.amId,
-          empName: prev.empName,
-          empId: prev.empId,
-          storeName: finalHrId !== prev.hrId ? '' : prev.storeName,
-          storeId: finalHrId !== prev.hrId ? '' : prev.storeId
-        };
-        
-        console.log('Updated HR meta:', newMeta);
-        
-        // Save to localStorage
-        try { 
-          localStorage.setItem('hr_meta', JSON.stringify(newMeta)); 
-        } catch(e) {}
-        
-        return newMeta;
-      });
-    }
-  }, []);
-
-  // Load normalized stores from mappedStores (this includes runtime overrides)
-  useEffect(() => {
+           Use ID as both name and ID (loaded from Store Mapping)
+        let finalHrName = hrName || hrId || prev.hrName;
+        let finalHrId = hrId || prev.hrId;ct(() => {
     console.log('Loading stores from mappedStores/STORES_PROMISE...');
     STORES_PROMISE.then((stores: any[]) => {
       try {
@@ -409,14 +353,10 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
           const hrbp2Id = item['HRBP 2 ID'] || item['HRBP 2'];
           const hrbp3Id = item['HRBP 3 ID'] || item['HRBP 3'];
           
-          // Add all HRBPs to the map
+          // Add all HRBPs to the map - use ID as name
           [hrbp1Id, hrbp2Id, hrbp3Id].forEach(hrbpId => {
             if (hrbpId && !hrMap.has(hrbpId)) {
-              // Try to get name from HR_PERSONNEL constants, otherwise use ID
-              const hrFromConstants = HR_PERSONNEL.find(hr => 
-                String(hr.id).toLowerCase() === String(hrbpId).toLowerCase()
-              );
-              hrMap.set(hrbpId, hrFromConstants?.name || `HRBP ${hrbpId}`);
+              hrMap.set(hrbpId, hrbpId); // Use ID as name
             }
           });
         });
@@ -558,18 +498,16 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
     if (meta.amId && config?.AM_HR_MAPPING && !meta.hrId) {
       const hrMapping = config.AM_HR_MAPPING[meta.amId];
       if (hrMapping && hrMapping.hrbp) {
-        const hrPerson = HR_PERSONNEL.find(hr => hr.id === hrMapping.hrbp);
-        if (hrPerson) {
-          console.log('Auto-filling HR from AM mapping:', hrPerson.name, hrPerson.id);
-          setMeta(prev => ({
-            ...prev,
-            hrId: hrPerson.id,
-            hrName: hrPerson.name
-          }));
-        }
+        // Use HRBP ID from mapping (loaded from Store Mapping)
+        console.log('Auto-filling HR from AM mapping:', hrMapping.hrbp);
+        setMeta(prev => ({
+          ...prev,
+          hrId: hrMapping.hrbp,
+          hrName: hrMapping.hrbp // Use ID as name
+        }));
       }
     }
-  }, [meta.amId, config?.AM_HR_MAPPING, HR_PERSONNEL]);
+  }, [meta.amId, config?.AM_HR_MAPPING]);
 
   const validate = () => {
     for(const q of QUESTIONS){
