@@ -322,53 +322,21 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     );
   }, [availableStores, storeSearchTerm]);
 
-  // Filter employees for dropdown - only show employees from HR's region
+  // Filter employees for dropdown - show ALL employees (no region filter)
   const filteredEmployees = useMemo(() => {
     const employees = Object.values(employeeDirectory.byId);
     
-    // Get HR's region from their stores
-    let hrRegion = '';
-    if (meta.hrId && allStores.length > 0) {
-      const normalizedHrId = meta.hrId.toUpperCase();
-      const hrStore = allStores.find((store: any) => 
-        (store.hrbpId && store.hrbpId.toUpperCase() === normalizedHrId) ||
-        (store['HRBP 1'] && store['HRBP 1'].toString().toUpperCase() === normalizedHrId) ||
-        (store['HRBP 2'] && store['HRBP 2'].toString().toUpperCase() === normalizedHrId) ||
-        (store['HRBP 3'] && store['HRBP 3'].toString().toUpperCase() === normalizedHrId) ||
-        (store.regionalHrId && store.regionalHrId.toUpperCase() === normalizedHrId) ||
-        (store['Regional HR'] && store['Regional HR'].toString().toUpperCase() === normalizedHrId)
-      );
-      
-      if (hrStore) {
-        hrRegion = (hrStore.region || hrStore['Region'] || '').toString().toUpperCase();
-        console.log(`[HRChecklist] HR ${meta.hrId} manages region: ${hrRegion}`);
-      }
-    }
-    
-    // Filter employees by region if HR region is identified
-    let regionFilteredEmployees = employees;
-    if (hrRegion) {
-      regionFilteredEmployees = employees.filter(emp => {
-        if (!emp.store_code) return false;
-        const empStore = allStores.find((s: any) => 
-          s.id === emp.store_code || s['Store ID'] === emp.store_code
-        );
-        if (!empStore) return false;
-        const storeRegion = (empStore.region || empStore['Region'] || '').toString().toUpperCase();
-        return storeRegion === hrRegion;
-      });
-      console.log(`[HRChecklist] Filtered to ${regionFilteredEmployees.length} employees in ${hrRegion} region`);
-    }
+    console.log(`[HRChecklist] Showing all ${employees.length} employees (no region filter)`);
     
     // Apply search term filter
-    if (!employeeSearchTerm) return regionFilteredEmployees.slice(0, 50);
+    if (!employeeSearchTerm) return employees.slice(0, 50);
     
     const searchLower = employeeSearchTerm.toLowerCase();
-    return regionFilteredEmployees.filter(emp =>
+    return employees.filter(emp =>
       emp.empname?.toLowerCase().includes(searchLower) ||
       emp.employee_code?.toLowerCase().includes(searchLower)
     ).slice(0, 50);
-  }, [employeeDirectory, employeeSearchTerm, meta.hrId, allStores]);
+  }, [employeeDirectory, employeeSearchTerm]);
 
   // Auto-fill store and AM when employee is selected
   // SAME APPROACH AS SHLP - using comprehensiveMapping (Store Mapping Google Sheet)

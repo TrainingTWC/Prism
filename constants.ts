@@ -72,21 +72,9 @@ export const REGIONS = ['North', 'South', 'West'];
 // Use the mapped stores from the HR mapping data
 export const STORES: Store[] = MAPPED_STORES;
 
-export const HR_PERSONNEL: HRPerson[] = [
-    { name: 'Abhishek', id: 'H3578' },
-    { name: 'Monica', id: 'H2165' },
-    { name: 'Subin', id: 'H2761' },
-    { name: 'Swati', id: 'H1972' },
-    { name: 'Manasi', id: 'H3603' },
-    { name: 'Sumanjali', id: 'H3730' },
-    { name: 'Sunil', id: 'H3247' },
-    { name: 'Siddhant', id: 'H3728' },
-    { name: 'Sarit', id: 'H2081' },
-    { name: 'Pooja', id: 'HC002' },
-    { name: 'Rohit Paul', id: 'H3551' },
-    { name: 'Training Head', id: 'H3237' },
-    { name: 'LMS Head', id: 'H541' }
-];
+// HR_PERSONNEL is now loaded dynamically from Store Mapping (HRBP 1, 2, 3 ID columns)
+// This constant is kept as empty array for backwards compatibility
+export const HR_PERSONNEL: HRPerson[] = [];
 
 // Trainer Personnel - separate from HR/HRBP
 export const TRAINER_PERSONNEL: HRPerson[] = [

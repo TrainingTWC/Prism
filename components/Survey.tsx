@@ -36,10 +36,8 @@ const Survey: React.FC<SurveyProps> = ({ userRole }) => {
   // Use config data if available, otherwise fall back to hardcoded constants
   const QUESTIONS = config?.QUESTIONS || DEFAULT_QUESTIONS;
   const AREA_MANAGERS = config?.AREA_MANAGERS || DEFAULT_AREA_MANAGERS;
-  const HR_PERSONNEL = config?.HR_PERSONNEL || DEFAULT_HR_PERSONNEL;
+  // HR_PERSONNEL now loaded exclusively from Store Mapping - no constants fallback
   console.log('Survey component mounted with userRole:', userRole);
-  console.log('HR_PERSONNEL imported:', HR_PERSONNEL);
-  console.log('HR_PERSONNEL length:', HR_PERSONNEL.length);
   
   const [responses, setResponses] = useState<SurveyResponse>(() => {
     try { 
