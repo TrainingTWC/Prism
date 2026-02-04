@@ -51,39 +51,61 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
       return [];
     }
     
+    console.log('[HRChecklist] 🔍 Sample store data:', allStores[0]);
+    console.log('[HRChecklist] 🔍 HRBP fields in first store:', {
+      'HRBP 1 ID': allStores[0]['HRBP 1 ID'],
+      'HRBP 2 ID': allStores[0]['HRBP 2 ID'],
+      'HRBP 3 ID': allStores[0]['HRBP 3 ID'],
+      'HRBP 1': allStores[0]['HRBP 1'],
+      'HRBP 2': allStores[0]['HRBP 2'],
+      'HRBP 3': allStores[0]['HRBP 3'],
+      'hrbp1Id': allStores[0].hrbp1Id,
+      'hrbpId': allStores[0].hrbpId
+    });
+    
     const hrSet = new Set<string>();
+    const hrMap = new Map<string, string>(); // Map ID to Name
     const hrPersonnel: Array<{ id: string; name: string }> = [];
     
     allStores.forEach((store: any) => {
-      // Check HRBP 1, 2, 3 ID columns
-      const hrbp1Id = (store['HRBP 1 ID'] || store.hrbp1Id || '').toString().trim();
-      const hrbp2Id = (store['HRBP 2 ID'] || store.hrbp2Id || '').toString().trim();
-      const hrbp3Id = (store['HRBP 3 ID'] || store.hrbp3Id || '').toString().trim();
+      // Check HRBP 1, 2, 3 ID columns (Google Apps Script returns 'HRBP 1', 'HRBP 2', 'HRBP 3')
+      const hrbp1Id = (store['HRBP 1 ID'] || store['HRBP 1'] || store.hrbpId || store.HRBP || '').toString().trim().toUpperCase();
+      const hrbp1Name = (store['HRBP 1 Name'] || hrbp1Id).toString().trim();
       
-      [hrbp1Id, hrbp2Id, hrbp3Id].forEach((hrId) => {
-        if (hrId && !hrSet.has(hrId)) {
-          hrSet.add(hrId);
-          hrPersonnel.push({ id: hrId, name: hrId });
+      const hrbp2Id = (store['HRBP 2 ID'] || store['HRBP 2'] || '').toString().trim().toUpperCase();
+      const hrbp2Name = (store['HRBP 2 Name'] || hrbp2Id).toString().trim();
+      
+      const hrbp3Id = (store['HRBP 3 ID'] || store['HRBP 3'] || '').toString().trim().toUpperCase();
+      const hrbp3Name = (store['HRBP 3 Name'] || hrbp3Id).toString().trim();
+      
+      const regionalHrId = (store['Regional HR ID'] || store['Regional HR'] || '').toString().trim().toUpperCase();
+      const regionalHrName = (store['Regional HR Name'] || regionalHrId).toString().trim();
+      
+      const hrHeadId = (store['HR Head ID'] || store['HR Head'] || '').toString().trim().toUpperCase();
+      const hrHeadName = (store['HR Head Name'] || hrHeadId).toString().trim();
+      
+      // Add each HR person with their name
+      const hrEntries = [
+        { id: hrbp1Id, name: hrbp1Name },
+        { id: hrbp2Id, name: hrbp2Name },
+        { id: hrbp3Id, name: hrbp3Name },
+        { id: regionalHrId, name: regionalHrName },
+        { id: hrHeadId, name: hrHeadName }
+      ];
+      
+      hrEntries.forEach(({ id, name }) => {
+        if (id && !hrSet.has(id)) {
+          hrSet.add(id);
+          hrMap.set(id, name);
+          hrPersonnel.push({ id, name });
         }
       });
     });
     
-    console.log(`[HRChecklist] ✅ Loaded ${hrPersonnel.length} HR personnel from Store Mapping (HRBP 1, 2, 3 ID)`);
+    console.log(`[HRChecklist] ✅ Loaded ${hrPersonnel.length} HR personnel from Store Mapping (HRBP 1, 2, 3, Regional HR, HR Head)`);
     console.log('[HRChecklist] 📋 Valid HR IDs from Store Mapping:', Array.from(hrSet));
     return hrPersonnel;
   }, [allStores]);
-  
-  // Validate HR selection against Store Mapping data
-  useEffect(() => {
-    if (HR_PERSONNEL.length > 0 && meta.hrId) {
-      const isValid = HR_PERSONNEL.some(hr => hr.id === meta.hrId);
-      if (!isValid) {
-        console.log(`[HRChecklist] ❌ Invalid HR detected: ${meta.hrId} - Not in Store Mapping. Clearing...`);
-        setMeta(prev => ({ ...prev, hrId: '', hrName: '' }));
-        localStorage.removeItem('hr_meta');
-      }
-    }
-  }, [HR_PERSONNEL, meta.hrId]);
   
   const [responses, setResponses] = useState<SurveyResponse>(() => {
     try { 
@@ -104,26 +126,9 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
     let hrId = urlParams.get('hrId') || urlParams.get('hr_id') || urlParams.get('EMPID') || urlParams.get('empid') || (stored as any).hrId || '';
     const hrName = urlParams.get('hrName') || urlParams.get('hr_name') || (stored as any).hrName || '';
     
-    const findHRById = (id: string) => {
-      if (!id) return null;
-      return HR_PERSONNEL.find(hr => hr.id === id || hr.id.toLowerCase() === id.toLowerCase());
-    };
-    
-    let finalHrName = hrName;
+    // Use ID as name (loaded from Store Mapping later)
+    let finalHrName = hrName || hrId;
     let finalHrId = hrId;
-    
-    if (hrId) {
-      const hrPerson = findHRById(hrId);
-      if (hrPerson) {
-        finalHrName = hrPerson.name;
-        finalHrId = hrPerson.id;
-      }
-    } else if (hrName && !hrId) {
-      const hrPerson = HR_PERSONNEL.find(hr => hr.name === hrName);
-      if (hrPerson) {
-        finalHrId = hrPerson.id;
-      }
-    }
     
     return {
       hrName: finalHrName,
@@ -141,7 +146,7 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
 
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [filteredStoresByHR, setFilteredStoresByHR] = useState<Store[]>([]);
+  const [filteredStoresByHR, setFilteredStoresByHR] = useState<any[]>([]);
   
   const [amSearchTerm, setAmSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
@@ -154,6 +159,107 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
   const [selectedEmployeeIndex, setSelectedEmployeeIndex] = useState(-1);
   
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Auto-fill HR from EMPID in URL - lookup employee's store and get HRBP from Store Mapping
+  useEffect(() => {
+    const autoFillHRFromEmpId = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const empId = urlParams.get('EMPID') || urlParams.get('empid');
+      
+      if (!empId || meta.hrId) return; // Skip if no EMPID or HR already set
+      
+      // Wait for employee directory and store mapping to load
+      if (!employeeDirectory?.byId || Object.keys(employeeDirectory.byId).length === 0) {
+        console.log('[HRChecklist] ⏳ Waiting for Employee Directory to load...');
+        return;
+      }
+      
+      if (!allStores || allStores.length === 0) {
+        console.log('[HRChecklist] ⏳ Waiting for Store Mapping to load...');
+        return;
+      }
+      
+      console.log(`[HRChecklist] 🔍 Looking up employee ${empId} to auto-fill HR`);
+      
+      // Find employee in directory
+      const employee = employeeDirectory.byId[empId];
+      if (!employee) {
+        console.warn(`[HRChecklist] ❌ Employee ${empId} not found in Employee Master`);
+        return;
+      }
+      
+      console.log(`[HRChecklist] ✅ Found employee: ${employee.empname} (${employee.employee_code})`);
+      
+      // Get employee's store code
+      const storeCode = employee.store_code;
+      if (!storeCode) {
+        console.warn(`[HRChecklist] ❌ Employee ${empId} has no store_code in Employee Master`);
+        return;
+      }
+      
+      console.log(`[HRChecklist] 📍 Employee store: ${storeCode}`);
+      
+      // Find store in Store Mapping
+      const store = allStores.find((s: any) => 
+        s.id === storeCode || 
+        s['Store ID'] === storeCode ||
+        s.storeId === storeCode
+      );
+      
+      if (!store) {
+        console.warn(`[HRChecklist] ❌ Store ${storeCode} not found in Store Mapping`);
+        return;
+      }
+      
+      // Get HRBP from store (check HRBP 1, 2, 3 ID columns - Google Apps Script returns 'HRBP 1', 'HRBP 2', 'HRBP 3')
+      const hrbp1 = (store['HRBP 1 ID'] || store['HRBP 1'] || store.hrbpId || store.HRBP || '').toString().trim().toUpperCase();
+      const hrbp2 = (store['HRBP 2 ID'] || store['HRBP 2'] || '').toString().trim().toUpperCase();
+      const hrbp3 = (store['HRBP 3 ID'] || store['HRBP 3'] || '').toString().trim().toUpperCase();
+      const regionalHr = (store['Regional HR ID'] || store['Regional HR'] || '').toString().trim().toUpperCase();
+      const hrHead = (store['HR Head ID'] || store['HR Head'] || '').toString().trim().toUpperCase();
+      
+      const hrbpId = hrbp1 || hrbp2 || hrbp3 || regionalHr || hrHead;
+      
+      if (!hrbpId) {
+        console.warn(`[HRChecklist] ❌ Store ${storeCode} has no HRBP in Store Mapping`);
+        return;
+      }
+      
+      console.log(`[HRChecklist] ✅ Auto-filled HR from EMPID: ${hrbpId}`);
+      console.log(`[HRChecklist] 📍 Setting meta.hrId = ${hrbpId}, meta.hrName = ${hrbpId}`);
+      
+      setMeta(prev => {
+        const newMeta = {
+          ...prev,
+          hrId: hrbpId,
+          hrName: hrbpId
+        };
+        console.log('[HRChecklist] 📝 New meta state:', newMeta);
+        return newMeta;
+      });
+    };
+    
+    autoFillHRFromEmpId();
+  }, [employeeDirectory, allStores]);
+
+  // Validate HR selection against Store Mapping data
+  useEffect(() => {
+    if (HR_PERSONNEL.length > 0 && meta.hrId) {
+      const isValid = HR_PERSONNEL.some(hr => hr.id.toUpperCase() === meta.hrId.toUpperCase());
+      if (!isValid) {
+        console.log(`[HRChecklist] ❌ Invalid HR detected: ${meta.hrId} - Not in Store Mapping. Clearing...`);
+        setMeta(prev => ({ ...prev, hrId: '', hrName: '' }));
+        localStorage.removeItem('hr_meta');
+      } else {
+        // Normalize the HR ID to match the case in HR_PERSONNEL
+        const matchedHR = HR_PERSONNEL.find(hr => hr.id.toUpperCase() === meta.hrId.toUpperCase());
+        if (matchedHR && matchedHR.id !== meta.hrId) {
+          console.log(`[HRChecklist] 🔄 Normalizing HR ID from ${meta.hrId} to ${matchedHR.id}`);
+          setMeta(prev => ({ ...prev, hrId: matchedHR.id, hrName: matchedHR.name }));
+        }
+      }
+    }
+  }, [HR_PERSONNEL, meta.hrId]);
 
   // Autofill HR fields when user role is hr
   useEffect(() => {
@@ -301,10 +407,16 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
 
   const availableHRPersonnel = useMemo(() => {
     if (HR_PERSONNEL.length === 0) {
+      console.log('[HRChecklist] ⏳ HR_PERSONNEL array is empty');
       return [];
     }
-    return HR_PERSONNEL.filter(hr => canAccessHR(userRole, hr.id));
-  }, [HR_PERSONNEL, userRole]);
+    console.log('[HRChecklist] 📋 HR_PERSONNEL loaded:', HR_PERSONNEL.length, 'HRs');
+    console.log('[HRChecklist] 📋 Sample HR:', HR_PERSONNEL[0]);
+    
+    // For HR checklist, show all HR personnel (no role filtering)
+    console.log('[HRChecklist] ✅ Returning all HR personnel for checklist');
+    return HR_PERSONNEL;
+  }, [HR_PERSONNEL]);
 
   const filteredAreaManagers = useMemo(() => {
     if (!amSearchTerm) return availableAreaManagers;
@@ -732,27 +844,44 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               HR Name *
             </label>
-            <select
-              value={meta.hrId}
-              onChange={(e) => {
-                const selectedHR = availableHRPersonnel.find(hr => hr.id === e.target.value);
-                handleMetaChange('hrId', e.target.value);
-                handleMetaChange('hrName', selectedHR ? selectedHR.name : '');
-              }}
-              disabled={(() => {
-                const urlParams = new URLSearchParams(window.location.search);
-                return !!(urlParams.get('hrId') || urlParams.get('hr_id') || urlParams.get('hrName') || urlParams.get('hr_name'));
-              })()}
-              required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <option value="">Select HR Person</option>
-              {availableHRPersonnel.map(hr => (
-                <option key={hr.id} value={hr.id}>
-                  {hr.name} ({hr.id})
-                </option>
-              ))}
-            </select>
+            {mappingLoading || availableHRPersonnel.length === 0 ? (
+              <div className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-gray-50 dark:bg-slate-700 text-gray-500 dark:text-slate-400 flex items-center">
+                <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Loading HR personnel from Store Mapping...
+              </div>
+            ) : (
+              <select
+                value={meta.hrId}
+                onChange={(e) => {
+                  const selectedHR = availableHRPersonnel.find(hr => hr.id === e.target.value);
+                  console.log('[HRChecklist] HR dropdown changed:', e.target.value, selectedHR);
+                  handleMetaChange('hrId', e.target.value);
+                  handleMetaChange('hrName', selectedHR ? selectedHR.name : e.target.value);
+                }}
+                disabled={(() => {
+                  const urlParams = new URLSearchParams(window.location.search);
+                  // Disable if HR is set via URL params or EMPID
+                  return !!(urlParams.get('hrId') || urlParams.get('hr_id') || urlParams.get('hrName') || urlParams.get('hr_name') || urlParams.get('EMPID') || urlParams.get('empid'));
+                })()}
+                required
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <option value="">Select HR Person</option>
+                {availableHRPersonnel.map(hr => (
+                  <option key={hr.id} value={hr.id}>
+                    {hr.name} ({hr.id})
+                  </option>
+                ))}
+              </select>
+            )}
+            {meta.hrId && (
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                Selected: {meta.hrId}
+              </p>
+            )}
           </div>
 
           <div className="relative">

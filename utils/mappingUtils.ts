@@ -20,6 +20,13 @@ export interface ComprehensiveMapping {
   'E-Learning Specialist'?: string;
   'Training Head'?: string;
   'HR Head'?: string;
+  // Normalized properties added during load
+  id?: string;
+  name?: string;
+  amId?: string;
+  amName?: string;
+  hrbpId?: string;
+  region?: string;
 }
 
 import { HR_PERSONNEL } from '../constants';
@@ -70,12 +77,35 @@ export const loadComprehensiveMapping = async (): Promise<ComprehensiveMapping[]
           
           console.log('📊 Store data array length:', arr.length);
           if (arr.length > 0) {
-            console.log('📝 Sample store data:', arr[0]);
+            console.log('📝 Sample store data (RAW from Google Sheets):', arr[0]);
+            console.log('📝 HRBP fields in raw data:', {
+              'HRBP 1': arr[0]['HRBP 1'],
+              'HRBP 2': arr[0]['HRBP 2'],
+              'HRBP 3': arr[0]['HRBP 3'],
+              'HRBP 1 ID': arr[0]['HRBP 1 ID'],
+              'Regional HR': arr[0]['Regional HR'],
+              'HR Head': arr[0]['HR Head']
+            });
             comprehensiveMappingCache = arr.map((row: any) => {
               const storeId = normalizeId(row['Store ID'] || row.storeId || row.StoreID || row.store_id);
               const storeName = row['Store Name'] || row.storeName || row.locationName || row.name || '';
               const amId = normalizeId(row.AM || row['AM'] || row['AM ID'] || row['Area Manager ID'] || row.amId || row.areaManagerId);
               const amName = row['AM Name'] || row.amName || row.areaManagerName || '';
+              const region = row['Region'] || row.region || '';
+
+              // Normalize HRBP columns (Google Sheets returns 'HRBP 1', 'HRBP 2', 'HRBP 3')
+              const hrbp1Id = normalizeId(row['HRBP 1 ID'] || row['HRBP 1'] || row.HRBP || '');
+              const hrbp1Name = row['HRBP 1 Name'] || '';
+              const hrbp2Id = normalizeId(row['HRBP 2 ID'] || row['HRBP 2'] || '');
+              const hrbp2Name = row['HRBP 2 Name'] || '';
+              const hrbp3Id = normalizeId(row['HRBP 3 ID'] || row['HRBP 3'] || '');
+              const hrbp3Name = row['HRBP 3 Name'] || '';
+              
+              // Normalize Regional HR and HR Head
+              const regionalHrId = normalizeId(row['Regional HR ID'] || row['Regional HR'] || '');
+              const regionalHrName = row['Regional HR Name'] || '';
+              const hrHeadId = normalizeId(row['HR Head ID'] || row['HR Head'] || '');
+              const hrHeadName = row['HR Head Name'] || '';
 
               // Preserve all trainer columns (using exact Google Sheet column names: "Trainer 1 ID", etc.)
               const trainer1Id = normalizeId(row['Trainer 1 ID'] || row['Trainer 1'] || row.Trainer || row['Trainer ID'] || row.trainerId || '');
@@ -90,13 +120,34 @@ export const loadComprehensiveMapping = async (): Promise<ComprehensiveMapping[]
                 // Normalized properties
                 'Store ID': storeId,
                 'Store Name': storeName,
+                'Region': region,
                 'AM': amId || row.AM || row['AM'],
                 'AM Name': amName,
                 // Also set camelCase versions for easier access
                 id: storeId,
                 name: storeName,
+                region: region,
                 amId: amId,
                 amName: amName,
+                // HRBP columns with both naming conventions
+                'HRBP 1 ID': hrbp1Id,
+                'HRBP 1 Name': hrbp1Name,
+                'HRBP 2 ID': hrbp2Id,
+                'HRBP 2 Name': hrbp2Name,
+                'HRBP 3 ID': hrbp3Id,
+                'HRBP 3 Name': hrbp3Name,
+                'HRBP 1': hrbp1Id, // Also keep without "ID" suffix
+                'HRBP 2': hrbp2Id,
+                'HRBP 3': hrbp3Id,
+                'HRBP': hrbp1Id, // Legacy compatibility
+                hrbpId: hrbp1Id, // camelCase
+                // Regional HR
+                'Regional HR ID': regionalHrId,
+                'Regional HR Name': regionalHrName,
+                'Regional HR': regionalHrId,
+                'HR Head ID': hrHeadId,
+                'HR Head Name': hrHeadName,
+                'HR Head': hrHeadId,
                 // Preserve all trainer columns from Google Sheets (using exact column names)
                 'Trainer 1 ID': trainer1Id || row['Trainer 1 ID'] || row['Trainer 1'],
                 'Trainer 1 Name': trainer1Name,
