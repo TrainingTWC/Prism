@@ -14,6 +14,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConfigProvider } from './contexts/ConfigContext';
 import AdminConfig from './components/AdminConfig';
+import { startPreload } from './services/preloadService';
 
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'ai-insights' | 'checklists' | 'admin' | 'bench-planning-dashboard' | 'bench-planning-sm-asm-dashboard'>('dashboard');
@@ -25,6 +26,12 @@ const AppContent: React.FC = () => {
   const [benchPlanningView, setBenchPlanningView] = useState<'checklist' | 'dashboard'>('checklist');
   const [benchPlanningSMASMView, setBenchPlanningSMASMView] = useState<'checklist' | 'dashboard'>('checklist');
   const { isAuthenticated, isLoading: authLoading, loginWithEmpId, isEmployeeValidated, employeeData } = useAuth();
+
+  // Start background preload on app mount (before authentication)
+  useEffect(() => {
+    console.log('🚀 [App] Starting background preload...');
+    startPreload();
+  }, []);
 
   // Sync userRole when user gets authenticated (after password login or campus auto-auth)
   useEffect(() => {

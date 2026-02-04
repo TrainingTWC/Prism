@@ -19,11 +19,20 @@ export type EmployeeDirectory = {
 // Google Apps Script endpoint URL
 const EMPLOYEE_API_URL = import.meta.env.VITE_EMPLOYEE_DIRECTORY_URL || '';
 
+// Cache for employee directory data
+let employeeDirectoryCache: EmployeeDirectory | null = null;
+
 function normalizeId(id: string): string {
   return (id || '').toString().trim().toUpperCase();
 }
 
 export async function fetchEmployeeDirectory(): Promise<EmployeeDirectory> {
+  // Return cached data if available
+  if (employeeDirectoryCache) {
+    console.log('[Employee Directory] Using cached data');
+    return employeeDirectoryCache;
+  }
+
   if (!EMPLOYEE_API_URL) {
     console.warn('[Employee Directory] No API URL configured. Set VITE_EMPLOYEE_DIRECTORY_URL in .env');
     return { byId: {}, nameById: {} };
@@ -69,7 +78,10 @@ export async function fetchEmployeeDirectory(): Promise<EmployeeDirectory> {
     }
 
     console.log('[Employee Directory] Processed', Object.keys(byId).length, 'unique employees');
-    return { byId, nameById };
+    
+    // Cache the results
+    employeeDirectoryCache = { byId, nameById };
+    return employeeDirectoryCache;
 
   } catch (error) {
     console.error('[Employee Directory] Fetch failed:', error);

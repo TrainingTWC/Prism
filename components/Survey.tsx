@@ -9,7 +9,7 @@ import { useConfig } from '../contexts/ConfigContext';
 import { loadComprehensiveMapping } from '../utils/mappingUtils';
 
 // Google Sheets endpoint for logging data
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwhLhe3zHEn8MF3pnhJQ8-N3kfnw8iMKNKUHsPRgiMradXIov8Bx6GFsBcRGxAO4ilmRw/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz2pAj_RBIwRmJfel7GmElLigWw1MquRz0zLtsX6uR627LUCcR7lHz-IRXGzIhESYX4sg/exec';
 
 interface SurveyResponse {
   [key: string]: string;

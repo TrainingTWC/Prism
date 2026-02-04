@@ -10,7 +10,7 @@ import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 import { useComprehensiveMapping } from '../../hooks/useComprehensiveMapping';
 
 // Google Sheets endpoint for logging data
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxGp9HAph2daannyuSsO5CFcIwtJaAH-WtMPyBZ1x9g6NwWcPuNhrJWKiSJeiZW44j91g/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz2pAj_RBIwRmJfel7GmElLigWw1MquRz0zLtsX6uR627LUCcR7lHz-IRXGzIhESYX4sg/exec';
 
 interface SurveyResponse {
   [key: string]: string;
@@ -844,7 +844,7 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               HR Name *
             </label>
-            {mappingLoading || availableHRPersonnel.length === 0 ? (
+            {(mappingLoading && allStores.length === 0) || (allStores.length > 0 && availableHRPersonnel.length === 0 && !mappingLoading) ? (
               <div className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-gray-50 dark:bg-slate-700 text-gray-500 dark:text-slate-400 flex items-center">
                 <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

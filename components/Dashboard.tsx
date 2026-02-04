@@ -111,7 +111,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     trainer: 'all'
   });
   const [auditCoverageView, setAuditCoverageView] = useState<'current' | 'history'>('current');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false); // Start false, set true only when fetching
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -475,10 +475,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           const region = item.Region || item.region;
           const amId = item['AM'] || item.amId;
           const amName = item['AM Name'] || item.amName;
-          // Get HRBP 1, 2, and 3 IDs from Store Mapping for HR dropdown
+          // Get HRBP 1, 2, and 3 IDs and Names from Store Mapping for HR dropdown
           const hrbp1Id = item['HRBP 1 ID'] || item['HRBP 1'] || item['HRBP'];
+          const hrbp1Name = item['HRBP 1 Name'];
           const hrbp2Id = item['HRBP 2 ID'] || item['HRBP 2'];
+          const hrbp2Name = item['HRBP 2 Name'];
           const hrbp3Id = item['HRBP 3 ID'] || item['HRBP 3'];
+          const hrbp3Name = item['HRBP 3 Name'];
 
           if (storeId && !storeMap.has(storeId)) {
             storeMap.set(storeId, { name: storeName, id: storeId, region });
@@ -494,10 +497,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             }
           }
 
-          // Add all HRBPs (1, 2, 3) to HR dropdown - use ID as name (no constants fallback)
-          [hrbp1Id, hrbp2Id, hrbp3Id].forEach(hrbpId => {
+          // Add all HRBPs (1, 2, 3) to HR dropdown with their names
+          const hrbps = [
+            { id: hrbp1Id, name: hrbp1Name },
+            { id: hrbp2Id, name: hrbp2Name },
+            { id: hrbp3Id, name: hrbp3Name }
+          ];
+          
+          hrbps.forEach(({ id: hrbpId, name: hrbpName }) => {
             if (hrbpId && !hrMap.has(hrbpId)) {
-              hrMap.set(hrbpId, { name: hrbpId, id: hrbpId });
+              // Use name from mapping if available, otherwise use ID
+              hrMap.set(hrbpId, { name: hrbpName || hrbpId, id: hrbpId });
             }
           });
         });
@@ -564,9 +574,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   const loadData = async (isRefresh = false, specificDashboard?: string) => {
     try {
+      // Only show loading if we're actually loading new data
+      const hasLoadedData = Object.values(dataLoadedFlags).some(flag => flag);
+      
       if (isRefresh) {
         setRefreshing(true);
-      } else {
+      } else if (!hasLoadedData) {
         setLoading(true);
       }
 
@@ -3913,7 +3926,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   // For training dashboard, also wait for trendsData to load (needed for stats calculation)
   const isTrainingLoading = dashboardType === 'training' && !Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health) && trendsLoading;
 
-  if (loading || isTrainingLoading) {
+  // Only show loading screen if actively loading dashboard data (not waiting for employee directory or config)
+  if (loading) {
     return (
       <div className="space-y-6">
         {/* Dashboard Type Selector Skeleton */}
@@ -4003,7 +4017,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                     const byHR: { [key: string]: { name: string; connects: number; submissions: number; employees: Set<string> } } = {};
                     filteredSubmissions.forEach(s => {
                       if (!byHR[s.hrId]) {
-                        byHR[s.hrId] = { name: s.hrName, connects: 0, submissions: 0, employees: new Set() };
+                        // Look up HR name from allHRPersonnel to ensure we always have the correct name
+                        const hrPerson = allHRPersonnel.find(hr => hr.id === s.hrId);
+                        const hrName = hrPerson?.name || s.hrName || s.hrId;
+                        byHR[s.hrId] = { name: hrName, connects: 0, submissions: 0, employees: new Set() };
                       }
                       byHR[s.hrId].employees.add(s.empId);
                       byHR[s.hrId].submissions++;
@@ -4017,12 +4034,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                       .map(([hrId, data]) => (
                         <div key={hrId} className="bg-gray-50 dark:bg-slate-700 rounded-lg p-3 flex items-center justify-between">
                           <div>
-                            <p className="font-semibold text-gray-900 dark:text-white">{data.name}</p>
-                            <p className="text-xs text-gray-500 dark:text-slate-400">ID: {hrId}</p>
+                            <p className="font-semibold text-gray-900 dark:text-white">{data.name || hrId}</p>
+                            <p className="text-xs text-gray-500 dark:text-slate-400">{data.connects} employees</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{data.connects}</p>
-                            <p className="text-xs text-gray-500 dark:text-slate-400">{data.submissions} total connects</p>
+                            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{data.submissions}</p>
+                            <p className="text-xs text-gray-500 dark:text-slate-400">total connects</p>
                           </div>
                         </div>
                       ));

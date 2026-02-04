@@ -5,7 +5,7 @@ import { STATIC_TRAINING_DATA } from './staticTrainingData';
 import { STATIC_AM_OPERATIONS_DATA } from './staticOperationsData';
 
 // Google Apps Script endpoint for fetching data - UPDATED with DD/MM/YYYY date formatting
-const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxGp9HAph2daannyuSsO5CFcIwtJaAH-WtMPyBZ1x9g6NwWcPuNhrJWKiSJeiZW44j91g/exec';
+const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz2pAj_RBIwRmJfel7GmElLigWw1MquRz0zLtsX6uR627LUCcR7lHz-IRXGzIhESYX4sg/exec';
 
 // AM Operations endpoint - UPDATED URL (no CORS headers needed, must match OperationsChecklist submission endpoint)
 const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz2z24Tk0uiR8Ir0qGAlPGmfap6-i-gjeM4StMUJ-cPrp8ET6YkYrmzdGtxoCmLkcYhLQ/exec';

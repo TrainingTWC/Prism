@@ -374,6 +374,63 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     }
   }, [metadata.amId, compStoreMapping, HR_PERSONNEL, metadata.hrId, metadata.trainerId]);
 
+  // Resolve AM ID to name if name is missing or is the ID itself - USE STORE MAPPING AS SOURCE OF TRUTH
+  useEffect(() => {
+    if (metadata.amId && (!metadata.amName || metadata.amName === metadata.amId) && compStoreMapping.length > 0) {
+      const normalizeId = (v: any) => (v || '').toString().trim().toUpperCase();
+      const amIdNorm = normalizeId(metadata.amId);
+      
+      // First try to get AM name from comprehensive store mapping (source of truth)
+      const amStore = compStoreMapping.find((row: any) => normalizeId(row['AM']) === amIdNorm);
+      
+      if (amStore) {
+        const amNameFromSheet = amStore['AM Name'] || amStore['Area Manager Name'] || '';
+        if (amNameFromSheet && amNameFromSheet !== metadata.amName) {
+          console.log('🔄 Resolving AM ID from Store Mapping:', metadata.amId, '→', amNameFromSheet);
+          setMetadata(prev => ({ ...prev, amName: amNameFromSheet }));
+          setAmSearchTerm(amNameFromSheet);
+          return;
+        }
+      }
+      
+      // Fallback to AREA_MANAGERS constant if not found in mapping
+      const amPerson = AREA_MANAGERS.find(am => normalizeId(am.id) === amIdNorm);
+      if (amPerson && amPerson.name !== metadata.amName) {
+        console.log('🔄 Resolving AM ID from constants (fallback):', metadata.amId, '→', amPerson.name);
+        setMetadata(prev => ({ ...prev, amName: amPerson.name }));
+        setAmSearchTerm(amPerson.name);
+      }
+    }
+  }, [metadata.amId, metadata.amName, compStoreMapping, AREA_MANAGERS]);
+
+  // Resolve Trainer ID to name if name is missing or is the ID itself
+  useEffect(() => {
+    if (metadata.trainerId && (!metadata.trainerName || metadata.trainerName === metadata.trainerId)) {
+      // Use the trainer overrides map
+      const trainerNameOverrides: Record<string, string> = {
+        H1278: 'Viraj Vijay Mahamunkar',
+        H1697: 'Sheldon Antonio Xavier DSouza',
+        H1761: 'Mahadev Nayak',
+        H2155: 'Jagruti Narendra Bhanushali',
+        H2595: 'Kailash Singh',
+        H3247: 'Thatikonda Sunil Kumar',
+        H3252: 'Priyanka Pankajkumar Gupta',
+        H3595: 'Bhawna',
+        H3603: 'Manasi',
+        H3728: 'Siddhant',
+        H3786: 'Oviya',
+        H701: 'Mallika M'
+      };
+
+      const resolvedName = trainerNameOverrides[metadata.trainerId];
+      if (resolvedName && resolvedName !== metadata.trainerName) {
+        console.log('🔄 Resolving Trainer ID to name:', metadata.trainerId, '→', resolvedName);
+        setMetadata(prev => ({ ...prev, trainerName: resolvedName }));
+        setTrainerSearchTerm(resolvedName);
+      }
+    }
+  }, [metadata.trainerId, metadata.trainerName]);
+
   // Autofill AM fields when user role is operations
   useEffect(() => {
     if (authUserRole === 'operations' && employeeData && !metadata.amId) {
@@ -1155,7 +1212,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
                   setShowAmDropdown(true);
                 }}
                 onFocus={() => setShowAmDropdown(true)}
-                placeholder="Auto-filled from EMPID"
+                placeholder="Select or type area manager name"
                 disabled={!!metadata.amId && new URLSearchParams(window.location.search).has('EMPID')}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 pr-8 disabled:bg-gray-100 dark:disabled:bg-slate-700 disabled:cursor-not-allowed"
               />
@@ -1169,21 +1226,27 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
               >
                 ▼
               </button>
-              {showAmDropdown && (!metadata.amId || !new URLSearchParams(window.location.search).has('EMPID')) && (
+              {showAmDropdown && !(!!metadata.amId && new URLSearchParams(window.location.search).has('EMPID')) && (
                 <div className="absolute z-10 w-full bg-white dark:bg-slate-700 border dark:border-slate-600 rounded-md mt-1 max-h-40 overflow-y-auto shadow-lg">
-                  {filteredAM.map((am) => (
-                    <div
-                      key={am.id}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600 cursor-pointer dark:text-slate-100"
-                      onClick={() => {
-                        setMetadata(prev => ({ ...prev, amName: am.name, amId: am.id }));
-                        setAmSearchTerm(am.name);
-                        setShowAmDropdown(false);
-                      }}
-                    >
-                      {am.name}
+                  {filteredAM.length > 0 ? (
+                    filteredAM.map((am) => (
+                      <div
+                        key={am.id}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600 cursor-pointer dark:text-slate-100"
+                        onClick={() => {
+                          setMetadata(prev => ({ ...prev, amName: am.name, amId: am.id }));
+                          setAmSearchTerm(am.name);
+                          setShowAmDropdown(false);
+                        }}
+                      >
+                        {am.name}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-2 text-gray-500 dark:text-slate-400 text-sm">
+                      No Area Managers found
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
             </div>

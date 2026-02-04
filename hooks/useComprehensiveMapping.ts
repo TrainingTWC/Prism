@@ -31,25 +31,37 @@ interface Store {
  */
 export const useComprehensiveMapping = () => {
   const [mapping, setMapping] = useState<ComprehensiveMapping[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start false to not block UI
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    
     const loadData = async () => {
       try {
         setLoading(true);
         const data = await loadComprehensiveMapping();
-        setMapping(data);
-        setError(null);
+        if (!cancelled) {
+          setMapping(data);
+          setError(null);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load mapping');
-        console.error('Error loading comprehensive mapping:', err);
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load mapping');
+          console.error('Error loading comprehensive mapping:', err);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     loadData();
+    
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { mapping, loading, error };

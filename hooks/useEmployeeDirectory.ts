@@ -8,7 +8,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
 export function useEmployeeDirectory() {
   const [directory, setDirectory] = useState<EmployeeDirectory>({ byId: {}, nameById: {} });
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false); // Start false to not block UI
 
   useEffect(() => {
     let cancelled = false;
@@ -19,6 +19,7 @@ export function useEmployeeDirectory() {
       if (cachedDirectory && (now - cacheTimestamp) < CACHE_DURATION) {
         console.log('[useEmployeeDirectory] Using cached data');
         setDirectory(cachedDirectory);
+        setLoading(false);
         return;
       }
 
