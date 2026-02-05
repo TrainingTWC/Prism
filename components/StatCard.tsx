@@ -11,6 +11,7 @@ interface StatCardProps {
   title: string;
   value?: string | number | AverageValue;
   onClick?: () => void;
+  loading?: boolean;
 }
 
 const TrendArrow: React.FC<{ latest: number; previous?: number | null }> = ({ latest, previous }) => {
@@ -31,7 +32,7 @@ const TrendArrow: React.FC<{ latest: number; previous?: number | null }> = ({ la
   );
 };
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, onClick }) => {
+const StatCard: React.FC<StatCardProps> = ({ title, value, onClick, loading = false }) => {
   // If value is structured AverageValue, render compact trend view
   const isAvgObject = typeof value === 'object' && value !== null && ('latest' in (value as any) || 'aggregate' in (value as any));
   
@@ -60,6 +61,25 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick }) => {
   if (isAuditPercentage) {
     const percentageValue = getPercentageValue();
     const colorClass = getPercentageColor(percentageValue);
+    
+    if (loading) {
+      return (
+        <div className="group relative p-1 sm:p-2 h-full flex items-center">
+          <div className="absolute inset-1 sm:inset-2 bg-gradient-to-br from-white/95 via-white/85 to-white/75 dark:from-slate-800/95 dark:via-slate-800/85 dark:to-slate-800/75 backdrop-blur-md rounded-full"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-100/60 via-transparent to-slate-200/40 dark:from-slate-700/40 dark:via-transparent dark:to-slate-800/60 rounded-full shadow-2xl" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)' }}></div>
+          <div className="relative flex items-center justify-between px-4 sm:px-6 py-2 rounded-full border border-slate-200/60 dark:border-slate-700/60 bg-white/50 dark:bg-slate-800/50 w-full" style={{ backdropFilter: 'blur(20px) saturate(180%)' }}>
+            <div className="flex flex-col items-start text-left flex-shrink-0 gap-1">
+              <div className="h-3 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+              <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+            </div>
+            <div className="flex items-center justify-center flex-1 ml-2">
+              <div className="h-7 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+            </div>
+            <div className="w-12 flex-shrink-0"></div>
+          </div>
+        </div>
+      );
+    }
     
     return (
       <div className={`group relative p-1 sm:p-2 h-full flex items-center ${isClickable ? 'cursor-pointer' : ''}`} onClick={isClickable ? onClick : undefined}>
@@ -111,6 +131,21 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick }) => {
               }
               return null;
             })()}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="group relative p-1 sm:p-2 h-full flex items-center">
+        <div className="absolute inset-1 sm:inset-2 bg-gradient-to-br from-white/95 via-white/85 to-white/75 dark:from-slate-800/95 dark:via-slate-800/85 dark:to-slate-800/75 backdrop-blur-md rounded-full"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-100/60 via-transparent to-slate-200/40 dark:from-slate-700/40 dark:via-transparent dark:to-slate-800/60 rounded-full shadow-2xl" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)' }}></div>
+        <div className="relative flex items-center justify-center gap-3 px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-slate-200/60 dark:border-slate-700/60 bg-white/50 dark:bg-slate-800/50 w-full flex-row" style={{ backdropFilter: 'blur(20px) saturate(180%)' }}>
+          <div className="flex flex-row items-center justify-between w-full space-x-4">
+            <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+            <div className="h-7 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
           </div>
         </div>
       </div>

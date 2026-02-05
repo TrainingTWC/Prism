@@ -11,7 +11,7 @@ const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz2pAj_RBIwRmJf
 const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz2z24Tk0uiR8Ir0qGAlPGmfap6-i-gjeM4StMUJ-cPrp8ET6YkYrmzdGtxoCmLkcYhLQ/exec';
 
 // Training Audit endpoint - UPDATED URL
-const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzEyJQiAhl3pS90uvkf-3e1mIbq8WNs7-xMtuBwD6eOy85Kkx6EKpzUsHW-oxp6NAoqjQ/exec';
+const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwn4bXmjoXaTI7UMfDhzQwG6SZGZCq-qlVC_mQUnCZm0YiciqtaGgtdRJiq4oi505na3w/exec';
 
 // QA Assessment endpoint - UPDATED URL (Data fetched from Google Sheets)
 const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwGIDlsSGyRhR40G0zLmYpbs5C-ShrZffwnKcn3hikZPeDFtcWbeDzewT49yJQ_8YCUkA/exec';

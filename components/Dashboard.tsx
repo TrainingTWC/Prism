@@ -4331,10 +4331,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                   {/* Training Stats - Desktop/Tablet layout - All pills in one horizontal line */}
                   <div className="hidden md:block mb-8 px-2">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-                      <StatCard title="Total Submissions" value={stats?.totalSubmissions} onClick={handleTotalSubmissionsClick} />
-                      <StatCard title="Stores Covered" value={stats?.uniqueStores} onClick={handleStoresCoveredClick} />
+                      <StatCard title="Total Submissions" value={stats?.totalSubmissions} onClick={handleTotalSubmissionsClick} loading={isTrainingLoading} />
+                      <StatCard title="Stores Covered" value={stats?.uniqueStores} onClick={handleStoresCoveredClick} loading={isTrainingLoading} />
                       {/* For training dashboard, provide structured avg data so StatCard can render trend */}
-                      <StatCard title="Audit Percentage" value={{
+                      <StatCard title="Audit Percentage" loading={isTrainingLoading} value={{
                         latest: (stats as any)?.latestScore ?? (typeof stats?.avgScore === 'number' ? Math.round(stats.avgScore) : undefined),
                         previous: (stats as any)?.previousScore ?? null,
                         aggregate: (!(stats as any)?.latestScore && stats?.avgScore) ? Math.round(stats.avgScore) : undefined
@@ -6847,19 +6847,32 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         </>
       ) : (
         <div className="text-center py-10 bg-white/70 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-xl backdrop-blur-sm">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">No Results Found</h3>
-          <p className="text-gray-600 dark:text-slate-400 mt-1">
-            {dashboardType === 'operations'
-              ? 'No AM Operations checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
-              : dashboardType === 'training'
-                ? 'No Training Audit checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
-                : dashboardType === 'qa'
-                  ? 'No QA checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
-                  : dashboardType === 'finance'
-                    ? 'No Finance Audit checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
-                    : 'Try adjusting your filters to find data.'
-            }
-          </p>
+          {isTrainingLoading && dashboardType === 'training' ? (
+            <div className="w-full max-w-4xl mx-auto space-y-6 px-4">
+              <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700 rounded mx-auto animate-pulse"></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="h-64 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse"></div>
+                <div className="h-64 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse"></div>
+              </div>
+              <div className="h-96 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse"></div>
+            </div>
+          ) : (
+            <>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">No Results Found</h3>
+              <p className="text-gray-600 dark:text-slate-400 mt-1">
+                {dashboardType === 'operations'
+                  ? 'No AM Operations checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
+                  : dashboardType === 'training'
+                    ? 'No Training Audit checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
+                    : dashboardType === 'qa'
+                      ? 'No QA checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
+                      : dashboardType === 'finance'
+                        ? 'No Finance Audit checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
+                        : 'Try adjusting your filters to find data.'
+                }
+              </p>
+            </>
+          )}
         </div>
       )}
       <NotificationOverlay

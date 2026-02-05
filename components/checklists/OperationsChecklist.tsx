@@ -867,20 +867,31 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         percentageScore: percentage.toString()
       };
 
-      // Add all question responses - use simple format (CG_1, OTA_1, etc.) matching AI-READY script
+      // Add all question responses with EXACT format matching Google Apps Script headers
       sections.forEach((section, sectionIndex) => {
         section.items.forEach((item, itemIndex) => {
           const questionKey = `${section.id}_${item.id}`;
 
           // Use item.id directly as it already has the correct format (CG_1, OTA_1, etc.)
-          // Google Apps Script AI-READY expects simple format: CG_1, OTA_1, FAS_1, etc.
+          // This MUST match the header format in Google Apps Script: CG_1, CG_2, OTA_1, etc.
           const paramKey = item.id;
 
           params[paramKey] = responses[questionKey] || '';
+          
+          // Log each question response for debugging
+          if (responses[questionKey]) {
+            console.log(`📝 Question ${paramKey}: ${responses[questionKey]}`);
+          }
         });
 
-        // Add section remarks with simple format matching AI-READY script
-        params[`${section.id}_remarks`] = sectionRemarks[section.id] || '';
+        // Add section remarks with EXACT format matching Google Apps Script headers
+        // Script expects: CG_remarks, OTA_remarks, FAS_remarks, FWS_remarks, ENJ_remarks, EX_remarks
+        const remarksKey = `${section.id}_remarks`;
+        params[remarksKey] = sectionRemarks[section.id] || '';
+        
+        if (sectionRemarks[section.id]) {
+          console.log(`💬 Section ${section.id} remarks: ${sectionRemarks[section.id]}`);
+        }
       });
 
       // Add section scores (matching the AI-READY script format)
@@ -908,7 +919,10 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
       ).join('&');
 
       console.log('📤 Submitting to:', AM_OPS_LOG_ENDPOINT);
-      console.log('📤 Payload:', params);
+      console.log('📤 Total parameters being sent:', Object.keys(params).length);
+      console.log('📤 Full Payload:', params);
+      console.log('📤 Question responses:', Object.keys(params).filter(k => k.match(/^[A-Z]+_\d+$/)).length);
+      console.log('📤 Section remarks:', Object.keys(params).filter(k => k.endsWith('_remarks')).length);
 
       try {
         const response = await fetch(AM_OPS_LOG_ENDPOINT, {

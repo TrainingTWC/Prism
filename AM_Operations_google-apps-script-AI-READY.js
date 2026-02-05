@@ -33,17 +33,20 @@ function doPost(e) {
         'FAS_1', 'FAS_2', 'FAS_3', 'FAS_4', 'FAS_5', 'FAS_6', 'FAS_7', 'FAS_8', 'FAS_9', 'FAS_10', 'FAS_11', 'FAS_12', 'FAS_13',
         // Feedback with Solution (FWS) - Questions 1-13
         'FWS_1', 'FWS_2', 'FWS_3', 'FWS_4', 'FWS_5', 'FWS_6', 'FWS_7', 'FWS_8', 'FWS_9', 'FWS_10', 'FWS_11', 'FWS_12', 'FWS_13',
-        // Engagement (ENJ) - Questions 1-7
+        // Enjoyable Experience (ENJ) - Questions 1-7
         'ENJ_1', 'ENJ_2', 'ENJ_3', 'ENJ_4', 'ENJ_5', 'ENJ_6', 'ENJ_7',
-        // Excellence (EX) - Questions 1-6
+        // Enthusiastic Exit (EX) - Questions 1-6
         'EX_1', 'EX_2', 'EX_3', 'EX_4', 'EX_5', 'EX_6',
         // Section Remarks
-        'CG_Remarks', 'OTA_Remarks', 'FAS_Remarks', 'FWS_Remarks', 'ENJ_Remarks', 'EX_Remarks',
+        'CG_remarks', 'OTA_remarks', 'FAS_remarks', 'FWS_remarks', 'ENJ_remarks', 'EX_remarks',
         // Scores
         'Total Score',
         'Max Score',
         'Percentage Score',
-        'CG_Score', 'OTA_Score', 'FAS_Score', 'FWS_Score', 'ENJ_Score', 'EX_Score'
+        'CG_Score', 'OTA_Score', 'FAS_Score', 'FWS_Score', 'ENJ_Score', 'EX_Score',
+        // Overall remarks and image upload
+        'Remarks',
+        'Image Upload'
       ];
       sheet.appendRow(header);
     }
@@ -88,32 +91,36 @@ function doPost(e) {
       params['FWS_5'] || '', params['FWS_6'] || '', params['FWS_7'] || '', params['FWS_8'] || '', 
       params['FWS_9'] || '', params['FWS_10'] || '', params['FWS_11'] || '', params['FWS_12'] || '', params['FWS_13'] || '',
       
-      // Engagement (ENJ) - Questions 1-7
+      // Enjoyable Experience (ENJ) - Questions 1-7
       params['ENJ_1'] || '', params['ENJ_2'] || '', params['ENJ_3'] || '', params['ENJ_4'] || '', 
       params['ENJ_5'] || '', params['ENJ_6'] || '', params['ENJ_7'] || '',
       
-      // Excellence (EX) - Questions 1-6
+      // Enthusiastic Exit (EX) - Questions 1-6
       params['EX_1'] || '', params['EX_2'] || '', params['EX_3'] || '', params['EX_4'] || '', 
       params['EX_5'] || '', params['EX_6'] || '',
       
       // Section Remarks
-      params['CG_remarks'] || params['cgRemarks'] || '',
-      params['OTA_remarks'] || params['otaRemarks'] || '',
-      params['FAS_remarks'] || params['fasRemarks'] || '',
-      params['FWS_remarks'] || params['fwsRemarks'] || '',
-      params['ENJ_remarks'] || params['enjRemarks'] || '',
-      params['EX_remarks'] || params['exRemarks'] || '',
+      params['CG_remarks'] || '',
+      params['OTA_remarks'] || '',
+      params['FAS_remarks'] || '',
+      params['FWS_remarks'] || '',
+      params['ENJ_remarks'] || '',
+      params['EX_remarks'] || '',
       
       // Scores
-      params.totalScore || params.score || '',
+      params.totalScore || '',
       params.maxScore || '',
-      params.percentageScore || params.percentage || '',
+      params.percentageScore || '',
       params.cgScore || '',
       params.otaScore || '',
       params.fasScore || '',
       params.fwsScore || '',
       params.enjScore || '',
-      params.exScore || ''
+      params.exScore || '',
+      
+      // Overall remarks and image upload
+      params.remarks || '',
+      params.imageUpload || ''
     ];
 
     // Append the row

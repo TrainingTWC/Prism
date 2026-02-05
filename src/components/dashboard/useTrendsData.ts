@@ -2,8 +2,8 @@ import { useEffect, useState, useMemo } from 'react';
 
 type Row = any;
 
-// Use the same endpoint as Training Audit submissions
-const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzEyJQiAhl3pS90uvkf-3e1mIbq8WNs7-xMtuBwD6eOy85Kkx6EKpzUsHW-oxp6NAoqjQ/exec';
+// Use the UPDATED Training Audit endpoint
+const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwn4bXmjoXaTI7UMfDhzQwG6SZGZCq-qlVC_mQUnCZm0YiciqtaGgtdRJiq4oi505na3w/exec';
 
 /**
  * Fetches raw training audit data from Google Sheets
