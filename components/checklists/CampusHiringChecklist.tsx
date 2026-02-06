@@ -181,7 +181,16 @@ const CampusHiringChecklist: React.FC<CampusHiringChecklistProps> = ({ userRole,
     'IHM Panipat',
     'IHM yamuna nagar',
     'IHM Bhatinda',
-    'IHM Kurukshetra'
+    'IHM Kurukshetra',
+    'IHM Bodh gaya',
+    'T john college',
+    'SIHM durgapur',
+    'SEA College of Hotel Management',
+    'AIHMCT Bangalore',
+  	'Assam Downtown University',
+    'IHM Guwahati',
+    'IIHM Bangalore',
+	  'Ramaiah Institute of Hotel Management'
   ];
 
   // Load candidate data from URL on mount
