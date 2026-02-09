@@ -17,7 +17,7 @@ const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwn4bXm
 const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwGIDlsSGyRhR40G0zLmYpbs5C-ShrZffwnKcn3hikZPeDFtcWbeDzewT49yJQ_8YCUkA/exec';
 
 // Finance Audit endpoint - UPDATED URL (Data fetched from Google Sheets)
-const FINANCE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbztOXEO9ZKR4_j3_3CQbbmawlAvWTFwH6UVYd4u3ZxBRLXJ37UZNeM7ReU8-1df7zzl6w/exec';
+const FINANCE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzfP0OjIe2-XQut_0DgOFpkAvqkMi0RU6U3HLtDGBpNXeVTnLjHUtzNhlZtonXhy1H0/exec';
 
 // Campus Hiring endpoint - UPDATED URL
 const CAMPUS_HIRING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbPYyW_kPmdL5Fnq1AUyhgLyvYmInBj9EzQSrmdFdqO4FJe2O8_flX6rxNaZNaVhjs_Q/exec';
@@ -789,8 +789,11 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
       return STATIC_TRAINING_DATA as TrainingAuditSubmission[];
     }
 
+    // Load store mapping ONCE before processing all records (PERFORMANCE FIX)
+    const mappingData = await loadStoreMapping();
+
     // Process data to ensure proper region mapping and TSA score extraction
-    const processedData = await Promise.all(data.map(async (row: any) => {
+    const processedData = data.map((row: any) => {
       let region = row.region || 'Unknown';
       let storeId = row.storeId;
       const trainerId = (row.trainerId || '').toLowerCase().trim();
@@ -804,7 +807,6 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
       if (!region || region === 'Unknown') {
         try {
           if (storeId) {
-            const mappingData = await loadStoreMapping();
 
             // Try to find by exact store ID match first
             let storeMapping = mappingData.find(mapping =>
@@ -856,7 +858,7 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
         tsaFoodScore: tsaFoodScore,
         tsaCXScore: tsaCXScore
       };
-    }));
+    });
 
     return processedData as TrainingAuditSubmission[];
 
@@ -1233,14 +1235,48 @@ export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
       }
     }
 
+    // Extract data array from response object
+    if (data && typeof data === 'object' && 'data' in data) {
+      data = data.data;
+    }
+
     if (!data || !Array.isArray(data)) {
       return [];
     }
 
+    // Transform headers from "Submission Time" format to camelCase
+    const transformedData = data.map((row: any) => {
+      const transformed: any = {};
+      
+      // Map common fields with spaces to camelCase
+      transformed.submissionTime = row['Submission Time'] || row.submissionTime || '';
+      transformed.financeName = row['Finance Auditor Name'] || row.financeName || '';
+      transformed.financeId = row['Finance Auditor ID'] || row.financeId || '';
+      transformed.amName = row['Area Manager Name'] || row.amName || '';
+      transformed.amId = row['Area Manager ID'] || row.amId || '';
+      transformed.storeName = row['Store Name'] || row.storeName || '';
+      transformed.storeId = row['Store ID'] || row.storeId || '';
+      transformed.region = row['Region'] || row.region || '';
+      transformed.totalScore = row['Total Score'] || row.totalScore || '0';
+      transformed.maxScore = row['Max Score'] || row.maxScore || '70';
+      transformed.scorePercentage = row['Score Percentage'] || row.scorePercentage || '0';
+      transformed.auditorSignature = row['Auditor Signature'] || row.auditorSignature || '';
+      transformed.smSignature = row['SM Signature'] || row.smSignature || '';
+      
+      // Copy all other fields (questions, remarks, images)
+      Object.keys(row).forEach(key => {
+        if (!transformed[key]) {
+          transformed[key] = row[key];
+        }
+      });
+      
+      return transformed;
+    });
+
     // Process data to ensure region mapping AND complete AM/Store data from comprehensive mapping
     const mappingData = await loadStoreMapping();
 
-    const processedData = data.map((row: any) => {
+    const processedData = transformedData.map((row: any) => {
       let region = row.region || 'Unknown';
       let amName = row.amName || '';
       let amId = row.amId || '';

@@ -8,6 +8,7 @@ import { buildOperationsPDF } from '../src/utils/operationsReport';
 import { buildQAPDF } from '../src/utils/qaReport';
 import { buildHRPDF } from '../src/utils/hrReport';
 import { buildSHLPPDF } from '../src/utils/shlpReport';
+import { buildFinancePDF } from '../src/utils/financeReport';
 import { Users, Clipboard, GraduationCap, BarChart3, Brain, Calendar, CheckCircle, TrendingUp, Target } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Submission, Store } from '../types';
@@ -2318,6 +2319,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         }
         reportData = filteredSHLPData;
         dataType = 'SHLP Certification Assessment';
+      } else if (dashboardType === 'finance') {
+        if (!filteredFinanceData || filteredFinanceData.length === 0) {
+          alert('No Finance Audit data available to generate report');
+          hapticFeedback.error();
+          return;
+        }
+        reportData = filteredFinanceData;
+        dataType = 'Finance Audit Assessment';
       } else { // consolidated
         if ((!filteredSubmissions || filteredSubmissions.length === 0) &&
           (!filteredAMOperations || filteredAMOperations.length === 0) &&
@@ -2695,6 +2704,80 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         pdf.save(fileName);
         setIsGenerating(false);
         showNotificationMessage('SHLP Certification PDF generated successfully!', 'success');
+        return;
+      }
+
+      // Finance dashboard: use the Finance-specific PDF builder
+      if (dashboardType === 'finance') {
+        const meta: any = {};
+        const firstRecord = reportData.length > 0 ? reportData[0] as any : null;
+
+        // Store filter
+        if (filters.store) {
+          const s = allStores.find(s => s.id === filters.store);
+          meta.storeName = s?.name || filters.store;
+          meta.storeId = filters.store;
+        } else if (firstRecord) {
+          meta.storeName = firstRecord.storeName || firstRecord.store_name || firstRecord['Store Name'] || '';
+          meta.storeId = firstRecord.storeId || firstRecord.store_id || firstRecord['Store ID'] || '';
+        } else if (filters.region) {
+          meta.storeName = `${filters.region} Region`;
+          meta.storeId = '';
+        } else if (reportData.length > 0) {
+          meta.storeName = 'All Stores (Filtered)';
+          meta.storeId = '';
+        }
+
+        // Region filter
+        if (filters.region) {
+          meta.region = filters.region;
+        } else if (firstRecord) {
+          meta.region = firstRecord.region || firstRecord.Region || '';
+        }
+
+        // Finance Auditor filter (stored in AM filter for consistency)
+        if (filters.am) {
+          const amInfo = AREA_MANAGERS.find(am => am.id === filters.am);
+          meta.auditorName = amInfo?.name || filters.am;
+        } else if (firstRecord) {
+          meta.auditorName = firstRecord.financeAuditorName || firstRecord.financeName || firstRecord['Finance Auditor Name'] || '';
+        }
+
+        // Date metadata
+        if (lastRefresh) meta.date = lastRefresh.toLocaleString();
+
+        const fileName = `Finance_Audit_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+
+        // Retrieve question images from the submission data (if available) or localStorage
+        let questionImages: Record<string, string[]> = {};
+        try {
+          // First, try to get images from the submission data
+          if (firstRecord) {
+            if (firstRecord.questionImagesJSON || firstRecord['Question Images JSON']) {
+              const imagesJSON = firstRecord.questionImagesJSON || firstRecord['Question Images JSON'];
+              questionImages = JSON.parse(imagesJSON);
+              console.log('📸 Loaded Finance images from submission:', Object.keys(questionImages).length, 'image sets');
+            }
+          }
+
+          // Fallback to localStorage if no images in submission
+          if (Object.keys(questionImages).length === 0) {
+            const storedImages = localStorage.getItem('finance_images');
+            if (storedImages) {
+              questionImages = JSON.parse(storedImages);
+              console.log('📸 Loaded Finance images from localStorage:', Object.keys(questionImages).length, 'image sets');
+            }
+          }
+        } catch (error) {
+          console.error('❌ Could not load Finance question images:', error);
+        }
+
+        console.log('📝 Building Finance PDF with submission data:', firstRecord);
+
+        const pdf = await buildFinancePDF(reportData as any, meta, { title: 'Financial Controls Assessment' }, questionImages);
+        pdf.save(fileName);
+        setIsGenerating(false);
+        showNotificationMessage('Finance Audit PDF generated successfully!', 'success');
         return;
       }
 
@@ -6350,7 +6433,24 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                       )}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100 whitespace-nowrap">
-                                      {submission.submissionTime}
+                                      {(() => {
+                                        const dateStr = submission.submissionTime;
+                                        // Handle DD-MM-YYYY format stored as YYYY-MM-DD
+                                        const match = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+                                        if (match) {
+                                          const [, year, month, day, hour, minute] = match;
+                                          // Swap month and day since it's stored as YYYY-DD-MM
+                                          const date = new Date(`${year}-${day}-${month}T${hour}:${minute}:00.000Z`);
+                                          return date.toLocaleDateString('en-US', { 
+                                            year: 'numeric', 
+                                            month: 'short', 
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                          });
+                                        }
+                                        return dateStr;
+                                      })()}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
                                       {submission.storeName} ({submission.storeId})
@@ -6374,133 +6474,51 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                     <tr>
                                       <td colSpan={5} className="px-4 py-4 bg-gray-50 dark:bg-slate-700/50">
                                         <div className="space-y-4">
-                                          {/* Cash Management Section */}
-                                          {Object.keys(submission).filter(key => key.startsWith('CashManagement_')).length > 0 && (
-                                            <div>
-                                              <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-2">Cash Management</h4>
-                                              <div className="grid grid-cols-1 gap-2">
-                                                {Object.keys(submission)
-                                                  .filter(key => key.startsWith('CashManagement_CM_'))
-                                                  .sort((a, b) => {
-                                                    const numA = parseInt(a.split('_').pop() || '0');
-                                                    const numB = parseInt(b.split('_').pop() || '0');
-                                                    return numA - numB;
-                                                  })
-                                                  .map((key) => {
-                                                    const value = submission[key];
-                                                    if (!value || value === 'undefined') return null;
-                                                    const questionNum = key.split('_').pop();
-                                                    return (
-                                                      <div key={key} className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 p-2 rounded">
-                                                        <span className="text-gray-700 dark:text-slate-300">Question {questionNum}</span>
-                                                        <span className={`px-2 py-1 rounded-full font-medium ${value === 'yes' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                                                            value === 'no' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                                                              'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                                                          }`}>
-                                                          {value === 'yes' ? '✓ Yes' : value === 'no' ? '✗ No' : 'N/A'}
-                                                        </span>
-                                                      </div>
-                                                    );
-                                                  })}
-                                              </div>
-                                            </div>
-                                          )}
+                                          {/* Display all Finance questions organized by section */}
+                                          {[
+                                            { title: 'Cash Handling & Settlement', ids: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6'] },
+                                            { title: 'Billing & Transactions', ids: ['Q7', 'Q8', 'Q9', 'Q10', 'Q11', 'Q12'] },
+                                            { title: 'Product & Inventory', ids: ['Q13', 'Q14', 'Q15', 'Q16', 'Q17', 'Q18', 'Q19'] },
+                                            { title: 'Documentation & Tracking', ids: ['Q20', 'Q21', 'Q22', 'Q23'] },
+                                            { title: 'POS System & SOP', ids: ['Q24', 'Q25', 'Q26', 'Q27'] },
+                                            { title: 'Licenses & Certificates', ids: ['Q28', 'Q29', 'Q30', 'Q31', 'Q32'] },
+                                            { title: 'CCTV Monitoring', ids: ['Q33', 'Q34', 'Q35'] }
+                                          ].map((section) => {
+                                            // Find questions for this section
+                                            const sectionQuestions = section.ids.map(qid => {
+                                              const questionKey = Object.keys(submission).find(k => k.startsWith(`${qid}:`));
+                                              if (questionKey) {
+                                                return { 
+                                                  id: qid,
+                                                  text: questionKey.replace(`${qid}: `, ''),
+                                                  value: submission[questionKey]
+                                                };
+                                              }
+                                              return null;
+                                            }).filter(Boolean);
 
-                                          {/* Sales & Revenue Section */}
-                                          {Object.keys(submission).filter(key => key.startsWith('SalesRevenue_')).length > 0 && (
-                                            <div>
-                                              <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-2">Sales & Revenue Tracking</h4>
-                                              <div className="grid grid-cols-1 gap-2">
-                                                {Object.keys(submission)
-                                                  .filter(key => key.startsWith('SalesRevenue_SR_'))
-                                                  .sort((a, b) => {
-                                                    const numA = parseInt(a.split('_').pop() || '0');
-                                                    const numB = parseInt(b.split('_').pop() || '0');
-                                                    return numA - numB;
-                                                  })
-                                                  .map((key) => {
-                                                    const value = submission[key];
-                                                    if (!value || value === 'undefined') return null;
-                                                    const questionNum = key.split('_').pop();
-                                                    return (
-                                                      <div key={key} className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 p-2 rounded">
-                                                        <span className="text-gray-700 dark:text-slate-300">Question {questionNum}</span>
-                                                        <span className={`px-2 py-1 rounded-full font-medium ${value === 'yes' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                                                            value === 'no' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                                                              'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                                                          }`}>
-                                                          {value === 'yes' ? '✓ Yes' : value === 'no' ? '✗ No' : 'N/A'}
-                                                        </span>
-                                                      </div>
-                                                    );
-                                                  })}
-                                              </div>
-                                            </div>
-                                          )}
+                                            if (sectionQuestions.length === 0) return null;
 
-                                          {/* Inventory & Financial Controls Section */}
-                                          {Object.keys(submission).filter(key => key.startsWith('InventoryFinance_')).length > 0 && (
-                                            <div>
-                                              <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-2">Inventory & Financial Controls</h4>
-                                              <div className="grid grid-cols-1 gap-2">
-                                                {Object.keys(submission)
-                                                  .filter(key => key.startsWith('InventoryFinance_IF_'))
-                                                  .sort((a, b) => {
-                                                    const numA = parseInt(a.split('_').pop() || '0');
-                                                    const numB = parseInt(b.split('_').pop() || '0');
-                                                    return numA - numB;
-                                                  })
-                                                  .map((key) => {
-                                                    const value = submission[key];
-                                                    if (!value || value === 'undefined') return null;
-                                                    const questionNum = key.split('_').pop();
-                                                    return (
-                                                      <div key={key} className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 p-2 rounded">
-                                                        <span className="text-gray-700 dark:text-slate-300">Question {questionNum}</span>
-                                                        <span className={`px-2 py-1 rounded-full font-medium ${value === 'yes' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                                                            value === 'no' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                                                              'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                                                          }`}>
-                                                          {value === 'yes' ? '✓ Yes' : value === 'no' ? '✗ No' : 'N/A'}
-                                                        </span>
-                                                      </div>
-                                                    );
-                                                  })}
+                                            return (
+                                              <div key={section.title}>
+                                                <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-2">{section.title}</h4>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                  {sectionQuestions.map((q: any) => (
+                                                    <div key={q.id} className="flex items-start justify-between text-xs bg-white dark:bg-slate-800 p-2 rounded">
+                                                      <span className="text-gray-700 dark:text-slate-300 flex-1">{q.id}: {q.text}</span>
+                                                      <span className={`px-2 py-1 rounded-full font-medium ml-2 ${
+                                                        q.value?.toLowerCase() === 'yes' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                                        q.value?.toLowerCase() === 'no' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                                                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                                      }`}>
+                                                        {q.value?.toLowerCase() === 'yes' ? '✓ Yes' : q.value?.toLowerCase() === 'no' ? '✗ No' : 'N/A'}
+                                                      </span>
+                                                    </div>
+                                                  ))}
+                                                </div>
                                               </div>
-                                            </div>
-                                          )}
-
-                                          {/* Compliance & Reporting Section */}
-                                          {Object.keys(submission).filter(key => key.startsWith('ComplianceReporting_')).length > 0 && (
-                                            <div>
-                                              <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-2">Compliance & Reporting</h4>
-                                              <div className="grid grid-cols-1 gap-2">
-                                                {Object.keys(submission)
-                                                  .filter(key => key.startsWith('ComplianceReporting_CR_'))
-                                                  .sort((a, b) => {
-                                                    const numA = parseInt(a.split('_').pop() || '0');
-                                                    const numB = parseInt(b.split('_').pop() || '0');
-                                                    return numA - numB;
-                                                  })
-                                                  .map((key) => {
-                                                    const value = submission[key];
-                                                    if (!value || value === 'undefined') return null;
-                                                    const questionNum = key.split('_').pop();
-                                                    return (
-                                                      <div key={key} className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 p-2 rounded">
-                                                        <span className="text-gray-700 dark:text-slate-300">Question {questionNum}</span>
-                                                        <span className={`px-2 py-1 rounded-full font-medium ${value === 'yes' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                                                            value === 'no' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                                                              'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                                                          }`}>
-                                                          {value === 'yes' ? '✓ Yes' : value === 'no' ? '✗ No' : 'N/A'}
-                                                        </span>
-                                                      </div>
-                                                    );
-                                                  })}
-                                              </div>
-                                            </div>
-                                          )}
+                                            );
+                                          })}
                                         </div>
                                       </td>
                                     </tr>

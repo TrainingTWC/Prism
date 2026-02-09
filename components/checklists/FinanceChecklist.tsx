@@ -5,9 +5,11 @@ import LoadingOverlay from '../LoadingOverlay';
 import { useComprehensiveMapping, useAreaManagers } from '../../hooks/useComprehensiveMapping';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Google Sheets endpoint for Finance Audit (QA Pattern)
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbztOXEO9ZKR4_j3_3CQbbmawlAvWTFwH6UVYd4u3ZxBRLXJ37UZNeM7ReU8-1df7zzl6w/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzfP0OjIe2-XQut_0DgOFpkAvqkMi0RU6U3HLtDGBpNXeVTnLjHUtzNhlZtonXhy1H0/exec';
 
 interface SurveyResponse {
   [key: string]: string;
@@ -35,76 +37,79 @@ interface FinanceChecklistProps {
 const FINANCE_SECTIONS = [
   {
     id: 'CashManagement',
-    title: 'Cash Management & Settlement',
+    title: 'Section 1: Cash Handling & Settlement',
     items: [
-      { id: 'CM_1', q: 'Were no discrepancies found during the cash drawer verification?', w: 2 },
-      { id: 'CM_2', q: 'Were no discrepancies found during the petty cash verification?', w: 2 },
-      { id: 'CM_3', q: 'Sale cash is not being used for petty cash or other purposes', w: 2 },
-      { id: 'CM_4', q: 'Has banking of cash been done accurately for the last 3 days?', w: 2 },
-      { id: 'CM_5', q: 'Was the previous day’s batch correctly settled in the EDC machine?', w: 2 },
-      { id: 'CM_6', q: 'Has the petty cash claim process been properly followed with supporting documents?', w: 2 }
+      { id: 'Q1', q: 'Were no discrepancies found during the cash drawer verification?', w: 4 },
+      { id: 'Q2', q: 'Were no discrepancies found during the petty cash verification?', w: 3 },
+      { id: 'Q3', q: 'Sale cash is not being used for petty cash or other purposes', w: 2 },
+      { id: 'Q4', q: 'Has banking of cash been done accurately for the last 3 days?', w: 2 },
+      { id: 'Q5', q: 'Was the previous day’s batch correctly settled in the EDC machine?', w: 2 },
+      { id: 'Q6', q: 'Has the petty cash claim process been properly followed with supporting documents?', w: 3 }
     ]
   },
   {
     id: 'Section2',
     title: 'Section 2: Billing & Transactions',
     items: [
-      { id: 'Q7', q: 'Is billing completed for all products served to customers?', w: 1 },
-      { id: 'Q8', q: 'Are there no open transactions pending in the POS system?', w: 1 },
-      { id: 'Q9', q: 'Are discount codes and vouchers applied correctly and as per policy?', w: 1 },
-      { id: 'Q10', q: 'Is the employee meal process followed as per policy?', w: 1 }
+      { id: 'Q7', q: 'Is billing completed for all products served to customers?', w: 4 },
+      { id: 'Q8', q: 'Are there no open transactions pending in the POS system?', w: 2 },
+      { id: 'Q9', q: 'Are discount codes and vouchers applied correctly and as per policy?', w: 2 },
+      { id: 'Q10', q: 'Is the employee meal process followed as per policy?', w: 2 },
+      { id: 'Q11', q: 'Is there no price discrepancy between Menu, POS, Home Delivery (HD), and Pickup?', w: 1 },
+      { id: 'Q12', q: 'Is the customer refund process followed properly with approval and documentation?', w: 1 }
     ]
   },
   {
     id: 'Section3',
     title: 'Section 3: Product & Inventory Compliance',
     items: [
-      { id: 'Q11', q: 'Were no expired items found during the audit?', w: 1 },
-      { id: 'Q12', q: 'Is FIFO / FEFO strictly followed for all food and beverage items?', w: 1 },
-      { id: 'Q13', q: 'Are all local purchase items correctly updated in the system?', w: 1 },
-      { id: 'Q14', q: 'Is the inventory posted in the system with complete and accurate details?', w: 1 },
-      { id: 'Q15', q: 'Is the MRD for all products properly updated?', w: 1 },
-      { id: 'Q16', q: 'Are all products available and actively used as per the menu?', w: 1 },
-      { id: 'Q17', q: 'Are products properly displayed or stored according to storage SOPs?', w: 1 }
+      { id: 'Q13', q: 'Were no expired items found during the audit?', w: 4 },
+      { id: 'Q14', q: 'Is FIFO / FEFO strictly followed for all food and beverage items?', w: 3 },
+      { id: 'Q15', q: 'Are all local purchase items correctly updated in the system?', w: 2 },
+      { id: 'Q16', q: 'Is the inventory posted in the system with complete and accurate details?', w: 2 },
+      { id: 'Q17', q: 'Is the MRD for all products properly updated?', w: 2 },
+      { id: 'Q18', q: 'Are all products available and actively used as per the menu?', w: 2 },
+      { id: 'Q19', q: 'Are products properly displayed or stored according to storage SOPs?', w: 1 }
     ]
   },
   {
     id: 'Section4',
     title: 'Section 4: Documentation & Tracking',
     items: [
-      { id: 'Q18', q: 'Are all manual transactions properly approved and recorded?', w: 1 },
-      { id: 'Q19', q: 'Is the cash log book updated daily and verified by the store manager?', w: 1 },
-      { id: 'Q20', q: 'Are bank/cash deposit slips maintained and filed systematically?', w: 1 },
-      { id: 'Q21', q: 'Are stock delivery challans filed and updated properly?', w: 1 }
+      { id: 'Q20', q: 'Are all manual transactions properly approved and recorded?', w: 2 },
+      { id: 'Q21', q: 'Is the cash log book updated daily and verified by the store manager?', w: 2 },
+      { id: 'Q22', q: 'Are bank/cash deposit slips maintained and filed systematically?', w: 2 },
+      { id: 'Q23', q: 'Are stock delivery challans filed and updated properly?', w: 2 }
     ]
   },
   {
     id: 'Section5',
     title: 'Section 5: POS System & SOP',
     items: [
-      { id: 'Q22', q: 'Is wastage correctly recorded and disposed as per SOP?', w: 1 },
-      { id: 'Q23', q: 'Are TI / TO / GRN entries done accurately and posted in the system?', w: 1 },
-      { id: 'Q24', q: 'Is the POS and store system used only for designated operational tasks?', w: 1 },
-      { id: 'Q25', q: 'Is the store team aware of SOPs and compliance requirements?', w: 1 }
+      { id: 'Q24', q: 'Is wastage correctly recorded and disposed as per SOP?', w: 2 },
+      { id: 'Q25', q: 'Are TI / TO / GRN entries done accurately and posted in the system?', w: 2 },
+      { id: 'Q26', q: 'Is the POS and store system used only for designated operational tasks?', w: 2 },
+      { id: 'Q27', q: 'Is the store team aware of SOPs and compliance requirements?', w: 2 }
     ]
   },
   {
     id: 'Section6',
     title: 'Section 6: Licenses & Certificates',
     items: [
-      { id: 'Q26', q: 'Are trade licenses available and displayed with proper validity?', w: 1 },
-      { id: 'Q27', q: 'Are Shop & Establishment licenses available and displayed with proper validity?', w: 1 },
-      { id: 'Q28', q: 'Is the FSSAI license available and displayed with proper validity?', w: 1 },
-      { id: 'Q29', q: 'Is the GST certificate available and displayed with proper validity?', w: 1 }
+      { id: 'Q28', q: 'Are trade licenses available and displayed with proper validity?', w: 1 },
+      { id: 'Q29', q: 'Are Shop & Establishment licenses available and displayed with proper validity?', w: 1 },
+      { id: 'Q30', q: 'Is the FSSAI license available and displayed with proper validity?', w: 1 },
+      { id: 'Q31', q: 'Music licenses available and displayed with proper validity?', w: 1 },
+      { id: 'Q32', q: 'Is the GST certificate available and displayed with proper validity?', w: 1 }
     ]
   },
   {
     id: 'Section7',
     title: 'Section 7: CCTV Monitoring',
     items: [
-      { id: 'Q30', q: 'Is the CCTV system functioning properly?', w: 1 },
-      { id: 'Q31', q: 'Is there a backup of 30 / 60 days of footage with proper coverage of critical areas?', w: 1 },
-      { id: 'Q32', q: 'Are no SOP, compliance, or integrity violations observed in CCTV sample review?', w: 1 }
+      { id: 'Q33', q: 'Is the CCTV system functioning properly?', w: 2 },
+      { id: 'Q34', q: 'Is there a backup of 30 / 60 days of footage with proper coverage of critical areas?', w: 2 },
+      { id: 'Q35', q: 'Are no SOP, compliance, or integrity violations observed in CCTV sample review?', w: 3 }
     ]
   }
 ];
@@ -509,6 +514,24 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
     });
   };
 
+  const calculateScore = () => {
+    let totalScore = 0;
+    let maxScore = 0;
+
+    sections.forEach(section => {
+      section.items.forEach(item => {
+        maxScore += item.w;
+        const response = responses[`${section.id}_${item.id}`];
+        if (response === 'yes') {
+          totalScore += item.w;
+        }
+      });
+    });
+
+    const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+    return { totalScore, maxScore, scorePercentage };
+  };
+
   const handleSubmit = async () => {
     const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
     const answeredQuestions = Object.keys(responses).filter(key =>
@@ -660,7 +683,9 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         body: new URLSearchParams(params).toString()
       });
 
-      alert('Finance audit submitted successfully! Please check your Google Sheet to verify the data was recorded.');
+      // Generate PDF after successful submission
+      generatePDF();
+      
       setSubmitted(true);
 
     } catch (error) {
@@ -708,6 +733,113 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
     }
   };
 
+  const generatePDF = () => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm' });
+    const { totalScore, maxScore, scorePercentage } = calculateScore();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Financial Controls Assessment', 105, 15, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    let y = 25;
+    doc.text(`Store: ${meta.storeName} (${meta.storeId})`, 10, y);
+    y += 6;
+    doc.text(`Finance Auditor: ${meta.financeAuditorName} (${meta.financeAuditorId})`, 10, y);
+    y += 6;
+    doc.text(`Area Manager: ${meta.amName} (${meta.amId})`, 10, y);
+    y += 6;
+    
+    // Region detection (same logic as submit)
+    const correctedStoreId = meta.storeId.replace(/['"]/g, '');
+    const storeData = comprehensiveMapping?.find((s: any) => 
+      s.id === correctedStoreId || s.storeId === correctedStoreId || s['Store ID'] === correctedStoreId
+    );
+    const detectedRegion = storeData?.region || storeData?.Region || 'Unknown';
+    doc.text(`Region: ${detectedRegion}`, 10, y);
+    y += 6;
+    doc.text(`Date: ${new Date().toLocaleString()}`, 10, y);
+    y += 10;
+    
+    // Score Summary
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text(`Score: ${totalScore} / ${maxScore} (${scorePercentage}%)`, 105, y, { align: 'center' });
+    y += 10;
+    
+    // Sections
+    sections.forEach((section, sectionIndex) => {
+      if (y > 250) {
+        doc.addPage();
+        y = 20;
+      }
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text(`${section.title}`, 10, y);
+      y += 5;
+      
+      // Table for section questions
+      const tableRows = section.items.map((item, itemIndex) => {
+        const questionKey = `${section.id}_${item.id}`;
+        const response = responses[questionKey] || '';
+        const responseText = response === 'yes' ? 'Yes' : response === 'no' ? 'No' : response === 'na' ? 'NA' : '';
+        const remark = questionRemarks[questionKey] || '';
+        const score = response === 'yes' ? item.w : response === 'na' ? 'NA' : 0;
+        const scoreDisplay = response === 'na' ? `NA/${item.w}` : `${score}/${item.w}`;
+        
+        return [
+          `Q${itemIndex + 1}`,
+          item.q,
+          responseText,
+          scoreDisplay,
+          remark || '-'
+        ];
+      });
+      
+      autoTable(doc, {
+        startY: y,
+        head: [['#', 'Question', 'Response', 'Score', 'Remarks']],
+        body: tableRows,
+        margin: { left: 10, right: 10 },
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 70 },
+          2: { cellWidth: 20, halign: 'center' },
+          3: { cellWidth: 18, halign: 'center' },
+          4: { cellWidth: 62 }
+        },
+        theme: 'grid'
+      });
+      
+      y = (doc as any).lastAutoTable.finalY + 6;
+      
+      // Section remarks
+      const sectionRemarks = responses[`${section.id}_remarks`];
+      if (sectionRemarks && sectionRemarks.trim()) {
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(9);
+        doc.text(`Section Remarks: ${sectionRemarks}`, 10, y, { maxWidth: 190 });
+        y += 8;
+      }
+    });
+    
+    // Page numbers
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.text(`Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+    }
+    
+    doc.save(`finance_audit_${meta.storeName}_${Date.now()}.pdf`);
+  };
+
   if (submitted) {
     return (
       <div className="p-6">
@@ -720,12 +852,23 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
             <p className="text-green-700 dark:text-green-400 mb-6">
               Thank you for completing the Financial Controls assessment. Your responses have been recorded.
             </p>
-            <button
-              onClick={resetSurvey}
-              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-            >
-              Take Another Assessment
-            </button>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={generatePDF}
+                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Download PDF
+              </button>
+              <button
+                onClick={resetSurvey}
+                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Take Another Assessment
+              </button>
+            </div>
           </div>
         </div>
       </div>

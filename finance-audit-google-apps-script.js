@@ -1,9 +1,9 @@
 /**
  * FINANCE AUDIT CHECKLIST - GOOGLE APPS SCRIPT
- * Complete with Image Uploads and Remarks for Each Question
+ * Updated to match frontend structure (7 sections, 35 questions)
  * 
  * Features:
- * - Records all 30 finance questions (4 sections)
+ * - Records all 35 finance questions (7 sections)
  * - Supports image upload for each question
  * - Supports remarks/comments for each question
  * - Stores images in Google Drive folder
@@ -39,6 +39,13 @@ function doPost(e) {
       sheet = ss.insertSheet(SHEET_NAME);
       setupHeaders(sheet);
       Logger.log('✅ Created new Finance Audit sheet with headers');
+    } else {
+      // Check if headers exist (first row should have data)
+      const firstRow = sheet.getRange(1, 1, 1, 1).getValue();
+      if (!firstRow || firstRow === '') {
+        setupHeaders(sheet);
+        Logger.log('✅ Added headers to existing Finance Audit sheet');
+      }
     }
     
     // Parse the incoming JSON data
@@ -96,7 +103,7 @@ function doPost(e) {
       }
     }
     
-    // Build row data with all questions, remarks, and image URLs
+    // Build row data with all questions, remarks, and image URLs matching FRONTEND structure
     const rowData = [
       formattedTimestamp,                                // A: Timestamp
       params.submissionTime || '',                       // B: Submission Time
@@ -106,135 +113,175 @@ function doPost(e) {
       params.amId || '',                                 // F: Area Manager ID
       params.storeName || '',                            // G: Store Name
       params.storeId || '',                              // H: Store ID
+      params.region || '',                               // I: Region
       
-      // Cash Management Section (8 questions)
-      params.CashManagement_CM_1 || '',                  // I: CM_1
-      params.CashManagement_CM_1_remarks || '',          // J: CM_1 Remarks
-      imageUrls['CashManagement_CM_1'] || '',            // K: CM_1 Image
+      // Section 1: Cash Handling & Settlement (6 questions: Q1 to Q6)
+      params.CashManagement_Q1 || '',                    // J: Q1
+      params['CashManagement_Q1_remark'] || '',          // K: Q1 Remark
+      imageUrls['CashManagement_Q1'] || '',              // L: Q1 Image
       
-      params.CashManagement_CM_2 || '',                  // L: CM_2
-      params.CashManagement_CM_2_remarks || '',          // M: CM_2 Remarks
-      imageUrls['CashManagement_CM_2'] || '',            // N: CM_2 Image
+      params.CashManagement_Q2 || '',                    // M: Q2
+      params['CashManagement_Q2_remark'] || '',          // N: Q2 Remark
+      imageUrls['CashManagement_Q2'] || '',              // O: Q2 Image
       
-      params.CashManagement_CM_3 || '',                  // O: CM_3
-      params.CashManagement_CM_3_remarks || '',          // P: CM_3 Remarks
-      imageUrls['CashManagement_CM_3'] || '',            // Q: CM_3 Image
+      params.CashManagement_Q3 || '',                    // P: Q3
+      params['CashManagement_Q3_remark'] || '',          // Q: Q3 Remark
+      imageUrls['CashManagement_Q3'] || '',              // R: Q3 Image
       
-      params.CashManagement_CM_4 || '',                  // R: CM_4
-      params.CashManagement_CM_4_remarks || '',          // S: CM_4 Remarks
-      imageUrls['CashManagement_CM_4'] || '',            // T: CM_4 Image
+      params.CashManagement_Q4 || '',                    // S: Q4
+      params['CashManagement_Q4_remark'] || '',          // T: Q4 Remark
+      imageUrls['CashManagement_Q4'] || '',              // U: Q4 Image
       
-      params.CashManagement_CM_5 || '',                  // U: CM_5
-      params.CashManagement_CM_5_remarks || '',          // V: CM_5 Remarks
-      imageUrls['CashManagement_CM_5'] || '',            // W: CM_5 Image
+      params.CashManagement_Q5 || '',                    // V: Q5
+      params['CashManagement_Q5_remark'] || '',          // W: Q5 Remark
+      imageUrls['CashManagement_Q5'] || '',              // X: Q5 Image
       
-      params.CashManagement_CM_6 || '',                  // X: CM_6
-      params.CashManagement_CM_6_remarks || '',          // Y: CM_6 Remarks
-      imageUrls['CashManagement_CM_6'] || '',            // Z: CM_6 Image
+      params.CashManagement_Q6 || '',                    // Y: Q6
+      params['CashManagement_Q6_remark'] || '',          // Z: Q6 Remark
+      imageUrls['CashManagement_Q6'] || '',              // AA: Q6 Image
       
-      params.CashManagement_CM_7 || '',                  // AA: CM_7
-      params.CashManagement_CM_7_remarks || '',          // AB: CM_7 Remarks
-      imageUrls['CashManagement_CM_7'] || '',            // AC: CM_7 Image
+      params.CashManagement_remarks || '',               // AB: Section Remarks
       
-      params.CashManagement_CM_8 || '',                  // AD: CM_8
-      params.CashManagement_CM_8_remarks || '',          // AE: CM_8 Remarks
-      imageUrls['CashManagement_CM_8'] || '',            // AF: CM_8 Image
+      // Section 2: Billing & Transactions (6 questions: Q7 to Q12)
+      params.Section2_Q7 || '',                          // AC: Q7
+      params['Section2_Q7_remark'] || '',                // AD: Q7 Remark
+      imageUrls['Section2_Q7'] || '',                    // AE: Q7 Image
       
-      // Sales & Revenue Tracking Section (7 questions)
-      params.SalesRevenue_SR_1 || '',                    // AG: SR_1
-      params.SalesRevenue_SR_1_remarks || '',            // AH: SR_1 Remarks
-      imageUrls['SalesRevenue_SR_1'] || '',              // AI: SR_1 Image
+      params.Section2_Q8 || '',                          // AF: Q8
+      params['Section2_Q8_remark'] || '',                // AG: Q8 Remark
+      imageUrls['Section2_Q8'] || '',                    // AH: Q8 Image
       
-      params.SalesRevenue_SR_2 || '',                    // AJ: SR_2
-      params.SalesRevenue_SR_2_remarks || '',            // AK: SR_2 Remarks
-      imageUrls['SalesRevenue_SR_2'] || '',              // AL: SR_2 Image
+      params.Section2_Q9 || '',                          // AI: Q9
+      params['Section2_Q9_remark'] || '',                // AJ: Q9 Remark
+      imageUrls['Section2_Q9'] || '',                    // AK: Q9 Image
       
-      params.SalesRevenue_SR_3 || '',                    // AM: SR_3
-      params.SalesRevenue_SR_3_remarks || '',            // AN: SR_3 Remarks
-      imageUrls['SalesRevenue_SR_3'] || '',              // AO: SR_3 Image
+      params.Section2_Q10 || '',                         // AL: Q10
+      params['Section2_Q10_remark'] || '',               // AM: Q10 Remark
+      imageUrls['Section2_Q10'] || '',                   // AN: Q10 Image
       
-      params.SalesRevenue_SR_4 || '',                    // AP: SR_4
-      params.SalesRevenue_SR_4_remarks || '',            // AQ: SR_4 Remarks
-      imageUrls['SalesRevenue_SR_4'] || '',              // AR: SR_4 Image
+      params.Section2_Q11 || '',                         // AO: Q11
+      params['Section2_Q11_remark'] || '',               // AP: Q11 Remark
+      imageUrls['Section2_Q11'] || '',                   // AQ: Q11 Image
       
-      params.SalesRevenue_SR_5 || '',                    // AS: SR_5
-      params.SalesRevenue_SR_5_remarks || '',            // AT: SR_5 Remarks
-      imageUrls['SalesRevenue_SR_5'] || '',              // AU: SR_5 Image
+      params.Section2_Q12 || '',                         // AR: Q12
+      params['Section2_Q12_remark'] || '',               // AS: Q12 Remark
+      imageUrls['Section2_Q12'] || '',                   // AT: Q12 Image
       
-      params.SalesRevenue_SR_6 || '',                    // AV: SR_6
-      params.SalesRevenue_SR_6_remarks || '',            // AW: SR_6 Remarks
-      imageUrls['SalesRevenue_SR_6'] || '',              // AX: SR_6 Image
+      params.Section2_remarks || '',                     // AU: Section Remarks
       
-      params.SalesRevenue_SR_7 || '',                    // AY: SR_7
-      params.SalesRevenue_SR_7_remarks || '',            // AZ: SR_7 Remarks
-      imageUrls['SalesRevenue_SR_7'] || '',              // BA: SR_7 Image
+      // Section 3: Product & Inventory Compliance (7 questions: Q13 to Q19)
+      params.Section3_Q13 || '',                         // AV: Q13
+      params['Section3_Q13_remark'] || '',               // AW: Q13 Remark
+      imageUrls['Section3_Q13'] || '',                   // AX: Q13 Image
       
-      // Inventory & Financial Controls Section (8 questions)
-      params.InventoryFinance_IF_1 || '',                // BB: IF_1
-      params.InventoryFinance_IF_1_remarks || '',        // BC: IF_1 Remarks
-      imageUrls['InventoryFinance_IF_1'] || '',          // BD: IF_1 Image
+      params.Section3_Q14 || '',                         // AY: Q14
+      params['Section3_Q14_remark'] || '',               // AZ: Q14 Remark
+      imageUrls['Section3_Q14'] || '',                   // BA: Q14 Image
       
-      params.InventoryFinance_IF_2 || '',                // BE: IF_2
-      params.InventoryFinance_IF_2_remarks || '',        // BF: IF_2 Remarks
-      imageUrls['InventoryFinance_IF_2'] || '',          // BG: IF_2 Image
+      params.Section3_Q15 || '',                         // BB: Q15
+      params['Section3_Q15_remark'] || '',               // BC: Q15 Remark
+      imageUrls['Section3_Q15'] || '',                   // BD: Q15 Image
       
-      params.InventoryFinance_IF_3 || '',                // BH: IF_3
-      params.InventoryFinance_IF_3_remarks || '',        // BI: IF_3 Remarks
-      imageUrls['InventoryFinance_IF_3'] || '',          // BJ: IF_3 Image
+      params.Section3_Q16 || '',                         // BE: Q16
+      params['Section3_Q16_remark'] || '',               // BF: Q16 Remark
+      imageUrls['Section3_Q16'] || '',                   // BG: Q16 Image
       
-      params.InventoryFinance_IF_4 || '',                // BK: IF_4
-      params.InventoryFinance_IF_4_remarks || '',        // BL: IF_4 Remarks
-      imageUrls['InventoryFinance_IF_4'] || '',          // BM: IF_4 Image
+      params.Section3_Q17 || '',                         // BH: Q17
+      params['Section3_Q17_remark'] || '',               // BI: Q17 Remark
+      imageUrls['Section3_Q17'] || '',                   // BJ: Q17 Image
       
-      params.InventoryFinance_IF_5 || '',                // BN: IF_5
-      params.InventoryFinance_IF_5_remarks || '',        // BO: IF_5 Remarks
-      imageUrls['InventoryFinance_IF_5'] || '',          // BP: IF_5 Image
+      params.Section3_Q18 || '',                         // BK: Q18
+      params['Section3_Q18_remark'] || '',               // BL: Q18 Remark
+      imageUrls['Section3_Q18'] || '',                   // BM: Q18 Image
       
-      params.InventoryFinance_IF_6 || '',                // BQ: IF_6
-      params.InventoryFinance_IF_6_remarks || '',        // BR: IF_6 Remarks
-      imageUrls['InventoryFinance_IF_6'] || '',          // BS: IF_6 Image
+      params.Section3_Q19 || '',                         // BN: Q19
+      params['Section3_Q19_remark'] || '',               // BO: Q19 Remark
+      imageUrls['Section3_Q19'] || '',                   // BP: Q19 Image
       
-      params.InventoryFinance_IF_7 || '',                // BT: IF_7
-      params.InventoryFinance_IF_7_remarks || '',        // BU: IF_7 Remarks
-      imageUrls['InventoryFinance_IF_7'] || '',          // BV: IF_7 Image
+      params.Section3_remarks || '',                     // BQ: Section Remarks
       
-      params.InventoryFinance_IF_8 || '',                // BW: IF_8
-      params.InventoryFinance_IF_8_remarks || '',        // BX: IF_8 Remarks
-      imageUrls['InventoryFinance_IF_8'] || '',          // BY: IF_8 Image
+      // Section 4: Documentation & Tracking (4 questions: Q20 to Q23)
+      params.Section4_Q20 || '',                         // BR: Q20
+      params['Section4_Q20_remark'] || '',               // BS: Q20 Remark
+      imageUrls['Section4_Q20'] || '',                   // BT: Q20 Image
       
-      // Compliance & Reporting Section (7 questions)
-      params.ComplianceReporting_CR_1 || '',             // BZ: CR_1
-      params.ComplianceReporting_CR_1_remarks || '',     // CA: CR_1 Remarks
-      imageUrls['ComplianceReporting_CR_1'] || '',       // CB: CR_1 Image
+      params.Section4_Q21 || '',                         // BU: Q21
+      params['Section4_Q21_remark'] || '',               // BV: Q21 Remark
+      imageUrls['Section4_Q21'] || '',                   // BW: Q21 Image
       
-      params.ComplianceReporting_CR_2 || '',             // CC: CR_2
-      params.ComplianceReporting_CR_2_remarks || '',     // CD: CR_2 Remarks
-      imageUrls['ComplianceReporting_CR_2'] || '',       // CE: CR_2 Image
+      params.Section4_Q22 || '',                         // BX: Q22
+      params['Section4_Q22_remark'] || '',               // BY: Q22 Remark
+      imageUrls['Section4_Q22'] || '',                   // BZ: Q22 Image
       
-      params.ComplianceReporting_CR_3 || '',             // CF: CR_3
-      params.ComplianceReporting_CR_3_remarks || '',     // CG: CR_3 Remarks
-      imageUrls['ComplianceReporting_CR_3'] || '',       // CH: CR_3 Image
+      params.Section4_Q23 || '',                         // CA: Q23
+      params['Section4_Q23_remark'] || '',               // CB: Q23 Remark
+      imageUrls['Section4_Q23'] || '',                   // CC: Q23 Image
       
-      params.ComplianceReporting_CR_4 || '',             // CI: CR_4
-      params.ComplianceReporting_CR_4_remarks || '',     // CJ: CR_4 Remarks
-      imageUrls['ComplianceReporting_CR_4'] || '',       // CK: CR_4 Image
+      params.Section4_remarks || '',                     // CD: Section Remarks
       
-      params.ComplianceReporting_CR_5 || '',             // CL: CR_5
-      params.ComplianceReporting_CR_5_remarks || '',     // CM: CR_5 Remarks
-      imageUrls['ComplianceReporting_CR_5'] || '',       // CN: CR_5 Image
+      // Section 5: POS System & SOP (4 questions: Q24 to Q27)
+      params.Section5_Q24 || '',                         // CE: Q24
+      params['Section5_Q24_remark'] || '',               // CF: Q24 Remark
+      imageUrls['Section5_Q24'] || '',                   // CG: Q24 Image
       
-      params.ComplianceReporting_CR_6 || '',             // CO: CR_6
-      params.ComplianceReporting_CR_6_remarks || '',     // CP: CR_6 Remarks
-      imageUrls['ComplianceReporting_CR_6'] || '',       // CQ: CR_6 Image
+      params.Section5_Q25 || '',                         // CH: Q25
+      params['Section5_Q25_remark'] || '',               // CI: Q25 Remark
+      imageUrls['Section5_Q25'] || '',                   // CJ: Q25 Image
       
-      params.ComplianceReporting_CR_7 || '',             // CR: CR_7
-      params.ComplianceReporting_CR_7_remarks || '',     // CS: CR_7 Remarks
-      imageUrls['ComplianceReporting_CR_7'] || '',       // CT: CR_7 Image
+      params.Section5_Q26 || '',                         // CK: Q26
+      params['Section5_Q26_remark'] || '',               // CL: Q26 Remark
+      imageUrls['Section5_Q26'] || '',                   // CM: Q26 Image
       
-      // Scoring
-      params.totalScore || '0',                          // CU: Total Score
-      params.maxScore || '74',                           // CV: Max Score (8*3+7*3+8*3+7*3 = 20+18+20+18 = 76, adjusted)
-      params.scorePercentage || '0'                      // CW: Score Percentage
+      params.Section5_Q27 || '',                         // CN: Q27
+      params['Section5_Q27_remark'] || '',               // CO: Q27 Remark
+      imageUrls['Section5_Q27'] || '',                   // CP: Q27 Image
+      
+      params.Section5_remarks || '',                     // CQ: Section Remarks
+      
+      // Section 6: Licenses & Certificates (5 questions: Q28 to Q32)
+      params.Section6_Q28 || '',                         // CR: Q28
+      params['Section6_Q28_remark'] || '',               // CS: Q28 Remark
+      imageUrls['Section6_Q28'] || '',                   // CT: Q28 Image
+      
+      params.Section6_Q29 || '',                         // CU: Q29
+      params['Section6_Q29_remark'] || '',               // CV: Q29 Remark
+      imageUrls['Section6_Q29'] || '',                   // CW: Q29 Image
+      
+      params.Section6_Q30 || '',                         // CX: Q30
+      params['Section6_Q30_remark'] || '',               // CY: Q30 Remark
+      imageUrls['Section6_Q30'] || '',                   // CZ: Q30 Image
+      
+      params.Section6_Q31 || '',                         // DA: Q31
+      params['Section6_Q31_remark'] || '',               // DB: Q31 Remark
+      imageUrls['Section6_Q31'] || '',                   // DC: Q31 Image
+      
+      params.Section6_Q32 || '',                         // DD: Q32
+      params['Section6_Q32_remark'] || '',               // DE: Q32 Remark
+      imageUrls['Section6_Q32'] || '',                   // DF: Q32 Image
+      
+      params.Section6_remarks || '',                     // DG: Section Remarks
+      
+      // Section 7: CCTV Monitoring (3 questions: Q33 to Q35)
+      params.Section7_Q33 || '',                         // DH: Q33
+      params['Section7_Q33_remark'] || '',               // DI: Q33 Remark
+      imageUrls['Section7_Q33'] || '',                   // DJ: Q33 Image
+      
+      params.Section7_Q34 || '',                         // DK: Q34
+      params['Section7_Q34_remark'] || '',               // DL: Q34 Remark
+      imageUrls['Section7_Q34'] || '',                   // DM: Q34 Image
+      
+      params.Section7_Q35 || '',                         // DN: Q35
+      params['Section7_Q35_remark'] || '',               // DO: Q35 Remark
+      imageUrls['Section7_Q35'] || '',                   // DP: Q35 Image
+      
+      params.Section7_remarks || '',                     // DQ: Section Remarks
+      
+      // Signatures and Scoring
+      params.auditorSignature || '',                     // DR: Auditor Signature
+      params.smSignature || '',                          // DS: SM Signature
+      params.totalScore || '0',                          // DT: Total Score
+      params.maxScore || '70',                           // DU: Max Score
+      params.scorePercentage || '0'                      // DV: Score Percentage
     ];
     
     // Append the data to the sheet
@@ -271,145 +318,151 @@ function doPost(e) {
  */
 function setupHeaders(sheet) {
   const headers = [
-    // Basic Information
-    'Timestamp',                                         // A
-    'Submission Time',                                   // B
-    'Finance Auditor Name',                              // C
-    'Finance Auditor ID',                                // D
-    'Area Manager Name',                                 // E
-    'Area Manager ID',                                   // F
-    'Store Name',                                        // G
-    'Store ID',                                          // H
+    // Basic Information (9 columns)
+    'Timestamp',
+    'Submission Time',
+    'Finance Auditor Name',
+    'Finance Auditor ID',
+    'Area Manager Name',
+    'Area Manager ID',
+    'Store Name',
+    'Store ID',
+    'Region',
     
-    // Cash Management Section (8 questions × 3 columns = 24 columns)
-    'CM_1: Daily cash reconciliation',                   // I
-    'CM_1 Remarks',                                      // J
-    'CM_1 Image URL',                                    // K
+    // Section 1: Cash Handling & Settlement (6 questions × 3 columns + 1 = 19 columns)
+    'Q1: Were no discrepancies found during the cash drawer verification?',
+    'Q1 Remarks',
+    'Q1 Image URL',
+    'Q2: Were no discrepancies found during the petty cash verification?',
+    'Q2 Remarks',
+    'Q2 Image URL',
+    'Q3: Sale cash is not being used for petty cash or other purposes',
+    'Q3 Remarks',
+    'Q3 Image URL',
+    'Q4: Has banking of cash been done accurately for the last 3 days?',
+    'Q4 Remarks',
+    'Q4 Image URL',
+    'Q5: Was the previous day\'s batch correctly settled in the EDC machine?',
+    'Q5 Remarks',
+    'Q5 Image URL',
+    'Q6: Has the petty cash claim process been properly followed with supporting documents?',
+    'Q6 Remarks',
+    'Q6 Image URL',
+    'Section 1 Remarks',
     
-    'CM_2: Cash drawer balancing',                       // L
-    'CM_2 Remarks',                                      // M
-    'CM_2 Image URL',                                    // N
+    // Section 2: Billing & Transactions (6 questions × 3 columns + 1 = 19 columns)
+    'Q7: Is billing completed for all products served to customers?',
+    'Q7 Remarks',
+    'Q7 Image URL',
+    'Q8: Are there no open transactions pending in the POS system?',
+    'Q8 Remarks',
+    'Q8 Image URL',
+    'Q9: Are discount codes and vouchers applied correctly and as per policy?',
+    'Q9 Remarks',
+    'Q9 Image URL',
+    'Q10: Is the employee meal process followed as per policy?',
+    'Q10 Remarks',
+    'Q10 Image URL',
+    'Q11: Is there no price discrepancy between Menu, POS, Home Delivery (HD), and Pickup?',
+    'Q11 Remarks',
+    'Q11 Image URL',
+    'Q12: Is the customer refund process followed properly with approval and documentation?',
+    'Q12 Remarks',
+    'Q12 Image URL',
+    'Section 2 Remarks',
     
-    'CM_3: Petty cash management',                       // O
-    'CM_3 Remarks',                                      // P
-    'CM_3 Image URL',                                    // Q
+    // Section 3: Product & Inventory Compliance (7 questions × 3 columns + 1 = 22 columns)
+    'Q13: Were no expired items found during the audit?',
+    'Q13 Remarks',
+    'Q13 Image URL',
+    'Q14: Is FIFO / FEFO strictly followed for all food and beverage items?',
+    'Q14 Remarks',
+    'Q14 Image URL',
+    'Q15: Are all local purchase items correctly updated in the system?',
+    'Q15 Remarks',
+    'Q15 Image URL',
+    'Q16: Is the inventory posted in the system with complete and accurate details?',
+    'Q16 Remarks',
+    'Q16 Image URL',
+    'Q17: Is the MRD for all products properly updated?',
+    'Q17 Remarks',
+    'Q17 Image URL',
+    'Q18: Are all products available and actively used as per the menu?',
+    'Q18 Remarks',
+    'Q18 Image URL',
+    'Q19: Are products properly displayed or stored according to storage SOPs?',
+    'Q19 Remarks',
+    'Q19 Image URL',
+    'Section 3 Remarks',
     
-    'CM_4: Cash security measures',                      // R
-    'CM_4 Remarks',                                      // S
-    'CM_4 Image URL',                                    // T
+    // Section 4: Documentation & Tracking (4 questions × 3 columns + 1 = 13 columns)
+    'Q20: Are all manual transactions properly approved and recorded?',
+    'Q20 Remarks',
+    'Q20 Image URL',
+    'Q21: Is the cash log book updated daily and verified by the store manager?',
+    'Q21 Remarks',
+    'Q21 Image URL',
+    'Q22: Are bank/cash deposit slips maintained and filed systematically?',
+    'Q22 Remarks',
+    'Q22 Image URL',
+    'Q23: Are stock delivery challans filed and updated properly?',
+    'Q23 Remarks',
+    'Q23 Image URL',
+    'Section 4 Remarks',
     
-    'CM_5: Daily cash deposit',                          // U
-    'CM_5 Remarks',                                      // V
-    'CM_5 Image URL',                                    // W
+    // Section 5: POS System & SOP (4 questions × 3 columns + 1 = 13 columns)
+    'Q24: Is wastage correctly recorded and disposed as per SOP?',
+    'Q24 Remarks',
+    'Q24 Image URL',
+    'Q25: Are TI / TO / GRN entries done accurately and posted in the system?',
+    'Q25 Remarks',
+    'Q25 Image URL',
+    'Q26: Is the POS and store system used only for designated operational tasks?',
+    'Q26 Remarks',
+    'Q26 Image URL',
+    'Q27: Is the store team aware of SOPs and compliance requirements?',
+    'Q27 Remarks',
+    'Q27 Image URL',
+    'Section 5 Remarks',
     
-    'CM_6: Cash variances investigation',                // X
-    'CM_6 Remarks',                                      // Y
-    'CM_6 Image URL',                                    // Z
+    // Section 6: Licenses & Certificates (5 questions × 3 columns + 1 = 16 columns)
+    'Q28: Are trade licenses available and displayed with proper validity?',
+    'Q28 Remarks',
+    'Q28 Image URL',
+    'Q29: Are Shop & Establishment licenses available and displayed with proper validity?',
+    'Q29 Remarks',
+    'Q29 Image URL',
+    'Q30: Is the FSSAI license available and displayed with proper validity?',
+    'Q30 Remarks',
+    'Q30 Image URL',
+    'Q31: Music licenses available and displayed with proper validity?',
+    'Q31 Remarks',
+    'Q31 Image URL',
+    'Q32: Is the GST certificate available and displayed with proper validity?',
+    'Q32 Remarks',
+    'Q32 Image URL',
+    'Section 6 Remarks',
     
-    'CM_7: Change fund maintenance',                     // AA
-    'CM_7 Remarks',                                      // AB
-    'CM_7 Image URL',                                    // AC
+    // Section 7: CCTV Monitoring (3 questions × 3 columns + 1 = 10 columns)
+    'Q33: Is the CCTV system functioning properly?',
+    'Q33 Remarks',
+    'Q33 Image URL',
+    'Q34: Is there a backup of 30 / 60 days of footage with proper coverage of critical areas?',
+    'Q34 Remarks',
+    'Q34 Image URL',
+    'Q35: Are no SOP, compliance, or integrity violations observed in CCTV sample review?',
+    'Q35 Remarks',
+    'Q35 Image URL',
+    'Section 7 Remarks',
     
-    'CM_8: Counterfeit detection',                       // AD
-    'CM_8 Remarks',                                      // AE
-    'CM_8 Image URL',                                    // AF
-    
-    // Sales & Revenue Tracking Section (7 questions × 3 columns = 21 columns)
-    'SR_1: Daily sales reports',                         // AG
-    'SR_1 Remarks',                                      // AH
-    'SR_1 Image URL',                                    // AI
-    
-    'SR_2: POS data reconciliation',                     // AJ
-    'SR_2 Remarks',                                      // AK
-    'SR_2 Image URL',                                    // AL
-    
-    'SR_3: Promotional discounts tracking',              // AM
-    'SR_3 Remarks',                                      // AN
-    'SR_3 Image URL',                                    // AO
-    
-    'SR_4: Refund/void procedures',                      // AP
-    'SR_4 Remarks',                                      // AQ
-    'SR_4 Image URL',                                    // AR
-    
-    'SR_5: Revenue trend analysis',                      // AS
-    'SR_5 Remarks',                                      // AT
-    'SR_5 Image URL',                                    // AU
-    
-    'SR_6: Sales tax calculations',                      // AV
-    'SR_6 Remarks',                                      // AW
-    'SR_6 Image URL',                                    // AX
-    
-    'SR_7: Credit card settlement',                      // AY
-    'SR_7 Remarks',                                      // AZ
-    'SR_7 Image URL',                                    // BA
-    
-    // Inventory & Financial Controls Section (8 questions × 3 columns = 24 columns)
-    'IF_1: Inventory valuation',                         // BB
-    'IF_1 Remarks',                                      // BC
-    'IF_1 Image URL',                                    // BD
-    
-    'IF_2: Physical inventory counts',                   // BE
-    'IF_2 Remarks',                                      // BF
-    'IF_2 Image URL',                                    // BG
-    
-    'IF_3: Stock movement recording',                    // BH
-    'IF_3 Remarks',                                      // BI
-    'IF_3 Image URL',                                    // BJ
-    
-    'IF_4: Vendor payment procedures',                   // BK
-    'IF_4 Remarks',                                      // BL
-    'IF_4 Image URL',                                    // BM
-    
-    'IF_5: Purchase order authorization',                // BN
-    'IF_5 Remarks',                                      // BO
-    'IF_5 Image URL',                                    // BP
-    
-    'IF_6: Expense categorization',                      // BQ
-    'IF_6 Remarks',                                      // BR
-    'IF_6 Image URL',                                    // BS
-    
-    'IF_7: COGS calculations',                           // BT
-    'IF_7 Remarks',                                      // BU
-    'IF_7 Image URL',                                    // BV
-    
-    'IF_8: Wastage/shrinkage documentation',             // BW
-    'IF_8 Remarks',                                      // BX
-    'IF_8 Image URL',                                    // BY
-    
-    // Compliance & Reporting Section (7 questions × 3 columns = 21 columns)
-    'CR_1: Monthly financial statements',                // BZ
-    'CR_1 Remarks',                                      // CA
-    'CR_1 Image URL',                                    // CB
-    
-    'CR_2: Tax compliance',                              // CC
-    'CR_2 Remarks',                                      // CD
-    'CR_2 Image URL',                                    // CE
-    
-    'CR_3: Audit trail maintenance',                     // CF
-    'CR_3 Remarks',                                      // CG
-    'CR_3 Image URL',                                    // CH
-    
-    'CR_4: Internal controls testing',                   // CI
-    'CR_4 Remarks',                                      // CJ
-    'CR_4 Image URL',                                    // CK
-    
-    'CR_5: Regulatory reporting',                        // CL
-    'CR_5 Remarks',                                      // CM
-    'CR_5 Image URL',                                    // CN
-    
-    'CR_6: Documentation retention',                     // CO
-    'CR_6 Remarks',                                      // CP
-    'CR_6 Image URL',                                    // CQ
-    
-    'CR_7: Budget variance analysis',                    // CR
-    'CR_7 Remarks',                                      // CS
-    'CR_7 Image URL',                                    // CT
-    
-    // Scoring
-    'Total Score',                                       // CU
-    'Max Score',                                         // CV
-    'Score Percentage'                                   // CW
+    // Signatures and Scoring (5 columns)
+    'Auditor Signature',
+    'SM Signature',
+    'Total Score',
+    'Max Score',
+    'Score Percentage'
   ];
+  // Total columns: 9 + 19 + 19 + 22 + 13 + 13 + 16 + 10 + 5 = 126 columns
   
   // Set headers
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -452,7 +505,7 @@ function setupHeaders(sheet) {
 }
 
 /**
- * GET handler - Returns sheet info and statistics
+ * GET handler - Returns sheet data or statistics
  */
 function doGet(e) {
   try {
@@ -464,6 +517,7 @@ function doGet(e) {
         .createTextOutput(JSON.stringify({
           status: 'success',
           message: 'Finance Audit API Active',
+          data: [],
           totalSubmissions: 0,
           lastUpdated: null
         }))
@@ -471,6 +525,48 @@ function doGet(e) {
     }
     
     const lastRow = sheet.getLastRow();
+    
+    // Check if action parameter is getData to return full data
+    const action = e.parameter.action;
+    
+    if (action === 'getData') {
+      // Return all data rows
+      if (lastRow <= 1) {
+        // No data, only headers or empty sheet
+        return ContentService
+          .createTextOutput(JSON.stringify({
+            status: 'success',
+            data: [],
+            totalSubmissions: 0
+          }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      
+      // Get all data including headers
+      const dataRange = sheet.getRange(1, 1, lastRow, 126); // 126 columns total
+      const values = dataRange.getValues();
+      const headers = values[0];
+      const dataRows = values.slice(1);
+      
+      // Convert to array of objects
+      const data = dataRows.map(row => {
+        const obj = {};
+        headers.forEach((header, index) => {
+          obj[header] = row[index];
+        });
+        return obj;
+      });
+      
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          status: 'success',
+          data: data,
+          totalSubmissions: dataRows.length
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Default: return statistics only
     const totalSubmissions = lastRow > 1 ? lastRow - 1 : 0;
     
     let lastUpdated = null;

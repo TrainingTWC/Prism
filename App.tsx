@@ -46,7 +46,7 @@ const AppContent: React.FC = () => {
     }
   }, [isAuthenticated, employeeData, userRole]);
 
-  // Check URL for EMPID and validate against employee_data.json - ONCE on mount
+  // Check URL for EMPID - ONCE on mount
   useEffect(() => {
     const checkUrlAuth = async () => {
       // Only check once
@@ -56,47 +56,23 @@ const AppContent: React.FC = () => {
       const empId = urlParams.get('EMPID');
       
       if (empId) {
-        // If already authenticated with valid session, don't re-check employee
-        if (isAuthenticated && isEmployeeValidated) {
-          setUserId(empId);
+        // EMPID present - set user ID and proceed to login/password page
+        setUserId(empId);
+        setAccessDenied(false);
+        
+        // If already authenticated, set role
+        if (isAuthenticated) {
           try {
             const role = getUserRole(empId);
             setUserRole(role || { role: 'admin' } as any);
           } catch (error) {
+            console.error('[App] Error getting user role:', error);
             setUserRole({ role: 'admin' } as any);
-          }
-          setAccessDenied(false);
-        } else {
-          // Try to authenticate with EMPID
-          const success = await loginWithEmpId(empId);
-          
-          if (!success) {
-            // Employee ID not found - show access denied
-            setAccessDenied(true);
-          } else {
-            // Valid employee - set user ID (but NOT userRole yet for regular employees)
-            setUserId(empId);
-            
-            // Only set userRole if already authenticated (campus candidates)
-            // Regular employees need to enter password first
-            if (isAuthenticated) {
-              try {
-                const role = getUserRole(empId);
-                setUserRole(role || { role: 'admin' } as any);
-              } catch (error) {
-                console.error('[App] Error getting user role:', error);
-                setUserRole({ role: 'admin' } as any);
-              }
-            } else {
-              setAccessDenied(false);
-            }
           }
         }
       } else {
-        // No EMPID in URL - check if already authenticated
-        if (!isAuthenticated && !isEmployeeValidated) {
-          setAccessDenied(true);
-        }
+        // No EMPID in URL - show access denied
+        setAccessDenied(true);
       }
       
       setEmpIdChecked(true);
@@ -106,7 +82,7 @@ const AppContent: React.FC = () => {
     if (!authLoading && !empIdChecked) {
       checkUrlAuth();
     }
-  }, [authLoading, empIdChecked]);
+  }, [authLoading, empIdChecked, isAuthenticated]);
 
   // Get user ID from URL parameters - kept for backward compatibility
   useEffect(() => {
@@ -143,17 +119,12 @@ const AppContent: React.FC = () => {
   }
 
 
-  // Show ACCESS DENIED if EMPID not found or not provided
+  // Show ACCESS DENIED if EMPID not provided
   if (accessDenied) {
     return <AccessDenied />;
   }
 
-  // Show login if employee validated but not authenticated with password
-  if (isEmployeeValidated && !isAuthenticated) {
-    return <Login />;
-  }
-
-  // Show login if not authenticated (fallback for old flow)
+  // Show login/password page if not authenticated
   if (!isAuthenticated) {
     return <Login />;
   }

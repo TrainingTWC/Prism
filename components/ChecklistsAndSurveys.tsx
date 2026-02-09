@@ -14,6 +14,7 @@ import TrainerCalendarChecklist from './checklists/TrainerCalendarChecklist';
 import SHLPChecklist from './checklists/SHLPChecklist';
 import BenchPlanningChecklist from './checklists/BenchPlanningChecklist';
 import BenchPlanningSMASMChecklist from './checklists/BenchPlanningSMASMChecklist';
+import BenchPlanningBTChecklist from './checklists/BenchPlanningBTChecklist';
 import BrewLeagueRegionRound from './checklists/BrewLeagueRegionRound';
 import BrewLeagueAMRound from './checklists/BrewLeagueAMRound';
 import BrewLeagueDashboard from './checklists/BrewLeagueDashboard';
@@ -24,13 +25,15 @@ interface ChecklistsAndSurveysProps {
 
 type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning' | 'brew-league';
 type BrewLeagueSubType = 'store' | 'am' | 'region' | 'dashboard';
-type BenchPlanningSubType = 'barista-sm' | 'sm-asm';
+type BenchPlanningSubType = 'barista-sm' | 'sm-asm' | 'barista-bt';
+type BTSessionStep = 'readiness' | 'bt-session' | 'skill-check';
 
 const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole }) => {
   const { userRole: authUserRole, hasPermission, logout } = useAuth();
   const [activeChecklist, setActiveChecklist] = useState<ChecklistType | null>(null);
   const [brewLeagueSubSection, setBrewLeagueSubSection] = useState<BrewLeagueSubType | null>(null);
   const [benchPlanningSubSection, setBenchPlanningSubSection] = useState<BenchPlanningSubType | null>(null);
+  const [btSessionStep, setBTSessionStep] = useState<BTSessionStep>('readiness');
   const [checklistStats, setChecklistStats] = useState({
     hr: { completed: 0, total: 0, score: 0 },
     operations: { completed: 0, total: 0, score: 0 },
@@ -135,6 +138,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     setActiveChecklist(null);
     setBrewLeagueSubSection(null);
     setBenchPlanningSubSection(null);
+    setBTSessionStep('readiness');
   };
 
   const handleBackToBrewLeague = () => {
@@ -143,6 +147,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
 
   const handleBackToBenchPlanning = () => {
     setBenchPlanningSubSection(null);
+    setBTSessionStep('readiness');
   };
 
   const renderActiveChecklist = () => {
@@ -242,7 +247,30 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <button
+              onClick={() => {
+                setBenchPlanningSubSection('barista-bt');
+                setBTSessionStep('readiness');
+              }}
+              className="group p-8 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-emerald-400 dark:hover:border-emerald-400 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all duration-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-emerald-500 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <GraduationCap className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                  Barista to Buddy Trainer
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+                  3-step process: Readiness, BT Session & Skill Check
+                </p>
+                <span className="mt-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium group-hover:text-emerald-700 dark:group-hover:text-emerald-300">
+                  Open →
+                </span>
+              </div>
+            </button>
+
             <button
               onClick={() => setBenchPlanningSubSection('barista-sm')}
               className="group p-8 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-sky-400 dark:hover:border-sky-400 bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition-all duration-200"
@@ -327,6 +355,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
       }
       if (benchPlanningSubSection === 'sm-asm') {
         return <BenchPlanningSMASMChecklist {...commonProps} />;
+      }
+      if (benchPlanningSubSection === 'barista-bt') {
+        return <BenchPlanningBTChecklist {...commonProps} initialStep={btSessionStep} />;
       }
     }
 
@@ -440,8 +471,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                   )}
                   <span className="text-gray-900 dark:text-slate-100 font-medium">
                     {benchPlanningSubSection
-                      ? benchPlanningSubSection === 'barista-sm' ? 'Barista to Shift Manager'
-                        : 'Shift Manager to Assistant Store Manager'
+                      ? benchPlanningSubSection === 'barista-bt' ? 'Buddy Trainer'
+                        : benchPlanningSubSection === 'barista-sm' ? 'Shift Manager'
+                        : 'ASM'
                       : brewLeagueSubSection 
                         ? brewLeagueSubSection === 'store' ? 'Store Round' 
                           : brewLeagueSubSection === 'am' ? 'AM Round' 
