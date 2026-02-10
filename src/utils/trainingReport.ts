@@ -317,12 +317,20 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
   y = metaY + 12;
 
   // Overall performance summary (calculated from TRAINING_QUESTIONS & first submission)
-  // Overall performance summary - prefer sheet values if present (totalScore, maxScore), else compute
+  // Overall performance summary - ALWAYS compute from questions to ensure accuracy
+  // The stored totalScore/maxScore might be incorrect due to previous calculation bugs
   const computed = computeOverall(first);
-  const totalFromSheet = (first.totalScore !== undefined && first.maxScore !== undefined);
-  const total = totalFromSheet ? Number(first.totalScore) : computed.total;
-  const max = totalFromSheet ? Number(first.maxScore) : computed.max;
+  const total = computed.total;
+  const max = computed.max;
   const pct = max > 0 ? Math.round((total / max) * 100) : 0;
+
+  console.log('📊 Score calculation:', {
+    computed,
+    storedTotal: first.totalScore,
+    storedMax: first.maxScore,
+    storedPct: first.percentageScore,
+    usingComputed: true
+  });
 
   // Draw summary cards with larger layout
   const cardHeight = 42;

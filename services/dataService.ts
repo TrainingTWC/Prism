@@ -1,5 +1,5 @@
 import { Submission } from '../types';
-import { QUESTIONS, AREA_MANAGERS, STORES, HR_PERSONNEL } from '../constants';
+import { QUESTIONS, AREA_MANAGERS, STORES, HR_PERSONNEL, TRAINING_QUESTIONS } from '../constants';
 import { generateTrainingTestData } from '../utils/trainingTestData';
 import { STATIC_TRAINING_DATA } from './staticTrainingData';
 import { STATIC_AM_OPERATIONS_DATA } from './staticOperationsData';
@@ -742,6 +742,95 @@ export interface TrainingAuditSubmission {
   [key: string]: string; // For dynamic question keys like TM_1, LMS_1, etc.
 }
 
+// Helper function to check if value is NA (Not Applicable)
+function isNA(v: any): boolean {
+  if (v === undefined || v === null) return false;
+  const s = String(v).trim().toLowerCase();
+  if (!s) return false;
+  if (s === 'na' || s === 'n/a' || s === 'not applicable' || s === 'n.a.' || s === 'n a') return true;
+  if (/^n\s*\/?\s*a$/.test(s)) return true;
+  if (/not\s+applicab/.test(s)) return true;
+  return false;
+}
+
+// Helper function to resolve submission value with fallbacks for TSA fields
+function resolveSubmissionValue(submission: any, qId: string): any {
+  if (!submission) return undefined;
+  if (submission[qId] !== undefined) return submission[qId];
+
+  // Handle TSA score legacy keys
+  if (qId === 'TSA_Food_Score') return submission['TSA_Food_Score'] ?? submission['tsaFoodScore'] ?? submission['TSA_1'] ?? undefined;
+  if (qId === 'TSA_Coffee_Score') return submission['TSA_Coffee_Score'] ?? submission['tsaCoffeeScore'] ?? submission['TSA_2'] ?? undefined;
+  if (qId === 'TSA_CX_Score') return submission['TSA_CX_Score'] ?? submission['tsaCXScore'] ?? submission['TSA_3'] ?? undefined;
+
+  return submission[qId];
+}
+
+// Recalculate scores from individual question responses
+// This fixes incorrect stored scores due to previous calculation bugs
+function recalculateTrainingScore(submission: any): { totalScore: string; maxScore: string; percentageScore: string } {
+  let total = 0;
+  let max = 0;
+
+  for (const q of TRAINING_QUESTIONS) {
+    const ans = resolveSubmissionValue(submission, q.id);
+    
+    // For TSA score fields, use the pre-calculated scores directly (0/5/10)
+    if (q.id === 'TSA_Food_Score' || q.id === 'TSA_Coffee_Score' || q.id === 'TSA_CX_Score') {
+      const tsaScore = parseFloat(String(ans || '0'));
+      if (!isNaN(tsaScore) && tsaScore > 0) {
+        total += tsaScore;
+        max += 10; // Each TSA section has max of 10
+      } else if (!isNA(ans)) {
+        max += 10;
+      }
+      continue;
+    }
+    
+    // Skip if marked as NA
+    if (isNA(ans)) {
+      continue;
+    }
+
+    // Calculate max score for this question
+    let qMax = 0;
+    if (q.choices && q.choices.length) {
+      qMax = Math.max(...q.choices.map((c: any) => Number(c.score) || 0));
+    } else if (q.type === 'input') {
+      qMax = 10;
+    } else {
+      qMax = 1;
+    }
+
+    // Calculate actual score
+    let numeric = 0;
+    if (ans !== undefined && ans !== null && ans !== '') {
+      if (q.choices && q.choices.length) {
+        const found = q.choices.find((c: any) => String(c.label).toLowerCase() === String(ans).toLowerCase());
+        if (found) numeric = Number(found.score) || 0;
+      } else if (q.type === 'input') {
+        const n = parseFloat(String(ans));
+        numeric = isNaN(n) ? 0 : n;
+      } else {
+        const low = String(ans).toLowerCase();
+        if (low === 'yes' || low === 'y' || low === 'true') numeric = 1;
+        if (low === 'no' || low === 'n' || low === 'false') numeric = 0;
+      }
+    }
+
+    total += numeric;
+    max += qMax;
+  }
+
+  const pct = max > 0 ? Math.round((total / max) * 100) : 0;
+  
+  return {
+    totalScore: total.toString(),
+    maxScore: max.toString(),
+    percentageScore: pct.toString()
+  };
+}
+
 // Fetch Training Audit data
 export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> => {
   try {
@@ -860,7 +949,30 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
       };
     });
 
-    return processedData as TrainingAuditSubmission[];
+    // CRITICAL FIX: Recalculate scores from individual question responses
+    // This fixes incorrect stored scores due to previous calculation bugs
+    const dataWithRecalculatedScores = processedData.map((row: any) => {
+      const recalculated = recalculateTrainingScore(row);
+      
+      // Log if there's a significant difference (for debugging)
+      const storedPct = parseFloat(row.percentageScore || '0');
+      const recalcPct = parseFloat(recalculated.percentageScore || '0');
+      if (Math.abs(storedPct - recalcPct) > 5) {
+        console.log(`📊 Score recalculation for ${row.storeName || row.storeId}:`, {
+          stored: `${row.totalScore}/${row.maxScore} (${storedPct}%)`,
+          recalculated: `${recalculated.totalScore}/${recalculated.maxScore} (${recalcPct}%)`
+        });
+      }
+
+      return {
+        ...row,
+        totalScore: recalculated.totalScore,
+        maxScore: recalculated.maxScore,
+        percentageScore: recalculated.percentageScore
+      };
+    });
+
+    return dataWithRecalculatedScores as TrainingAuditSubmission[];
 
   } catch (error) {
     return STATIC_TRAINING_DATA as TrainingAuditSubmission[];

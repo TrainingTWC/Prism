@@ -1,9 +1,98 @@
 import { useEffect, useState, useMemo } from 'react';
+import { TRAINING_QUESTIONS } from '../../../constants';
 
 type Row = any;
 
 // Use the UPDATED Training Audit endpoint
 const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwn4bXmjoXaTI7UMfDhzQwG6SZGZCq-qlVC_mQUnCZm0YiciqtaGgtdRJiq4oi505na3w/exec';
+
+// Helper function to check if value is NA (Not Applicable)
+function isNA(v: any): boolean {
+  if (v === undefined || v === null) return false;
+  const s = String(v).trim().toLowerCase();
+  if (!s) return false;
+  if (s === 'na' || s === 'n/a' || s === 'not applicable' || s === 'n.a.' || s === 'n a') return true;
+  if (/^n\s*\/?\s*a$/.test(s)) return true;
+  if (/not\s+applicab/.test(s)) return true;
+  return false;
+}
+
+// Helper function to resolve submission value with fallbacks for TSA fields
+function resolveSubmissionValue(submission: any, qId: string): any {
+  if (!submission) return undefined;
+  if (submission[qId] !== undefined) return submission[qId];
+
+  // Handle TSA score legacy keys
+  if (qId === 'TSA_Food_Score') return submission['TSA_Food_Score'] ?? submission['tsaFoodScore'] ?? submission['TSA_1'] ?? undefined;
+  if (qId === 'TSA_Coffee_Score') return submission['TSA_Coffee_Score'] ?? submission['tsaCoffeeScore'] ?? submission['TSA_2'] ?? undefined;
+  if (qId === 'TSA_CX_Score') return submission['TSA_CX_Score'] ?? submission['tsaCXScore'] ?? submission['TSA_3'] ?? undefined;
+
+  return submission[qId];
+}
+
+// Recalculate scores from individual question responses
+function recalculateTrainingScore(submission: any): { totalScore: number; maxScore: number; percentage: number } {
+  let total = 0;
+  let max = 0;
+
+  for (const q of TRAINING_QUESTIONS) {
+    const ans = resolveSubmissionValue(submission, q.id);
+    
+    // For TSA score fields, use the pre-calculated scores directly (0/5/10)
+    if (q.id === 'TSA_Food_Score' || q.id === 'TSA_Coffee_Score' || q.id === 'TSA_CX_Score') {
+      const tsaScore = parseFloat(String(ans || '0'));
+      if (!isNaN(tsaScore) && tsaScore > 0) {
+        total += tsaScore;
+        max += 10; // Each TSA section has max of 10
+      } else if (!isNA(ans)) {
+        max += 10;
+      }
+      continue;
+    }
+    
+    // Skip if marked as NA
+    if (isNA(ans)) {
+      continue;
+    }
+
+    // Calculate max score for this question
+    let qMax = 0;
+    if (q.choices && q.choices.length) {
+      qMax = Math.max(...q.choices.map((c: any) => Number(c.score) || 0));
+    } else if (q.type === 'input') {
+      qMax = 10;
+    } else {
+      qMax = 1;
+    }
+
+    // Calculate actual score
+    let numeric = 0;
+    if (ans !== undefined && ans !== null && ans !== '') {
+      if (q.choices && q.choices.length) {
+        const found = q.choices.find((c: any) => String(c.label).toLowerCase() === String(ans).toLowerCase());
+        if (found) numeric = Number(found.score) || 0;
+      } else if (q.type === 'input') {
+        const n = parseFloat(String(ans));
+        numeric = isNaN(n) ? 0 : n;
+      } else {
+        const low = String(ans).toLowerCase();
+        if (low === 'yes' || low === 'y' || low === 'true') numeric = 1;
+        if (low === 'no' || low === 'n' || low === 'false') numeric = 0;
+      }
+    }
+
+    total += numeric;
+    max += qMax;
+  }
+
+  const pct = max > 0 ? Math.round((total / max) * 100) : 0;
+  
+  return {
+    totalScore: total,
+    maxScore: max,
+    percentage: pct
+  };
+}
 
 /**
  * Fetches raw training audit data from Google Sheets
@@ -68,9 +157,20 @@ function aggregateMonthlyTrends(auditRows: any[]): any[] {
     
     if (!storeId) return;
     
-    // Get score data - try multiple field name variations
-    const percentage = parseFloat(row['Percentage'] || row.percentage || row.percentageScore || row.percentage_score || '0') || 0;
-    const totalScore = parseFloat(row['Total Score'] || row.totalScore || row.total_score || row.score || '0') || 0;
+    // CRITICAL FIX: Recalculate score from individual question responses
+    // This fixes incorrect stored scores due to previous calculation bugs
+    const recalculated = recalculateTrainingScore(row);
+    const percentage = recalculated.percentage;
+    const totalScore = recalculated.totalScore;
+    
+    // Log if there's a significant difference (for debugging)
+    const storedPct = parseFloat(row['Percentage'] || row.percentage || row.percentageScore || row.percentage_score || '0');
+    if (Math.abs(storedPct - percentage) > 5) {
+      console.log(`📊 Trends recalculation for ${storeName} (${storeId}) in ${period}:`, {
+        stored: `${storedPct}%`,
+        recalculated: `${percentage}%`
+      });
+    }
     
     // Create unique key
     const key = `${storeId}_${period}`;

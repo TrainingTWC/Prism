@@ -442,33 +442,34 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             if (item.type === 'text') return;
 
             total++;
+            
             const response = responses[`${section.id}_${item.id}`];
+            const normalizedResponse = (response || '').toString().toLowerCase().trim();
+            
+            // Add to maxScore for all questions UNLESS explicitly marked as NA
+            // Empty/unanswered questions still count towards max score
+            if (normalizedResponse !== 'na') {
+              maxScore += item.w || 1;
+            }
+            
             if (response && response.trim()) {
               completed++;
 
               // Calculate score based on response type
               if (response === 'yes' || response === 'Yes') {
                 totalScore += item.w || 1;
-                maxScore += item.w || 1;
               } else if (response === 'no' || response === 'No') {
                 totalScore += item.wneg || 0;
-                maxScore += item.w || 1;
               } else if (response === 'Excellent') {
                 totalScore += 5;
-                maxScore += 5;
               } else if (response === 'Good') {
                 totalScore += 3;
-                maxScore += 5;
               } else if (response === 'Poor') {
                 totalScore += 1;
-                maxScore += 5;
               } else if (response.trim()) {
                 // For text responses, give full score if there's content
                 totalScore += item.w || 1;
-                maxScore += item.w || 1;
               }
-            } else {
-              maxScore += item.w || 1;
             }
           });
         }
@@ -1764,14 +1765,18 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             // Skip text fields (EMP name/ID) in scoring
             if (item.type === 'text') return;
 
+            // Add to maxScore for all questions UNLESS explicitly marked as NA
+            // Empty/unanswered questions still count towards max score
+            const normalizedResponse = (response || '').toString().toLowerCase().trim();
+            if (normalizedResponse !== 'na') {
+              sectionMax += Math.abs(item.w);
+            }
+
+            // Calculate actual score based on response
             if (response === 'yes') {
               sectionScore += item.w;
             } else if (response === 'no' && item.wneg) {
               sectionScore += item.wneg; // Add negative score
-            }
-
-            if (response !== 'na') {
-              sectionMax += Math.abs(item.w);
             }
           });
         }
