@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { buildFinancePDF } from '../../src/utils/financeReport';
 
 // Google Sheets endpoint for Finance Audit (QA Pattern)
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzfP0OjIe2-XQut_0DgOFpkAvqkMi0RU6U3HLtDGBpNXeVTnLjHUtzNhlZtonXhy1H0/exec';
@@ -684,7 +685,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       });
 
       // Generate PDF after successful submission
-      generatePDF();
+      await generatePDF();
       
       setSubmitted(true);
 
@@ -733,109 +734,56 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
     }
   };
 
-  const generatePDF = () => {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm' });
+  const generatePDF = async () => {
     const { totalScore, maxScore, scorePercentage } = calculateScore();
     
-    // Header
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Financial Controls Assessment', 105, 15, { align: 'center' });
-    
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    let y = 25;
-    doc.text(`Store: ${meta.storeName} (${meta.storeId})`, 10, y);
-    y += 6;
-    doc.text(`Finance Auditor: ${meta.financeAuditorName} (${meta.financeAuditorId})`, 10, y);
-    y += 6;
-    doc.text(`Area Manager: ${meta.amName} (${meta.amId})`, 10, y);
-    y += 6;
-    
-    // Region detection (same logic as submit)
-    const correctedStoreId = meta.storeId.replace(/['"]/g, '');
-    const storeData = comprehensiveMapping?.find((s: any) => 
-      s.id === correctedStoreId || s.storeId === correctedStoreId || s['Store ID'] === correctedStoreId
-    );
-    const detectedRegion = storeData?.region || storeData?.Region || 'Unknown';
-    doc.text(`Region: ${detectedRegion}`, 10, y);
-    y += 6;
-    doc.text(`Date: ${new Date().toLocaleString()}`, 10, y);
-    y += 10;
-    
-    // Score Summary
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text(`Score: ${totalScore} / ${maxScore} (${scorePercentage}%)`, 105, y, { align: 'center' });
-    y += 10;
-    
-    // Sections
-    sections.forEach((section, sectionIndex) => {
-      if (y > 250) {
-        doc.addPage();
-        y = 20;
-      }
-      
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13);
-      doc.text(`${section.title}`, 10, y);
-      y += 5;
-      
-      // Table for section questions
-      const tableRows = section.items.map((item, itemIndex) => {
-        const questionKey = `${section.id}_${item.id}`;
-        const response = responses[questionKey] || '';
-        const responseText = response === 'yes' ? 'Yes' : response === 'no' ? 'No' : response === 'na' ? 'NA' : '';
-        const remark = questionRemarks[questionKey] || '';
-        const score = response === 'yes' ? item.w : response === 'na' ? 'NA' : 0;
-        const scoreDisplay = response === 'na' ? `NA/${item.w}` : `${score}/${item.w}`;
-        
-        return [
-          `Q${itemIndex + 1}`,
-          item.q,
-          responseText,
-          scoreDisplay,
-          remark || '-'
-        ];
-      });
-      
-      autoTable(doc, {
-        startY: y,
-        head: [['#', 'Question', 'Response', 'Score', 'Remarks']],
-        body: tableRows,
-        margin: { left: 10, right: 10 },
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontStyle: 'bold' },
-        columnStyles: {
-          0: { cellWidth: 10, halign: 'center' },
-          1: { cellWidth: 70 },
-          2: { cellWidth: 20, halign: 'center' },
-          3: { cellWidth: 18, halign: 'center' },
-          4: { cellWidth: 62 }
-        },
-        theme: 'grid'
-      });
-      
-      y = (doc as any).lastAutoTable.finalY + 6;
-      
-      // Section remarks
-      const sectionRemarks = responses[`${section.id}_remarks`];
-      if (sectionRemarks && sectionRemarks.trim()) {
-        if (y > 270) { doc.addPage(); y = 20; }
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(9);
-        doc.text(`Section Remarks: ${sectionRemarks}`, 10, y, { maxWidth: 190 });
-        y += 8;
-      }
+    // Prepare data for PDF builder - matching FinanceSubmission format
+    const submissionData = {
+      ...responses,
+      submissionTime: new Date().toLocaleString(),
+      financeAuditorName: meta.financeAuditorName,
+      financeAuditorId: meta.financeAuditorId,
+      amName: meta.amName,
+      amId: meta.amId,
+      storeName: meta.storeName,
+      storeId: meta.storeId,
+      totalScore: totalScore.toString(),
+      maxScore: maxScore.toString(),
+      scorePercentage: scorePercentage.toString(),
+      auditorSignature: signatures.auditor,
+      smSignature: signatures.sm
+    };
+
+    // Add individual question remarks and image counts if they are not already in responses
+    Object.keys(questionRemarks).forEach(key => {
+      submissionData[`${key}_remark`] = questionRemarks[key];
     });
-    
-    // Page numbers
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.text(`Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
-    }
+
+    // Prepare metadata
+    const pdfMetadata = {
+      storeName: meta.storeName,
+      storeId: meta.storeId,
+      auditorName: meta.financeAuditorName,
+      date: new Date().toLocaleString(),
+      region: '', 
+    };
+
+    // Region detection
+    try {
+      if (meta.storeId) {
+        const storeMapping = comprehensiveMapping.find(m => m['Store ID'] === meta.storeId);
+        if (storeMapping) {
+          pdfMetadata.region = storeMapping.Region || '';
+        }
+      }
+    } catch (e) {}
+
+    const doc = await buildFinancePDF(
+      [submissionData], 
+      pdfMetadata, 
+      { title: 'Financial Controls Assessment' }, 
+      questionImages
+    );
     
     doc.save(`finance_audit_${meta.storeName}_${Date.now()}.pdf`);
   };

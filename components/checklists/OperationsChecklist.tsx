@@ -4,11 +4,13 @@ import { AREA_MANAGERS as DEFAULT_AREA_MANAGERS, HR_PERSONNEL as DEFAULT_HR_PERS
 import { Store } from '../../types';
 import { hapticFeedback } from '../../utils/haptics';
 import { useComprehensiveMapping } from '../../hooks/useComprehensiveMapping';
+import { buildOperationsPDF } from '../../utils/operationsReport';
+import { normalizeId } from '../../utils/idNormalization';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
 
 // Google Sheets endpoint for logging AM Operations data - UPDATED URL (no CORS headers needed)
-const AM_OPS_LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz2z24Tk0uiR8Ir0qGAlPGmfap6-i-gjeM4StMUJ-cPrp8ET6YkYrmzdGtxoCmLkcYhLQ/exec';
+const AM_OPS_LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyKzDHP-iEpJTacXk_lPl6eNCJXtg5imabCdzYPVIWrHPNMXRHUDNO9PeijCKKWalBm/exec';
 
 interface ChecklistMeta {
   hrName: string;
@@ -67,80 +69,80 @@ const SECTIONS: ChecklistSection[] = [
     id: 'OTA',
     title: 'Order Taking Assistance',
     items: [
-      { id: 'OTA_1', q: 'Is suggestive selling happening at the POS?' },
-      { id: 'OTA_2', q: 'Is the POS partner updated on the latest promos and item availability?' },
-      { id: 'OTA_3', q: 'Has order-taking time been recorded for 5 customers?' },
-      { id: 'OTA_4', q: 'Is there sufficient cash and change at the POS?' },
-      { id: 'OTA_5', q: 'Are valid licenses displayed and expiries checked (medical reports)?' },
-      { id: 'OTA_6', q: 'Are cash audits completed and verified with the logbook?' },
-      { id: 'OTA_7', q: 'Are daily banking reports tallied?' },
-      { id: 'OTA_8', q: 'Has CPI been reviewed through the FAME pilot?' },
-      { id: 'OTA_9', q: 'Are Swiggy/Zomato metrics (RDC, MFR, visibility) reviewed, and are Food Lock on LS and stock control on UrbanPiper managed per stock availability/opening inventory?' },
-      { id: 'OTA_10', q: 'Are all food and drinks served as per SOP?' },
-      { id: 'OTA_11', q: 'Are food orders placed based on the 4-week sales trend?' }
+      { id: 'OTA_101', q: 'Is suggestive selling happening at the POS?' },
+      { id: 'OTA_102', q: 'Is the POS partner updated on the latest promos and item availability?' },
+      { id: 'OTA_103', q: 'Has order-taking time been recorded for 5 customers?' },
+      { id: 'OTA_104', q: 'Is there sufficient cash and change at the POS?' },
+      { id: 'OTA_105', q: 'Are valid licenses displayed and expiries checked (medical reports)?' },
+      { id: 'OTA_106', q: 'Are cash audits completed and verified with the logbook?' },
+      { id: 'OTA_107', q: 'Are daily banking reports tallied?' },
+      { id: 'OTA_108', q: 'Has CPI been reviewed through the FAME pilot?' },
+      { id: 'OTA_109', q: 'Are Swiggy/Zomato metrics (RDC, MFR, visibility) reviewed, and are Food Lock on LS and stock control on UrbanPiper managed per stock availability/opening inventory?' },
+      { id: 'OTA_110', q: 'Are all food and drinks served as per SOP?' },
+      { id: 'OTA_111', q: 'Are food orders placed based on the 4-week sales trend?' }
     ]
   },
   {
     id: 'FAS',
     title: 'Friendly & Accurate Service',
     items: [
-      { id: 'FAS_1', q: 'Is equipment cleaned and maintained?' },
-      { id: 'FAS_2', q: 'Are temperature checks done with the Therma Pen and logs updated?' },
-      { id: 'FAS_3', q: 'Is documentation (GRN, RSTN, STN & TO) completed?' },
-      { id: 'FAS_4', q: 'Is fast-moving SKU availability checked and validated with LS?' },
-      { id: 'FAS_5', q: 'Is the thawing chart validated against actual thawing?' },
-      { id: 'FAS_6', q: 'Are deployment roles clear, with coaching and appreciation done by the MOD?' },
-      { id: 'FAS_7', q: 'Are there no broken/unused tools stored in the store?' },
-      { id: 'FAS_8', q: 'Is garbage segregated properly (wet/dry)?' },
-      { id: 'FAS_9', q: 'Are LTO products served as per standards?' },
-      { id: 'FAS_10', q: 'Is the coffee and food dial-in process followed?' },
-      { id: 'FAS_11', q: 'Are R.O.A.S.T. and app orders executed accurately?' },
-      { id: 'FAS_12', q: 'Have 5 order service times been validated?' },
-      { id: 'FAS_13', q: 'Have open maintenance-related points been reviewed?' }
+      { id: 'FAS_201', q: 'Is equipment cleaned and maintained?' },
+      { id: 'FAS_202', q: 'Are temperature checks done with the Therma Pen and logs updated?' },
+      { id: 'FAS_203', q: 'Is documentation (GRN, RSTN, STN & TO) completed?' },
+      { id: 'FAS_204', q: 'Is fast-moving SKU availability checked and validated with LS?' },
+      { id: 'FAS_205', q: 'Is the thawing chart validated against actual thawing?' },
+      { id: 'FAS_206', q: 'Are deployment roles clear, with coaching and appreciation done by the MOD?' },
+      { id: 'FAS_207', q: 'Are there no broken/unused tools stored in the store?' },
+      { id: 'FAS_208', q: 'Is garbage segregated properly (wet/dry)?' },
+      { id: 'FAS_209', q: 'Are LTO products served as per standards?' },
+      { id: 'FAS_210', q: 'Is the coffee and food dial-in process followed?' },
+      { id: 'FAS_211', q: 'Are R.O.A.S.T. and app orders executed accurately?' },
+      { id: 'FAS_212', q: 'Have 5 order service times been validated?' },
+      { id: 'FAS_213', q: 'Have open maintenance-related points been reviewed?' }
     ]
   },
   {
     id: 'FWS',
     title: 'Feedback with Solution',
     items: [
-      { id: 'FWS_1', q: 'Has COGS been reviewed, with actions in place per last month P&L feedback?' },
-      { id: 'FWS_2', q: 'Have BSC targets vs achievements been reviewed?' },
-      { id: 'FWS_3', q: 'Has people budget vs actuals (labour cost/bench planning) been reviewed?' },
-      { id: 'FWS_4', q: 'Has variance in stock (physical vs system) been verified?' },
-      { id: 'FWS_5', q: 'Have the top 10 wastage items been reviewed?' },
-      { id: 'FWS_6', q: 'Have store utilities (units, chemical use) been reviewed?' },
-      { id: 'FWS_7', q: 'Have shift targets, briefings, and goal tracking been conducted?' },
-      { id: 'FWS_8', q: 'Have new staff training and bench plans been reviewed?' },
-      { id: 'FWS_9', q: 'Have Training and QA audits been reviewed?' },
-      { id: 'FWS_10', q: 'Has the duty roster (off/coff, ELCL, tenure) been checked and attendance ensured as per ZingHR?' },
-      { id: 'FWS_11', q: 'Have temperature and thawing logs been validated?' },
-      { id: 'FWS_12', q: 'Have audit and data findings been cross-checked with store observations?' },
-      { id: 'FWS_13', q: 'Is the pest control layout updated?' }
+      { id: 'FWS_301', q: 'Has COGS been reviewed, with actions in place per last month P&L feedback?' },
+      { id: 'FWS_302', q: 'Have BSC targets vs achievements been reviewed?' },
+      { id: 'FWS_303', q: 'Has people budget vs actuals (labour cost/bench planning) been reviewed?' },
+      { id: 'FWS_304', q: 'Has variance in stock (physical vs system) been verified?' },
+      { id: 'FWS_305', q: 'Have the top 10 wastage items been reviewed?' },
+      { id: 'FWS_306', q: 'Have store utilities (units, chemical use) been reviewed?' },
+      { id: 'FWS_307', q: 'Have shift targets, briefings, and goal tracking been conducted?' },
+      { id: 'FWS_308', q: 'Have new staff training and bench plans been reviewed?' },
+      { id: 'FWS_309', q: 'Have Training and QA audits been reviewed?' },
+      { id: 'FWS_310', q: 'Has the duty roster (off/coff, ELCL, tenure) been checked and attendance ensured as per ZingHR?' },
+      { id: 'FWS_311', q: 'Have temperature and thawing logs been validated?' },
+      { id: 'FWS_312', q: 'Have audit and data findings been cross-checked with store observations?' },
+      { id: 'FWS_313', q: 'Is the pest control layout updated?' }
     ]
   },
   {
     id: 'ENJ',
     title: 'Enjoyable Experience',
     items: [
-      { id: 'ENJ_1', q: 'Have 2 new and 2 repeat customers been engaged, with feedback documented?' },
-      { id: 'ENJ_2', q: 'Are seating and stations adjusted as per customer requirements?' },
-      { id: 'ENJ_3', q: 'Is the team proactively assisting customers?' },
-      { id: 'ENJ_4', q: 'Is CCTV checked to monitor customer service during peak hours?' },
-      { id: 'ENJ_5', q: 'Is CCTV backup (minimum 60 days) in place and are black spots checked?' },
-      { id: 'ENJ_6', q: 'Is opening/closing footage reviewed for correct practices?' },
-      { id: 'ENJ_7', q: 'Are there no personal items/clutter in guest areas, with belongings kept in lockers/designated places?' }
+      { id: 'ENJ_401', q: 'Have 2 new and 2 repeat customers been engaged, with feedback documented?' },
+      { id: 'ENJ_402', q: 'Are seating and stations adjusted as per customer requirements?' },
+      { id: 'ENJ_403', q: 'Is the team proactively assisting customers?' },
+      { id: 'ENJ_404', q: 'Is CCTV checked to monitor customer service during peak hours?' },
+      { id: 'ENJ_405', q: 'Is CCTV backup (minimum 60 days) in place and are black spots checked?' },
+      { id: 'ENJ_406', q: 'Is opening/closing footage reviewed for correct practices?' },
+      { id: 'ENJ_407', q: 'Are there no personal items/clutter in guest areas, with belongings kept in lockers/designated places?' }
     ]
   },
   {
     id: 'EX',
     title: 'Enthusiastic Exit',
     items: [
-      { id: 'EX_1', q: 'Are there no unresolved issues at exits?' },
-      { id: 'EX_2', q: 'Is the final interaction cheerful and courteous?' },
-      { id: 'EX_3', q: 'Has a consolidated action plan been created with the Store Manager?' },
-      { id: 'EX_4', q: 'Have top performers been recognized?' },
-      { id: 'EX_5', q: 'Have wins been celebrated and improvement areas communicated?' },
-      { id: 'EX_6', q: 'Has the team been motivated for ongoing improvement?' }
+      { id: 'EX_501', q: 'Are there no unresolved issues at exits?' },
+      { id: 'EX_502', q: 'Is the final interaction cheerful and courteous?' },
+      { id: 'EX_503', q: 'Has a consolidated action plan been created with the Store Manager?' },
+      { id: 'EX_504', q: 'Have top performers been recognized?' },
+      { id: 'EX_505', q: 'Have wins been celebrated and improvement areas communicated?' },
+      { id: 'EX_506', q: 'Has the team been motivated for ongoing improvement?' }
     ]
   }
 ];
@@ -580,9 +582,9 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
           ...prev,
           // Store fields
           storeName: storeData['Store Name'] || prev.storeName,
-          cafeType: storeData['Menu'] || prev.cafeType,
-          storeType: storeData['Store Type'] || prev.storeType,
-          concept: storeData['Concept'] || prev.concept,
+          menuType: storeData['Menu'] || prev.menuType,
+          storeFormat: storeData['Store Type'] || prev.storeFormat,
+          priceGroup: storeData['Concept'] || prev.priceGroup,
           // AM fields
           amId: amDetails?.id || amId,
           amName: amDetails?.name || amId,
@@ -760,7 +762,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
       
       for (const section of sections) {
         for (const item of section.items) {
-          const questionKey = `${section.id}_${item.id}`;
+          const questionKey = item.id;
           if (!responses[questionKey] || responses[questionKey] === '') {
             firstUnansweredId = questionKey;
             break;
@@ -844,118 +846,101 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         console.warn('Could not load comprehensive store mapping for region detection:', error);
       }
 
-      // Prepare data for Google Sheets
+      // Map all parameters correctly
       const params: any = {
-        submissionTime: new Date().toLocaleString('en-GB', { hour12: false }),
-        hrName: metadata.hrName,
-        hrId: metadata.hrId,
-        amName: metadata.amName,
-        amId: metadata.amId,
-        trainerName: metadata.trainerName,
-        trainerId: metadata.trainerId || metadata.trainerName,
-        storeName: metadata.storeName,
-        storeId: metadata.storeId,
+        // Basic Metadata
+        submissionTime: new Date().toISOString(),
+        hrName: metadata.hrName || '',
+        hrId: metadata.hrId || '',
+        amName: metadata.amName || '',
+        amId: metadata.amId || '',
+        trainerName: metadata.trainerName || '',
+        trainerId: metadata.trainerId || metadata.trainerName || '',
+        storeName: metadata.storeName || '',
+        storeId: metadata.storeId || '',
         region: detectedRegion || 'Unknown',
-        bscAchievement: metadata.bscAchievement,
-        peopleOnShift: metadata.peopleOnShift,
-        manpowerFulfilment: metadata.manpowerFulfilment,
-        storeFormat: metadata.storeFormat,
-        menuType: metadata.menuType,
-        priceGroup: metadata.priceGroup,
+        
+        // Extended Metadata (BSC and Store Details)
+        bscAchievement: metadata.bscAchievement || '',
+        peopleOnShift: metadata.peopleOnShift || '',
+        manpowerFulfilment: metadata.manpowerFulfilment || '',
+        storeFormat: metadata.storeFormat || '',
+        menuType: metadata.menuType || '',
+        priceGroup: metadata.priceGroup || '',
+        
+        // Scoring (Multiple formats to match all script versions)
         totalScore: score.toString(),
         maxScore: maxScore.toString(),
-        percentageScore: percentage.toString()
+        percentageScore: percentage.toString(),
+        overallScore: percentage.toString(), // For compatibility with older scripts
+        percentage: percentage.toString(),    // For extra safety
+        
+        // Remarks
+        remarks: Object.values(sectionRemarks).filter(r => r).join(' | '),
+        imageUpload: ''
       };
 
-      // Add all question responses with EXACT format matching Google Apps Script headers
-      sections.forEach((section, sectionIndex) => {
-        section.items.forEach((item, itemIndex) => {
-          const questionKey = `${section.id}_${item.id}`;
-
-          // Use item.id directly as it already has the correct format (CG_1, OTA_1, etc.)
-          // This MUST match the header format in Google Apps Script: CG_1, CG_2, OTA_1, etc.
-          const paramKey = item.id;
-
-          params[paramKey] = responses[questionKey] || '';
+      // Add all question responses with multiple formats to ensure logging success
+      sections.forEach((section) => {
+        section.items.forEach((item) => {
+          const value = responses[item.id] || '';
+          params[item.id] = value;
           
-          // Log each question response for debugging
-          if (responses[questionKey]) {
-            console.log(`📝 Question ${paramKey}: ${responses[questionKey]}`);
+          // Also handle the mapping from OTA_101 style to OTA_1 style if needed
+          const shortId = item.id.replace(/_(\d)0(\d)$/, '_$2').replace(/_(\d)(\d)(\d)$/, '_$2$3');
+          if (shortId !== item.id) {
+            params[shortId] = value;
           }
         });
 
-        // Add section remarks with EXACT format matching Google Apps Script headers
-        // Script expects: CG_remarks, OTA_remarks, FAS_remarks, FWS_remarks, ENJ_remarks, EX_remarks
-        const remarksKey = `${section.id}_remarks`;
-        params[remarksKey] = sectionRemarks[section.id] || '';
-        
-        if (sectionRemarks[section.id]) {
-          console.log(`💬 Section ${section.id} remarks: ${sectionRemarks[section.id]}`);
-        }
-      });
-
-      // Add section scores (matching the AI-READY script format)
-      sections.forEach(section => {
+        // Add section remarks and scores
         const sectionScore = getSectionScore(section);
         const sectionPercentage = sectionScore.maxScore > 0
-          ? Math.round((sectionScore.score / sectionScore.maxScore) * 100)
-          : 0;
+          ? Math.round((sectionScore.score / sectionScore.maxScore) * 100).toString()
+          : "0";
 
-        // Use lowercase for score parameters to match AI-READY script
-        const scoreKey = `${section.id.toLowerCase()}Score`;
-        params[scoreKey] = sectionPercentage.toString();
+        // Add section scores in multiple formats
+        const sectionId = section.id.toUpperCase();
+        params[`${section.id.toLowerCase()}_remarks`] = sectionRemarks[section.id] || '';
+        params[`${section.id}_remarks`] = sectionRemarks[section.id] || '';
+        
+        // Multi-format section scores to ensure log success
+        const scoreStr = sectionPercentage.toString();
+        params[`${sectionId}_Score`] = scoreStr;
+        params[`${section.id}_Score`] = scoreStr;
+        params[`${section.id.toLowerCase()}Score`] = scoreStr;
+        params[`${sectionId}Score`] = scoreStr;
       });
 
-      // Add overall score
-      params.overallScore = percentage.toString();
-
-      // Add remarks and image upload fields
-      params.remarks = Object.values(sectionRemarks).filter(r => r).join(' | ');
-      params.imageUpload = '';
-
-      // Convert to URL-encoded format
+      // Convert to URL-encoded format - CRITICAL: Use plain application/x-www-form-urlencoded
       const body = Object.keys(params).map(k =>
         encodeURIComponent(k) + '=' + encodeURIComponent(params[k])
       ).join('&');
 
-      console.log('📤 Submitting to:', AM_OPS_LOG_ENDPOINT);
-      console.log('📤 Total parameters being sent:', Object.keys(params).length);
-      console.log('📤 Full Payload:', params);
-      console.log('📤 Question responses:', Object.keys(params).filter(k => k.match(/^[A-Z]+_\d+$/)).length);
-      console.log('📤 Section remarks:', Object.keys(params).filter(k => k.endsWith('_remarks')).length);
+      console.log('📤 Submitting AM Operations Checklist...');
+      console.log('📤 Endpoint:', AM_OPS_LOG_ENDPOINT);
+      console.log('📤 Data size:', body.length, 'bytes');
 
       try {
         const response = await fetch(AM_OPS_LOG_ENDPOINT, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          headers: { 
+            'Content-Type': 'application/x-www-form-urlencoded' 
+          },
           body,
-          mode: 'no-cors' // Use no-cors mode to bypass CORS restrictions
+          mode: 'no-cors'
         });
 
-        console.log('📤 Response received (no-cors mode)');
-
-        // In no-cors mode, we can't read the response but if we get here, the request was sent
-        // Since you confirmed data is logging successfully, treat this as success
-        console.log('✅ Checklist submitted successfully (no-cors mode)!');
+        console.log('✅ Submission request sent successfully');
         setSubmitted(true);
         localStorage.removeItem('operations_checklist_responses');
         localStorage.removeItem('operations_checklist_metadata');
         localStorage.removeItem('operations_section_remarks');
         localStorage.removeItem('operations_section_images');
         hapticFeedback.success();
-
       } catch (fetchError) {
-        console.error('❌ Fetch error:', fetchError);
-
-        // Even if fetch fails with CORS, the data might still be logged
-        // Since you confirmed logging works, show success anyway
-        console.log('⚠️ Fetch blocked by CORS, but data should be logged. Treating as success.');
-        setSubmitted(true);
-        localStorage.removeItem('operations_checklist_responses');
-        localStorage.removeItem('operations_checklist_metadata');
-        localStorage.removeItem('operations_section_remarks');
-        localStorage.removeItem('operations_section_images');
-        hapticFeedback.success();
+        console.error('❌ Network error during submission:', fetchError);
+        alert('Could not reach the logging server. Please check your internet connection.');
       }
     } catch (error) {
       console.error('❌ Error submitting AM Operations Checklist:', error);
@@ -987,31 +972,69 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     hapticFeedback.select();
   };
 
+  const generatePDF = async () => {
+    const { score, maxScore, percentage } = calculateScore();
+    
+    // Prepare submission data for builder
+    const submissionData = {
+      ...responses,
+      submissionTime: new Date().toLocaleString(),
+      ...metadata,
+      totalScore: score.toString(),
+      maxScore: maxScore.toString(),
+      percentageScore: percentage.toString(),
+    };
+
+    // Add section remarks
+    Object.keys(sectionRemarks).forEach(key => {
+      submissionData[`${key.toLowerCase()}_remarks`] = sectionRemarks[key];
+    });
+
+    // Detect region
+    let region = 'Unknown';
+    try {
+      if (metadata.storeId) {
+        const sid = metadata.storeId.toString().trim().toUpperCase();
+        const mapping = compStoreMapping.find((m: any) => 
+          (m['Store ID'] || '').toString().trim().toUpperCase() === sid
+        );
+        if (mapping) region = mapping.Region || 'Unknown';
+      }
+    } catch (e) {}
+
+    const pdfMetadata = {
+      ...metadata,
+      date: new Date().toLocaleString(),
+      region
+    };
+
+    const doc = await buildOperationsPDF(
+      [submissionData],
+      pdfMetadata,
+      { title: 'AM Operations Audit Report' },
+      sectionImages
+    );
+
+    doc.save(`operations_audit_${metadata.storeName}_${Date.now()}.pdf`);
+  };
+
   const calculateScore = () => {
     let score = 0;
     let maxScore = 0;
 
     sections.forEach(section => {
       section.items.forEach(item => {
-        const questionKey = `${section.id}_${item.id}`;
+        const questionKey = item.id;
         const response = responses[questionKey];
 
-        if (section.id === 'SHLP') {
-          // SHLP questions use 0-2 scoring
-          if (response === '0' || response === '1' || response === '2') {
-            score += parseInt(response);
-            maxScore += 2; // Max score for SHLP questions is 2
-          }
-        } else {
-          // Regular questions use yes/no/na scoring
-          if (response === 'yes') {
-            score += 1;
-            maxScore += 1;
-          } else if (response === 'no') {
-            maxScore += 1; // Count towards max but don't add to score
-          }
-          // N/A responses are excluded from both score and maxScore
+        // Regular questions use yes/no/na scoring
+        if (response === 'yes') {
+          score += 1;
+          maxScore += 1;
+        } else if (response === 'no') {
+          maxScore += 1; // Count towards max but don't add to score
         }
+        // N/A responses are excluded from both score and maxScore
       });
     });
 
@@ -1024,25 +1047,17 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
     let maxScore = 0;
 
     section.items.forEach(item => {
-      const questionKey = `${section.id}_${item.id}`;
+      const questionKey = item.id;
       const response = responses[questionKey];
 
-      if (section.id === 'SHLP') {
-        // SHLP questions use 0-2 scoring
-        if (response === '0' || response === '1' || response === '2') {
-          score += parseInt(response);
-          maxScore += 2; // Max score for SHLP questions is 2
-        }
-      } else {
-        // Regular questions use yes/no/na scoring
-        if (response === 'yes') {
-          score += 1;
-          maxScore += 1;
-        } else if (response === 'no') {
-          maxScore += 1;
-        }
-        // N/A responses are excluded
+      // Regular questions use yes/no/na scoring
+      if (response === 'yes') {
+        score += 1;
+        maxScore += 1;
+      } else if (response === 'no') {
+        maxScore += 1;
       }
+      // N/A responses are excluded
     });
 
     return { score, maxScore };
@@ -1063,9 +1078,9 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         bscAchievement: '',
         peopleOnShift: '',
         manpowerFulfilment: '',
-        cafeType: '',
-        storeType: '',
-        concept: ''
+        storeFormat: '',
+        menuType: '',
+        priceGroup: ''
       });
       setSectionRemarks({});
       setSectionImages({});
@@ -1096,9 +1111,9 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
       bscAchievement: '',
       peopleOnShift: '',
       manpowerFulfilment: '',
-      cafeType: '',
-      storeType: '',
-      concept: ''
+      storeFormat: '',
+      menuType: '',
+      priceGroup: ''
     });
     setSectionRemarks({});
     setSectionImages({});
@@ -1123,6 +1138,15 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
           </p>
           <div className="flex justify-center gap-4">
             <button
+              onClick={generatePDF}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Download PDF
+            </button>
+            <button
               onClick={startNewChecklist}
               className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
             >
@@ -1135,33 +1159,33 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="px-4 py-6 md:p-6 space-y-6 max-w-6xl mx-auto mb-20">
       {/* Submitting Banner */}
       {isLoading && (
         <div className="fixed inset-x-0 top-0 z-[9999] bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 px-6 shadow-2xl border-b-4 border-orange-600">
           <div className="max-w-6xl mx-auto flex items-center justify-center gap-3">
             <div className="animate-spin h-6 w-6 border-3 border-white border-t-transparent rounded-full"></div>
-            <span className="text-lg font-bold tracking-wide">Submitting Checklist...</span>
+            <span className="text-lg font-bold tracking-wide">Submitting...</span>
           </div>
         </div>
       )}
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-6 border border-orange-200 dark:border-orange-800">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
+      <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-4 md:p-6 border border-orange-200 dark:border-orange-800">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
           🍽️ AM Operations Checklist
         </h1>
-        <p className="text-gray-600 dark:text-slate-400">
-          Comprehensive operational checklist based on AM Ops standards. Flat scoring: Yes = 1, No = 0, N/A excluded from scoring.
+        <p className="text-sm md:text-base text-gray-600 dark:text-slate-400">
+          Flat scoring: Yes=1, No=0. N/A is excluded.
         </p>
       </div>
 
       {/* Metadata */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 md:p-6">
+        <h2 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">
           Audit Information
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm md:text-base">
           {/* HR Field - Disabled when auto-filled from EMPID */}
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">HR Name:</label>
@@ -1465,79 +1489,54 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
       {sections.map((section) => {
         const sectionScore = getSectionScore(section);
         return (
-          <div key={section.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">
+          <div key={section.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+              <h2 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-slate-100 uppercase tracking-tight">
                 {section.title}
               </h2>
-              <div className="text-sm text-gray-600 dark:text-slate-400">
-                Section score: {sectionScore.score} / {sectionScore.maxScore}
+              <div className="text-xs md:text-sm font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 px-3 py-1 rounded-full">
+                Score: {sectionScore.score} / {sectionScore.maxScore}
               </div>
             </div>
 
             <div className="space-y-4">
               {section.items.map((item, index) => {
-                const questionKey = `${section.id}_${item.id}`;
+                const questionKey = item.id;
                 return (
                   <div 
                     key={item.id} 
                     id={questionKey}
-                    className="p-4 border border-gray-200 dark:border-slate-600 rounded-lg transition-all duration-300"
+                    className="p-3 md:p-4 border border-gray-200 dark:border-slate-600 rounded-xl hover:border-orange-300 transition-colors"
                   >
-                    <div className="mb-3">
-                      <span className="inline-flex items-center justify-center w-8 h-8 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-sm font-medium mr-3">
+                    <div className="flex items-start mb-3">
+                      <span className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-full text-xs font-bold mr-3 mt-0.5">
                         {index + 1}
                       </span>
-                      <span className="text-gray-900 dark:text-slate-100 font-medium">
+                      <span className="text-sm md:text-base text-gray-900 dark:text-slate-100 font-medium leading-snug">
                         {item.q}
                       </span>
                     </div>
 
-                    <div className="ml-11">
-                      {section.id === 'SHLP' ? (
-                        // SHLP questions use 0-2 scoring system
-                        <div className="space-y-2">
-                          {[
-                            { value: '0', label: '0 - Not Done / Incorrect', color: 'text-red-600 dark:text-red-400' },
-                            { value: '1', label: '1 - Partially Done / Needs Support', color: 'text-yellow-600 dark:text-yellow-400' },
-                            { value: '2', label: '2 - Done Right / On Time / As Per SOP', color: 'text-green-600 dark:text-green-400' }
-                          ].map((option) => (
-                            <label key={option.value} className="flex items-center space-x-2 cursor-pointer">
-                              <input
-                                type="radio"
-                                name={questionKey}
-                                value={option.value}
-                                checked={responses[questionKey] === option.value}
-                                onChange={(e) => handleResponse(questionKey, e.target.value)}
-                                className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500"
-                              />
-                              <span className={`text-sm font-medium ${option.color}`}>
-                                {option.label}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      ) : (
-                        // Regular questions use yes/no/na system
-                        <div className="flex gap-4">
-                          {['yes', 'no', 'na'].map((option) => (
-                            <label key={option} className="flex items-center space-x-2 cursor-pointer">
-                              <input
-                                type="radio"
-                                name={questionKey}
-                                value={option}
-                                checked={responses[questionKey] === option}
-                                onChange={(e) => handleResponse(questionKey, e.target.value)}
-                                className="w-4 h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500"
-                              />
-                              <span className={`text-sm font-medium ${option === 'na' ? 'text-gray-500 dark:text-slate-400' : 'text-gray-900 dark:text-slate-100'
-                                }`}>
-                                {option.toUpperCase()}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
+                    <div className="sm:ml-10">
+                      {/* Regular questions use yes/no/na system */}
+                      <div className="flex flex-wrap gap-2 sm:gap-4">
+                        {['yes', 'no', 'na'].map((option) => (
+                          <label key={option} className="flex-1 sm:flex-none flex items-center justify-center sm:justify-start space-x-2 cursor-pointer p-3 sm:p-0 bg-gray-50 dark:bg-slate-700/50 sm:bg-transparent rounded-lg border sm:border-0 border-gray-100 dark:border-slate-600">
+                            <input
+                              type="radio"
+                              name={questionKey}
+                              value={option}
+                              checked={responses[questionKey] === option}
+                              onChange={(e) => handleResponse(questionKey, e.target.value)}
+                              className="w-5 h-5 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500"
+                            />
+                            <span className={`text-sm font-bold ${option === 'na' ? 'text-gray-500 dark:text-slate-400' : 'text-gray-900 dark:text-slate-100'
+                              }`}>
+                              {option.toUpperCase()}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 );
@@ -1604,24 +1603,35 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
         );
       })}
 
-      {/* Actions */}
-      <div className="flex justify-between items-center">
-        <button
-          onClick={resetChecklist}
-          className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
-        >
-          Reset Checklist
-        </button>
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-500 dark:text-slate-400">
-            Score: {score}/{maxScore} ({percentage}%)
+      {/* Actions / Sticky Footer */}
+      <div className="fixed bottom-0 inset-x-0 bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-50">
+        <div className="max-w-6xl mx-auto flex flex-row justify-between items-center gap-4">
+          <button
+            onClick={resetChecklist}
+            className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 transition-colors"
+            title="Reset Checklist"
+          >
+            <span className="text-2xl">🔄</span>
+          </button>
+          
+          <div className="flex-1 flex flex-col items-center">
+            <div className="text-[10px] md:text-sm font-bold text-gray-500 mb-1">
+              CURRENT SCORE: {score}/{maxScore} ({Math.round(percentage)}%)
+            </div>
+            <div className="w-full max-w-[200px] h-1.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-orange-500 transition-all duration-500" 
+                style={{ width: `${Math.min(100, (Object.keys(responses).length / (sections.reduce((a, s) => a + s.items.length, 0))) * 100)}%` }}
+              ></div>
+            </div>
           </div>
+
           <button
             onClick={handleSubmit}
             disabled={isLoading}
-            className="px-6 py-3 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white rounded-lg font-medium transition-colors"
+            className="px-6 py-2 md:py-3 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white rounded-xl font-bold text-sm md:text-base shadow-lg shadow-orange-200 dark:shadow-none transition-all active:scale-95"
           >
-            {isLoading ? 'Submitting...' : 'Submit Checklist'}
+            {isLoading ? '...' : 'SUBMIT'}
           </button>
         </div>
       </div>

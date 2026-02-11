@@ -3126,31 +3126,27 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               const respKey = question.id;
               const raw = (submission as any)[respKey];
 
-              // Only include in calculation if there's a response (exclude N/A)
+              // Always add to maxScore (for all questions)
+              calculatedMaxScore += weight.w;
+
+              // Only add to actualScore if there's a response (exclude N/A)
               if (raw !== undefined && raw !== null && raw !== '' && raw !== 'N/A') {
                 if (question.id.startsWith('TSA_')) {
                   const score = parseInt(raw) || 0;
                   calculatedScore += score;
-                  calculatedMaxScore += weight.w;
                 } else if (raw === 'yes' || raw === 'Yes') {
                   calculatedScore += weight.w;
-                  calculatedMaxScore += weight.w;
                 } else if (raw === 'no' || raw === 'No') {
                   calculatedScore += weight.wneg || 0;
-                  calculatedMaxScore += weight.w;
                 } else if (raw === 'Excellent') {
                   calculatedScore += 5;
-                  calculatedMaxScore += weight.w;
                 } else if (raw === 'Good') {
                   calculatedScore += 3;
-                  calculatedMaxScore += weight.w;
                 } else if (raw === 'Poor') {
                   calculatedScore += 1;
-                  calculatedMaxScore += weight.w;
                 } else if (String(raw).trim()) {
                   // For text responses, give full score if there's content
                   calculatedScore += weight.w;
-                  calculatedMaxScore += weight.w;
                 }
               }
             }

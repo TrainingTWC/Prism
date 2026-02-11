@@ -8,7 +8,7 @@ import { STATIC_AM_OPERATIONS_DATA } from './staticOperationsData';
 const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz2pAj_RBIwRmJfel7GmElLigWw1MquRz0zLtsX6uR627LUCcR7lHz-IRXGzIhESYX4sg/exec';
 
 // AM Operations endpoint - UPDATED URL (no CORS headers needed, must match OperationsChecklist submission endpoint)
-const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz2z24Tk0uiR8Ir0qGAlPGmfap6-i-gjeM4StMUJ-cPrp8ET6YkYrmzdGtxoCmLkcYhLQ/exec';
+const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyKzDHP-iEpJTacXk_lPl6eNCJXtg5imabCdzYPVIWrHPNMXRHUDNO9PeijCKKWalBm/exec';
 
 // Training Audit endpoint - UPDATED URL
 const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwn4bXmjoXaTI7UMfDhzQwG6SZGZCq-qlVC_mQUnCZm0YiciqtaGgtdRJiq4oi505na3w/exec';
@@ -717,6 +717,33 @@ export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]>
   } catch (error) {
     console.error('Error fetching AM Operations data:', error);
     return [];
+  }
+};
+
+/**
+ * Submit AM Operations Checklist data to Google Sheets
+ */
+export const submitAMOperationsChecklist = async (params: any): Promise<{ success: boolean; message: string }> => {
+  try {
+    // Convert to URL-encoded format
+    const body = Object.keys(params).map(k =>
+      encodeURIComponent(k) + '=' + encodeURIComponent(params[k])
+    ).join('&');
+
+    const response = await fetch(AM_OPS_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body,
+      mode: 'no-cors',
+    });
+
+    // In no-cors mode, we can't see the response, so we assume success if no error is thrown
+    return { success: true, message: 'Checklist submitted successfully' };
+  } catch (error) {
+    console.error('Error submitting AM Operations checklist:', error);
+    return { success: false, message: error instanceof Error ? error.message : 'Unknown error' };
   }
 };
 

@@ -231,14 +231,16 @@ function buildSections(sub: FinanceSubmission, questionImages: Record<string, st
     };
 
     section.questions.forEach((q, idx) => {
-      // Look for key with full question text (format: "Q1: Full question text?")
+      // Look for key with full question text (format: "Q1: Full question text?") or alternate formats
       const questionKeyFull = `${q.id}: ${q.text}`;
-      const response = sub[questionKeyFull];
+      const prefixKey = `${section.prefix}_${q.id}`;
+      const response = sub[questionKeyFull] || sub[prefixKey] || sub[q.id];
+      
       const remarkKey = `${q.id} Remarks`;
-      const imageKey = `${q.id} Image URL`;
-      const remark = sub[remarkKey] || '';
+      const prefixRemarkKey = `${prefixKey}_remark`;
+      const remark = sub[remarkKey] || sub[prefixRemarkKey] || sub[`${q.id}_remark`] || '';
+      
       const weight = q.weight;
-
       sectionData.maxScore += weight;
 
       let score = 0;
@@ -261,10 +263,11 @@ function buildSections(sub: FinanceSubmission, questionImages: Record<string, st
       });
     });
 
-    // Get section remarks (format: "Section 1 Remarks")
+    // Get section remarks (format: "Section 1 Remarks" or "prefix_remarks")
     const remarksKey = `${section.title.split(':')[0]} Remarks`;
-    if (sub[remarksKey]) {
-      sectionData.remarks = sub[remarksKey];
+    const prefixRemarksKey = `${section.prefix}_remarks`;
+    if (sub[remarksKey] || sub[prefixRemarksKey]) {
+      sectionData.remarks = sub[remarksKey] || sub[prefixRemarksKey];
     }
 
     sections[section.id] = sectionData;
