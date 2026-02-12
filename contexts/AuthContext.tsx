@@ -249,19 +249,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // UNIVERSAL ACCESS: Accept ANY employee ID without validation
       // This allows all employee IDs (including i192 and any format) to access the system
       
-      // Auto-authenticate as admin role for everyone else if no password is required
-      const defaultRole: UserRole = 'admin';
-      const config = AUTH_CONFIG.roles[defaultRole];
-
-      if (config) {
-        localStorage.setItem(AUTH_CONFIG.storageKeys.auth, 'true');
-        localStorage.setItem(AUTH_CONFIG.storageKeys.timestamp, Date.now().toString());
-        localStorage.setItem(AUTH_CONFIG.storageKeys.role, defaultRole);
-
-        setIsAuthenticated(true);
-        setUserRole(defaultRole);
-        setRoleConfig(config);
-      }
+      // We do NOT auto-authenticate as admin here anymore. 
+      // Users must enter their department password to see their specific dashboard.
+      setIsAuthenticated(false);
+      setUserRole(null);
+      setRoleConfig(null);
 
       const employeeInfo: Employee = {
         code: empId,

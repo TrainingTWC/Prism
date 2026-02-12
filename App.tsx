@@ -74,18 +74,18 @@ const AppContent: React.FC = () => {
       const empId = urlParams.get('EMPID');
       
       if (empId) {
-        // EMPID present - set user ID and automatically authenticate
+        // EMPID present - set user ID and validate identity
         setUserId(empId);
         setAccessDenied(false);
         
-        // If not already authenticated, perform auto-login
+        // Ensure identity is validated even if not authenticated via password yet
         if (!isAuthenticated) {
-          console.log(`[App] 🗝️ Automatically authenticating EMPID: ${empId}`);
+          console.log(`[App] 🔍 Validating EMPID identity: ${empId}`);
           try {
             await loginWithEmpId(empId);
-            // After loginWithEmpId, AuthContext state will update, which triggers the userRole sync useEffect
+            // This populates employeeData but requires a password if not a special role
           } catch (error) {
-            console.error('[App] Error during auto-authentication:', error);
+            console.error('[App] Error during ID validation:', error);
           }
         } else {
           // If already authenticated, ensure userRole is synced
