@@ -35,16 +35,34 @@ const AppContent: React.FC = () => {
 
   // Sync userRole when user gets authenticated (after password login or campus auto-auth)
   useEffect(() => {
-    if (isAuthenticated && employeeData && !userRole) {
+    if (isAuthenticated && (employeeData || userId) && !userRole) {
+      const code = employeeData?.code || userId;
+      if (!code) return;
+
       try {
-        const role = getUserRole(employeeData.code);
-        setUserRole(role || { role: 'admin' } as any);
+        const role = getUserRole(code);
+        // Default to admin role if no specific mapping found, to ensure universal access
+        setUserRole(role || { 
+          userId: code, 
+          name: employeeData?.name || code, 
+          role: 'admin', 
+          allowedStores: [], 
+          allowedAMs: [], 
+          allowedHRs: [] 
+        } as UserRole);
       } catch (error) {
         console.error('[App] Error getting user role:', error);
-        setUserRole({ role: 'admin' } as any);
+        setUserRole({ 
+          userId: code, 
+          name: employeeData?.name || code, 
+          role: 'admin', 
+          allowedStores: [], 
+          allowedAMs: [], 
+          allowedHRs: [] 
+        } as UserRole);
       }
     }
-  }, [isAuthenticated, employeeData, userRole]);
+  }, [isAuthenticated, employeeData, userId, userRole]);
 
   // Check URL for EMPID - ONCE on mount
   useEffect(() => {
@@ -56,18 +74,40 @@ const AppContent: React.FC = () => {
       const empId = urlParams.get('EMPID');
       
       if (empId) {
-        // EMPID present - set user ID and proceed to login/password page
+        // EMPID present - set user ID and automatically authenticate
         setUserId(empId);
         setAccessDenied(false);
         
-        // If already authenticated, set role
-        if (isAuthenticated) {
+        // If not already authenticated, perform auto-login
+        if (!isAuthenticated) {
+          console.log(`[App] 🗝️ Automatically authenticating EMPID: ${empId}`);
+          try {
+            await loginWithEmpId(empId);
+            // After loginWithEmpId, AuthContext state will update, which triggers the userRole sync useEffect
+          } catch (error) {
+            console.error('[App] Error during auto-authentication:', error);
+          }
+        } else {
+          // If already authenticated, ensure userRole is synced
           try {
             const role = getUserRole(empId);
-            setUserRole(role || { role: 'admin' } as any);
+            setUserRole(role || { 
+              userId: empId, 
+              name: `User ${empId}`, 
+              role: 'admin', 
+              allowedStores: [], 
+              allowedAMs: [], 
+              allowedHRs: [] 
+            } as UserRole);
           } catch (error) {
-            console.error('[App] Error getting user role:', error);
-            setUserRole({ role: 'admin' } as any);
+            setUserRole({ 
+              userId: empId, 
+              name: `User ${empId}`, 
+              role: 'admin', 
+              allowedStores: [], 
+              allowedAMs: [], 
+              allowedHRs: [] 
+            } as UserRole);
           }
         }
       } else {
@@ -130,6 +170,19 @@ const AppContent: React.FC = () => {
   }
 
   if (!userRole) {
+    // If we have an EMPID but mapping is still loading, show a loading state instead of Access Denied.
+    if (userId) {
+      return (
+        <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-500 dark:text-slate-400">Loading profile for {userId}...</p>
+            <p className="text-gray-400 dark:text-slate-500 text-xs mt-2">Setting up permissions...</p>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 flex items-center justify-center">
         <div className="text-center">

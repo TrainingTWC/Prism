@@ -246,14 +246,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('[Auth] Error clearing localStorage:', e);
       }
 
-      // CRITICAL: Set authenticated state to FALSE for regular employees
-      // This MUST be false so they see the login screen
-      setIsAuthenticated(false);
-      setUserRole(null);
-      setRoleConfig(null);
-
       // UNIVERSAL ACCESS: Accept ANY employee ID without validation
       // This allows all employee IDs (including i192 and any format) to access the system
+      
+      // Auto-authenticate as admin role for everyone else if no password is required
+      const defaultRole: UserRole = 'admin';
+      const config = AUTH_CONFIG.roles[defaultRole];
+
+      if (config) {
+        localStorage.setItem(AUTH_CONFIG.storageKeys.auth, 'true');
+        localStorage.setItem(AUTH_CONFIG.storageKeys.timestamp, Date.now().toString());
+        localStorage.setItem(AUTH_CONFIG.storageKeys.role, defaultRole);
+
+        setIsAuthenticated(true);
+        setUserRole(defaultRole);
+        setRoleConfig(config);
+      }
 
       const employeeInfo: Employee = {
         code: empId,
