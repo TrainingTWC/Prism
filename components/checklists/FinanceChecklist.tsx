@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { buildFinancePDF } from '../../src/utils/financeReport';
+import { buildFinancePDF } from '@/src/utils/financeReport';
 
 // Google Sheets endpoint for Finance Audit (QA Pattern)
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzfP0OjIe2-XQut_0DgOFpkAvqkMi0RU6U3HLtDGBpNXeVTnLjHUtzNhlZtonXhy1H0/exec';

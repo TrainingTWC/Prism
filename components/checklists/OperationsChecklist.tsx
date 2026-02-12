@@ -4,8 +4,7 @@ import { AREA_MANAGERS as DEFAULT_AREA_MANAGERS, HR_PERSONNEL as DEFAULT_HR_PERS
 import { Store } from '../../types';
 import { hapticFeedback } from '../../utils/haptics';
 import { useComprehensiveMapping } from '../../hooks/useComprehensiveMapping';
-import { buildOperationsPDF } from '../../utils/operationsReport';
-import { normalizeId } from '../../utils/idNormalization';
+import buildOperationsPDF from '@/src/utils/operationsReport';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
 

@@ -128,7 +128,12 @@ function computeOverall(submission: any): { total: number; max: number; pct: num
   return { total, max, pct };
 }
 
-export const buildOperationsPDF = async (submissions: AMOperationsSubmission[], metadata: any = {}, options: ReportOptions = {}) => {
+export const buildOperationsPDF = async (
+  submissions: AMOperationsSubmission[], 
+  metadata: any = {}, 
+  options: ReportOptions = {},
+  questionImages: Record<string, string[]> = {}
+) => {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   let y = 15;
   const first = submissions[0] || {} as any;
@@ -324,6 +329,42 @@ export const buildOperationsPDF = async (submissions: AMOperationsSubmission[], 
       margin: { left: 14, right: 14 }
     });
     y = (doc as any).lastAutoTable.finalY + 8;
+    
+    // Check for section images
+    const images = questionImages[secKey] || [];
+    if (images.length > 0) {
+      if (y > 230) { doc.addPage(); y = 15; }
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(51, 65, 85);
+      doc.text('Section Images:', 14, y);
+      y += 5;
+      
+      const imgWidth = 40;
+      const imgHeight = 30;
+      const spacing = 5;
+      let currentX = 14;
+      
+      images.forEach((img, idx) => {
+        if (currentX + imgWidth > 190) {
+          currentX = 14;
+          y += imgHeight + spacing;
+        }
+        if (y + imgHeight > 280) {
+          doc.addPage();
+          y = 15;
+          currentX = 14;
+        }
+        try {
+          doc.addImage(img, 'JPEG', currentX, y, imgWidth, imgHeight);
+          currentX += imgWidth + spacing;
+        } catch (e) {
+          console.warn('Could not add image to operations report', e);
+        }
+      });
+      y += imgHeight + 10;
+    }
     
     // Check for section remarks
     const remarksKey = `${secKey.toLowerCase()}_remarks`;

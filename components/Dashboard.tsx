@@ -4,7 +4,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { buildTrainingPDF } from '../src/utils/trainingReport';
-import { buildOperationsPDF } from '../src/utils/operationsReport';
+import buildOperationsPDF from '@/src/utils/operationsReport';
 import { buildQAPDF } from '../src/utils/qaReport';
 import { buildHRPDF } from '../src/utils/hrReport';
 import { buildSHLPPDF } from '../src/utils/shlpReport';
