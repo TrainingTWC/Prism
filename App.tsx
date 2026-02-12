@@ -204,8 +204,8 @@ const AppContent: React.FC = () => {
   const { userRole: authUserRole, hasPermission } = useAuth();
   const isEditor = authUserRole === 'editor';
   
-  // Add Bench Planning Dashboard tab for editor, training (traininghub), and hr (hrconnect) roles
-  const hasBenchPlanningDashboardAccess = authUserRole === 'editor' || authUserRole === 'training' || authUserRole === 'hr';
+  // Add Bench Planning Dashboard tab for authorized roles
+  const hasBenchPlanningDashboardAccess = authUserRole === 'editor' || authUserRole === 'training' || authUserRole === 'hr' || authUserRole === 'operations' || authUserRole === 'admin';
   if (hasBenchPlanningDashboardAccess) {
     tabs.push({ id: 'bench-planning-dashboard', label: 'Bench Planning Dashboard', icon: Users });
     tabs.push({ id: 'bench-planning-sm-asm-dashboard', label: 'SM-ASM Bench Planning', icon: Users });
