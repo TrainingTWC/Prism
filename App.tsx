@@ -4,8 +4,6 @@ import { BarChart3, Brain, CheckSquare, HelpCircle, Users, LogOut } from 'lucide
 import Dashboard from './components/Dashboard';
 import AIInsights from './components/AIInsights';
 import ChecklistsAndSurveys from './components/ChecklistsAndSurveys';
-import BenchPlanningDashboard from './components/BenchPlanningDashboard';
-import BenchPlanningSMASMDashboard from './components/BenchPlanningSMASMDashboard';
 import Header from './components/Header';
 import Login from './components/Login';
 import AccessDenied from './components/AccessDenied';
@@ -17,15 +15,22 @@ import AdminConfig from './components/AdminConfig';
 import { startPreload } from './services/preloadService';
 
 const AppContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'ai-insights' | 'checklists' | 'admin' | 'bench-planning-dashboard' | 'bench-planning-sm-asm-dashboard'>('dashboard');
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userId, setUserId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [accessDenied, setAccessDenied] = useState<boolean>(false);
   const [empIdChecked, setEmpIdChecked] = useState<boolean>(false);
-  const [benchPlanningView, setBenchPlanningView] = useState<'checklist' | 'dashboard'>('checklist');
-  const [benchPlanningSMASMView, setBenchPlanningSMASMView] = useState<'checklist' | 'dashboard'>('checklist');
-  const { isAuthenticated, isLoading: authLoading, loginWithEmpId, isEmployeeValidated, employeeData } = useAuth();
+  const { 
+    isAuthenticated, 
+    userRole: authUserRole, 
+    isLoading: authLoading, 
+    loginWithEmpId, 
+    isEmployeeValidated, 
+    employeeData,
+    hasPermission,
+    hasDashboardAccess
+  } = useAuth();
 
   // Start background preload on app mount (before authentication)
   useEffect(() => {
@@ -41,12 +46,24 @@ const AppContent: React.FC = () => {
 
       try {
         const role = getUserRole(code);
-        // Default to admin role if no specific mapping found, to ensure universal access
+        
+        // Map the authRole (from password) to a data filtering role if no specific mapping exists
+        let mappedDataRole = 'admin'; // Fallback
+        
+        if (authUserRole === 'operations') mappedDataRole = 'area_manager';
+        else if (authUserRole === 'hr') mappedDataRole = 'hrbp';
+        else if (authUserRole === 'qa') mappedDataRole = 'admin';
+        else if (authUserRole === 'training') mappedDataRole = 'trainer';
+        else if (authUserRole === 'finance') mappedDataRole = 'admin';
+        else if (authUserRole === 'store') mappedDataRole = 'store';
+        else if (authUserRole === 'campus-hiring') mappedDataRole = 'campus-hiring';
+        else if (authUserRole === 'admin' || authUserRole === 'editor') mappedDataRole = 'admin';
+
         setUserRole(role || { 
           userId: code, 
           name: employeeData?.name || code, 
-          role: 'admin', 
-          allowedStores: [], 
+          role: mappedDataRole as any, 
+          allowedStores: [], // Empty means see all stores for that role type
           allowedAMs: [], 
           allowedHRs: [] 
         } as UserRole);
@@ -62,7 +79,7 @@ const AppContent: React.FC = () => {
         } as UserRole);
       }
     }
-  }, [isAuthenticated, employeeData, userId, userRole]);
+  }, [isAuthenticated, employeeData, userId, userRole, authUserRole]);
 
   // Check URL for EMPID - ONCE on mount
   useEffect(() => {
@@ -146,6 +163,13 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
+  // Set default tab if current one is not allowed - MUST be before any conditional returns
+  useEffect(() => {
+    if (isAuthenticated && !hasPermission('dashboard') && activeTab === 'dashboard') {
+      setActiveTab('checklists');
+    }
+  }, [isAuthenticated, activeTab, hasPermission]);
+
   // Show loading while checking authentication
   if (authLoading || loading) {
     return (
@@ -194,249 +218,17 @@ const AppContent: React.FC = () => {
     );
   }
 
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    // { id: 'ai-insights', label: 'AI Insights', icon: Brain }, // Hidden per user request
-    { id: 'checklists', label: 'Checklists & Surveys', icon: CheckSquare }
-  ];
-
-  // Get auth role once
-  const { userRole: authUserRole, hasPermission } = useAuth();
-  const isEditor = authUserRole === 'editor';
+  const isEditor = authUserRole === 'editor' || authUserRole === 'admin';
   
-  // Add Bench Planning Dashboard tab for authorized roles
-  const hasBenchPlanningDashboardAccess = authUserRole === 'editor' || authUserRole === 'training' || authUserRole === 'hr' || authUserRole === 'operations' || authUserRole === 'admin';
-  if (hasBenchPlanningDashboardAccess) {
-    tabs.push({ id: 'bench-planning-dashboard', label: 'Bench Planning Dashboard', icon: Users });
-    tabs.push({ id: 'bench-planning-sm-asm-dashboard', label: 'SM-ASM Bench Planning', icon: Users });
+  const tabs = [];
+  if (hasPermission('dashboard')) {
+    tabs.push({ id: 'dashboard', label: 'Dashboard', icon: BarChart3 });
   }
+  
+  tabs.push({ id: 'checklists', label: 'Checklists & Surveys', icon: CheckSquare });
   
   if (isEditor) {
     tabs.push({ id: 'admin', label: 'Admin', icon: HelpCircle });
-  }
-
-  // If user has brew-league role, only show the brew league section
-  if (authUserRole === 'brew-league') {
-    const brewLeagueRole = {
-      userId: 'brew-league',
-      name: 'Brew League Access',
-      role: 'brew-league' as const,
-      allowedStores: [],
-      allowedAMs: [],
-      allowedHRs: []
-    };
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
-        <Header />
-        <main className="p-2 sm:p-4 lg:p-8">
-          <ChecklistsAndSurveys userRole={brewLeagueRole} />
-        </main>
-      </div>
-    );
-  }
-
-  // If user has forms role, only show the forms section
-  if (authUserRole === 'forms') {
-    const formsRole = {
-      userId: 'forms',
-      name: 'Forms Access',
-      role: 'forms' as const,
-      allowedStores: [],
-      allowedAMs: [],
-      allowedHRs: []
-    };
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
-        <Header />
-        <main className="p-2 sm:p-4 lg:p-8">
-          <ChecklistsAndSurveys userRole={formsRole} />
-        </main>
-      </div>
-    );
-  }
-
-  // If user has campus-hiring role, only show the campus hiring checklist
-  if (authUserRole === 'campus-hiring') {
-    const campusHiringRole = {
-      userId: 'campus-hiring',
-      name: 'Campus Hiring Access',
-      role: 'campus-hiring' as const,
-      allowedStores: [],
-      allowedAMs: [],
-      allowedHRs: []
-    };
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
-        <Header />
-        <main className="p-2 sm:p-4 lg:p-8">
-          <ChecklistsAndSurveys userRole={campusHiringRole} />
-        </main>
-      </div>
-    );
-  }
-
-  // If user has shlp role, only show the SHLP checklist
-  if (authUserRole === 'shlp') {
-    const shlpRole = {
-      userId: 'shlp',
-      name: 'SHLP Access',
-      role: 'shlp' as const,
-      allowedStores: [],
-      allowedAMs: [],
-      allowedHRs: []
-    };
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
-        <Header />
-        <main className="p-2 sm:p-4 lg:p-8">
-          <ChecklistsAndSurveys userRole={shlpRole} />
-        </main>
-      </div>
-    );
-  }
-
-  // If user has bench-planning role, only show the bench planning module
-  if (authUserRole === 'bench-planning') {
-    const benchPlanningRole = {
-      userId: 'bench-planning',
-      name: 'Bench Planning Access',
-      role: 'bench-planning' as const,
-      allowedStores: [],
-      allowedAMs: [],
-      allowedHRs: []
-    };
-    
-    const { logout } = useAuth();
-    
-    const handleExit = () => {
-      logout();
-      window.location.href = '/Prism/';
-    };
-    
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
-        <Header />
-        
-        {/* View Switcher */}
-        <nav className="px-2 sm:px-4 lg:px-8 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-          <div className="flex justify-between items-center">
-            <div className="flex space-x-4 sm:space-x-8">
-              <button
-                onClick={() => setBenchPlanningView('checklist')}
-                className={`flex items-center gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 ${
-                  benchPlanningView === 'checklist'
-                    ? 'border-violet-500 text-violet-600 dark:text-violet-400'
-                    : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
-                }`}
-              >
-                <CheckSquare className="w-4 h-4" />
-                Bench Planning Module
-              </button>
-              <button
-                onClick={() => setBenchPlanningView('dashboard')}
-                className={`flex items-center gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 ${
-                  benchPlanningView === 'dashboard'
-                    ? 'border-violet-500 text-violet-600 dark:text-violet-400'
-                    : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
-                }`}
-              >
-                <BarChart3 className="w-4 h-4" />
-                Dashboard
-              </button>
-            </div>
-            
-            {/* Exit Button */}
-            <button
-              onClick={handleExit}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Exit
-            </button>
-          </div>
-        </nav>
-        
-        <main className="p-2 sm:p-4 lg:p-8">
-          {benchPlanningView === 'checklist' ? (
-            <ChecklistsAndSurveys userRole={benchPlanningRole} />
-          ) : (
-            <BenchPlanningDashboard userRole={benchPlanningRole} />
-          )}
-        </main>
-      </div>
-    );
-  }
-
-  // If user has bench-planning-sm-asm role, only show the SM-ASM bench planning module
-  if (authUserRole === 'bench-planning-sm-asm') {
-    const benchPlanningSMASMRole = {
-      userId: 'bench-planning-sm-asm',
-      name: 'SM-ASM Bench Planning Access',
-      role: 'bench-planning-sm-asm' as const,
-      allowedStores: [],
-      allowedAMs: [],
-      allowedHRs: []
-    };
-    
-    const { logout } = useAuth();
-    
-    const handleExitSMASM = () => {
-      logout();
-      window.location.href = '/Prism/';
-    };
-    
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
-        <Header />
-        
-        {/* View Switcher */}
-        <nav className="px-2 sm:px-4 lg:px-8 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-          <div className="flex justify-between items-center">
-            <div className="flex space-x-4 sm:space-x-8">
-              <button
-                onClick={() => setBenchPlanningSMASMView('checklist')}
-                className={`flex items-center gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 ${
-                  benchPlanningSMASMView === 'checklist'
-                    ? 'border-violet-500 text-violet-600 dark:text-violet-400'
-                    : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
-                }`}
-              >
-                <CheckSquare className="w-4 h-4" />
-                SM-ASM Module
-              </button>
-              <button
-                onClick={() => setBenchPlanningSMASMView('dashboard')}
-                className={`flex items-center gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 ${
-                  benchPlanningSMASMView === 'dashboard'
-                    ? 'border-violet-500 text-violet-600 dark:text-violet-400'
-                    : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
-                }`}
-              >
-                <BarChart3 className="w-4 h-4" />
-                Dashboard
-              </button>
-            </div>
-            
-            {/* Exit Button */}
-            <button
-              onClick={handleExitSMASM}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Exit
-            </button>
-          </div>
-        </nav>
-        
-        <main className="p-2 sm:p-4 lg:p-8">
-          {benchPlanningSMASMView === 'checklist' ? (
-            <ChecklistsAndSurveys userRole={benchPlanningSMASMRole} />
-          ) : (
-            <BenchPlanningSMASMDashboard userRole={benchPlanningSMASMRole} />
-          )}
-        </main>
-      </div>
-    );
   }
 
   // For all other roles, show the normal interface
@@ -452,7 +244,7 @@ const AppContent: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as 'dashboard' | 'ai-insights' | 'checklists' | 'admin' | 'bench-planning-dashboard')}
+                onClick={() => setActiveTab(tab.id as any)}
                 className={`flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 outline-none ${
                   activeTab === tab.id
                     ? 'border-sky-400 text-sky-400'
@@ -469,12 +261,10 @@ const AppContent: React.FC = () => {
       </nav>
 
       <main className="p-2 sm:p-4 lg:p-8">
-        {activeTab === 'dashboard' && <Dashboard userRole={userRole} />}
-        {activeTab === 'ai-insights' && <AIInsights userRole={userRole} />}
+        {activeTab === 'dashboard' && hasPermission('dashboard') && <Dashboard userRole={userRole} />}
+        {activeTab === 'ai-insights' && hasPermission('dashboard') && <AIInsights userRole={userRole} />}
         {activeTab === 'checklists' && <ChecklistsAndSurveys userRole={userRole} />}
-        {activeTab === 'bench-planning-dashboard' && <BenchPlanningDashboard userRole={userRole} />}
-        {activeTab === 'bench-planning-sm-asm-dashboard' && <BenchPlanningSMASMDashboard userRole={userRole} />}
-        {activeTab === 'admin' && <AdminConfig />}
+        {activeTab === 'admin' && isEditor && <AdminConfig />}
       </main>
     </div>
   );

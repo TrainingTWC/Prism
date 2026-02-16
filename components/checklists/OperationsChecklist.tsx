@@ -1037,7 +1037,7 @@ const OperationsChecklist: React.FC<OperationsChecklistProps> = ({ userRole, onS
       });
     });
 
-    const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+    const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
     return { score, maxScore, percentage };
   };
 

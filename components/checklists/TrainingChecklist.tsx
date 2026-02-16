@@ -2377,7 +2377,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                         if (response === 'yes') correct++;
                       }
                     });
-                    return total > 0 ? ((correct / total) * 100).toFixed(1) : '0';
+                    return total > 0 ? Math.round((correct / total) * 100).toString() : '0';
                   };
 
                   return (
@@ -2660,7 +2660,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                         if (response === 'yes') correct++;
                       }
                     });
-                    return total > 0 ? ((correct / total) * 100).toFixed(1) : '0';
+                    return total > 0 ? Math.round((correct / total) * 100).toString() : '0';
                   };
 
                   return (
@@ -2941,7 +2941,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                         if (response === 'yes') correct++;
                       }
                     });
-                    return total > 0 ? ((correct / total) * 100).toFixed(1) : '0';
+                    return total > 0 ? Math.round((correct / total) * 100).toString() : '0';
                   };
 
                   return (

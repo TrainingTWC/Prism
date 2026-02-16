@@ -54,30 +54,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
   const auditorName = urlParams.get('auditorName') || urlParams.get('name') || urlParams.get('hrName') || 'Unknown Auditor';
   const auditorId = urlParams.get('auditorId') || urlParams.get('id') || urlParams.get('hrId') || 'unknown';
 
-  // Auto-open campus hiring checklist for campus-hiring role users
-  useEffect(() => {
-    if (authUserRole === 'campus-hiring' && !activeChecklist) {
-      setActiveChecklist('campus-hiring');
-    }
-  }, [authUserRole, activeChecklist]);
-
-  // Auto-open bench planning for bench-planning role users
-  useEffect(() => {
-    if (authUserRole === 'bench-planning' && !activeChecklist) {
-      setActiveChecklist('bench-planning');
-      // Don't auto-set subsection - let user choose between barista-sm and sm-asm
-    }
-  }, [authUserRole, activeChecklist]);
-
-  // Auto-open brew league for brew-league role users
-  useEffect(() => {
-    if (authUserRole === 'brew-league' && !activeChecklist) {
-      setActiveChecklist('brew-league');
-      // Don't auto-set subsection - let user choose between rounds and dashboard
-    }
-  }, [authUserRole, activeChecklist]);
-
-  // Remove the bench-planning-sm-asm auto-open effect since we no longer have that separate role
+  // No auto-open effects for streamlined roles - let user choose from overview
 
   // Filter checklists based on user permissions
   const getAvailableChecklists = () => {
@@ -408,65 +385,45 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
           <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 py-3 sm:px-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                {/* Show PRISM branding for brew-league role */}
-                {authUserRole === 'brew-league' && (
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src={`${(import.meta as any).env?.BASE_URL || '/'}prism-logo-kittl.svg`}
-                      alt="Prism Logo"
-                      className="w-8 h-8 object-contain align-middle"
-                    />
-                    <h1 className="text-xl sm:text-2xl font-black uppercase tracking-wide bg-gradient-to-r from-purple-600 via-blue-500 to-cyan-400 dark:from-purple-400 dark:via-blue-300 dark:to-cyan-300 bg-clip-text text-transparent">
-                      PRISM
-                    </h1>
-                  </div>
-                )}
-                
-                {/* Hide back button for campus-hiring, bench-planning, bench-planning-sm-asm, and brew-league roles */}
-                {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && authUserRole !== 'bench-planning-sm-asm' && authUserRole !== 'brew-league' && (
-                  <button
-                    onClick={benchPlanningSubSection ? handleBackToBenchPlanning : brewLeagueSubSection ? handleBackToBrewLeague : handleBackToOverview}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                    aria-label={benchPlanningSubSection ? "Back to Bench Planning" : brewLeagueSubSection ? "Back to Brew League" : "Back to checklists overview"}
-                  >
-                    <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-                  </button>
-                )}
+                {/* Back Button */}
+                <button
+                  onClick={benchPlanningSubSection ? handleBackToBenchPlanning : brewLeagueSubSection ? handleBackToBrewLeague : handleBackToOverview}
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                  aria-label={benchPlanningSubSection ? "Back to Bench Planning" : brewLeagueSubSection ? "Back to Brew League" : "Back to checklists overview"}
+                >
+                  <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+                </button>
                 
                 <nav className="flex items-center space-x-2 text-sm">
-                  {/* Hide breadcrumb for campus-hiring, bench-planning, bench-planning-sm-asm, and brew-league roles */}
-                  {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && authUserRole !== 'bench-planning-sm-asm' && authUserRole !== 'brew-league' && (
+                  {/* Breadcrumb */}
+                  <button
+                    onClick={handleBackToOverview}
+                    className="flex items-center space-x-1 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
+                  >
+                    <Home className="w-4 h-4" />
+                    <span>Checklists</span>
+                  </button>
+                  <span className="text-gray-400 dark:text-slate-500">/</span>
+                  {brewLeagueSubSection && (
                     <>
                       <button
-                        onClick={handleBackToOverview}
-                        className="flex items-center space-x-1 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
+                        onClick={handleBackToBrewLeague}
+                        className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
                       >
-                        <Home className="w-4 h-4" />
-                        <span>Checklists</span>
+                        {getChecklistLabel(activeChecklist)}
                       </button>
                       <span className="text-gray-400 dark:text-slate-500">/</span>
-                      {brewLeagueSubSection && (
-                        <>
-                          <button
-                            onClick={handleBackToBrewLeague}
-                            className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
-                          >
-                            {getChecklistLabel(activeChecklist)}
-                          </button>
-                          <span className="text-gray-400 dark:text-slate-500">/</span>
-                        </>
-                      )}
-                      {benchPlanningSubSection && (
-                        <>
-                          <button
-                            onClick={handleBackToBenchPlanning}
-                            className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
-                          >
-                            {getChecklistLabel(activeChecklist)}
-                          </button>
-                          <span className="text-gray-400 dark:text-slate-500">/</span>
-                        </>
-                      )}
+                    </>
+                  )}
+                  {benchPlanningSubSection && (
+                    <>
+                      <button
+                        onClick={handleBackToBenchPlanning}
+                        className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
+                      >
+                        {getChecklistLabel(activeChecklist)}
+                      </button>
+                      <span className="text-gray-400 dark:text-slate-500">/</span>
                     </>
                   )}
                   <span className="text-gray-900 dark:text-slate-100 font-medium">
@@ -484,30 +441,25 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                 </nav>
               </div>
               
-              {/* Show theme toggle and logout for brew-league role */}
-              {authUserRole === 'brew-league' && (
-                <div className="flex items-center gap-3">
-                  <ThemeToggle />
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Are you sure you want to sign out?')) {
-                        logout();
-                      }
-                    }}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                    aria-label="Sign out"
-                  >
-                    <LogOut className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-3">
+                <ThemeToggle />
+                <button
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to sign out?')) {
+                      logout();
+                    }
+                  }}
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                  aria-label="Sign out"
+                >
+                  <LogOut className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+                </button>
+              </div>
               
-              {/* Hide completion stats for campus-hiring, bench-planning, bench-planning-sm-asm, and brew-league roles */}
-              {authUserRole !== 'campus-hiring' && authUserRole !== 'bench-planning' && authUserRole !== 'bench-planning-sm-asm' && authUserRole !== 'brew-league' && (
-                <div className="text-sm text-gray-500 dark:text-slate-400">
-                  {checklistStats[activeChecklist]?.completed || 0}/{checklistStats[activeChecklist]?.total || 0} completed
-                </div>
-              )}
+              {/* Checklist Stats */}
+              <div className="text-sm text-gray-500 dark:text-slate-400">
+                {checklistStats[activeChecklist]?.completed || 0}/{checklistStats[activeChecklist]?.total || 0} completed
+              </div>
             </div>
           </div>
 
@@ -578,7 +530,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-600 dark:text-slate-400">Score</span>
                             <span className={`font-medium ${getScoreColor(stats.score)}`}>
-                              {stats.score.toFixed(1)}%
+                              {Math.round(stats.score)}%
                             </span>
                           </div>
                         </>

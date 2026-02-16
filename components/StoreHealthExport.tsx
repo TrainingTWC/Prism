@@ -137,7 +137,7 @@ const StoreHealthExport: React.FC<StoreHealthExportProps> = () => {
         store.region,
         store.amName,
         store.trainerName,
-        auditScore.toFixed(1) + '%',
+        Math.round(auditScore) + '%',
         health,
         lastAudit
       ];

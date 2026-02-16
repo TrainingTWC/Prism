@@ -19,6 +19,9 @@ const QA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwGIDlsSGyRhR40G0zL
 // Finance Audit endpoint - UPDATED URL (Data fetched from Google Sheets)
 const FINANCE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzfP0OjIe2-XQut_0DgOFpkAvqkMi0RU6U3HLtDGBpNXeVTnLjHUtzNhlZtonXhy1H0/exec';
 
+// Finance Historic Data endpoint - NEW (Replace with your deployed Apps Script URL)
+const FINANCE_HISTORIC_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzKy5OVsh6pjLqbHjLAcHu2FpDay3CaZFI2tjJiIus1XmgOjsvo2QQu86kDjfye9T74/exec';
+
 // Campus Hiring endpoint - UPDATED URL
 const CAMPUS_HIRING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbPYyW_kPmdL5Fnq1AUyhgLyvYmInBj9EzQSrmdFdqO4FJe2O8_flX6rxNaZNaVhjs_Q/exec';
 
@@ -1590,6 +1593,136 @@ export const fetchCampusHiringData = async (): Promise<CampusHiringSubmission[]>
     return processedData;
 
   } catch (error) {
+    return [];
+  }
+};
+
+// Interface for Finance Historic Data
+export interface FinanceHistoricData {
+  storeId: string;
+  auditDate: string;
+  region: string;
+  percentage: number;
+}
+
+// Fetch Finance Historic Data
+export const fetchFinanceHistoricData = async (): Promise<FinanceHistoricData[]> => {
+  try {
+    // Return empty array if endpoint not configured
+    if (!FINANCE_HISTORIC_ENDPOINT || FINANCE_HISTORIC_ENDPOINT === 'YOUR_HISTORIC_ENDPOINT_URL_HERE') {
+      console.warn('Finance Historic endpoint not configured');
+      return [];
+    }
+
+    let response;
+    let data;
+
+    try {
+      const directUrl = FINANCE_HISTORIC_ENDPOINT + '?action=getHistoricData';
+
+      response = await fetch(directUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        redirect: 'follow',
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        data = result.data || [];
+      } else {
+        throw new Error(`Direct request failed: ${response.status}`);
+      }
+    } catch (directError) {
+      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+      const targetUrl = FINANCE_HISTORIC_ENDPOINT + '?action=getHistoricData';
+
+      response = await fetch(proxyUrl + targetUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        redirect: 'follow',
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        data = result.data || [];
+      } else {
+        throw new Error(`CORS proxy request failed: ${response.status}`);
+      }
+    }
+
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
+
+    return data;
+
+  } catch (error) {
+    console.error('Error fetching finance historic data:', error);
+    return [];
+  }
+};
+
+// Fetch Finance Historic Data for a specific store
+export const fetchFinanceHistoricDataForStore = async (storeId: string): Promise<FinanceHistoricData[]> => {
+  try {
+    // Return empty array if endpoint not configured
+    if (!FINANCE_HISTORIC_ENDPOINT || FINANCE_HISTORIC_ENDPOINT === 'YOUR_HISTORIC_ENDPOINT_URL_HERE') {
+      console.warn('Finance Historic endpoint not configured');
+      return [];
+    }
+
+    let response;
+    let data;
+
+    try {
+      const directUrl = `${FINANCE_HISTORIC_ENDPOINT}?action=getHistoricDataForStore&storeId=${encodeURIComponent(storeId)}`;
+
+      response = await fetch(directUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        redirect: 'follow',
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        data = result.data || [];
+      } else {
+        throw new Error(`Direct request failed: ${response.status}`);
+      }
+    } catch (directError) {
+      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+      const targetUrl = `${FINANCE_HISTORIC_ENDPOINT}?action=getHistoricDataForStore&storeId=${encodeURIComponent(storeId)}`;
+
+      response = await fetch(proxyUrl + targetUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        redirect: 'follow',
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        data = result.data || [];
+      } else {
+        throw new Error(`CORS proxy request failed: ${response.status}`);
+      }
+    }
+
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
+
+    return data;
+
+  } catch (error) {
+    console.error('Error fetching finance historic data for store:', error);
     return [];
   }
 };

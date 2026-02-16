@@ -12,7 +12,7 @@ import { buildFinancePDF } from '../src/utils/financeReport';
 import { Users, Clipboard, GraduationCap, BarChart3, Brain, Calendar, CheckCircle, TrendingUp, Target } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Submission, Store } from '../types';
-import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission } from '../services/dataService';
+import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, fetchFinanceHistoricData, FinanceHistoricData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission } from '../services/dataService';
 import { fetchSHLPData, SHLPSubmission } from '../services/shlpDataService';
 import { hapticFeedback } from '../utils/haptics';
 import { loadComprehensiveMapping } from '../utils/mappingUtils';
@@ -74,6 +74,8 @@ import QAAverageScoreChart from './QAAverageScoreChart';
 import QAEditModal from './QAEditModal';
 import CampusHiringStats from './CampusHiringStats';
 import TrainerCalendarDashboard from './TrainerCalendarDashboard';
+import BenchPlanningDashboard from './BenchPlanningDashboard';
+import BenchPlanningSMASMDashboard from './BenchPlanningSMASMDashboard';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../roleMapping';
 import { useAuth } from '../contexts/AuthContext';
 import { useEmployeeDirectory } from '../hooks/useEmployeeDirectory';
@@ -101,6 +103,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const [trainingData, setTrainingData] = useState<TrainingAuditSubmission[]>([]);
   const [qaData, setQAData] = useState<QASubmission[]>([]);
   const [financeData, setFinanceData] = useState<FinanceSubmission[]>([]);
+  const [financeHistoricData, setFinanceHistoricData] = useState<FinanceHistoricData[]>([]);
   const [campusHiringData, setCampusHiringData] = useState<CampusHiringSubmission[]>([]);
   const [shlpData, setSHLPData] = useState<SHLPSubmission[]>([]);
   const [expandedFinanceRow, setExpandedFinanceRow] = useState<number | null>(null);
@@ -681,6 +684,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             setDataLoadedFlags(prev => ({ ...prev, finance: true }));
           }).catch(err => {
             console.error('❌ Failed to load Finance data:', err);
+          })
+        );
+        
+        // Also load historic data for finance dashboard
+        loadPromises.push(
+          fetchFinanceHistoricData().then(data => {
+            setFinanceHistoricData(data);
+          }).catch(err => {
+            console.error('❌ Failed to load Finance historic data:', err);
           })
         );
       }
@@ -1540,7 +1552,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
       return {
         totalSubmissions,
-        avgScore: Math.round(avgScore * 100) / 100,
+        avgScore: Math.round(avgScore),
         uniqueAuditors,
         uniqueStores
       };
@@ -1559,7 +1571,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
       return {
         totalSubmissions,
-        avgScore: Math.round(avgScore * 100) / 100,
+        avgScore: Math.round(avgScore),
         uniqueAuditors,
         uniqueStores
       };
@@ -1578,7 +1590,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
       return {
         totalSubmissions,
-        avgScore: Math.round(avgScore * 100) / 100,
+        avgScore: Math.round(avgScore),
         uniqueTrainers,
         uniqueStores
       };
@@ -2774,7 +2786,27 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
         console.log('📝 Building Finance PDF with submission data:', firstRecord);
 
-        const pdf = await buildFinancePDF(reportData as any, meta, { title: 'Financial Controls Assessment' }, questionImages);
+        // Get historic data for the store (if store filter is applied)
+        let storeHistoricData: FinanceHistoricData[] = [];
+        if (meta.storeId && financeHistoricData.length > 0) {
+          storeHistoricData = financeHistoricData.filter(
+            h => h.storeId.toUpperCase() === meta.storeId.toUpperCase()
+          ).sort((a, b) => {
+            // Sort by date ascending (oldest first)
+            const dateA = new Date(a.auditDate);
+            const dateB = new Date(b.auditDate);
+            return dateA.getTime() - dateB.getTime();
+          });
+          console.log('📊 Including historic data for store:', meta.storeId, '- Records:', storeHistoricData.length);
+        }
+
+        const pdf = await buildFinancePDF(
+          reportData as any, 
+          meta, 
+          { title: 'Financial Controls Assessment' }, 
+          questionImages, 
+          storeHistoricData
+        );
         pdf.save(fileName);
         setIsGenerating(false);
         showNotificationMessage('Finance Audit PDF generated successfully!', 'success');
@@ -3909,7 +3941,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             'Trainer Name': auditData.trainerName,
             'Health Status': auditData.healthStatus,
             'Last Audit Month': auditData.lastAuditMonth,
-            'Audit Percentage': `${auditData.auditPercentage.toFixed(1)}%`
+            'Audit Percentage': `${Math.round(auditData.auditPercentage)}%`
           };
         } else {
           // Store has no audit data
@@ -4034,7 +4066,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         </div>
 
         <div className="text-center text-sm text-gray-500 dark:text-slate-400 mt-4">
-          Loading {dashboardType === 'training' ? 'training' : dashboardType === 'operations' ? 'operations' : dashboardType === 'qa' ? 'QA' : dashboardType === 'hr' ? 'HR' : dashboardType === 'shlp' ? 'SHLP' : dashboardType === 'campus-hiring' ? 'Campus Hiring' : ''} dashboard data...
+          Loading {dashboardType === 'training' ? 'training' : dashboardType === 'operations' ? 'operations' : dashboardType === 'qa' ? 'QA' : dashboardType === 'hr' ? 'HR' : dashboardType === 'shlp' ? 'SHLP' : dashboardType === 'campus-hiring' ? 'Campus Hiring' : dashboardType === 'bench-planning' || dashboardType === 'bench-planning-sm-asm' ? 'Bench Planning' : ''} dashboard data...
         </div>
       </div>
     );
@@ -4291,6 +4323,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                   case 'shlp': return dashboardType === 'shlp' ? 'bg-emerald-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'campus-hiring': return dashboardType === 'campus-hiring' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'trainer-calendar': return dashboardType === 'trainer-calendar' ? 'bg-purple-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'bench-planning': return dashboardType === 'bench-planning' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'bench-planning-sm-asm': return dashboardType === 'bench-planning-sm-asm' ? 'bg-amber-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'consolidated': return dashboardType === 'consolidated' ? 'bg-slate-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   default: return 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                 }
@@ -4318,6 +4352,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             {dashboardType === 'shlp' && 'View Store-level Hourly Leadership Performance Certification Results'}
             {dashboardType === 'campus-hiring' && 'View Campus Hiring Psychometric Assessment Results'}
             {dashboardType === 'trainer-calendar' && 'View and manage trainer schedules and calendar events'}
+            {dashboardType === 'bench-planning' && 'View Bench Planning progress for Barista to SM promotion track'}
+            {dashboardType === 'bench-planning-sm-asm' && 'View Bench Planning progress for SM to ASM promotion track'}
             {dashboardType === 'consolidated' && 'View combined insights from all authorized checklist types'}
           </p>
         </div>
@@ -4373,6 +4409,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             <p className="text-gray-600 dark:text-slate-400">No psychometric assessment submissions found. Candidates can submit assessments through the Campus Hiring form.</p>
           </div>
         )
+      ) : dashboardType === 'bench-planning' ? (
+        // Bench Planning Dashboard (Barista to SM)
+        <BenchPlanningDashboard userRole={userRole} />
+      ) : dashboardType === 'bench-planning-sm-asm' ? (
+        // Bench Planning Dashboard (SM to ASM)
+        <BenchPlanningSMASMDashboard userRole={userRole} />
       ) : (
         (dashboardType === 'hr' && filteredSubmissions.length > 0) ||
         (dashboardType === 'operations' && filteredAMOperations.length > 0) ||
@@ -6386,6 +6428,116 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               {/* Finance Dashboard Content */}
               {dashboardType === 'finance' && (
                 <>
+                  {/* Historic Trend Chart - Only show if store filter is applied and historic data exists */}
+                  {filters.store && financeHistoricData.length > 0 && (() => {
+                    const storeHistoric = financeHistoricData.filter(
+                      h => h.storeId.toUpperCase() === filters.store.toUpperCase()
+                    ).sort((a, b) => {
+                      const dateA = new Date(a.auditDate);
+                      const dateB = new Date(b.auditDate);
+                      return dateA.getTime() - dateB.getTime();
+                    });
+
+                    if (storeHistoric.length === 0) return null;
+
+                    // Prepare chart data
+                    const chartData = storeHistoric.map(h => ({
+                      date: h.auditDate.split('/').slice(0, 2).join('/'), // MM/DD format
+                      percentage: h.percentage,
+                      fullDate: h.auditDate
+                    }));
+
+                    // Add current audit if available
+                    const currentAudit = filteredFinanceData.find(
+                      f => f.storeId.toUpperCase() === filters.store.toUpperCase()
+                    );
+                    if (currentAudit) {
+                      const currentDate = new Date(currentAudit.submissionTime);
+                      chartData.push({
+                        date: `${currentDate.getMonth() + 1}/${currentDate.getDate()}`,
+                        percentage: parseFloat(currentAudit.scorePercentage || '0'),
+                        fullDate: currentAudit.submissionTime
+                      });
+                    }
+
+                    const avgHistoric = storeHistoric.reduce((sum, h) => sum + h.percentage, 0) / storeHistoric.length;
+                    const trend = storeHistoric.length >= 2 
+                      ? storeHistoric[storeHistoric.length - 1].percentage - storeHistoric[0].percentage
+                      : 0;
+
+                    return (
+                      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700 mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            Historic Performance Trend - {allStores.find(s => s.id === filters.store)?.name || filters.store}
+                          </h3>
+                          <div className="flex items-center space-x-4 text-sm">
+                            <div className="text-gray-600 dark:text-slate-400">
+                              Avg: <span className="font-semibold text-gray-900 dark:text-white">{avgHistoric.toFixed(1)}%</span>
+                            </div>
+                            <div className={`font-semibold ${trend >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                              {trend >= 0 ? '↑' : '↓'} {Math.abs(trend).toFixed(1)}%
+                            </div>
+                          </div>
+                        </div>
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                              <XAxis 
+                                dataKey="date" 
+                                stroke="#9ca3af" 
+                                tick={{ fill: '#6b7280', fontSize: 12 }}
+                              />
+                              <YAxis 
+                                stroke="#9ca3af"
+                                tick={{ fill: '#6b7280', fontSize: 12 }}
+                                domain={[0, 100]}
+                                label={{ value: 'Percentage (%)', angle: -90, position: 'insideLeft', fill: '#6b7280' }}
+                              />
+                              <Tooltip 
+                                content={({ active, payload }) => {
+                                  if (active && payload && payload.length) {
+                                    return (
+                                      <div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg">
+                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                          {payload[0].payload.fullDate}
+                                        </p>
+                                        <p className="text-sm text-gray-600 dark:text-slate-400">
+                                          Score: <span className="font-bold">{payload[0].value}%</span>
+                                        </p>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                }}
+                              />
+                              <Line 
+                                type="monotone" 
+                                dataKey="percentage" 
+                                stroke="#3b82f6" 
+                                strokeWidth={2}
+                                dot={{ fill: '#3b82f6', r: 4 }}
+                                activeDot={{ r: 6 }}
+                              />
+                              {/* Reference line at 80% (passing threshold) */}
+                              <Line 
+                                y={80} 
+                                stroke="#10b981" 
+                                strokeDasharray="5 5" 
+                                strokeWidth={1}
+                                dot={false}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="mt-4 text-xs text-gray-500 dark:text-slate-500 text-center">
+                          Green dashed line indicates passing threshold (80%)
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Finance Submissions List */}
                     <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">

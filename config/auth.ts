@@ -38,64 +38,49 @@ export interface AuthConfig {
 export const AUTH_CONFIG: AuthConfig = {
   // Role-based passwords and permissions
   roles: {
-    operations: {
-      password: 'OpsAccess2024!',
-      permissions: ['operations', 'shlp', 'bench-planning', 'bench-planning-sm-asm', 'brew-league', 'dashboard'],
-      dashboardAccess: ['operations-dashboard', 'operations-analytics', 'operations-reports', 'shlp-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
-    },
     hr: {
       password: 'HRConnect2024!',
-      permissions: ['hr', 'bench-planning', 'bench-planning-sm-asm', 'dashboard', 'employee-data'],
-      dashboardAccess: ['hr-dashboard', 'hr-analytics', 'employee-reports', 'training-audit', 'campus-hiring-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
-    },
-    qa: {
-      password: 'QualityCheck2024!',
-      permissions: ['qa', 'dashboard', 'quality-audits'],
-      dashboardAccess: ['qa-dashboard', 'quality-reports', 'audit-checklists']
+      permissions: ['hr', 'campus-hiring', 'bench-planning', 'dashboard'],
+      dashboardAccess: ['hr-dashboard', 'campus-hiring-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
     },
     training: {
       password: 'TrainingHub2024!',
-      permissions: ['training', 'shlp', 'bench-planning', 'bench-planning-sm-asm', 'brew-league', 'dashboard', 'learning-management'],
-      dashboardAccess: ['training-dashboard', 'training-reports', 'learning-analytics', 'training-audit', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'shlp-dashboard']
+      permissions: ['training', 'shlp', 'bench-planning', 'brew-league', 'dashboard'],
+      dashboardAccess: ['training-dashboard', 'shlp-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'trainer-calendar-dashboard']
     },
-    forms: {
-      password: 'MT2025!',
-      permissions: ['forms'],
-      dashboardAccess: ['forms-surveys'] // Only access to forms, no dashboard
+    qa: {
+      password: 'QualityCheck2024!',
+      permissions: ['qa', 'dashboard'],
+      dashboardAccess: ['qa-dashboard']
     },
     finance: {
       password: 'FinanceSecure2024!',
-      permissions: ['finance', 'dashboard', 'financial-reports'],
-      dashboardAccess: ['finance-dashboard', 'financial-analytics', 'budget-reports']
+      permissions: ['finance', 'dashboard'],
+      dashboardAccess: ['finance-dashboard']
+    },
+    operations: {
+      password: 'OpsAccess2024!',
+      permissions: ['operations', 'shlp', 'bench-planning', 'brew-league', 'dashboard'],
+      dashboardAccess: ['operations-dashboard', 'shlp-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
+    },
+    store: {
+      password: 'StoreAccess2025!',
+      permissions: ['shlp', 'brew-league', 'bench-planning'],
+      dashboardAccess: []
     },
     'campus-hiring': {
       password: 'CampusHire2024!',
       permissions: ['campus-hiring'],
-      dashboardAccess: [] // No dashboard access - checklist only
-    },
-    'bench-planning': {
-      password: 'BenchPlan2025!',
-      permissions: ['bench-planning', 'bench-planning-sm-asm'],
-      dashboardAccess: [] // No dashboard access - checklist only, role-based access within module
-    },
-    shlp: {
-      password: 'SHLP2025!',
-      permissions: ['shlp'],
-      dashboardAccess: [] // No dashboard access - checklist only
-    },
-    'brew-league': {
-      password: 'BrewLeague2025!',
-      permissions: ['brew-league'],
-      dashboardAccess: [] // No dashboard access - checklist only (has internal dashboard)
+      dashboardAccess: []
     },
     admin: {
       password: 'AdminView2024!',
-      permissions: ['operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'bench-planning', 'bench-planning-sm-asm', 'brew-league', 'dashboard'],
-      dashboardAccess: ['all', 'campus-hiring-dashboard']
+      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'dashboard'],
+      dashboardAccess: ['all', 'campus-hiring-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'trainer-calendar-dashboard']
     },
     editor: {
       password: 'Editornotcreator2025!',
-      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'campus-hiring', 'bench-planning', 'bench-planning-sm-asm', 'brew-league', 'dashboard'],
+      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'dashboard'],
       dashboardAccess: ['all', 'campus-hiring-dashboard', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
     }
   },

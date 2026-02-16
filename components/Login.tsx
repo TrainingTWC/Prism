@@ -32,6 +32,7 @@ const Login: React.FC = () => {
         qa: { permissions: ['QA Dashboard', 'Quality Reports', 'Audit Checklists'] },
         training: { permissions: ['Training Dashboard', 'Learning Analytics', 'Training Reports', 'Training Audit', 'Bench Planning'] },
         finance: { permissions: ['Finance Dashboard', 'Financial Analytics', 'Budget Reports'] },
+        store: { permissions: ['SHLP Checklist', 'Brew League', 'Bench Planning'] },
         forms: { permissions: ['Forms & Surveys'] },
         'campus-hiring': { permissions: ['Campus Hiring Checklist', 'Candidate Management'] },
         'bench-planning': { permissions: ['Bench Planning Checklist', 'Readiness Assessment', 'Candidate Interviews'] },

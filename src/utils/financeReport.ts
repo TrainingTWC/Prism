@@ -6,6 +6,13 @@ interface FinanceSubmission {
   [key: string]: any;
 }
 
+interface FinanceHistoricData {
+  storeId: string;
+  auditDate: string;
+  region: string;
+  percentage: number;
+}
+
 interface ReportOptions {
   title?: string;
   logoDataUrl?: string | null;
@@ -280,7 +287,8 @@ export const buildFinancePDF = async (
   submissions: FinanceSubmission[],
   metadata: any = {},
   options: ReportOptions = {},
-  questionImages: Record<string, string[]> = {}
+  questionImages: Record<string, string[]> = {},
+  historicData: FinanceHistoricData[] = []
 ) => {
   console.log('🖼️ Building Finance PDF with images:', Object.keys(questionImages).length, 'image sets');
   console.log('📸 Image keys:', Object.keys(questionImages));
@@ -373,67 +381,94 @@ export const buildFinancePDF = async (
   const max = totalFromSheet ? Number(sub.maxScore) : computed.max;
   const pct = max > 0 ? Math.round((total / max) * 100) : 0;
 
-  // Draw summary cards
-  const cardHeight = 42;
-  const leftX = 14;
-  const rightX = 110;
+  // Count passed items (Yes answers)
+  let passedItems = 0;
+  let totalItems = 0;
+  FINANCE_SECTIONS.forEach(section => {
+    section.questions.forEach(q => {
+      const questionKey = Object.keys(sub).find(k => k.startsWith(`${q.id}:`));
+      if (questionKey) {
+        totalItems++;
+        const answer = sub[questionKey];
+        if (answer && String(answer).toLowerCase() === 'yes') {
+          passedItems++;
+        }
+      }
+    });
+  });
 
-  // Left card: Overall Score
-  doc.setFillColor(240, 253, 244);
-  doc.setDrawColor(187, 247, 208);
-  doc.roundedRect(leftX, y, 90, cardHeight, 6, 6, 'FD');
-  doc.setFontSize(10);
-  doc.setTextColor(16, 185, 129);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Overall Score', leftX + 8, y + 10);
-  doc.setFontSize(20);
-  doc.setTextColor(17, 24, 39);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`${total} / ${max}`, leftX + 8, y + 30);
+  // Classification grade based on percentage
+  let classificationGrade = 'Non-Compliance';
+  let gradeColor: [number, number, number] = [239, 68, 68]; // Red
+  if (pct >= 80) {
+    classificationGrade = 'Satisfactory Compliance';
+    gradeColor = [16, 185, 129]; // Green
+  } else if (pct >= 60) {
+    classificationGrade = 'Partial Compliance';
+    gradeColor = [245, 158, 11]; // Amber
+  }
 
-  // Right card: Percentage with progress bar
-  doc.setFillColor(240, 253, 244);
-  doc.setDrawColor(187, 247, 208);
-  doc.roundedRect(rightX, y, 84, cardHeight, 6, 6, 'FD');
-  doc.setFontSize(10);
-  doc.setTextColor(16, 185, 129);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Percentage', rightX + 8, y + 10);
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
-  const pctColor = pct >= 80 ? [16, 185, 129] : pct >= 60 ? [245, 158, 11] : [239, 68, 68];
-  doc.setTextColor(pctColor[0], pctColor[1], pctColor[2]);
-  doc.text(`${pct}%`, rightX + 8, y + 30);
-  
-  // Draw progress bar
-  const barX = rightX + 8;
-  const barY = y + 34;
-  const barWidth = 84 - 16;
-  const barHeight = 4;
-  doc.setFillColor(226, 232, 240);
-  doc.roundedRect(barX, barY, barWidth, barHeight, 2, 2, 'F');
-  doc.setFillColor(pctColor[0], pctColor[1], pctColor[2]);
-  doc.roundedRect(barX, barY, Math.max(4, Math.min(barWidth, Math.round((pct / 100) * barWidth))), barHeight, 2, 2, 'F');
+  // Draw three summary cards in a row
+  const cardHeight = 32;
+  const cardWidth = 59;
+  const cardSpacing = 4;
+  const card1X = 14;
+  const card2X = card1X + cardWidth + cardSpacing;
+  const card3X = card2X + cardWidth + cardSpacing;
 
-  y += cardHeight + 12;
-
-  // Build sections with question details
-  const sections = buildSections(sub, questionImages);
-
-  // Section-wise Summary Table
+  // Card 1: Passed Items
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(card1X, y, cardWidth, cardHeight, 3, 3, 'FD');
+  doc.setFontSize(8);
+  doc.setTextColor(75, 85, 99);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Passed items:', card1X + cardWidth / 2, y + 10, { align: 'center' });
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(17, 24, 39);
-  doc.text('Section-wise Performance Summary', 14, y);
-  y += 8;
+  doc.text(`${passedItems} out of a total ${totalItems}`, card1X + cardWidth / 2, y + 22, { align: 'center' });
 
-  // Build summary table data with percentages for progress bars
+  // Card 2: Weighted Percentage Score
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(200, 200, 200);
+  doc.roundedRect(card2X, y, cardWidth, cardHeight, 3, 3, 'FD');
+  doc.setFontSize(8);
+  doc.setTextColor(75, 85, 99);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Weighted Percentage Score:', card2X + cardWidth / 2, y + 10, { align: 'center' });
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  const pctColor = pct >= 80 ? [16, 185, 129] : pct >= 60 ? [245, 158, 11] : [239, 68, 68];
+  doc.setTextColor(pctColor[0], pctColor[1], pctColor[2]);
+  doc.text(`${pct}% (${total}/${max})`, card2X + cardWidth / 2, y + 22, { align: 'center' });
+
+  // Card 3: Result Classification Grade
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(200, 200, 200);
+  doc.roundedRect(card3X, y, cardWidth, cardHeight, 3, 3, 'FD');
+  doc.setFontSize(8);
+  doc.setTextColor(75, 85, 99);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Result classification grade:', card3X + cardWidth / 2, y + 10, { align: 'center' });
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(gradeColor[0], gradeColor[1], gradeColor[2]);
+  doc.text(classificationGrade, card3X + cardWidth / 2, y + 22, { align: 'center' });
+
+  y += cardHeight + 12;
+
+  // Build sections with question details (needed for section scores)
+  const sections = buildSections(sub, questionImages);
+
+  // Build summary table data with percentages
   const summaryData = Object.keys(sections).map(secKey => {
     const sec = sections[secKey];
     const sectionPercentage = sec.maxScore > 0 ? Math.round((sec.score / sec.maxScore) * 100) : 0;
     const questions = sec.rows.length;
     return {
-      title: sec.title,
+      title: sec.title.replace(/Section \d+: /, ''), // Remove "Section X: " prefix
       questions: String(questions),
       score: `${sec.score}/${sec.maxScore}`,
       percentage: sectionPercentage,
@@ -441,88 +476,142 @@ export const buildFinancePDF = async (
     };
   });
 
-  const summaryRows = summaryData.map(d => [
-    d.title,
-    d.questions,
-    d.score,
-    d.percentageText,
-    '' // Empty cell for progress bar
-  ]);
+  // Side-by-side: Historic Scores (left) and Section Score (right)
+  if (y > 180) {
+    doc.addPage();
+    y = 20;
+  }
 
-  autoTable(doc as any, {
-    startY: y,
-    head: [['Section', 'Questions', 'Score', '%', 'Progress']],
-    body: summaryRows,
-    styles: { 
-      fontSize: 10, 
-      cellPadding: 4,
-      halign: 'center'
-    },
-    headStyles: { 
-      fillColor: [16, 185, 129],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      halign: 'center'
-    },
-    columnStyles: {
-      0: { cellWidth: 50, halign: 'left', fontStyle: 'bold' },
-      1: { cellWidth: 25, halign: 'center' },
-      2: { cellWidth: 30, halign: 'center' },
-      3: { cellWidth: 20, halign: 'center', fontStyle: 'bold' },
-      4: { cellWidth: 55, halign: 'left' }
-    },
-    didParseCell: (data: any) => {
-      if (data.section === 'body' && data.column.index === 3) {
-        const pctText = String(data.cell.raw);
-        const pctValue = parseInt(pctText);
-        if (!isNaN(pctValue)) {
-          if (pctValue >= 90) {
-            data.cell.styles.textColor = [16, 185, 129]; // Green
-          } else if (pctValue >= 80) {
-            data.cell.styles.textColor = [59, 130, 246]; // Blue
-          } else if (pctValue >= 70) {
-            data.cell.styles.textColor = [245, 158, 11]; // Amber
-          } else {
-            data.cell.styles.textColor = [239, 68, 68]; // Red
-          }
-        }
-      }
-    },
-    didDrawCell: (data: any) => {
-      // Draw progress bar in the last column (Progress)
-      if (data.section === 'body' && data.column.index === 4) {
-        const rowIndex = data.row.index;
-        const pct = summaryData[rowIndex].percentage;
-        
-        const barX = data.cell.x + 2;
-        const barY = data.cell.y + data.cell.height / 2 - 3;
-        const barWidth = data.cell.width - 4;
-        const barHeight = 6;
-        
-        // Background (gray)
-        doc.setFillColor(229, 231, 235);
+  const leftBoxX = 14;
+  const rightBoxX = 109;
+  const boxWidth = 85;
+  const boxHeight = 110;
+  const boxY = y;
+
+  // LEFT BOX: Historical Scores (Bar Chart)
+  if (historicData && historicData.length > 0) {
+    // Draw box border and background
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.5);
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(leftBoxX, boxY, boxWidth, boxHeight, 2, 2, 'FD');
+
+    // Title
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(17, 24, 39);
+    doc.text('Historical Scores', leftBoxX + boxWidth / 2, boxY + 8, { align: 'center' });
+
+    // Prepare data (limit to last 6 audits for clarity)
+    const maxBars = 6;
+    const dataPoints = historicData.slice(-maxBars);
+
+    if (dataPoints.length > 0) {
+      const chartAreaX = leftBoxX + 5;
+      const chartAreaY = boxY + 18;
+      const chartWidth = boxWidth - 10;
+      const chartHeight = boxHeight - 35;
+      const barSpacing = 2;
+      const barWidth = (chartWidth - (dataPoints.length - 1) * barSpacing) / dataPoints.length;
+
+      // Draw bars
+      dataPoints.forEach((dataPoint, idx) => {
+        const pctValue = Math.min(100, Math.max(0, dataPoint.percentage));
+        const barHeight = (pctValue / 100) * chartHeight;
+        const barX = chartAreaX + idx * (barWidth + barSpacing);
+        const barY = chartAreaY + chartHeight - barHeight;
+
+        // Bar color - orange/amber like reference
+        doc.setFillColor(251, 191, 36); // Amber-400
         doc.roundedRect(barX, barY, barWidth, barHeight, 1, 1, 'F');
+
+        // Score label on top of bar
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(17, 24, 39);
+        doc.text(String(Math.round(pctValue)), barX + barWidth / 2, barY - 2, { align: 'center' });
+
+        // Date label below bar (smaller, not rotated)
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(75, 85, 99);
+        const dateLabel = dataPoint.auditDate;
+        const labelX = barX + barWidth / 2;
+        const labelY = chartAreaY + chartHeight + 4;
         
-        // Progress fill with color based on percentage
-        if (pct > 0) {
-          const fillWidth = Math.max(2, (pct / 100) * barWidth);
-          
-          if (pct >= 90) {
-            doc.setFillColor(16, 185, 129); // Green
-          } else if (pct >= 80) {
-            doc.setFillColor(59, 130, 246); // Blue
-          } else if (pct >= 70) {
-            doc.setFillColor(245, 158, 11); // Amber
-          } else {
-            doc.setFillColor(239, 68, 68); // Red
-          }
-          
-          doc.roundedRect(barX, barY, fillWidth, barHeight, 1, 1, 'F');
-        }
-      }
+        doc.text(dateLabel, labelX, labelY, { align: 'center' });
+      });
+
+      // Add "Date of Audit" label at bottom
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(75, 85, 99);
+      doc.text('Date of Audit', leftBoxX + boxWidth / 2, boxY + boxHeight - 2, { align: 'center' });
     }
+  }
+
+  // RIGHT BOX: Section Score (Horizontal Bar Chart)
+  // Draw box border and background
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.5);
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(rightBoxX, boxY, boxWidth, boxHeight, 2, 2, 'FD');
+
+  // Title
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(17, 24, 39);
+  doc.text('Section Score', rightBoxX + boxWidth / 2, boxY + 8, { align: 'center' });
+
+  // Draw horizontal bars for sections
+  const sectionChartX = rightBoxX + 4;
+  const sectionChartY = boxY + 15;
+  const sectionChartWidth = boxWidth - 8;
+  const sectionChartHeight = boxHeight - 20;
+  const rowHeight = Math.min(13, (sectionChartHeight) / summaryData.length);
+  const barHeight = 6;
+  const labelWidth = 40;
+
+  summaryData.forEach((section, idx) => {
+    const rowY = sectionChartY + idx * rowHeight;
+    
+    // Section label (left side, remove "Section X: " prefix for full title)
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(55, 65, 81);
+    const labelText = section.title.replace(/^Section \d+:\s*/, '');
+    doc.text(labelText, sectionChartX, rowY + 4);
+
+    // Bar area
+    const barStartX = sectionChartX + labelWidth;
+    const maxBarWidth = sectionChartWidth - labelWidth - 10; // Leave space for label and percentage
+    const filledBarWidth = (section.percentage / 100) * maxBarWidth;
+    const barY = rowY;
+
+    // Bar background (light gray)
+    doc.setFillColor(229, 231, 235);
+    doc.roundedRect(barStartX, barY, maxBarWidth, barHeight, 1, 1, 'F');
+
+    // Bar fill (blue)
+    if (filledBarWidth > 0) {
+      doc.setFillColor(96, 165, 250); // Blue-400
+      doc.roundedRect(barStartX, barY, Math.max(2, filledBarWidth), barHeight, 1, 1, 'F');
+    }
+
+    // Percentage value (right side)
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(17, 24, 39);
+    doc.text(String(section.percentage), barStartX + maxBarWidth + 3, barY + 5);
   });
-  y = (doc as any).lastAutoTable.finalY + 12;
+
+  // Add "Score" label at bottom right
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(75, 85, 99);
+  doc.text('Score', rightBoxX + boxWidth / 2, boxY + boxHeight - 2, { align: 'center' });
+
+  y = boxY + boxHeight + 12;
 
   // Add a separator line
   doc.setDrawColor(226, 232, 240);
@@ -542,93 +631,82 @@ export const buildFinancePDF = async (
     const sec = sections[secKey];
     if (y > 250) { doc.addPage(); y = 15; }
 
-    // Section header with score
+    // Section header with score - minimal style
     const sectionPercentage = sec.maxScore > 0 ? Math.round((sec.score / sec.maxScore) * 100) : 0;
 
-    doc.setFillColor(16, 185, 129);
-    doc.roundedRect(14, y, 180, 12, 2, 2, 'F');
-    doc.setFontSize(12);
+    doc.setDrawColor(229, 231, 235);
+    doc.setLineWidth(0.5);
+    doc.line(14, y, 194, y);
+    y += 2;
+
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 255, 255);
-    doc.text(sec.title, 18, y + 8);
+    doc.setTextColor(17, 24, 39);
+    doc.text(sec.title, 14, y + 4);
 
     // Right-align score
-    const scoreLabel = `Score: ${sec.score}/${sec.maxScore} (${sectionPercentage}%)`;
+    doc.setFontSize(10);
+    const scoreLabel = `${sec.score}/${sec.maxScore} (${sectionPercentage}%)`;
     const scoreWidth = (doc as any).getTextWidth(scoreLabel) || scoreLabel.length * 3.5;
-    const maxRight = 14 + 180 - 8;
-    const scoreX = Math.min(maxRight - scoreWidth, 160);
-    doc.text(scoreLabel, scoreX, y + 8);
-    y += 18;
+    doc.setTextColor(107, 114, 128);
+    doc.text(scoreLabel, 194 - scoreWidth, y + 4);
+    y += 10;
 
-    // Render each question individually
+    // Render each question in minimal format
     sec.rows.forEach((rowData, rowIndex) => {
       // Check if we need a new page before question
-      if (y > 250) {
+      if (y > 265) {
         doc.addPage();
         y = 20;
       }
 
-      // Render single question table
-      const tableRows = [[rowData.question, rowData.answer, String(rowData.score), String(rowData.maxScore)]];
-      autoTable(doc as any, {
-        startY: y,
-        head: [['Question', 'Response', 'Score', 'Max']],
-        body: tableRows,
-        styles: { fontSize: 9, cellPadding: 3 },
-        headStyles: { fillColor: [248, 250, 252], textColor: [51, 65, 85], fontStyle: 'bold' },
-        columnStyles: {
-          0: { cellWidth: 95 },
-          1: { cellWidth: 40, halign: 'center' },
-          2: { cellWidth: 20, halign: 'center' },
-          3: { cellWidth: 20, halign: 'center' }
-        },
-        didParseCell: (data: any) => {
-          if (data.section === 'body') {
-            if (data.column.index === 1) {
-              const text = String(data.cell.raw).toLowerCase();
-              if (text === 'yes') {
-                data.cell.styles.textColor = [34, 197, 94];
-                data.cell.styles.fillColor = [240, 253, 244];
-                data.cell.styles.fontStyle = 'bold';
-              } else if (text === 'no') {
-                data.cell.styles.textColor = [239, 68, 68];
-                data.cell.styles.fillColor = [254, 242, 242];
-                data.cell.styles.fontStyle = 'bold';
-              } else if (text === 'n/a') {
-                data.cell.styles.textColor = [107, 114, 128];
-                data.cell.styles.fillColor = [243, 244, 246];
-                data.cell.styles.fontStyle = 'bold';
-              }
-            }
-            if (data.column.index === 2) {
-              const scoreNum = Number(data.cell.raw);
-              if (!isNaN(scoreNum) && scoreNum > 0) {
-                data.cell.styles.textColor = [34, 197, 94];
-              }
-            }
-          }
-        }
-      });
-      y = (doc as any).lastAutoTable.finalY + 2;
+      // Question number and text
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Q${rowIndex + 1}.`, 18, y + 3);
 
-      // Render per-question remark immediately below question
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(51, 65, 85);
+      const questionLines = doc.splitTextToSize(rowData.question, 135);
+      doc.text(questionLines, 26, y + 3);
+
+      // Answer and score on the same line
+      const answerText = String(rowData.answer).toUpperCase();
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      
+      // Color code answer
+      if (answerText === 'YES') {
+        doc.setTextColor(34, 197, 94);
+      } else if (answerText === 'NO') {
+        doc.setTextColor(239, 68, 68);
+      } else {
+        doc.setTextColor(107, 114, 128);
+      }
+      doc.text(answerText, 165, y + 3);
+
+      // Score
+      doc.setTextColor(71, 85, 105);
+      doc.text(`${rowData.score}/${rowData.maxScore}`, 182, y + 3);
+
+      const questionHeight = questionLines.length * 4;
+      y += Math.max(5, questionHeight);
+
+      // Render per-question remark if exists
       if (rowData.remark && rowData.remark.trim()) {
-        if (y > 265) {
+        if (y > 270) {
           doc.addPage();
           y = 20;
         }
 
-        doc.setFontSize(9);
+        doc.setFontSize(7);
         doc.setFont('helvetica', 'italic');
         doc.setTextColor(107, 114, 128);
-        doc.text('💬 Comment:', 18, y + 4);
+        const remarkLines = doc.splitTextToSize(rowData.remark, 165);
+        doc.text(remarkLines, 26, y + 2);
 
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(55, 65, 81);
-        const remarkLines = doc.splitTextToSize(rowData.remark, 160);
-        doc.text(remarkLines, 40, y + 4);
-
-        y += (remarkLines.length * 4) + 3;
+        y += (remarkLines.length * 3) + 3;
       }
 
       // Render images for this question
@@ -705,6 +783,88 @@ export const buildFinancePDF = async (
     }
   });
 
+  // Add Custom Fields Section
+  // Define standard fields to exclude from custom fields display
+  const standardFields = [
+    'timestamp', 'date', 'storeId', 'storeName', 'region', 'auditor', 'sm',
+    'auditorSignature', 'auditor_signature', 'Auditor Signature',
+    'smSignature', 'sm_signature', 'SM Signature',
+    'totalScore', 'weightedPercentage', 'classification', 'overallRemarks',
+    'overall_remarks', 'Overall Remarks'
+  ];
+
+  // Add all section-related fields to exclude
+  FINANCE_SECTIONS.forEach(sec => {
+    const secKey = sec.prefix;
+    standardFields.push(
+      `${secKey}_score`,
+      `${secKey}_percentage`,
+      `${secKey}_remarks`
+    );
+    sec.questions.forEach(q => {
+      standardFields.push(`${secKey}_${q.id}`);
+    });
+  });
+
+  // Filter custom fields
+  const customFields: { [key: string]: any } = {};
+  Object.keys(sub).forEach(key => {
+    if (!standardFields.includes(key) && sub[key] !== null && sub[key] !== undefined && sub[key] !== '') {
+      customFields[key] = sub[key];
+    }
+  });
+
+  // Display custom fields if any exist
+  const customFieldKeys = Object.keys(customFields);
+  if (customFieldKeys.length > 0) {
+    if (y > 230) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(17, 24, 39);
+    doc.text('Additional Information', 14, y);
+    y += 10;
+
+    // Render each custom field
+    customFieldKeys.forEach(key => {
+      const value = customFields[key];
+      const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      
+      // Convert value to string
+      let displayValue = '';
+      if (typeof value === 'object') {
+        displayValue = JSON.stringify(value, null, 2);
+      } else {
+        displayValue = String(value);
+      }
+
+      const valueLines = doc.splitTextToSize(displayValue, 150);
+      const fieldHeight = (valueLines.length * 5) + 8;
+
+      if (y + fieldHeight + 10 > 285) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(71, 85, 105);
+      doc.text(`${displayKey}:`, 18, y);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(51, 65, 85);
+      doc.text(valueLines, 18, y + 6);
+      
+      y += fieldHeight + 2;
+    });
+
+    y += 8;
+  }
+
   // Add Signatures Section
   if (y > 230) {
     doc.addPage();
@@ -722,8 +882,6 @@ export const buildFinancePDF = async (
 
   const signatureBoxWidth = 85;
   const signatureBoxHeight = 40;
-  const leftBoxX = 14;
-  const rightBoxX = 109;
 
   // Auditor Signature Box
   doc.setDrawColor(226, 232, 240);

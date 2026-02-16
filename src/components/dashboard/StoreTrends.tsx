@@ -191,7 +191,7 @@ export default function StoreTrends({
                   if (!active || !payload || payload.length === 0) return null;
                   // Show only the numeric value (rounded to 2 decimals)
                   const val = payload[0].value;
-                  const formatted = val === null || val === undefined ? '—' : (Math.round(val * 100) / 100).toFixed(2) + '%';
+                  const formatted = val === null || val === undefined ? '—' : Math.round(val) + '%';
                   return (
                     <div style={{ padding: 8, background: 'var(--tooltip-bg)', borderRadius: 6, border: '1px solid var(--tooltip-border)', color: 'inherit' }}>
                       <div style={{ fontSize: 12 }}>{label}</div>
