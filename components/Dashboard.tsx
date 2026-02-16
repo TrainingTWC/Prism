@@ -6916,6 +6916,87 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                     </div>
                   </div>
 
+                  {/* Trainer-wise Summary */}
+                  {filteredSHLPData && filteredSHLPData.length > 0 && (
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                        Trainer-wise Summary
+                      </h3>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                          <thead>
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Trainer</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Assessments</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Avg Score</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Stores</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Employees Assessed</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Date Range</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                            {(() => {
+                              // Group by trainer
+                              const trainerMap: Record<string, typeof filteredSHLPData> = {};
+                              filteredSHLPData.forEach(sub => {
+                                const trainerKey = sub.Trainer || 'Unknown';
+                                if (!trainerMap[trainerKey]) trainerMap[trainerKey] = [];
+                                trainerMap[trainerKey].push(sub);
+                              });
+
+                              return Object.entries(trainerMap)
+                                .sort((a, b) => b[1].length - a[1].length)
+                                .map(([trainerId, subs]) => {
+                                  const trainerName = getTrainerNames(trainerId);
+                                  const avgPct = Math.round(subs.reduce((s, sub) => s + parseFloat(sub.Overall_Percentage || '0'), 0) / subs.length);
+                                  const storeSet = new Set(subs.map(s => s.Store));
+                                  const storeNames = Array.from(storeSet).map(sid => allStores.find(s => s.id === sid)?.name || sid);
+                                  const empSet = new Set(subs.map(s => s['Employee ID']));
+                                  const empNames = Array.from(empSet).map(eid => getEmployeeName(eid) || eid);
+                                  const dates = subs.map(s => new Date(s['Submission Time']).getTime()).filter(d => !isNaN(d));
+                                  const minDate = dates.length > 0 ? new Date(Math.min(...dates)).toLocaleDateString() : '-';
+                                  const maxDate = dates.length > 0 ? new Date(Math.max(...dates)).toLocaleDateString() : '-';
+                                  const dateRange = minDate === maxDate ? minDate : `${minDate} – ${maxDate}`;
+
+                                  return (
+                                    <tr key={trainerId} className="hover:bg-gray-50 dark:hover:bg-slate-700">
+                                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-slate-100">{trainerName}</td>
+                                      <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-slate-100">{subs.length}</td>
+                                      <td className="px-4 py-3 text-sm text-center">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                          avgPct >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                          : avgPct >= 60 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                        }`}>{avgPct}%</span>
+                                      </td>
+                                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">
+                                        <div className="flex flex-wrap gap-1">
+                                          {storeNames.map((name, i) => (
+                                            <span key={i} className="inline-block bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded text-xs">{name}</span>
+                                          ))}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">
+                                        <div className="flex flex-wrap gap-1">
+                                          {empNames.slice(0, 5).map((name, i) => (
+                                            <span key={i} className="inline-block bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded text-xs">{name}</span>
+                                          ))}
+                                          {empNames.length > 5 && (
+                                            <span className="text-xs text-gray-500 dark:text-slate-400">+{empNames.length - 5} more</span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-slate-400 whitespace-nowrap">{dateRange}</td>
+                                    </tr>
+                                  );
+                                });
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Detailed Question Analysis */}
                   {filteredSHLPData && filteredSHLPData.length > 0 && (
                     <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">

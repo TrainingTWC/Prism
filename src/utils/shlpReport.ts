@@ -668,7 +668,70 @@ async function buildConsolidatedReport(
 
   y += 5;
 
-  // Submissions Summary Table
+  // Trainer-wise Summary Table
+  if (y > 220) { doc.addPage(); y = 20; }
+
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(17, 24, 39);
+  doc.text('Trainer-wise Summary', 14, y);
+  y += 6;
+
+  // Group by trainer
+  const trainerGroups: Record<string, typeof submissions> = {};
+  submissions.forEach(s => {
+    const tKey = s.Trainer || 'Unknown';
+    if (!trainerGroups[tKey]) trainerGroups[tKey] = [];
+    trainerGroups[tKey].push(s);
+  });
+
+  const trainerRows = Object.entries(trainerGroups)
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([tId, subs]) => {
+      const tName = resolveEmployeeName(tId, metadata.employeeDirectoryById) || tId;
+      const avgPct = Math.round(subs.reduce((a, s) => a + parseFloat(s.Overall_Percentage || '0'), 0) / subs.length);
+      const storeSet = new Set(subs.map(s => s.Store));
+      const storeNames = Array.from(storeSet).map(sid => resolveStoreName(sid, metadata.storeMapping)).join(', ');
+      const empCount = new Set(subs.map(s => s['Employee ID'])).size;
+      const dates = subs.map(s => new Date(s['Submission Time']).getTime()).filter(d => !isNaN(d));
+      const minD = dates.length > 0 ? new Date(Math.min(...dates)).toLocaleDateString() : '-';
+      const maxD = dates.length > 0 ? new Date(Math.max(...dates)).toLocaleDateString() : '-';
+      const dateRange = minD === maxD ? minD : `${minD} – ${maxD}`;
+      return [tName, String(subs.length), `${avgPct}%`, String(empCount), storeNames, dateRange];
+    });
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Trainer', 'Assessments', 'Avg Score', 'Employees', 'Stores', 'Date Range']],
+    body: trainerRows,
+    theme: 'striped',
+    headStyles: { fillColor: [139, 92, 246], textColor: [255, 255, 255], fontSize: 9, fontStyle: 'bold' },
+    bodyStyles: { fontSize: 8, textColor: [51, 65, 85] },
+    columnStyles: {
+      0: { cellWidth: 32 },
+      1: { cellWidth: 20, halign: 'center' },
+      2: { cellWidth: 18, halign: 'center' },
+      3: { cellWidth: 18, halign: 'center' },
+      4: { cellWidth: 55 },
+      5: { cellWidth: 35 }
+    },
+    margin: { left: 14, right: 14 },
+    didParseCell: (data: any) => {
+      if (data.section === 'body' && data.column.index === 2) {
+        const val = parseFloat(String(data.cell.raw).replace('%', ''));
+        if (!isNaN(val)) {
+          if (val >= 80) data.cell.styles.textColor = [34, 197, 94];
+          else if (val >= 60) data.cell.styles.textColor = [251, 191, 36];
+          else data.cell.styles.textColor = [239, 68, 68];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    }
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 10;
+
+  // Individual Assessments Table
   if (y > 220) { doc.addPage(); y = 20; }
 
   doc.setFontSize(13);
@@ -680,27 +743,29 @@ async function buildConsolidatedReport(
   const tableRows = submissions.map(s => {
     const empName = resolveEmployeeName(s['Employee ID'], metadata.employeeDirectoryById) || s['Employee Name'] || s['Employee ID'];
     const storeName = resolveStoreName(s.Store, metadata.storeMapping);
+    const trainerName = resolveEmployeeName(s.Trainer, metadata.employeeDirectoryById) || s.Trainer || '';
     const dateFormatted = formatDate(s['Submission Time']);
     const overallPct = s.Overall_Percentage || '0';
-    return [dateFormatted, empName, storeName, `${overallPct}%`];
+    return [dateFormatted, empName, storeName, trainerName, `${overallPct}%`];
   });
 
   autoTable(doc, {
     startY: y,
-    head: [['Date', 'Employee', 'Store', 'Score']],
+    head: [['Date', 'Employee', 'Store', 'Trainer', 'Score']],
     body: tableRows,
     theme: 'striped',
     headStyles: { fillColor: [99, 102, 241], textColor: [255, 255, 255], fontSize: 9, fontStyle: 'bold' },
     bodyStyles: { fontSize: 8, textColor: [51, 65, 85] },
     columnStyles: {
-      0: { cellWidth: 38 },
-      1: { cellWidth: 60 },
-      2: { cellWidth: 50 },
-      3: { cellWidth: 24, halign: 'center' }
+      0: { cellWidth: 32 },
+      1: { cellWidth: 42 },
+      2: { cellWidth: 38 },
+      3: { cellWidth: 35 },
+      4: { cellWidth: 20, halign: 'center' }
     },
     margin: { left: 14, right: 14 },
     didParseCell: (data: any) => {
-      if (data.section === 'body' && data.column.index === 3) {
+      if (data.section === 'body' && data.column.index === 4) {
         const val = parseFloat(String(data.cell.raw).replace('%', ''));
         if (!isNaN(val)) {
           if (val >= 80) data.cell.styles.textColor = [34, 197, 94];
