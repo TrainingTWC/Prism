@@ -6837,13 +6837,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                     </div>
                                   </td>
                                   <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
-                                    {submission.Store}
+                                    {allStores.find(s => s.id === submission.Store)?.name || submission.Store}
                                   </td>
                                   <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
-                                    {getAMName(submission['Area Manager'])}
+                                    {submission['Area Manager Name'] || getAMName(submission['Area Manager'])}
                                   </td>
                                   <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
-                                    {getTrainerNames(submission.Trainer)}
+                                    {submission['Trainer Names'] || getTrainerNames(submission.Trainer)}
                                   </td>
                                   <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${parseFloat(submission.Overall_Percentage) >= 80
@@ -6947,7 +6947,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                               return Object.entries(trainerMap)
                                 .sort((a, b) => b[1].length - a[1].length)
                                 .map(([trainerId, subs]) => {
-                                  const trainerName = getTrainerNames(trainerId);
+                                  const trainerName = subs[0]?.['Trainer Names'] || getTrainerNames(trainerId);
                                   const avgPct = Math.round(subs.reduce((s, sub) => s + parseFloat(sub.Overall_Percentage || '0'), 0) / subs.length);
                                   const storeSet = new Set(subs.map(s => s.Store));
                                   const storeNames = Array.from(storeSet).map(sid => allStores.find(s => s.id === sid)?.name || sid);

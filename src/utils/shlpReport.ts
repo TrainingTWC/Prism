@@ -688,7 +688,7 @@ async function buildConsolidatedReport(
   const trainerRows = Object.entries(trainerGroups)
     .sort((a, b) => b[1].length - a[1].length)
     .map(([tId, subs]) => {
-      const tName = resolveEmployeeName(tId, metadata.employeeDirectoryById) || tId;
+      const tName = subs[0]?.['Trainer Names'] || resolveEmployeeName(tId, metadata.employeeDirectoryById) || tId;
       const avgPct = Math.round(subs.reduce((a, s) => a + parseFloat(s.Overall_Percentage || '0'), 0) / subs.length);
       const storeSet = new Set(subs.map(s => s.Store));
       const storeNames = Array.from(storeSet).map(sid => resolveStoreName(sid, metadata.storeMapping)).join(', ');
@@ -743,7 +743,7 @@ async function buildConsolidatedReport(
   const tableRows = submissions.map(s => {
     const empName = resolveEmployeeName(s['Employee ID'], metadata.employeeDirectoryById) || s['Employee Name'] || s['Employee ID'];
     const storeName = resolveStoreName(s.Store, metadata.storeMapping);
-    const trainerName = resolveEmployeeName(s.Trainer, metadata.employeeDirectoryById) || s.Trainer || '';
+    const trainerName = s['Trainer Names'] || resolveEmployeeName(s.Trainer, metadata.employeeDirectoryById) || s.Trainer || '';
     const dateFormatted = formatDate(s['Submission Time']);
     const overallPct = s.Overall_Percentage || '0';
     return [dateFormatted, empName, storeName, trainerName, `${overallPct}%`];

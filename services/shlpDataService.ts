@@ -7,8 +7,11 @@ export interface SHLPSubmission {
   'Employee Name': string;
   'Employee ID': string;
   'Store': string;
+  'Auditor Name': string;
   'Area Manager': string;
+  'Area Manager Name': string;
   'Trainer': string;
+  'Trainer Names': string;
 
   // Individual responses (SHLP_1 to SHLP_36)
   SHLP_1: string;
