@@ -1078,8 +1078,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       }
 
       // Apply filters
-      if (filters.employee && submission['Employee ID'] !== filters.employee) {
-        return false;
+      if (filters.employee) {
+        const filterEmpNorm = filters.employee.toString().trim().toUpperCase();
+        const submissionEmpId = (submission['Employee ID'] || '').toString().trim().toUpperCase();
+        if (submissionEmpId !== filterEmpNorm) {
+          return false;
+        }
       }
 
       if (filters.region) {
@@ -2650,30 +2654,55 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         const meta: any = {};
         const firstRecord = reportData.length > 0 ? reportData[0] as any : null;
 
+        // Determine active filters to set report mode
+        const hasEmployeeFilter = !!filters.employee;
+        const hasStoreFilter = !!filters.store;
+        const hasAMFilter = !!filters.am;
+        const hasTrainerFilter = !!filters.trainer;
+        const hasRegionFilter = !!filters.region;
+        const hasAnyFilter = hasEmployeeFilter || hasStoreFilter || hasAMFilter || hasTrainerFilter || hasRegionFilter;
+
+        // Set report mode based on filters
+        if (hasEmployeeFilter) {
+          meta.reportMode = 'employee';
+        } else if (hasStoreFilter) {
+          meta.reportMode = 'store';
+        } else if (hasAMFilter) {
+          meta.reportMode = 'am';
+        } else if (hasTrainerFilter) {
+          meta.reportMode = 'trainer';
+        } else if (hasRegionFilter) {
+          meta.reportMode = 'region';
+        } else {
+          meta.reportMode = 'consolidated';
+        }
+
         // Store filter - prioritize store name from mapping
         if (filters.store) {
           const s = allStores.find(s => s.id === filters.store);
           meta.storeName = s?.name || filters.store;
           meta.storeId = filters.store;
-        } else if (firstRecord) {
-          // Get store ID and look up name from mapping
+        } else if (hasAnyFilter && firstRecord) {
           const storeId = firstRecord['Store'] || firstRecord.storeId || '';
           const storeInfo = allStores.find(s => s.id === storeId);
           meta.storeName = storeInfo?.name || storeId;
           meta.storeId = storeId;
-        } else if (filters.region) {
-          meta.storeName = `${filters.region} Region`;
-          meta.storeId = '';
-        } else if (reportData.length > 0) {
-          meta.storeName = 'All Stores (Filtered)';
-          meta.storeId = '';
+        }
+
+        // Region filter
+        if (filters.region) {
+          meta.regionName = filters.region;
         }
 
         // Employee filter
         if (filters.employee) {
-          const emp = employeeDirectory.find(e => e.employee_id === filters.employee);
-          meta.employeeName = emp?.name || filters.employee;
+          const empKey = filters.employee.toString().trim().toUpperCase();
+          const empRecord = employeeDirectory.byId[empKey];
+          meta.employeeName = empRecord?.empname || filters.employee;
           meta.employeeId = filters.employee;
+        } else if (firstRecord && !hasAnyFilter) {
+          meta.employeeName = '';
+          meta.employeeId = '';
         } else if (firstRecord) {
           meta.employeeName = firstRecord['Employee Name'] || '';
           meta.employeeId = firstRecord['Employee ID'] || '';
@@ -2683,6 +2712,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         if (filters.trainer) {
           const t = allHRPersonnel.find(h => h.id === filters.trainer) || AREA_MANAGERS.find(a => a.id === filters.trainer);
           meta.trainerName = t?.name || filters.trainer;
+        } else if (firstRecord && !hasAnyFilter) {
+          meta.trainerName = '';
         } else if (firstRecord) {
           const trainerId = firstRecord['Trainer'] || '';
           const trainerInfo = allHRPersonnel.find(h => h.id === trainerId) || AREA_MANAGERS.find(a => a.id === trainerId);
@@ -2693,24 +2724,44 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         if (filters.am) {
           const am = AREA_MANAGERS.find(a => a.id === filters.am);
           meta.amName = am?.name || filters.am;
-          meta.auditorName = am?.name || filters.am;
+        } else if (firstRecord && !hasAnyFilter) {
+          meta.amName = '';
         } else if (firstRecord) {
           const amId = firstRecord['Area Manager'] || '';
           const amInfo = AREA_MANAGERS.find(a => a.id === amId);
           meta.amName = amInfo?.name || amId;
-
-          const auditorName = firstRecord['Auditor Name'] || '';
-          meta.auditorName = auditorName;
         }
 
-        // Date metadata - use submission time from the record
+        // Pass store mapping for resolving store names in consolidated mode
+        meta.storeMapping = allStores;
+        // Pass AM list for resolving names
+        meta.amList = AREA_MANAGERS;
+        // Pass employee directory for resolving names
+        meta.employeeDirectoryById = employeeDirectory.byId;
+        // Pass active filters for title context
+        meta.activeFilters = filters;
+
+        // Date metadata
         if (firstRecord && firstRecord['Submission Time']) {
           meta.date = firstRecord['Submission Time'];
         } else if (lastRefresh) {
           meta.date = lastRefresh.toLocaleString();
         }
 
-        const fileName = `SHLP_Certification_${meta.employeeName?.replace(/\s+/g, '_') || meta.storeName?.replace(/\s+/g, '_') || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+        // Build descriptive filename based on active filter
+        let filenamePart = 'Consolidated';
+        if (hasEmployeeFilter) {
+          filenamePart = meta.employeeName?.replace(/\s+/g, '_') || filters.employee;
+        } else if (hasStoreFilter) {
+          filenamePart = meta.storeName?.replace(/\s+/g, '_') || filters.store;
+        } else if (hasAMFilter) {
+          filenamePart = meta.amName?.replace(/\s+/g, '_') || filters.am;
+        } else if (hasTrainerFilter) {
+          filenamePart = meta.trainerName?.replace(/\s+/g, '_') || filters.trainer;
+        } else if (hasRegionFilter) {
+          filenamePart = filters.region?.replace(/\s+/g, '_') || 'Region';
+        }
+        const fileName = `SHLP_Certification_${filenamePart}_${new Date().toISOString().split('T')[0]}.pdf`;
 
         const pdf = await buildSHLPPDF(reportData as any, meta, { title: 'SHLP Certification Assessment' });
         pdf.save(fileName);
