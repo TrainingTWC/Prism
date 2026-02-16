@@ -226,8 +226,23 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   // Helper function to get AM name
   const getAMName = (amId: string): string => {
     if (!amId) return '';
-    const amFromConfig = AREA_MANAGERS.find(am => am.id === amId);
-    return amFromConfig?.name || getEmployeeName(amId) || amId;
+    const normalizedId = amId.trim().toUpperCase();
+    // Check allAreaManagers state (populated from store mapping with names)
+    const amFromState = allAreaManagers.find(am => String(am.id).toUpperCase() === normalizedId);
+    if (amFromState?.name) return amFromState.name;
+    // Check constants config
+    const amFromConfig = AREA_MANAGERS.find(am => String(am.id).toUpperCase() === normalizedId);
+    if (amFromConfig?.name) return amFromConfig.name;
+    // Check compStoreMapping for AM Name
+    if (compStoreMapping) {
+      const storeEntry = compStoreMapping.find((s: any) => String(s['AM'] || s['amId'] || '').toUpperCase() === normalizedId);
+      if (storeEntry) {
+        const name = storeEntry['AM Name'] || storeEntry['amName'];
+        if (name) return name;
+      }
+    }
+    // Try employee directory
+    return getEmployeeName(amId) || amId;
   };
 
   // Monthly Trends data for Training Dashboard
@@ -1106,11 +1121,33 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         return false;
       }
 
+      // Filter by month
+      if (filters.month) {
+        const submissionDate = submission['Submission Time'];
+        if (!submissionDate) return false;
+        try {
+          const date = parseSheetDate(String(submissionDate));
+          if (!date || isNaN(date.getTime())) return false;
+          const month = date.getMonth() + 1;
+          const submissionMonth = `${date.getFullYear()}-${month.toString().padStart(2, '0')}`;
+          if (submissionMonth !== filters.month) return false;
+        } catch {
+          return false;
+        }
+      }
+
       return true;
     });
 
+    // Sort by date descending (most recent first)
+    filtered.sort((a, b) => {
+      const dateA = new Date(a['Submission Time']).getTime();
+      const dateB = new Date(b['Submission Time']).getTime();
+      return (isNaN(dateB) ? 0 : dateB) - (isNaN(dateA) ? 0 : dateA);
+    });
+
     return filtered;
-  }, [shlpData, filters, userRole]);
+  }, [shlpData, filters, userRole, compStoreMapping]);
 
   // Filter AM Operations data
   const filteredAMOperations = useMemo(() => {
