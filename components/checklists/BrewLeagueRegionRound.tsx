@@ -476,6 +476,9 @@ const BrewLeagueRegionRound: React.FC = () => {
     const dialInTimeTaken = getTimeDiff(dialInStart, dialInEnd);
     const milkTimeTaken = getTimeDiff(milkStart, milkEnd);
 
+    // Extract beverage name from response (exists in both technical & sensory)
+    const beverageName = resp['MilkBasedBeverages_BeverageName'] || resp['SensoryScore_BeverageName'] || '';
+
     // Log to Google Sheets
     const data = new URLSearchParams({
       participantName,
@@ -487,25 +490,50 @@ const BrewLeagueRegionRound: React.FC = () => {
       storeName,
       storeID,
       region,
+      beverageName,
       totalScore: total.toString(),
       maxScore: max.toString(),
       percent: pct.toString(),
+      // Technical section scores
       GroomingHygieneScore: (sectionScores.GroomingHygiene || 0).toString(),
+      GroomingHygieneMax: (sectionMax.GroomingHygiene || 0).toString(),
       EspressoDialInScore: (sectionScores.EspressoDialIn || 0).toString(),
+      EspressoDialInMax: (sectionMax.EspressoDialIn || 0).toString(),
       EspressoDialInShot1Score: (sectionScores.EspressoDialInShot1 || 0).toString(),
+      EspressoDialInShot1Max: (sectionMax.EspressoDialInShot1 || 0).toString(),
       EspressoDialInShot2Score: (sectionScores.EspressoDialInShot2 || 0).toString(),
+      EspressoDialInShot2Max: (sectionMax.EspressoDialInShot2 || 0).toString(),
       DialInEndTimeScore: (sectionScores.DialInEndTime || 0).toString(),
       MilkBasedBeveragesScore: (sectionScores.MilkBasedBeverages || 0).toString(),
       MilkCup1Score: (sectionScores.MilkCup1 || 0).toString(),
+      MilkCup1Max: (sectionMax.MilkCup1 || 0).toString(),
       Cup1SteamingScore: (sectionScores.Cup1Steaming || 0).toString(),
+      Cup1SteamingMax: (sectionMax.Cup1Steaming || 0).toString(),
       Cup1PouringScore: (sectionScores.Cup1Pouring || 0).toString(),
+      Cup1PouringMax: (sectionMax.Cup1Pouring || 0).toString(),
       MilkCup2Score: (sectionScores.MilkCup2 || 0).toString(),
+      MilkCup2Max: (sectionMax.MilkCup2 || 0).toString(),
       Cup2SteamingScore: (sectionScores.Cup2Steaming || 0).toString(),
+      Cup2SteamingMax: (sectionMax.Cup2Steaming || 0).toString(),
       Cup2PouringScore: (sectionScores.Cup2Pouring || 0).toString(),
+      Cup2PouringMax: (sectionMax.Cup2Pouring || 0).toString(),
       MilkCup3Score: (sectionScores.MilkCup3 || 0).toString(),
+      MilkCup3Max: (sectionMax.MilkCup3 || 0).toString(),
       Cup3SteamingScore: (sectionScores.Cup3Steaming || 0).toString(),
+      Cup3SteamingMax: (sectionMax.Cup3Steaming || 0).toString(),
       Cup3PouringScore: (sectionScores.Cup3Pouring || 0).toString(),
+      Cup3PouringMax: (sectionMax.Cup3Pouring || 0).toString(),
       EndTimeScore: (sectionScores.EndTime || 0).toString(),
+      EndTimeMax: (sectionMax.EndTime || 0).toString(),
+      // Sensory section score (only populated for sensory scoresheets)
+      SensoryScoreTotal: (sectionScores.SensoryScore || 0).toString(),
+      SensoryScoreMax: (sectionMax.SensoryScore || 0).toString(),
+      // Raw time fields
+      dialInStartTime: dialInStart,
+      dialInEndTime: dialInEnd,
+      milkStartTime: milkStart,
+      milkEndTime: milkEnd,
+      // Computed diffs
       dialInTimeTaken,
       milkTimeTaken,
       submissionTime: completion,
