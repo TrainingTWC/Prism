@@ -28,6 +28,65 @@ const CAMPUS_HIRING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbPYyW_
 // Cache for store mapping data
 let storeMappingCache: any[] | null = null;
 
+/**
+ * Shared fetch utility with retry logic for Google Apps Script endpoints.
+ * Chrome uses HTTP/3 (QUIC) for Google domains, which can fail with
+ * ERR_QUIC_PROTOCOL_ERROR on some networks. Retrying works because
+ * Chrome falls back to HTTP/2 after a QUIC failure.
+ */
+const fetchWithRetry = async (
+  url: string,
+  label: string,
+  options: { maxRetries?: number; timeoutMs?: number; cacheBust?: boolean } = {}
+): Promise<any> => {
+  const { maxRetries = 3, timeoutMs = 90000, cacheBust = false } = options;
+  const fetchUrl = cacheBust ? `${url}&_t=${Date.now()}` : url;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      console.log(`📡 [${label}] Attempt ${attempt}/${maxRetries}`);
+
+      const response = await fetch(fetchUrl, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        redirect: 'follow',
+        signal: controller.signal,
+        ...(cacheBust ? { cache: 'no-cache' as RequestCache } : {}),
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log(`✅ [${label}] Success on attempt ${attempt}`);
+      return data;
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.warn(`⏱️ [${label}] Timed out after ${timeoutMs / 1000}s`);
+        return null; // Caller handles null as timeout
+      }
+
+      console.warn(`⚠️ [${label}] Attempt ${attempt}/${maxRetries} failed:`, error instanceof Error ? error.message : error);
+
+      if (attempt < maxRetries) {
+        const delay = attempt * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  console.error(`❌ [${label}] All ${maxRetries} attempts failed`);
+  return null;
+};
+
 // Load comprehensive store mapping data
 const loadStoreMapping = async (): Promise<any[]> => {
   if (storeMappingCache) {
@@ -290,79 +349,77 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
     return [];
   }
 
-  const results: Submission[] = [];
+  // PERFORMANCE FIX: Load employee directory and store mapping ONCE before the loop
+  // Previously these were awaited inside each loop iteration, causing massive delays
+  let employeeDir: any = { byId: {}, nameById: {} };
+  try {
+    const { fetchEmployeeDirectory } = await import('./employeeDirectoryService');
+    employeeDir = await fetchEmployeeDirectory();
+  } catch (error) {
+    console.warn('[HR Survey] Could not fetch employee directory:', error);
+  }
 
-  for (const row of sheetsData) {
+  const mappingData = await loadStoreMapping();
+
+  // Pre-compute max scores for questions with choices (avoid recalculating per row)
+  const questionMaxScores = QUESTIONS.filter(q => q.choices).map(q => ({
+    id: q.id,
+    choices: q.choices!,
+    maxScore: Math.max(...q.choices!.map(c => c.score))
+  }));
+
+  const results: Submission[] = sheetsData.map(row => {
     // Calculate score for this submission
     let totalScore = 0, maxScore = 0;
 
-    QUESTIONS.forEach(q => {
-      if (q.choices) {
-        const response = row[q.id];
-        if (response && response.trim() !== '') {
-          // Try to find the choice by label first, then by score
-          const choiceByLabel = q.choices.find(c => c.label.toLowerCase() === response.toLowerCase().trim());
-          const choiceByScore = q.choices.find(c => c.score === Number(response));
-          const choice = choiceByLabel || choiceByScore;
+    questionMaxScores.forEach(q => {
+      const response = row[q.id];
+      if (response && response.trim() !== '') {
+        const responseLower = response.toLowerCase().trim();
+        const choiceByLabel = q.choices.find(c => c.label.toLowerCase() === responseLower);
+        const choice = choiceByLabel || q.choices.find(c => c.score === Number(response));
 
-          if (choice) {
-            totalScore += choice.score;
-          }
+        if (choice) {
+          totalScore += choice.score;
         }
-        maxScore += Math.max(...q.choices.map(c => c.score));
       }
+      maxScore += q.maxScore;
     });
 
     const calculatedPercent = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
 
-    // Always use recalculated scores since we updated the scoring system
-    // Use calculated scores if the ones from sheets are empty/invalid, otherwise use recalculated
     const finalTotalScore = row.totalScore && !isNaN(Number(row.totalScore)) ? Number(row.totalScore) : totalScore;
     const finalMaxScore = row.maxScore && !isNaN(Number(row.maxScore)) ? Number(row.maxScore) : maxScore;
-    // Always use the recalculated percentage to ensure correct scoring after the update
     const finalPercent = calculatedPercent;
 
     // Get proper mappings for the store
-    // NEW LOGIC: First get employee's store from Employee Master, then lookup HRBP from Store Mapping
     const originalAmId = row['AM ID'] || row.amId || '';
     const originalAmName = row['AM Name'] || row.amName || '';
     let amId = originalAmId;
     let amName = originalAmName;
 
-    // IMPORTANT: Keep the original HR data from Google Sheets (who actually did the survey)
-    // Don't overwrite with store mapping HRBP
     const originalHrId = row['HR ID'] || row.hrId || '';
     const originalHrName = row['HR Name'] || row.hrName || '';
     let hrId = originalHrId;
     let hrName = originalHrName;
     let region = row['Region'] || row.region || 'Unknown';
 
-    // Step 1: Get the employee's store from Employee Master sheet
+    // Step 1: Get the employee's store from Employee Master (using pre-loaded directory)
     const empId = row['Emp ID'] || row.empId || '';
     let actualStoreId = row['Store ID'] || row.storeID || row.storeId || '';
     
     if (empId) {
-      try {
-        // Import and use employee directory service
-        const { fetchEmployeeDirectory } = await import('./employeeDirectoryService');
-        const employeeDir = await fetchEmployeeDirectory();
-        const normalizedEmpId = empId.toString().trim().toUpperCase();
-        const employee = employeeDir.byId[normalizedEmpId];
-        
-        if (employee && employee.store_code) {
-          // Use the employee's actual store from Employee Master
-          actualStoreId = employee.store_code;
-          console.log(`[HR Survey] Employee ${empId} belongs to store ${actualStoreId} (from Employee Master)`);
-        }
-      } catch (error) {
-        console.warn('[HR Survey] Could not fetch employee directory:', error);
+      const normalizedEmpId = empId.toString().trim().toUpperCase();
+      const employee = employeeDir.byId[normalizedEmpId];
+      
+      if (employee && employee.store_code) {
+        actualStoreId = employee.store_code;
       }
     }
 
-    // Step 2: Look up Store Mapping using the employee's actual store
+    // Step 2: Look up Store Mapping using the employee's actual store (using pre-loaded mapping)
     if (actualStoreId) {
       try {
-        const mappingData = await loadStoreMapping();
         const storeMapping = mappingData.find((mapping: any) =>
           mapping['Store ID'] === actualStoreId || mapping.storeId === actualStoreId
         );
@@ -378,7 +435,7 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
             }
           }
 
-          // Get HRBP (HR ID 1) from Store Mapping - this is the correct HRBP for the employee's store
+          // Get HRBP from Store Mapping - correct HRBP for the employee's store
           if (!originalHrId) {
             const mappedHrId = storeMapping.HRBP || storeMapping['HRBP ID'] || storeMapping.hrbpId || 
               storeMapping['Regional Training Manager'] || storeMapping['HR Head'] || 
@@ -387,7 +444,6 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
               hrId = mappedHrId;
               const hrPerson = HR_PERSONNEL.find(hr => hr.id === hrId);
               hrName = hrPerson?.name || `HR ${hrId}`;
-              console.log(`[HR Survey] HRBP for store ${actualStoreId}: ${hrName} (${hrId})`);
             }
           }
 
@@ -396,15 +452,13 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
           if (mappedRegion && !row['Region'] && !row.region) {
             region = mappedRegion;
           }
-        } else {
-          console.warn(`[HR Survey] Store ${actualStoreId} not found in Store Mapping`);
         }
       } catch (error) {
-        console.error('[HR Survey] Error looking up store mapping:', error);
+        // Mapping failed, use original values
       }
     }
 
-    const submission: Submission = {
+    return {
       submissionTime: row['Server Timestamp'] || row['Submission Time'] || row.submissionTime || new Date().toISOString(),
       hrName: hrName,
       hrId: hrId,
@@ -442,59 +496,23 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
       totalScore: finalTotalScore,
       maxScore: finalMaxScore,
       percent: finalPercent,
-    };
-
-    results.push(submission);
-  }
+    } as Submission;
+  });
 
   return results;
 };
 
 export const fetchSubmissions = async (): Promise<Submission[]> => {
   try {
-    // Try direct request first (works if CORS is properly configured)
-    let response;
-    let data;
+    const data = await fetchWithRetry(
+      SHEETS_ENDPOINT + '?action=getData',
+      'HR',
+      { cacheBust: true }
+    );
 
-    try {
-      // Add cache-busting parameter to force fresh data
-      const cacheBuster = `&_t=${Date.now()}`;
-      const directUrl = SHEETS_ENDPOINT + '?action=getData' + cacheBuster;
-
-      response = await fetch(directUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        cache: 'no-cache', // Disable browser caching
-        redirect: 'follow',
-      });
-
-      if (response.ok) {
-        data = await response.json();
-      } else {
-        throw new Error(`Direct request failed: ${response.status}`);
-      }
-    } catch (directError) {
-      // Fallback to CORS proxy
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-      const targetUrl = SHEETS_ENDPOINT + '?action=getData';
-
-      response = await fetch(proxyUrl + targetUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        redirect: 'follow',
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        return await generateMockData(20);
-      }
-
-      data = await response.json();
+    if (data === null) {
+      console.warn('⚠️ [HR] Fetch failed, using mock data');
+      return await generateMockData(20);
     }
 
     // Handle both direct array format and object with rows property
@@ -559,6 +577,16 @@ export interface AMOperationsSubmission {
 // Helper function to apply region mapping to any dataset
 const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmission[]> => {
   const mappingData = await loadStoreMapping();
+  
+  // PERFORMANCE: Build indexed lookup maps for O(1) store lookups
+  const storeIdIndex = new Map<string, any>();
+  const storeNameIndex = new Map<string, any>();
+  mappingData.forEach(mapping => {
+    const sid = mapping['Store ID'] || mapping.storeId;
+    if (sid) storeIdIndex.set(sid.toString(), mapping);
+    const sname = mapping['Store Name'] || mapping.storeName;
+    if (sname) storeNameIndex.set(sname.toLowerCase(), mapping);
+  });
 
   const processedData = dataArray.map((row: any) => {
     let region = 'Unknown';
@@ -575,40 +603,22 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
     // ALWAYS map ALL fields from the comprehensive mapping file based on Store ID
     if (storeId) {
       try {
-        // Try to find by exact store ID match first
-        let storeMapping = mappingData.find(mapping => {
-          const mappingStoreId = mapping['Store ID'] || mapping.storeId;
-          const match = mappingStoreId === storeId.toString();
-          return match;
-        });
+        // Use indexed lookup instead of .find()
+        let storeMapping = storeIdIndex.get(storeId.toString());
 
         // If not found and storeId is numeric, try with S prefix
         if (!storeMapping && !isNaN(storeId) && !storeId.toString().startsWith('S')) {
           const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
-          storeMapping = mappingData.find(mapping => {
-            const mappingStoreId = mapping['Store ID'] || mapping.storeId;
-            return mappingStoreId === sFormattedId;
-          });
+          storeMapping = storeIdIndex.get(sFormattedId);
         }
 
-        // If still not found, try to match by store name if available
+        // If still not found, try to match by store name
         if (!storeMapping && (row.storeName || row['Store Name'])) {
-          const submissionStoreName = row.storeName || row['Store Name'];
-          storeMapping = mappingData.find(mapping => {
-            const mappingStoreName = mapping['Store Name'] || mapping.storeName || '';
-            const nameMatch = mappingStoreName.toLowerCase().includes(submissionStoreName.toLowerCase()) ||
-              submissionStoreName.toLowerCase().includes(mappingStoreName.toLowerCase()) ||
-              mappingStoreName.toLowerCase() === submissionStoreName.toLowerCase();
-            return nameMatch;
-          });
+          const submissionStoreName = (row.storeName || row['Store Name']).toLowerCase();
+          storeMapping = storeNameIndex.get(submissionStoreName);
         }
 
         if (storeMapping) {
-          // Map all fields from comprehensive mapping - THIS OVERRIDES GOOGLE SHEET DATA
-          const originalRegion = row.region;
-          const originalStoreName = row.storeName || row['Store Name'];
-          const mappedStoreName = storeMapping['Store Name'] || storeMapping.storeName;
-
           region = storeMapping['Region'] || storeMapping.region || 'Unknown';
           menu = storeMapping['Menu'] || storeMapping.menu || '';
           storeType = storeMapping['Store Type'] || storeMapping.storeType || '';
@@ -617,7 +627,6 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
           trainer = storeMapping['Trainer'] || storeMapping.trainer || '';
           am = storeMapping['AM'] || storeMapping.am || '';
           regionalTrainingManager = storeMapping['Regional Training Manager'] || storeMapping.regionalTrainingManager || '';
-
         }
       } catch (error) {
         // Mapping failed, use original values
@@ -643,32 +652,13 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
 
 export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]> => {
   try {
-    const directUrl = AM_OPS_ENDPOINT + '?action=getData';
-    console.log('Fetching AM Operations data from:', directUrl);
+    const data = await fetchWithRetry(
+      AM_OPS_ENDPOINT + '?action=getData',
+      'AM Ops'
+    );
 
-    const response = await fetch(directUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      redirect: 'follow',
-    });
-
-    console.log('Response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Failed to fetch AM Operations data:', response.status, errorText);
-      return [];
-    }
-
-    const data = await response.json();
-    console.log('Received data:', data);
-    console.log('Data is array?', Array.isArray(data));
-    console.log('Data length:', Array.isArray(data) ? data.length : 'N/A');
-
-    if (!Array.isArray(data)) {
-      console.error('Invalid data format received from AM Operations endpoint:', typeof data);
+    if (data === null || !Array.isArray(data)) {
+      console.warn('⚠️ [AM Ops] No valid data, returning empty');
       return [];
     }
 
@@ -864,54 +854,37 @@ function recalculateTrainingScore(submission: any): { totalScore: string; maxSco
 // Fetch Training Audit data
 export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> => {
   try {
-    let response;
-    let data;
+    const data = await fetchWithRetry(
+      TRAINING_AUDIT_ENDPOINT + '?action=getData',
+      'Training'
+    );
 
-    try {
-      const directUrl = TRAINING_AUDIT_ENDPOINT + '?action=getData';
-
-      response = await fetch(directUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        redirect: 'follow',
-      });
-
-      if (response.ok) {
-        data = await response.json();
-      } else {
-        throw new Error(`Direct request failed: ${response.status}`);
-      }
-    } catch (directError) {
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-      const targetUrl = TRAINING_AUDIT_ENDPOINT + '?action=getData';
-
-      response = await fetch(proxyUrl + targetUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        redirect: 'follow',
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        return STATIC_TRAINING_DATA as TrainingAuditSubmission[];
-      }
-
-      data = await response.json();
-    }
-
-    if (!Array.isArray(data)) {
+    if (data === null) {
+      console.warn('⚠️ [Training] Fetch failed, using static data');
       return STATIC_TRAINING_DATA as TrainingAuditSubmission[];
     }
 
+    if (!Array.isArray(data)) {
+      console.error('❌ [Training] Data is not an array! Type:', typeof data, 'Value:', JSON.stringify(data).substring(0, 200));
+      return STATIC_TRAINING_DATA as TrainingAuditSubmission[];
+    }
+
+    console.log(`✅ [Training] Processing ${data.length} records...`);
+
     // Load store mapping ONCE before processing all records (PERFORMANCE FIX)
     const mappingData = await loadStoreMapping();
+    
+    // PERFORMANCE: Build a Map index for O(1) store lookups instead of O(n) .find() per row
+    const storeIdIndex = new Map<string, any>();
+    const storeNameIndex = new Map<string, any>();
+    mappingData.forEach(mapping => {
+      const sid = mapping["Store ID"] || mapping.storeId;
+      if (sid) storeIdIndex.set(sid.toString(), mapping);
+      const sname = mapping["Store Name"] || mapping.storeName;
+      if (sname) storeNameIndex.set(sname.toLowerCase(), mapping);
+    });
 
-    // Process data to ensure proper region mapping and TSA score extraction
+    // PERFORMANCE: Merge region mapping + score recalculation into a single pass
     const processedData = data.map((row: any) => {
       let region = row.region || 'Unknown';
       let storeId = row.storeId;
@@ -922,89 +895,50 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
         region = 'North';
       }
 
-      // If region is Unknown or empty, try to map from store ID
+      // If region is Unknown or empty, try to map from store ID using indexed lookups
       if (!region || region === 'Unknown') {
-        try {
-          if (storeId) {
+        if (storeId) {
+          let storeMapping = storeIdIndex.get(storeId.toString());
 
-            // Try to find by exact store ID match first
-            let storeMapping = mappingData.find(mapping =>
-              mapping["Store ID"] === storeId.toString() ||
-              mapping.storeId === storeId.toString()
-            );
-
-            // If not found and storeId is numeric, try with S prefix
-            if (!storeMapping && !isNaN(storeId) && !storeId.toString().startsWith('S')) {
-              const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
-              storeMapping = mappingData.find(mapping =>
-                mapping["Store ID"] === sFormattedId ||
-                mapping.storeId === sFormattedId
-              );
-            }
-
-            // If still not found, try to match by store name if available
-            if (!storeMapping && row.storeName) {
-              storeMapping = mappingData.find(mapping => {
-                const mappingStoreName = mapping["Store Name"] || mapping.storeName || '';
-                const submissionStoreName = row.storeName;
-
-                return mappingStoreName.toLowerCase().includes(submissionStoreName.toLowerCase()) ||
-                  submissionStoreName.toLowerCase().includes(mappingStoreName.toLowerCase()) ||
-                  mappingStoreName.toLowerCase() === submissionStoreName.toLowerCase();
-              });
-            }
-
-            if (storeMapping && (storeMapping["Region"] || storeMapping.region)) {
-              region = storeMapping["Region"] || storeMapping.region;
-            }
+          // If not found and storeId is numeric, try with S prefix
+          if (!storeMapping && !isNaN(storeId) && !storeId.toString().startsWith('S')) {
+            const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
+            storeMapping = storeIdIndex.get(sFormattedId);
           }
-        } catch (error) {
-          // Mapping failed, use original values
+
+          // If still not found, try to match by store name
+          if (!storeMapping && row.storeName) {
+            storeMapping = storeNameIndex.get(row.storeName.toLowerCase());
+          }
+
+          if (storeMapping && (storeMapping["Region"] || storeMapping.region)) {
+            region = storeMapping["Region"] || storeMapping.region;
+          }
         }
       }
 
-      // Extract and map TSA scores - check multiple possible field names
-      // The Google Apps Script returns: tsaFoodScore, tsaCoffeeScore, tsaCXScore (camelCase)
-      // Also check legacy field names: TSA_TSA_1, TSA_TSA_2, TSA_TSA_3
+      // Extract and map TSA scores
       const tsaFoodScore = row.tsaFoodScore || row['tsaFoodScore'] || row.TSA_Food_Score || row['TSA_Food_Score'] || row.TSA_TSA_2 || row['TSA_TSA_2'] || '';
       const tsaCoffeeScore = row.tsaCoffeeScore || row['tsaCoffeeScore'] || row.TSA_Coffee_Score || row['TSA_Coffee_Score'] || row.TSA_TSA_1 || row['TSA_TSA_1'] || '';
       const tsaCXScore = row.tsaCXScore || row['tsaCXScore'] || row.TSA_CX_Score || row['TSA_CX_Score'] || row.TSA_TSA_3 || row['TSA_TSA_3'] || '';
 
-      return {
-        ...row,
-        region: region,
-        tsaCoffeeScore: tsaCoffeeScore,
-        tsaFoodScore: tsaFoodScore,
-        tsaCXScore: tsaCXScore
-      };
-    });
-
-    // CRITICAL FIX: Recalculate scores from individual question responses
-    // This fixes incorrect stored scores due to previous calculation bugs
-    const dataWithRecalculatedScores = processedData.map((row: any) => {
-      const recalculated = recalculateTrainingScore(row);
-      
-      // Log if there's a significant difference (for debugging)
-      const storedPct = parseFloat(row.percentageScore || '0');
-      const recalcPct = parseFloat(recalculated.percentageScore || '0');
-      if (Math.abs(storedPct - recalcPct) > 5) {
-        console.log(`📊 Score recalculation for ${row.storeName || row.storeId}:`, {
-          stored: `${row.totalScore}/${row.maxScore} (${storedPct}%)`,
-          recalculated: `${recalculated.totalScore}/${recalculated.maxScore} (${recalcPct}%)`
-        });
-      }
+      // Inline score recalculation (previously was a second .map() pass)
+      const rowWithTSA = { ...row, region, tsaCoffeeScore, tsaFoodScore, tsaCXScore };
+      const recalculated = recalculateTrainingScore(rowWithTSA);
 
       return {
-        ...row,
+        ...rowWithTSA,
         totalScore: recalculated.totalScore,
         maxScore: recalculated.maxScore,
         percentageScore: recalculated.percentageScore
       };
     });
 
-    return dataWithRecalculatedScores as TrainingAuditSubmission[];
+    console.log(`✅ [Training] Done! Returning ${processedData.length} processed records`);
+    return processedData as TrainingAuditSubmission[];
 
   } catch (error) {
+    console.error('❌ [Training] Outer catch - unexpected error:', error);
     return STATIC_TRAINING_DATA as TrainingAuditSubmission[];
   }
 };
@@ -1029,103 +963,45 @@ export interface QASubmission {
 // Fetch QA Assessment data
 export const fetchQAData = async (): Promise<QASubmission[]> => {
   try {
-    let response;
-    let data;
-
-    try {
-      const directUrl = QA_ENDPOINT + '?action=getData';
-
-      // Create an AbortController with 30 second timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-      try {
-        response = await fetch(directUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
-          redirect: 'follow',
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          data = await response.json();
-        } else {
-          throw new Error(`Direct request failed: ${response.status}`);
-        }
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-          throw new Error('Request timed out');
-        }
-        throw fetchError;
-      }
-    } catch (directError) {
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-      const targetUrl = QA_ENDPOINT + '?action=getData';
-
-      response = await fetch(proxyUrl + targetUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        redirect: 'follow',
-      });
-
-      if (response.ok) {
-        data = await response.json();
-      } else {
-        throw new Error(`CORS proxy request failed: ${response.status}`);
-      }
-    }
+    const data = await fetchWithRetry(
+      QA_ENDPOINT + '?action=getData',
+      'QA'
+    );
 
     if (!data || !Array.isArray(data)) {
+      console.warn('⚠️ [QA] No valid data, returning empty');
       return [];
     }
 
     // Process data to ensure region mapping
     const mappingData = await loadStoreMapping();
+    
+    // PERFORMANCE: Build indexed lookup for O(1) store lookups
+    const storeIdIndex = new Map<string, any>();
+    mappingData.forEach(mapping => {
+      const sid = mapping["Store ID"] || mapping.storeId;
+      if (sid) storeIdIndex.set(sid.toString(), mapping);
+    });
 
     const processedData = data.map((row: any) => {
       let region = row.region || 'Unknown';
 
       // Try to map region from store data if not already present
       if (region === 'Unknown' || !region) {
-        try {
-          let storeMapping = null;
-          const storeId = row.storeId || row.storeID;
+        const storeId = row.storeId || row.storeID;
 
-          if (storeId) {
-            // Try exact match first
-            storeMapping = mappingData.find(mapping =>
-              mapping["Store ID"] === storeId || mapping.storeId === storeId
-            );
+        if (storeId) {
+          let storeMapping = storeIdIndex.get(storeId.toString());
 
-            // If not found and it's a number, try finding with store name
-            if (!storeMapping) {
-              if (row.storeName) {
-                storeMapping = mappingData.find(mapping =>
-                  mapping["Store Name"] || mapping.locationName.toLowerCase().includes(row.storeName.toLowerCase()) ||
-                  row.storeName.toLowerCase().includes(mapping["Store Name"] || mapping.locationName.toLowerCase())
-                );
-              }
-            }
-
-            // If still not found with S prefix, try with S prefix
-            if (!storeMapping && !storeId.toString().startsWith('S')) {
-              const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
-              storeMapping = mappingData.find(mapping => mapping["Store ID"] || mapping.storeId === sFormattedId);
-            }
-
-            if (storeMapping && storeMapping["Region"] || storeMapping.region) {
-              region = storeMapping["Region"] || storeMapping.region;
-            }
+          // If not found with S prefix, try with S prefix
+          if (!storeMapping && !storeId.toString().startsWith('S')) {
+            const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
+            storeMapping = storeIdIndex.get(sFormattedId);
           }
-        } catch (error) {
-          // Mapping failed, use original values
+
+          if (storeMapping && (storeMapping["Region"] || storeMapping.region)) {
+            region = storeMapping["Region"] || storeMapping.region;
+          }
         }
       }
 
@@ -1339,42 +1215,14 @@ export interface FinanceSubmission {
 // Fetch Finance Audit data
 export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
   try {
-    let response;
-    let data;
+    let data = await fetchWithRetry(
+      FINANCE_ENDPOINT + '?action=getData',
+      'Finance'
+    );
 
-    try {
-      const directUrl = FINANCE_ENDPOINT + '?action=getData';
-
-      response = await fetch(directUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        redirect: 'follow',
-      });
-
-      if (response.ok) {
-        data = await response.json();
-      } else {
-        throw new Error(`Direct request failed: ${response.status}`);
-      }
-    } catch (directError) {
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-      const targetUrl = FINANCE_ENDPOINT + '?action=getData';
-
-      response = await fetch(proxyUrl + targetUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        redirect: 'follow',
-      });
-
-      if (response.ok) {
-        data = await response.json();
-      } else {
-        throw new Error(`CORS proxy request failed: ${response.status}`);
-      }
+    if (data === null) {
+      console.warn('⚠️ [Finance] Fetch failed, returning empty');
+      return [];
     }
 
     // Extract data array from response object
@@ -1417,6 +1265,13 @@ export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
 
     // Process data to ensure region mapping AND complete AM/Store data from comprehensive mapping
     const mappingData = await loadStoreMapping();
+    
+    // PERFORMANCE: Build indexed lookup for O(1) store lookups
+    const storeIdIndex = new Map<string, any>();
+    mappingData.forEach(mapping => {
+      const sid = mapping["Store ID"] || mapping.storeId;
+      if (sid) storeIdIndex.set(sid.toString(), mapping);
+    });
 
     const processedData = transformedData.map((row: any) => {
       let region = row.region || 'Unknown';
@@ -1426,30 +1281,15 @@ export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
 
       // Try to map complete store data from comprehensive mapping
       try {
-        let storeMapping = null;
         const storeId = row.storeId || row.storeID;
 
         if (storeId) {
-          // Try exact match first
-          storeMapping = mappingData.find(mapping =>
-            mapping["Store ID"] === storeId || mapping.storeId === storeId
-          );
+          let storeMapping = storeIdIndex.get(storeId.toString());
 
           // If not found and store ID doesn't start with S, try with S prefix
           if (!storeMapping && !storeId.toString().startsWith('S')) {
             const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
-            storeMapping = mappingData.find(mapping =>
-              mapping["Store ID"] === sFormattedId || mapping.storeId === sFormattedId
-            );
-          }
-
-          // If not found, try finding with store name
-          if (!storeMapping && row.storeName) {
-            storeMapping = mappingData.find(mapping =>
-              (mapping["Store Name"] || mapping.locationName)?.toLowerCase() === row.storeName.toLowerCase() ||
-              (mapping["Store Name"] || mapping.locationName)?.toLowerCase().includes(row.storeName.toLowerCase()) ||
-              row.storeName.toLowerCase().includes((mapping["Store Name"] || mapping.locationName)?.toLowerCase() || '')
-            );
+            storeMapping = storeIdIndex.get(sFormattedId);
           }
 
           if (storeMapping) {
@@ -1519,43 +1359,10 @@ export interface CampusHiringSubmission {
 // Fetch Campus Hiring data
 export const fetchCampusHiringData = async (): Promise<CampusHiringSubmission[]> => {
   try {
-    let response;
-    let data;
-
-    try {
-      const directUrl = CAMPUS_HIRING_ENDPOINT + '?action=getData';
-
-      response = await fetch(directUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        redirect: 'follow',
-      });
-
-      if (response.ok) {
-        data = await response.json();
-      } else {
-        throw new Error(`Direct request failed: ${response.status}`);
-      }
-    } catch (directError) {
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-      const targetUrl = CAMPUS_HIRING_ENDPOINT + '?action=getData';
-
-      response = await fetch(proxyUrl + targetUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        redirect: 'follow',
-      });
-
-      if (response.ok) {
-        data = await response.json();
-      } else {
-        throw new Error(`CORS proxy request failed: ${response.status}`);
-      }
-    }
+    const data = await fetchWithRetry(
+      CAMPUS_HIRING_ENDPOINT + '?action=getData',
+      'Campus Hiring'
+    );
 
     if (!data || !Array.isArray(data)) {
       return [];
@@ -1614,50 +1421,13 @@ export const fetchFinanceHistoricData = async (): Promise<FinanceHistoricData[]>
       return [];
     }
 
-    let response;
-    let data;
+    const result = await fetchWithRetry(
+      FINANCE_HISTORIC_ENDPOINT + '?action=getHistoricData',
+      'Finance Historic'
+    );
 
-    try {
-      const directUrl = FINANCE_HISTORIC_ENDPOINT + '?action=getHistoricData';
-
-      response = await fetch(directUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        redirect: 'follow',
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        data = result.data || [];
-      } else {
-        throw new Error(`Direct request failed: ${response.status}`);
-      }
-    } catch (directError) {
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-      const targetUrl = FINANCE_HISTORIC_ENDPOINT + '?action=getHistoricData';
-
-      response = await fetch(proxyUrl + targetUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        redirect: 'follow',
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        data = result.data || [];
-      } else {
-        throw new Error(`CORS proxy request failed: ${response.status}`);
-      }
-    }
-
-    if (!data || !Array.isArray(data)) {
-      return [];
-    }
-
+    const data = result?.data || [];
+    if (!Array.isArray(data)) return [];
     return data;
 
   } catch (error) {
@@ -1675,50 +1445,13 @@ export const fetchFinanceHistoricDataForStore = async (storeId: string): Promise
       return [];
     }
 
-    let response;
-    let data;
+    const result = await fetchWithRetry(
+      `${FINANCE_HISTORIC_ENDPOINT}?action=getHistoricDataForStore&storeId=${encodeURIComponent(storeId)}`,
+      `Finance Historic (${storeId})`
+    );
 
-    try {
-      const directUrl = `${FINANCE_HISTORIC_ENDPOINT}?action=getHistoricDataForStore&storeId=${encodeURIComponent(storeId)}`;
-
-      response = await fetch(directUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        redirect: 'follow',
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        data = result.data || [];
-      } else {
-        throw new Error(`Direct request failed: ${response.status}`);
-      }
-    } catch (directError) {
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-      const targetUrl = `${FINANCE_HISTORIC_ENDPOINT}?action=getHistoricDataForStore&storeId=${encodeURIComponent(storeId)}`;
-
-      response = await fetch(proxyUrl + targetUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        redirect: 'follow',
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        data = result.data || [];
-      } else {
-        throw new Error(`CORS proxy request failed: ${response.status}`);
-      }
-    }
-
-    if (!data || !Array.isArray(data)) {
-      return [];
-    }
-
+    const data = result?.data || [];
+    if (!Array.isArray(data)) return [];
     return data;
 
   } catch (error) {

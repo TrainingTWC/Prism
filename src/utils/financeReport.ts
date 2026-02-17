@@ -2,6 +2,22 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { EMBEDDED_LOGO } from '../assets/embeddedLogo';
 
+function formatDate(dateStr: string): string {
+  if (!dateStr || dateStr === 'N/A') return dateStr;
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return `${day}/${month}/${year}, ${hours}:${minutes} ${ampm}`;
+  } catch { return dateStr; }
+}
+
 interface FinanceSubmission {
   [key: string]: any;
 }
@@ -357,7 +373,7 @@ export const buildFinancePDF = async (
 
   // Metadata row: Date | Auditor | Store ID | Region
   const metaY = y + 8;
-  const dateStr = metadata.date || sub.submissionTime || sub.date || sub.Date || '';
+  const dateStr = formatDate(metadata.date || sub.submissionTime || sub.date || sub.Date || '');
   const auditor = metadata.auditorName || sub.financeName || sub.financeAuditorName || sub.auditor || sub.Auditor || '';
   const sid = metadata.storeId || sub.storeId || sub.store_id || sub.StoreID || '';
   const region = metadata.region || sub.region || sub.Region || '';

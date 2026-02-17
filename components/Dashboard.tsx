@@ -2480,8 +2480,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           meta.maxScore = 100;
         }
 
-        // Use component-level lastRefresh state for date
-        if (lastRefresh) meta.date = lastRefresh.toLocaleString();
+        // Use submission date from audit data (not download date)
+        if (reportData.length > 0) {
+          const firstRecord = reportData[0] as any;
+          meta.date = firstRecord.submissionTime || firstRecord.date || firstRecord.Date || firstRecord['Submission Time'] || '';
+        }
 
         const fileName = `TrainingAudit_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
         const pdf = await buildTrainingPDF(reportData as any, meta, { title: 'Training Audit Report' });
@@ -2548,7 +2551,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           meta.maxScore = 100;
         }
 
-        if (lastRefresh) meta.date = lastRefresh.toLocaleString();
+        // Use submission date from audit data (not download date)
+        if (reportData.length > 0) {
+          const firstRecord = reportData[0] as any;
+          meta.date = firstRecord.submissionTime || firstRecord.date || firstRecord.Date || firstRecord['Submission Time'] || '';
+        }
 
         const fileName = `AMOperations_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
         const pdf = await buildOperationsPDF(reportData as any, meta, { title: 'AM Operations Report' });
@@ -2590,8 +2597,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           meta.auditorName = firstRecord.auditorName || firstRecord.auditor || firstRecord.Auditor || '';
         }
 
-        // Date metadata
-        if (lastRefresh) meta.date = lastRefresh.toLocaleString();
+        // Use submission date from audit data (not download date)
+        if (reportData.length > 0) {
+          const firstRecord = reportData[0] as any;
+          meta.date = firstRecord.submissionTime || firstRecord.date || firstRecord.Date || firstRecord['Submission Time'] || '';
+        }
 
         const fileName = `QA_Assessment_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
 
@@ -2675,8 +2685,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           meta.amName = firstRecord.amName || firstRecord.am_name || '';
         }
 
-        // Date metadata
-        if (lastRefresh) meta.date = lastRefresh.toLocaleString();
+        // Use submission date from audit data (not download date)
+        if (reportData.length > 0) {
+          const firstRecord = reportData[0] as any;
+          meta.date = firstRecord.submissionTime || firstRecord.date || firstRecord.Date || firstRecord['Submission Time'] || '';
+        }
 
         const fileName = `HR_Survey_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
         const pdf = await buildHRPDF(reportData as any, meta, { title: 'HR Employee Survey' });
@@ -2778,11 +2791,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         // Pass active filters for title context
         meta.activeFilters = filters;
 
-        // Date metadata
+        // Use submission date from audit data (not download date)
         if (firstRecord && firstRecord['Submission Time']) {
           meta.date = firstRecord['Submission Time'];
-        } else if (lastRefresh) {
-          meta.date = lastRefresh.toLocaleString();
         }
 
         // Build descriptive filename based on active filter
@@ -2843,8 +2854,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           meta.auditorName = firstRecord.financeAuditorName || firstRecord.financeName || firstRecord['Finance Auditor Name'] || '';
         }
 
-        // Date metadata
-        if (lastRefresh) meta.date = lastRefresh.toLocaleString();
+        // Use submission date from audit data (not download date)
+        if (reportData.length > 0) {
+          const firstRecord = reportData[0] as any;
+          meta.date = firstRecord.submissionTime || firstRecord.date || firstRecord.Date || firstRecord['Submission Time'] || firstRecord['Finance Audit Date'] || '';
+        }
 
         const fileName = `Finance_Audit_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
 

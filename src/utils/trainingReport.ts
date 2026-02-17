@@ -11,6 +11,22 @@ interface ReportOptions {
 
 const mm = (val: number) => val; // placeholder for conversions if needed
 
+function formatDate(dateStr: string): string {
+  if (!dateStr || dateStr === 'N/A') return dateStr;
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return `${day}/${month}/${year}, ${hours}:${minutes} ${ampm}`;
+  } catch { return dateStr; }
+}
+
 // treat common NA-like values as Not Applicable
 function isNA(v: any) {
   if (v === undefined || v === null) return false;
@@ -299,7 +315,7 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
   // Metadata row: Date/Time | Auditor | Store ID & MOD (use metadata fallback to submission)
   // Simplified metadata row (compact single-line)
   const metaY = y + 8;
-  const dateStr = metadata.date || first.submissionTime || first.date || '';
+  const dateStr = formatDate(metadata.date || first.submissionTime || first.date || '');
   const trainer = metadata.trainerName || first.trainerName || '';
   const auditor = metadata.auditorName || first.auditorName || '';
   const sid = metadata.storeId || first.storeId || '';

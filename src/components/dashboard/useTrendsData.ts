@@ -96,33 +96,40 @@ function recalculateTrainingScore(submission: any): { totalScore: number; maxSco
 
 /**
  * Fetches raw training audit data from Google Sheets
+ * Includes retry logic to handle Chrome QUIC protocol errors
  */
 async function fetchGoogleSheets() {
-  try {
-    const url = TRAINING_AUDIT_ENDPOINT + '?action=getData';
-    
-    const r = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      redirect: 'follow',
-    });
-    
-    if (!r.ok) {
-      throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+  const url = TRAINING_AUDIT_ENDPOINT + '?action=getData';
+  const MAX_RETRIES = 3;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      console.log(`📡 [Trends] Attempt ${attempt}/${MAX_RETRIES} - fetching training data`);
+
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        redirect: 'follow',
+      });
+
+      if (!r.ok) {
+        throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+      }
+
+      const j = await r.json();
+      const rows = Array.isArray(j) ? j : (j.rows || []);
+      console.log(`✅ [Trends] Got ${rows.length} rows on attempt ${attempt}`);
+      return rows;
+    } catch (e) {
+      console.warn(`⚠️ [Trends] Attempt ${attempt}/${MAX_RETRIES} failed:`, e);
+      if (attempt < MAX_RETRIES) {
+        await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+      }
     }
-    
-    const j = await r.json();
-    
-    // Handle both array format (direct) and object format with rows property
-    const rows = Array.isArray(j) ? j : (j.rows || []);
-    
-    return rows;
-  } catch (e) {
-    console.error('Failed to fetch training audit data:', e);
-    return [];
   }
+
+  console.error('❌ [Trends] All retry attempts failed');
+  return [];
 }
 
 /**

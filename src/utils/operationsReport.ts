@@ -4,6 +4,22 @@ import { AMOperationsSubmission } from '../../services/dataService';
 import { OPERATIONS_QUESTIONS } from '../../constants';
 import { EMBEDDED_LOGO } from '../assets/embeddedLogo';
 
+function formatDate(dateStr: string): string {
+  if (!dateStr || dateStr === 'N/A') return dateStr;
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return `${day}/${month}/${year}, ${hours}:${minutes} ${ampm}`;
+  } catch { return dateStr; }
+}
+
 interface ReportOptions {
   title?: string;
   logoDataUrl?: string | null;
@@ -188,7 +204,7 @@ export const buildOperationsPDF = async (
   if (storeName) doc.text(storeName, 14, y + 2);
 
   const metaY = y + 8;
-  const dateStr = metadata.date || first.submissionTime || first.date || first.Date || '';
+  const dateStr = formatDate(metadata.date || first.submissionTime || first.date || first.Date || '');
   const auditor = metadata.auditorName || first.trainerName || first.auditor || first.Auditor || '';
   const sid = metadata.storeId || first.storeId || first.store_id || first.StoreID || '';
   const metaLine = [] as string[];
