@@ -299,7 +299,7 @@ const SENSORY_SECTIONS: ChecklistSection[] = [
       { id: 'ArtFacing', q: 'Is the latte art facing the customer with the handle on the right side', w: 5 },
       { id: 'Cover70', q: 'Did the latte art cover 70% of the cup surface', w: 3 },
       { id: 'FrothLevel', q: 'Was the froth level present as per TWC standard (Three Swipes- cappuccino, Two Swipes- Latte & One swipe- Flatwhite)', w: 4 },
-      { id: 'CupImage', q: 'Cup 1 and 2 - Image (All Together)', w: 0 },
+      { id: 'CupImage', q: 'Cup 1, 2 and 3 - Image (All Together)', w: 0 },
       { id: 'Smile', q: 'Did the barista smile and have an engaging interaction with the judge', w: 3 },
       { id: 'CounterClean', q: 'Did the barista leave the counter clean after finishing his/her performance', w: 3 }
     ]
