@@ -441,7 +441,11 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                 </nav>
               </div>
               
+              {/* Right side: Stats + Theme Toggle + Logout */}
               <div className="flex items-center gap-3">
+                <div className="text-sm text-gray-500 dark:text-slate-400">
+                  {checklistStats[activeChecklist]?.completed || 0}/{checklistStats[activeChecklist]?.total || 0} completed
+                </div>
                 <ThemeToggle />
                 <button
                   onClick={() => {
@@ -454,11 +458,6 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                 >
                   <LogOut className="w-5 h-5 text-gray-600 dark:text-slate-400" />
                 </button>
-              </div>
-              
-              {/* Checklist Stats */}
-              <div className="text-sm text-gray-500 dark:text-slate-400">
-                {checklistStats[activeChecklist]?.completed || 0}/{checklistStats[activeChecklist]?.total || 0} completed
               </div>
             </div>
           </div>

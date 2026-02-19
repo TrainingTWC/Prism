@@ -698,10 +698,41 @@ export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]>
       };
     });
 
-    console.log('Mapped data sample:', mappedData[0]);
+    // Normalize question keys: map offset IDs (OTA_101→OTA_1, FAS_201→FAS_1, etc.) and vice versa
+    // so all downstream components (section scores, radar, RCA) can find data regardless of format
+    const SECTION_OFFSETS: { [prefix: string]: number } = { OTA: 100, FAS: 200, FWS: 300, ENJ: 400, EX: 500 };
+    const normalizedData = mappedData.map((entry: any) => {
+      const normalized = { ...entry };
+      Object.keys(entry).forEach(key => {
+        const match = key.match(/^(CG|OTA|FAS|FWS|ENJ|EX)_(\d+)$/);
+        if (!match) return;
+        const [, prefix, numStr] = match;
+        const num = parseInt(numStr, 10);
+        const offset = SECTION_OFFSETS[prefix] || 0;
+
+        if (offset > 0) {
+          if (num > offset) {
+            // e.g. OTA_101 → also set OTA_1
+            const shortKey = `${prefix}_${num - offset}`;
+            if (normalized[shortKey] === undefined || normalized[shortKey] === '') {
+              normalized[shortKey] = entry[key];
+            }
+          } else {
+            // e.g. OTA_1 → also set OTA_101
+            const longKey = `${prefix}_${num + offset}`;
+            if (normalized[longKey] === undefined || normalized[longKey] === '') {
+              normalized[longKey] = entry[key];
+            }
+          }
+        }
+      });
+      return normalized;
+    });
+
+    console.log('Mapped data sample:', normalizedData[0]);
 
     // Process data using the helper function to ensure proper region mapping
-    const processedData = await applyRegionMapping(mappedData);
+    const processedData = await applyRegionMapping(normalizedData);
     console.log('Processed data length:', processedData.length);
     console.log('Processed data sample:', processedData[0]);
 

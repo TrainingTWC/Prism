@@ -1,23 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 interface RCACapaAnalysisProps {
   submissions: any[];
   questions: any[];
 }
 
+interface RCAIssue {
+  questionId: string;
+  questionTitle: string;
+  section: string;
+  sectionCode: string;
+  storesAffected: string[];
+  nonComplianceRate: number;
+  totalResponses: number;
+  noCount: number;
+}
+
+interface FiveWhyRCA {
+  issue: string;
+  section: string;
+  why1: string;
+  why2: string;
+  why3: string;
+  why4: string;
+  why5: string;
+  rootCause: string;
+  correctiveActions: { action: string; timeline: string }[];
+  preventiveActions: { action: string; timeline: string }[];
+}
+
 interface AnalysisResult {
-  problems: string[];
-  rootCauseAnalysis: {
-    problem: string;
-    why1: string;
-    why2: string;
-    why3: string;
-    why4: string;
-    why5: string;
-    rootCause: string;
-  }[];
-  correctiveActions: string[];
-  preventiveActions: string[];
+  issues: RCAIssue[];
+  rcaAnalyses: FiveWhyRCA[];
 }
 
 // Simple SVG icons
@@ -57,307 +72,232 @@ const ClipboardDocumentListIcon = ({ className }: { className: string }) => (
   </svg>
 );
 
+const ClockIcon = ({ className }: { className: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const SECTION_MAP: { [key: string]: string } = {
+  'CG': 'Cheerful Greeting (Store Appearance & Ambience)',
+  'OTA': 'Order Taking Assistance (POS & Sales)',
+  'FAS': 'Friendly & Accurate Service (Food Safety & Kitchen)',
+  'FWS': 'Feedback with Solution (Financial & People Mgmt)',
+  'ENJ': 'Enjoyable Experience (Customer Engagement)',
+  'EX': 'Excellence (Exit & Closure)'
+};
+
 const RCACapaAnalysis: React.FC<RCACapaAnalysisProps> = ({ submissions, questions }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [expandedRCA, setExpandedRCA] = useState<number | null>(null);
-  const [expandedProblems, setExpandedProblems] = useState(false);
+  const [activeTab, setActiveTab] = useState<'opportunities' | 'rcas' | 'actions' | null>(null);
+  const [expandedOpportunity, setExpandedOpportunity] = useState<Set<number>>(new Set());
+  const [expandedCorrective, setExpandedCorrective] = useState(true);
+  const [expandedPreventive, setExpandedPreventive] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // AI-style analysis functions (similar to AIInsights.tsx approach)
-  const performOperationalAnalysis = (data: any[], questions: any[]) => {
-    console.log('RCA AI: Performing operational analysis on', data.length, 'submissions');
-    console.log('RCA AI: Sample submission data:', data[0]); // Log first submission to see data structure
-    console.log('RCA AI: Questions count:', questions.length);
-    
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      console.log('RCA AI: No data for analysis, returning empty results');
-      return { problems: [], rootCauseAnalysis: [], correctiveActions: [], preventiveActions: [] };
+  const prevSubmissionsRef = useRef<any[]>(submissions);
+
+  // Reset analysis when filters change (submissions array changes)
+  useEffect(() => {
+    if (prevSubmissionsRef.current !== submissions) {
+      prevSubmissionsRef.current = submissions;
+      if (analysis) {
+        setAnalysis(null);
+        setError(null);
+        setExpandedRCA(null);
+        setExpandedOpportunity(new Set());
+        setActiveTab(null);
+      }
     }
+  }, [submissions]);
 
-    try {
-      // Problem Detection with AI-style categorization
-      const problemAreas = detectOperationalProblems(data, questions);
-      console.log('RCA AI: Detected problem areas:', problemAreas);
-      
-      const criticalProblems = problemAreas.slice(0, 3); // Top 3 critical issues
-
-      return {
-        problems: problemAreas,
-        rootCauseAnalysis: criticalProblems.map(problem => performRootCauseAnalysis(problem)),
-        correctiveActions: generateCorrectiveActions(problemAreas),
-        preventiveActions: generatePreventiveActions(problemAreas)
-      };
-    } catch (error) {
-      console.error('RCA AI Analysis Error:', error);
-      return { problems: [], rootCauseAnalysis: [], correctiveActions: [], preventiveActions: [] };
-    }
+  const toggleOpportunity = (idx: number) => {
+    setExpandedOpportunity(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
   };
 
-  const detectOperationalProblems = (data: any[], questions: any[]) => {
-    console.log('RCA AI: Detecting problems from', data.length, 'submissions and', questions.length, 'questions');
-    console.log('RCA AI: Sample submission keys:', data[0] ? Object.keys(data[0]) : 'No data');
-    console.log('RCA AI: Sample question IDs:', questions.slice(0, 5).map(q => q.id));
-    
-    const problems: any[] = [];
-    
-    // Look for "No" responses in each submission
-    questions.forEach((question, questionIndex) => {
-      const questionId = question.id; // e.g., 'CG_1', 'OTA_1', etc.
+  // Detect all "No" responses — these are the areas of opportunity
+  const detectIssues = (): RCAIssue[] => {
+    if (!submissions || !Array.isArray(submissions) || submissions.length === 0) return [];
+
+    const issues: RCAIssue[] = [];
+
+    questions.forEach((question: any) => {
+      const questionId = question.id;
       const questionTitle = question.title;
-      
-      // Get all responses for this question across all submissions
-      const allResponses = data.filter(submission => {
-        const response = submission[questionId];
-        return response && response !== '' && response !== 'N/A';
+      const sectionCode = questionId.split('_')[0]; // CG, OTA, FAS, etc.
+      const section = SECTION_MAP[sectionCode] || sectionCode;
+
+      const allResponses = submissions.filter((sub: any) => {
+        const r = sub[questionId];
+        return r && r !== '' && r !== 'N/A';
       });
-      
-      // Get specifically "No" responses (case insensitive)
-      const noResponses = data.filter(submission => {
-        const response = submission[questionId];
-        return response && typeof response === 'string' && response.toLowerCase().trim() === 'no';
+
+      const noResponses = submissions.filter((sub: any) => {
+        const r = sub[questionId];
+        return r && typeof r === 'string' && r.toLowerCase().trim() === 'no';
       });
-      
-      console.log(`RCA AI: Question ${questionId} ("${questionTitle}"): ${allResponses.length} total responses, ${noResponses.length} "No" responses`);
-      
-      // If there are any "No" responses, it's a compliance issue
+
       if (noResponses.length > 0) {
-        const storesWithIssues = noResponses.map(submission => 
-          submission.storeId || submission.store_id || submission.storeName || submission.store || 'Unknown Store'
-        ).filter((store, index, arr) => arr.indexOf(store) === index); // Remove duplicates
-        
-        const nonComplianceRate = allResponses.length > 0 ? (noResponses.length / allResponses.length) * 100 : 0;
-        
-        console.log(`RCA AI: Adding problem for "${questionTitle}": ${nonComplianceRate.toFixed(1)}% non-compliance, ${storesWithIssues.length} stores affected`);
-        
-        problems.push({
-          area: questionTitle,
-          description: `Non-compliance detected: ${questionTitle} - ${noResponses.length} "No" response(s)`,
-          severity: noResponses.length > 1 ? 'High' : 'Medium',
-          stores: storesWithIssues,
-          question: question,
-          questionId: questionId,
-          category: question.category || 'Operational',
-          impact: `${noResponses.length} store(s) reported "No" for: ${questionTitle}`,
-          frequency: noResponses.length,
-          nonComplianceRate: Math.round(nonComplianceRate),
-          totalResponses: allResponses.length
+        const stores = noResponses
+          .map((sub: any) => sub.storeName || sub.store_id || sub.storeId || sub.store || 'Unknown')
+          .filter((s: string, i: number, arr: string[]) => arr.indexOf(s) === i);
+
+        issues.push({
+          questionId,
+          questionTitle,
+          section,
+          sectionCode,
+          storesAffected: stores,
+          nonComplianceRate: allResponses.length > 0 ? Math.round((noResponses.length / allResponses.length) * 100) : 0,
+          totalResponses: allResponses.length,
+          noCount: noResponses.length
         });
       }
     });
 
-    console.log('RCA AI: Total problems detected before sorting:', problems.length);
-    
-    // Sort by frequency (highest first) and then by non-compliance rate
-    const sortedProblems = problems
-      .sort((a, b) => {
-        if (b.frequency !== a.frequency) {
-          return b.frequency - a.frequency;
-        }
-        return b.nonComplianceRate - a.nonComplianceRate;
-      })
-      .slice(0, 10); // Show up to 10 issues
-
-    console.log('RCA AI: Final sorted problems:', sortedProblems.length);
-    console.log('RCA AI: Problem details:', sortedProblems.map(p => `${p.area}: ${p.frequency} issues`));
-    
-    return sortedProblems;
+    return issues.sort((a, b) => b.noCount - a.noCount || b.nonComplianceRate - a.nonComplianceRate);
   };
 
-  const performRootCauseAnalysis = (problem: any) => {
-    const problemArea = problem.area || problem;
-    return {
-      problem: typeof problem === 'string' ? problem : problem.description,
-      why1: generateContextualWhy(problemArea, 1),
-      why2: generateContextualWhy(problemArea, 2),
-      why3: generateContextualWhy(problemArea, 3),
-      why4: generateContextualWhy(problemArea, 4),
-      why5: generateContextualWhy(problemArea, 5),
-      rootCause: generateContextualRootCause(problemArea)
-    };
-  };
+  // Call Gemini AI for proper 5-Why RCA
+  const callGeminiForRCA = async (issues: RCAIssue[]): Promise<FiveWhyRCA[]> => {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+    if (!apiKey) {
+      console.warn('No Gemini API key — using structured fallback');
+      return generateFallbackRCA(issues);
+    }
 
-  const generateContextualWhy = (problem: string, level: number) => {
-    const category = categorizeQuestion(problem);
-    
-    const whyResponses: { [key: string]: { [key: number]: string } } = {
-      'cleanliness': {
-        1: 'Daily cleaning checklists are not being completed or verified by shift supervisors',
-        2: 'Partners are unclear about specific cleaning standards for washrooms, counters, and equipment',
-        3: 'Store managers are not conducting hourly cleaning spot-checks during peak hours',
-        4: 'Cleaning supplies may be inadequate or partners are skipping steps to save time during rushes',
-        5: 'Store leadership has not made cleanliness a non-negotiable priority with clear consequences for non-compliance'
-      },
-      'staff-standards': {
-        1: 'Partners are not following TWC grooming guidelines for uniforms, hair, and jewelry',
-        2: 'New partners may not have received proper orientation on appearance standards during onboarding',
-        3: 'Shift supervisors are not providing immediate feedback when standards are not met',
-        4: 'There may be no clear accountability system for maintaining professional appearance throughout shifts',
-        5: 'Store culture has not established peer accountability where partners remind each other about standards'
-      },
-      'visual-standards': {
-        1: 'Daily visual merchandising checks are not being performed or tent cards/signage are outdated',
-        2: 'Partners responsible for visual setup lack training on current promotional materials and planograms',
-        3: 'Store managers are not reviewing promotional displays and menu boards during daily walk-throughs',
-        4: 'Communication about new promotions or visual changes is not reaching store level effectively',
-        5: 'Visual standards are not treated as equally important as operational tasks in daily priorities'
-      },
-      'temperature-equipment': {
-        1: 'Temperature checks with Therma Pen are not being done hourly or logs are not properly maintained',
-        2: 'Partners need refresher training on proper temperature monitoring procedures and equipment usage',
-        3: 'Shift supervisors are not verifying that temperature logs are accurate and up-to-date',
-        4: 'Equipment may need calibration or partners are rushing through temperature checks during busy periods',
-        5: 'Food safety culture has not been established as the highest priority in daily operations'
-      },
-      'financial-operations': {
-        1: 'POS procedures, cash handling, or banking processes are not being followed consistently',
-        2: 'Partners need additional training on cash management, audit procedures, or POS operations',
-        3: 'Store managers are not conducting daily cash audits or verifying banking reconciliation',
-        4: 'Partners may be taking shortcuts during busy periods affecting financial accuracy',
-        5: 'Financial accountability and accuracy has not been established as a core operational standard'
-      },
-      'training-development': {
-        1: 'Training schedules, coaching sessions, or development activities are not happening as planned',
-        2: 'Partners responsible for training others need additional coaching skills or resources',
-        3: 'Store managers are not monitoring training progress or providing ongoing development support',
-        4: 'Training time is being sacrificed for operational tasks during busy periods',
-        5: 'Continuous learning and development culture has not been prioritized in daily operations'
-      },
-      'operational': {
-        1: 'Standard operating procedures for the specific task are not being followed during busy periods',
-        2: 'Partners need refresher training on this specific operational requirement',
-        3: 'Shift supervisors are not monitoring and coaching this particular standard consistently',
-        4: 'The importance of this operational standard has not been clearly communicated to the team',
-        5: 'Store leadership has not established this as a fundamental non-negotiable operational requirement'
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+      const issueList = issues.map((issue, i) =>
+        `${i + 1}. [${issue.sectionCode}] "${issue.questionTitle}" — ${issue.noCount} store(s) marked No (${issue.nonComplianceRate}% non-compliance). Stores: ${issue.storesAffected.join(', ')}`
+      ).join('\n');
+
+      const prompt = `You are an expert café operations auditor for a café chain (TWC - The Waffle Company). Below are audit findings where stores were marked "No" (non-compliant).
+
+AUDIT FINDINGS (Areas of Opportunity):
+${issueList}
+
+For EACH issue above, provide a 5-Why Root Cause Analysis with corrective and preventive actions. Be highly specific to the exact issue. No generic fluff.
+
+RESPOND IN THIS EXACT JSON FORMAT (no markdown, no code blocks, just raw JSON):
+[
+  {
+    "issue": "exact question text",
+    "section": "section name",
+    "why1": "first why — what is the immediate observable problem",
+    "why2": "second why — why did that happen",
+    "why3": "third why — dig deeper into process/people",
+    "why4": "fourth why — systemic or training gap",
+    "why5": "fifth why — root organizational/cultural cause",
+    "rootCause": "one-line root cause statement",
+    "correctiveActions": [
+      {"action": "specific immediate fix action", "timeline": "e.g. Within 24 hours"},
+      {"action": "second corrective action", "timeline": "e.g. Within 1 week"}
+    ],
+    "preventiveActions": [
+      {"action": "specific long-term prevention", "timeline": "e.g. Ongoing weekly"},
+      {"action": "second preventive action", "timeline": "e.g. Within 2 weeks, then monthly"}
+    ]
+  }
+]
+
+RULES:
+- Each "why" must logically flow from the previous one, drilling deeper into the specific issue
+- Corrective actions = immediate fixes to resolve the current non-compliance
+- Preventive actions = systemic changes to prevent recurrence
+- Timelines must be realistic: immediate (24-48 hrs), short-term (1-2 weeks), ongoing
+- Be specific to café operations — mention roles (Store Manager, Shift Supervisor, MOD, AM, Partners)
+- Keep each response concise — max 1-2 sentences per field
+- Cover ALL ${issues.length} issues in your response`;
+
+      const result = await model.generateContent(prompt);
+      const responseText = result.response.text()?.trim() || '';
+
+      // Parse JSON — handle potential markdown wrapping
+      let jsonText = responseText;
+      if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
       }
-    };
-    
-    return whyResponses[category]?.[level] || whyResponses['operational'][level];
+
+      const parsed = JSON.parse(jsonText) as FiveWhyRCA[];
+      return parsed;
+    } catch (err) {
+      console.error('Gemini RCA call failed:', err);
+      return generateFallbackRCA(issues);
+    }
   };
 
-  const categorizeQuestion = (problem: string) => {
-    const lowerProblem = problem.toLowerCase();
-    if (lowerProblem.includes('clean') || lowerProblem.includes('washroom') || lowerProblem.includes('washrooms') || lowerProblem.includes('engine area') || lowerProblem.includes('equipment cleaned')) return 'cleanliness';
-    if (lowerProblem.includes('staff') || lowerProblem.includes('grooming') || lowerProblem.includes('uniform') || lowerProblem.includes('jewellery') || lowerProblem.includes('hair') || lowerProblem.includes('makeup')) return 'staff-standards';
-    if (lowerProblem.includes('signage') || lowerProblem.includes('display') || lowerProblem.includes('tent cards') || lowerProblem.includes('menu boards') || lowerProblem.includes('dmb') || lowerProblem.includes('promotional') || lowerProblem.includes('planogram') || lowerProblem.includes('merch rack') || lowerProblem.includes('fdu counter')) return 'visual-standards';
-    if (lowerProblem.includes('temperature') || lowerProblem.includes('equipment') || lowerProblem.includes('therma pen') || lowerProblem.includes('thawing')) return 'temperature-equipment';
-    if (lowerProblem.includes('pos') || lowerProblem.includes('cash') || lowerProblem.includes('banking') || lowerProblem.includes('audit')) return 'financial-operations';
-    if (lowerProblem.includes('training') || lowerProblem.includes('deployment') || lowerProblem.includes('coaching')) return 'training-development';
-    return 'operational';
-  };
+  // Structured fallback when no API key or API fails
+  const generateFallbackRCA = (issues: RCAIssue[]): FiveWhyRCA[] => {
+    return issues.map(issue => {
+      const q = issue.questionTitle.toLowerCase();
+      let context = 'operational standard';
+      if (q.includes('clean') || q.includes('washroom') || q.includes('engine area')) context = 'cleanliness & hygiene';
+      else if (q.includes('temperature') || q.includes('therma') || q.includes('thawing')) context = 'food safety protocol';
+      else if (q.includes('grooming') || q.includes('uniform') || q.includes('staff')) context = 'staff presentation';
+      else if (q.includes('signage') || q.includes('display') || q.includes('tent card') || q.includes('menu board') || q.includes('planogram')) context = 'visual merchandising';
+      else if (q.includes('cash') || q.includes('banking') || q.includes('pos') || q.includes('audit')) context = 'financial operations';
+      else if (q.includes('training') || q.includes('coaching') || q.includes('deployment')) context = 'training & development';
+      else if (q.includes('cctv') || q.includes('pest') || q.includes('maintenance')) context = 'safety & maintenance';
 
-  const generateContextualRootCause = (problem: string) => {
-    const category = categorizeQuestion(problem);
-    const rootCauses: { [key: string]: string } = {
-      'cleanliness': 'Absence of consistent daily cleaning accountability and verification by store management team',
-      'staff-standards': 'Lack of continuous coaching and peer accountability for professional appearance standards',
-      'visual-standards': 'Missing daily visual verification routine as part of standard opening/closing procedures',
-      'temperature-equipment': 'Insufficient hourly monitoring and logging procedures for food safety equipment standards',
-      'financial-operations': 'Lack of daily financial verification and accountability procedures by store management',
-      'training-development': 'Missing structured ongoing training and development accountability in daily operations',
-      'operational': 'Insufficient daily monitoring and coaching of this specific operational standard by leadership'
-    };
-    
-    return rootCauses[category] || rootCauses['operational'];
-  };
-
-  const generateCorrectiveActions = (problems: any[]) => {
-    const baseActions = [
-      'Area Manager to conduct immediate store visits within 48 hours to verify compliance and provide on-spot coaching',
-      'Store Manager to retrain all partners on identified non-compliance areas with demonstration and practice sessions',
-      'Implement daily manager checklist verification with photo documentation sent to Area Manager for 2 weeks'
-    ];
-    
-    const specificActions: string[] = [];
-    
-    // Check problem areas from objects
-    const problemAreas = problems.map(p => (typeof p === 'string' ? p : p.area || p.description || '').toLowerCase());
-    
-    if (problemAreas.some(area => area.includes('clean'))) {
-      specificActions.push('Conduct immediate deep clean of all affected areas and reset cleaning supply inventory with proper storage');
-    }
-    if (problemAreas.some(area => area.includes('staff') || area.includes('grooming'))) {
-      specificActions.push('Review grooming standards with each partner individually and provide uniform/grooming supplies if needed');
-    }
-    if (problemAreas.some(area => area.includes('signage') || area.includes('display') || area.includes('tent'))) {
-      specificActions.push('Replace all outdated promotional materials immediately and verify current planogram setup');
-    }
-    if (problemAreas.some(area => area.includes('temperature') || area.includes('equipment') || area.includes('therma'))) {
-      specificActions.push('Check and calibrate equipment immediately, document readings, and establish hourly monitoring routine');
-    }
-    if (problemAreas.some(area => area.includes('washroom'))) {
-      specificActions.push('Increase washroom cleaning frequency to every 2 hours with mandatory checklist completion and verification');
-    }
-    if (problemAreas.some(area => area.includes('pos') || area.includes('cash') || area.includes('banking'))) {
-      specificActions.push('Conduct immediate cash audit, verify banking procedures, and retrain all POS operators');
-    }
-    if (problemAreas.some(area => area.includes('training') || area.includes('coaching') || area.includes('deployment'))) {
-      specificActions.push('Immediately schedule training sessions for identified gaps and document completion with assessments');
-    }
-    
-    return [...baseActions, ...specificActions].slice(0, 4);
-  };
-
-  const generatePreventiveActions = (problems: any[]) => {
-    const baseActions = [
-      'Establish weekly Area Manager store visits with standardized checklist review and partner coaching sessions',
-      'Create daily opening/closing verification routine where Store Manager signs off on all compliance items',
-      'Implement peer buddy system where experienced partners mentor new team members on standards'
-    ];
-    
-    const specificActions: string[] = [];
-    
-    // Check problem areas from objects
-    const problemAreas = problems.map(p => (typeof p === 'string' ? p : p.area || p.description || '').toLowerCase());
-    
-    if (problemAreas.some(area => area.includes('clean'))) {
-      specificActions.push('Set hourly cleaning reminders and designate a \"Cleanliness Champion\" for each shift to do quick checks');
-    }
-    if (problemAreas.some(area => area.includes('staff') || area.includes('grooming'))) {
-      specificActions.push('Include grooming check as part of shift handover routine and recognize \"Best Groomed Partner\" weekly');
-    }
-    if (problemAreas.some(area => area.includes('signage') || area.includes('display'))) {
-      specificActions.push('Assign one partner per shift to be responsible for promotional display checks and updates');
-    }
-    if (problemAreas.some(area => area.includes('temperature') || area.includes('equipment') || area.includes('therma'))) {
-      specificActions.push('Create hourly equipment check routine with temperature log maintenance by designated partners');
-    }
-    if (problemAreas.some(area => area.includes('washroom'))) {
-      specificActions.push('Rotate washroom cleaning responsibility among all partners with mandatory 2-hour check intervals');
-    }
-    if (problemAreas.some(area => area.includes('pos') || area.includes('cash') || area.includes('banking'))) {
-      specificActions.push('Implement daily cash handling verification with dual sign-off and weekly POS skills assessment');
-    }
-    if (problemAreas.some(area => area.includes('training') || area.includes('coaching') || area.includes('deployment'))) {
-      specificActions.push('Create weekly training calendar with mandatory skills assessments and progress tracking');
-    }
-    
-    return [...baseActions, ...specificActions].slice(0, 4);
+      return {
+        issue: issue.questionTitle,
+        section: issue.section,
+        why1: `"${issue.questionTitle}" was marked No at ${issue.noCount} store(s) — the ${context} requirement was not met during the audit`,
+        why2: `Partners/MOD did not execute the ${context} checklist or skipped this step during the shift`,
+        why3: `Shift Supervisor did not verify completion or provide real-time coaching on ${context}`,
+        why4: `No structured daily accountability system in place for ${context} compliance tracking`,
+        why5: `Store leadership has not embedded ${context} as a non-negotiable daily priority with clear ownership`,
+        rootCause: `Lack of daily ownership, verification, and accountability for ${context} at store level`,
+        correctiveActions: [
+          { action: `AM to conduct immediate store visit and verify ${context} compliance on-ground`, timeline: 'Within 48 hours' },
+          { action: `Store Manager to retrain affected partners on "${issue.questionTitle}" with hands-on demonstration`, timeline: 'Within 1 week' },
+          { action: `Implement daily photo/checklist verification for this item sent to AM group`, timeline: 'Within 1 week' }
+        ],
+        preventiveActions: [
+          { action: `Add "${issue.questionTitle}" to daily opening/closing manager sign-off checklist`, timeline: 'Within 1 week, then ongoing' },
+          { action: `Weekly AM spot-check of ${context} with documented feedback to Store Manager`, timeline: 'Ongoing weekly' },
+          { action: `Include ${context} compliance in monthly store performance review`, timeline: 'Starting next review cycle' }
+        ]
+      };
+    });
   };
 
   const generateRCAAndCAPA = async () => {
     setIsAnalyzing(true);
-    
+    setError(null);
+
     try {
-      // Simulate AI processing time (like in AIInsights.tsx)
-      setTimeout(() => {
-        const analysisResults = performOperationalAnalysis(submissions, questions);
-        
-        if (analysisResults.problems.length === 0) {
-          setAnalysis({
-            problems: [],
-            rootCauseAnalysis: [],
-            correctiveActions: ['No significant issues identified. Continue monitoring current practices with regular audits.'],
-            preventiveActions: ['Maintain regular audit schedules and staff training to prevent future issues.']
-          });
-        } else {
-          setAnalysis(analysisResults);
-        }
-        
+      const issues = detectIssues();
+
+      if (issues.length === 0) {
+        setAnalysis({
+          issues: [],
+          rcaAnalyses: []
+        });
         setIsAnalyzing(false);
-      }, 2500); // Realistic AI processing time
-    } catch (error) {
-      console.error('Error generating analysis:', error);
+        return;
+      }
+
+      const rcaAnalyses = await callGeminiForRCA(issues);
+
+      setAnalysis({
+        issues,
+        rcaAnalyses
+      });
+    } catch (err) {
+      console.error('RCA Analysis error:', err);
+      setError('Analysis failed. Please try again.');
+    } finally {
       setIsAnalyzing(false);
     }
   };
@@ -400,7 +340,7 @@ const RCACapaAnalysis: React.FC<RCACapaAnalysisProps> = ({ submissions, question
 
       {isExpanded && (
         <div className="px-6 pb-6">
-          {!analysis && !isAnalyzing && (
+          {!analysis && !isAnalyzing && !error && (
             <div className="text-center py-8">
               <button
                 onClick={generateRCAAndCAPA}
@@ -409,7 +349,7 @@ const RCACapaAnalysis: React.FC<RCACapaAnalysisProps> = ({ submissions, question
                 <MagnifyingGlassIcon className="w-5 h-5" />
                 Generate AI Analysis
               </button>
-              <p className="text-gray-600 dark:text-slate-400 text-sm mt-2">AI will analyze operations data and provide actionable insights</p>
+              <p className="text-gray-600 dark:text-slate-400 text-sm mt-2">AI will analyze all non-compliant items and generate 5-Why RCA with action plans</p>
             </div>
           )}
 
@@ -417,156 +357,299 @@ const RCACapaAnalysis: React.FC<RCACapaAnalysisProps> = ({ submissions, question
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
               <p className="text-gray-900 dark:text-slate-300 mt-4 font-medium">AI Analysis in Progress...</p>
-              <p className="text-gray-600 dark:text-slate-400 text-sm mt-1">Identifying problems, conducting root cause analysis, and generating action plans</p>
+              <p className="text-gray-600 dark:text-slate-400 text-sm mt-1">Analyzing non-compliant items, building 5-Why RCA, generating action plans with timelines</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="text-center py-6">
+              <ExclamationTriangleIcon className="w-10 h-10 text-red-400 mx-auto mb-2" />
+              <p className="text-red-600 dark:text-red-400 font-medium">{error}</p>
+              <button onClick={generateRCAAndCAPA} className="mt-3 text-blue-600 dark:text-blue-400 text-sm underline">Try Again</button>
             </div>
           )}
 
           {analysis && (
             <div className="space-y-4">
-              {/* Compact Summary Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-gradient-to-br from-yellow-100 to-yellow-50 dark:from-yellow-900/30 dark:to-yellow-800/20 border border-yellow-300 dark:border-yellow-700/50 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-yellow-700 dark:text-yellow-400">{analysis.problems.length}</div>
-                  <div className="text-xs text-yellow-600 dark:text-yellow-200/80 mt-1">Issues Found</div>
-                </div>
-                <div className="bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/20 border border-blue-300 dark:border-blue-700/50 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-blue-700 dark:text-blue-400">{analysis.rootCauseAnalysis.length}</div>
-                  <div className="text-xs text-blue-600 dark:text-blue-200/80 mt-1">Root Causes</div>
-                </div>
-                <div className="bg-gradient-to-br from-red-100 to-red-50 dark:from-red-900/30 dark:to-red-800/20 border border-red-300 dark:border-red-700/50 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-red-700 dark:text-red-400">{analysis.correctiveActions.length}</div>
-                  <div className="text-xs text-red-600 dark:text-red-200/80 mt-1">Fix Now</div>
-                </div>
-                <div className="bg-gradient-to-br from-green-100 to-green-50 dark:from-green-900/30 dark:to-green-800/20 border border-green-300 dark:border-green-700/50 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-green-700 dark:text-green-400">{analysis.preventiveActions.length}</div>
-                  <div className="text-xs text-green-600 dark:text-green-200/80 mt-1">Prevent Future</div>
-                </div>
+              {/* Clickable Stat Cards */}
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={() => analysis.issues.length > 0 && setActiveTab(activeTab === 'opportunities' ? null : 'opportunities')}
+                  className={`bg-gradient-to-br from-yellow-100 to-yellow-50 dark:from-yellow-900/30 dark:to-yellow-800/20 rounded-lg p-4 text-center transition-all cursor-pointer ${
+                    activeTab === 'opportunities'
+                      ? 'border-2 border-yellow-500 dark:border-yellow-400 ring-2 ring-yellow-200 dark:ring-yellow-700 shadow-md scale-[1.02]'
+                      : 'border border-yellow-300 dark:border-yellow-700/50 hover:border-yellow-400 dark:hover:border-yellow-600 hover:shadow-sm'
+                  }`}
+                >
+                  <div className="text-3xl font-bold text-yellow-700 dark:text-yellow-400">{analysis.issues.length}</div>
+                  <div className="text-xs text-yellow-600 dark:text-yellow-200/80 mt-1">Areas of Opportunity</div>
+                </button>
+                <button
+                  onClick={() => analysis.issues.length > 0 && setActiveTab(activeTab === 'rcas' ? null : 'rcas')}
+                  className={`bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/20 rounded-lg p-4 text-center transition-all cursor-pointer ${
+                    activeTab === 'rcas'
+                      ? 'border-2 border-blue-500 dark:border-blue-400 ring-2 ring-blue-200 dark:ring-blue-700 shadow-md scale-[1.02]'
+                      : 'border border-blue-300 dark:border-blue-700/50 hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-sm'
+                  }`}
+                >
+                  <div className="text-3xl font-bold text-blue-700 dark:text-blue-400">{analysis.rcaAnalyses.length}</div>
+                  <div className="text-xs text-blue-600 dark:text-blue-200/80 mt-1">5-Why RCAs</div>
+                </button>
+                <button
+                  onClick={() => analysis.issues.length > 0 && setActiveTab(activeTab === 'actions' ? null : 'actions')}
+                  className={`bg-gradient-to-br from-green-100 to-green-50 dark:from-green-900/30 dark:to-green-800/20 rounded-lg p-4 text-center transition-all cursor-pointer ${
+                    activeTab === 'actions'
+                      ? 'border-2 border-green-500 dark:border-green-400 ring-2 ring-green-200 dark:ring-green-700 shadow-md scale-[1.02]'
+                      : 'border border-green-300 dark:border-green-700/50 hover:border-green-400 dark:hover:border-green-600 hover:shadow-sm'
+                  }`}
+                >
+                  <div className="text-3xl font-bold text-green-700 dark:text-green-400">
+                    {analysis.rcaAnalyses.reduce((sum, r) => sum + (r.correctiveActions?.length || 0) + (r.preventiveActions?.length || 0), 0)}
+                  </div>
+                  <div className="text-xs text-green-600 dark:text-green-200/80 mt-1">Action Items</div>
+                </button>
               </div>
 
-              {/* Top Issues - Compact View */}
-              {analysis.problems.length > 0 && (
-                <div className="bg-gray-50 dark:bg-slate-900/50 rounded-lg border border-gray-200 dark:border-slate-700">
-                  <button
-                    onClick={() => setExpandedProblems(!expandedProblems)}
-                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-slate-800/50 transition-colors rounded-t-lg"
-                  >
-                    <div className="flex items-center gap-2">
-                      <ExclamationTriangleIcon className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                      <h4 className="font-semibold text-gray-900 dark:text-slate-100">Top Issues ({analysis.problems.length})</h4>
-                    </div>
-                    {expandedProblems ? (
-                      <ChevronUpIcon className="w-4 h-4 text-gray-500 dark:text-slate-400" />
-                    ) : (
-                      <ChevronDownIcon className="w-4 h-4 text-gray-500 dark:text-slate-400" />
-                    )}
-                  </button>
-                  
-                  {expandedProblems && (
-                    <div className="px-4 pb-4 space-y-2">
-                      {analysis.problems.slice(0, 5).map((problem, index) => (
-                        <div key={index} className="bg-white dark:bg-slate-800/70 rounded-lg p-3 border-l-4 border-yellow-500">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <span className="font-medium text-gray-800 dark:text-slate-200 text-sm leading-tight">
-                              {typeof problem === 'string' ? problem : (problem && (problem as any).area) || String(problem)}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${
-                              (problem && (problem as any).severity) === 'High' 
-                                ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300' 
-                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300'
-                            }`}>
-                              {(problem && (problem as any).severity) || 'Medium'}
-                            </span>
-                          </div>
-                          {typeof problem === 'object' && (problem as any).stores && (
-                            <div className="text-xs text-gray-600 dark:text-slate-400 mt-1">
-                              🏪 {(problem as any).stores.length} store{(problem as any).stores.length > 1 ? 's' : ''} • 
-                              📊 {(problem as any).nonComplianceRate || 0}% issue rate
+              {analysis.issues.length === 0 ? (
+                <div className="text-center py-6 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700/50">
+                  <CheckCircleIcon className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                  <p className="text-green-700 dark:text-green-300 font-medium">All Clear! No non-compliant items found.</p>
+                  <p className="text-green-600 dark:text-green-400 text-sm mt-1">All checklist items are marked compliant. Keep up the great work!</p>
+                </div>
+              ) : activeTab ? (
+                <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 overflow-hidden">
+                  {/* Tab Header */}
+                  <div className={`px-4 py-2.5 border-b flex items-center gap-2 ${
+                    activeTab === 'opportunities' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700/50' :
+                    activeTab === 'rcas' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700/50' :
+                    'bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-indigo-200 dark:border-indigo-700/50'
+                  }`}>
+                    {activeTab === 'opportunities' && <ExclamationTriangleIcon className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />}
+                    {activeTab === 'rcas' && <MagnifyingGlassIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                    {activeTab === 'actions' && <ClipboardDocumentListIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />}
+                    <span className="font-semibold text-sm text-gray-900 dark:text-slate-100">
+                      {activeTab === 'opportunities' ? `Areas of Opportunity (${analysis.issues.length})` :
+                       activeTab === 'rcas' ? `5-Why Root Cause Analyses (${analysis.rcaAnalyses.length})` :
+                       'CAPA \u2014 Corrective & Preventive Actions'}
+                    </span>
+                  </div>
+
+                  {/* Scrollable Content */}
+                  <div className="max-h-[420px] overflow-y-auto p-3 space-y-2">
+                    {/* === Opportunities Tab === */}
+                    {activeTab === 'opportunities' && analysis.issues.map((issue, idx) => {
+                      const matchingRCA = analysis.rcaAnalyses.find(r => r.issue === issue.questionTitle);
+                      const isOpen = expandedOpportunity.has(idx);
+                      return (
+                        <div key={idx} className={`bg-white dark:bg-slate-800/70 rounded-lg overflow-hidden border-l-4 ${issue.noCount > 1 ? 'border-red-500' : 'border-yellow-500'}`}>
+                          <button
+                            onClick={() => toggleOpportunity(idx)}
+                            className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors text-left"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="font-medium text-gray-800 dark:text-slate-200 text-sm leading-tight">{issue.questionTitle}</span>
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap flex-shrink-0 ${
+                                  issue.noCount > 1
+                                    ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300'
+                                    : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300'
+                                }`}>
+                                  {issue.noCount > 1 ? 'High' : 'Medium'}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                                <span className="font-medium text-gray-600 dark:text-slate-300">{issue.sectionCode}</span> &middot; {issue.storesAffected.length} store(s) &middot; {issue.nonComplianceRate}% non-compliance
+                              </div>
+                            </div>
+                            {isOpen ? (
+                              <ChevronUpIcon className="w-4 h-4 text-gray-400 dark:text-slate-500 flex-shrink-0 ml-2" />
+                            ) : (
+                              <ChevronDownIcon className="w-4 h-4 text-gray-400 dark:text-slate-500 flex-shrink-0 ml-2" />
+                            )}
+                          </button>
+
+                          {isOpen && matchingRCA && (
+                            <div className="border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/30 px-4 py-3">
+                              <div className="text-xs font-semibold text-gray-600 dark:text-slate-400 mb-2">5-Why Root Cause Analysis</div>
+                              <div className="space-y-1.5">
+                                {[
+                                  { label: 'Why 1', value: matchingRCA.why1 },
+                                  { label: 'Why 2', value: matchingRCA.why2 },
+                                  { label: 'Why 3', value: matchingRCA.why3 },
+                                  { label: 'Why 4', value: matchingRCA.why4 },
+                                  { label: 'Why 5', value: matchingRCA.why5 }
+                                ].map((w, i) => (
+                                  <div key={i} className="flex gap-2 text-xs">
+                                    <span className="text-gray-500 dark:text-slate-500 font-semibold w-14 flex-shrink-0">{w.label}:</span>
+                                    <span className="text-gray-700 dark:text-slate-300">{w.value}</span>
+                                  </div>
+                                ))}
+                                <div className="flex gap-2 text-xs mt-2 pt-2 border-t border-gray-200 dark:border-slate-700">
+                                  <span className="text-blue-600 dark:text-blue-400 font-semibold w-14 flex-shrink-0">Root:</span>
+                                  <span className="text-blue-700 dark:text-blue-300 font-semibold">{matchingRCA.rootCause}</span>
+                                </div>
+                              </div>
+                              {issue.storesAffected.length > 0 && (
+                                <div className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-700">
+                                  <span className="text-xs text-gray-500 dark:text-slate-400">Stores: </span>
+                                  <span className="text-xs text-gray-700 dark:text-slate-300 font-medium">{issue.storesAffected.join(', ')}</span>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                      );
+                    })}
 
-              {/* Root Cause Analysis - Collapsible Cards */}
-              {analysis.rootCauseAnalysis.length > 0 && (
-                <div className="bg-gray-50 dark:bg-slate-900/50 rounded-lg border border-gray-200 dark:border-slate-700 p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <MagnifyingGlassIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    <h4 className="font-semibold text-gray-900 dark:text-slate-100">5-Why Analysis</h4>
-                  </div>
-                  <div className="space-y-2">
-                    {analysis.rootCauseAnalysis.map((rca, index) => (
-                      <div key={index} className="bg-white dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    {/* === 5-Why RCAs Tab === */}
+                    {activeTab === 'rcas' && analysis.rcaAnalyses.map((rca, rIdx) => (
+                      <div key={rIdx} className="bg-white dark:bg-slate-800/70 rounded-lg border border-blue-200 dark:border-blue-700/40 overflow-hidden">
                         <button
-                          onClick={() => setExpandedRCA(expandedRCA === index ? null : index)}
-                          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors text-left"
+                          onClick={() => setExpandedRCA(expandedRCA === rIdx ? null : rIdx)}
+                          className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors text-left"
                         >
-                          <span className="font-medium text-gray-800 dark:text-slate-200 text-sm">{rca.problem}</span>
-                          {expandedRCA === index ? (
-                            <ChevronUpIcon className="w-4 h-4 text-gray-500 dark:text-slate-400 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <span className="font-medium text-gray-800 dark:text-slate-200 text-sm leading-tight">{rca.issue}</span>
+                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{rca.section}</div>
+                          </div>
+                          {expandedRCA === rIdx ? (
+                            <ChevronUpIcon className="w-4 h-4 text-blue-400 dark:text-blue-500 flex-shrink-0 ml-2" />
                           ) : (
-                            <ChevronDownIcon className="w-4 h-4 text-gray-500 dark:text-slate-400 flex-shrink-0" />
+                            <ChevronDownIcon className="w-4 h-4 text-blue-400 dark:text-blue-500 flex-shrink-0 ml-2" />
                           )}
                         </button>
-                        
-                        {expandedRCA === index && (
-                          <div className="px-4 pb-3 space-y-1.5 border-t border-gray-200 dark:border-slate-700 pt-3 bg-gray-50 dark:bg-slate-800/30">
-                            <div className="flex gap-2 text-xs"><span className="text-gray-500 dark:text-slate-500 font-medium w-14">Why 1:</span><span className="text-gray-700 dark:text-slate-300">{rca.why1}</span></div>
-                            <div className="flex gap-2 text-xs"><span className="text-gray-500 dark:text-slate-500 font-medium w-14">Why 2:</span><span className="text-gray-700 dark:text-slate-300">{rca.why2}</span></div>
-                            <div className="flex gap-2 text-xs"><span className="text-gray-500 dark:text-slate-500 font-medium w-14">Why 3:</span><span className="text-gray-700 dark:text-slate-300">{rca.why3}</span></div>
-                            <div className="flex gap-2 text-xs"><span className="text-gray-500 dark:text-slate-500 font-medium w-14">Why 4:</span><span className="text-gray-700 dark:text-slate-300">{rca.why4}</span></div>
-                            <div className="flex gap-2 text-xs"><span className="text-gray-500 dark:text-slate-500 font-medium w-14">Why 5:</span><span className="text-gray-700 dark:text-slate-300">{rca.why5}</span></div>
-                            <div className="flex gap-2 text-xs mt-2 pt-2 border-t border-gray-200 dark:border-slate-700">
-                              <span className="text-blue-600 dark:text-blue-400 font-medium w-14">Root:</span>
-                              <span className="text-blue-700 dark:text-blue-300 font-medium">{rca.rootCause}</span>
+                        {expandedRCA === rIdx && (
+                          <div className="border-t border-blue-200 dark:border-blue-700/40 bg-blue-50/30 dark:bg-blue-900/10 px-4 py-3 space-y-1.5">
+                            {[
+                              { label: 'Why 1', value: rca.why1 },
+                              { label: 'Why 2', value: rca.why2 },
+                              { label: 'Why 3', value: rca.why3 },
+                              { label: 'Why 4', value: rca.why4 },
+                              { label: 'Why 5', value: rca.why5 }
+                            ].map((w, i) => (
+                              <div key={i} className="flex gap-2 text-xs">
+                                <span className="text-blue-500 dark:text-blue-400 font-semibold w-14 flex-shrink-0">{w.label}:</span>
+                                <span className="text-gray-700 dark:text-slate-300">{w.value}</span>
+                              </div>
+                            ))}
+                            <div className="flex gap-2 text-xs mt-2 pt-2 border-t border-blue-200 dark:border-blue-700/40">
+                              <span className="text-blue-600 dark:text-blue-300 font-bold w-14 flex-shrink-0">Root:</span>
+                              <span className="text-blue-700 dark:text-blue-200 font-semibold">{rca.rootCause}</span>
                             </div>
                           </div>
                         )}
                       </div>
                     ))}
+
+                    {/* === Actions (CAPA) Tab === */}
+                    {activeTab === 'actions' && (
+                      <div className="space-y-3">
+                        {/* Corrective Actions */}
+                        <div className="bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-900/15 dark:to-red-800/10 rounded-lg border border-red-200 dark:border-red-700/40 overflow-hidden">
+                          <button
+                            onClick={() => setExpandedCorrective(!expandedCorrective)}
+                            className="w-full px-4 py-3 flex items-center justify-between hover:bg-red-100/50 dark:hover:bg-red-900/10 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                              <span className="font-semibold text-red-800 dark:text-red-200 text-sm">Corrective Actions \u2014 Fix Now</span>
+                              <span className="text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded">
+                                {analysis.rcaAnalyses.reduce((sum, r) => sum + (r.correctiveActions?.length || 0), 0)}
+                              </span>
+                            </div>
+                            {expandedCorrective ? (
+                              <ChevronUpIcon className="w-4 h-4 text-red-400 dark:text-red-500" />
+                            ) : (
+                              <ChevronDownIcon className="w-4 h-4 text-red-400 dark:text-red-500" />
+                            )}
+                          </button>
+                          {expandedCorrective && (
+                            <div className="px-4 pb-4 space-y-3">
+                              {analysis.rcaAnalyses.map((rca, rIdx) => (
+                                (rca.correctiveActions && rca.correctiveActions.length > 0) && (
+                                  <div key={rIdx}>
+                                    <div className="text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1.5 truncate" title={rca.issue}>
+                                      {rca.issue}
+                                    </div>
+                                    <div className="space-y-1.5 ml-2">
+                                      {rca.correctiveActions.map((ca, i) => (
+                                        <div key={i} className="flex items-start gap-2 text-xs">
+                                          <span className="text-red-600 dark:text-red-400 font-bold flex-shrink-0">&bull;</span>
+                                          <div className="flex-1">
+                                            <span className="text-gray-700 dark:text-slate-300">{typeof ca === 'string' ? ca : ca.action}</span>
+                                            {typeof ca !== 'string' && ca.timeline && (
+                                              <span className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded text-[10px] font-medium">
+                                                <ClockIcon className="w-3 h-3" />
+                                                {ca.timeline}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Preventive Actions */}
+                        <div className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/15 dark:to-green-800/10 rounded-lg border border-green-200 dark:border-green-700/40 overflow-hidden">
+                          <button
+                            onClick={() => setExpandedPreventive(!expandedPreventive)}
+                            className="w-full px-4 py-3 flex items-center justify-between hover:bg-green-100/50 dark:hover:bg-green-900/10 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <CheckCircleIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
+                              <span className="font-semibold text-green-800 dark:text-green-200 text-sm">Preventive Actions \u2014 Long-term</span>
+                              <span className="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">
+                                {analysis.rcaAnalyses.reduce((sum, r) => sum + (r.preventiveActions?.length || 0), 0)}
+                              </span>
+                            </div>
+                            {expandedPreventive ? (
+                              <ChevronUpIcon className="w-4 h-4 text-green-400 dark:text-green-500" />
+                            ) : (
+                              <ChevronDownIcon className="w-4 h-4 text-green-400 dark:text-green-500" />
+                            )}
+                          </button>
+                          {expandedPreventive && (
+                            <div className="px-4 pb-4 space-y-3">
+                              {analysis.rcaAnalyses.map((rca, rIdx) => (
+                                (rca.preventiveActions && rca.preventiveActions.length > 0) && (
+                                  <div key={rIdx}>
+                                    <div className="text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1.5 truncate" title={rca.issue}>
+                                      {rca.issue}
+                                    </div>
+                                    <div className="space-y-1.5 ml-2">
+                                      {rca.preventiveActions.map((pa, i) => (
+                                        <div key={i} className="flex items-start gap-2 text-xs">
+                                          <span className="text-green-600 dark:text-green-400 font-bold flex-shrink-0">&bull;</span>
+                                          <div className="flex-1">
+                                            <span className="text-gray-700 dark:text-slate-300">{typeof pa === 'string' ? pa : pa.action}</span>
+                                            {typeof pa !== 'string' && pa.timeline && (
+                                              <span className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded text-[10px] font-medium">
+                                                <ClockIcon className="w-3 h-3" />
+                                                {pa.timeline}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              {/* Actions - Side by Side */}
-              <div className="grid md:grid-cols-2 gap-4">
-                {/* Corrective Actions */}
-                <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/10 rounded-lg border border-red-300 dark:border-red-700/50 p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                    <h4 className="font-semibold text-red-800 dark:text-red-200 text-sm">Immediate Actions</h4>
-                  </div>
-                  <ul className="space-y-2">
-                    {analysis.correctiveActions.map((action, index) => (
-                      <li key={index} className="text-gray-800 dark:text-slate-300 text-xs flex items-start gap-2 leading-relaxed">
-                        <span className="text-red-600 dark:text-red-400 font-bold flex-shrink-0">{index + 1}.</span>
-                        <span>{action}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Preventive Actions */}
-                <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/10 rounded-lg border border-green-300 dark:border-green-700/50 p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <CheckCircleIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    <h4 className="font-semibold text-green-800 dark:text-green-200 text-sm">Long-term Prevention</h4>
-                  </div>
-                  <ul className="space-y-2">
-                    {analysis.preventiveActions.map((action, index) => (
-                      <li key={index} className="text-gray-800 dark:text-slate-300 text-xs flex items-start gap-2 leading-relaxed">
-                        <span className="text-green-600 dark:text-green-400 font-bold flex-shrink-0">{index + 1}.</span>
-                        <span>{action}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Compact Regenerate Button */}
+              {/* Regenerate */}
               <div className="flex justify-center pt-2">
                 <button
                   onClick={generateRCAAndCAPA}

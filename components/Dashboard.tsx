@@ -902,9 +902,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       filtered = filtered.filter(submission => submission.storeID === filters.store);
     }
 
-    // Filter by area manager
+    // Filter by area manager (case-insensitive)
     if (filters.am) {
-      filtered = filtered.filter(submission => submission.amId === filters.am);
+      const filterAmId = normalizeId(filters.am);
+      filtered = filtered.filter(submission => normalizeId(submission.amId) === filterAmId || normalizeId((submission as any).am) === filterAmId);
     }
 
     // Filter by trainer (for Training/Operations/QA dashboards)
@@ -1113,7 +1114,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         return false;
       }
 
-      if (filters.am && submission['Area Manager'] !== filters.am) {
+      if (filters.am && normalizeId(submission['Area Manager']) !== normalizeId(filters.am)) {
         return false;
       }
 
@@ -1174,16 +1175,28 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         return false;
       }
 
-      if (filters.store && submission.storeId !== filters.store) {
+      if (filters.store && normalizeId(submission.storeId) !== normalizeId(filters.store)) {
         return false;
       }
 
-      if (filters.am && submission.amId !== filters.am) {
-        return false;
+      if (filters.am) {
+        const filterAmId = normalizeId(filters.am);
+        const submissionAmId = normalizeId(submission.amId);
+        // Also check the 'am' field from store mapping (may contain AM ID)
+        const submissionAm = normalizeId((submission as any).am);
+        if (submissionAmId !== filterAmId && submissionAm !== filterAmId) {
+          return false;
+        }
       }
 
-      if (filters.trainer && submission.hrId !== filters.trainer) {
-        return false;
+      if (filters.trainer) {
+        const filterTrainerId = normalizeId(filters.trainer);
+        const matchesHrId = normalizeId(submission.hrId) === filterTrainerId;
+        const matchesTrainerId = normalizeId(submission.trainerId) === filterTrainerId;
+        const matchesTrainer = normalizeId((submission as any).trainer) === filterTrainerId;
+        if (!matchesHrId && !matchesTrainerId && !matchesTrainer) {
+          return false;
+        }
       }
 
       // Apply month filter
@@ -1252,8 +1265,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         return false;
       }
 
-      if (filters.am && submission.amId !== filters.am) {
-        return false;
+      if (filters.am) {
+        const filterAmId = normalizeId(filters.am);
+        if (normalizeId(submission.amId) !== filterAmId && normalizeId((submission as any).am) !== filterAmId) {
+          return false;
+        }
       }
 
       // For training, trainer filter maps to trainer field
@@ -1376,8 +1392,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         return false;
       }
 
-      if (filters.am && submission.amId !== filters.am) {
-        return false;
+      if (filters.am) {
+        const filterAmId = normalizeId(filters.am);
+        if (normalizeId(submission.amId) !== filterAmId && normalizeId((submission as any).am) !== filterAmId) {
+          return false;
+        }
       }
 
       if (trainerFilterId) {
@@ -1459,8 +1478,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         return false;
       }
 
-      if (filters.am && submission.amId !== filters.am) {
-        return false;
+      if (filters.am) {
+        const filterAmId = normalizeId(filters.am);
+        if (normalizeId(submission.amId) !== filterAmId && normalizeId((submission as any).am) !== filterAmId) {
+          return false;
+        }
       }
 
       // For QA, hr filter can map to qaId
@@ -1534,8 +1556,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         return false;
       }
 
-      if (filters.am && submission.amId !== filters.am) {
-        return false;
+      if (filters.am) {
+        const filterAmId = normalizeId(filters.am);
+        if (normalizeId(submission.amId) !== filterAmId && normalizeId((submission as any).am) !== filterAmId) {
+          return false;
+        }
       }
 
       // For Finance, hr filter can map to financeId
@@ -1657,7 +1682,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             // Apply filters (same semantics as filteredTrainingData but WITHOUT deduplication)
             if (filters.region && submission.region !== filters.region) return false;
             if (filters.store && (submission.storeId !== filters.store && submission.storeID !== filters.store && submission.store_id !== filters.store)) return false;
-            if (filters.am && submission.amId !== filters.am) return false;
+            if (filters.am && normalizeId(submission.amId) !== normalizeId(filters.am) && normalizeId((submission as any).am) !== normalizeId(filters.am)) return false;
             if (trainerFilterId) {
               const sTrainer = normalizeId((submission as any).trainerId) || normalizeId((submission as any).trainer) || normalizeId(submission.hrId);
               if (!sTrainer || sTrainer !== trainerFilterId) return false;
@@ -6395,7 +6420,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     <OperationsRegionPerformanceInfographic submissions={filteredAMOperations} />
                     <OperationsAMPerformanceInfographic submissions={filteredAMOperations} />
-                    <OperationsHRPerformanceInfographic submissions={filteredAMOperations} />
+                    <OperationsHRPerformanceInfographic submissions={filteredAMOperations} hrPersonnel={allHRPersonnel} />
                   </div>
 
                   {/* New Operational Metrics Section with Error Boundary */}

@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import LoadingOverlay from '../LoadingOverlay';
 import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
+import { useComprehensiveMapping } from '../../hooks/useComprehensiveMapping';
 
 // Define section structure
 interface ChecklistItem {
@@ -312,11 +313,12 @@ const LOG_ENDPOINTS = [
 
 const BrewLeagueRegionRound: React.FC = () => {
   const urlParams = new URLSearchParams(window.location.search);
-  const judgeName = urlParams.get('judgeName') || urlParams.get('name') || '';
+  const [judgeName, setJudgeName] = useState(() => localStorage.getItem('brewLeagueRegionJudgeName') || urlParams.get('judgeName') || urlParams.get('name') || '');
   const judgeId = urlParams.get('judgeId') || urlParams.get('EMPID') || '';
   
   // Employee directory for searchable dropdown
   const { directory: employeeDirectory, loading: employeeLoading } = useEmployeeDirectory();
+  const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
   const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
 
@@ -359,7 +361,44 @@ const BrewLeagueRegionRound: React.FC = () => {
     localStorage.setItem('brewLeagueRegionRegion', region);
     localStorage.setItem('brewLeagueRegionImgs', JSON.stringify(imgs));
     localStorage.setItem('brewLeagueRegionRemarks', JSON.stringify(remarks));
-  }, [resp, participantName, participantEmpID, storeName, storeID, imgs, remarks]);
+    localStorage.setItem('brewLeagueRegionJudgeName', judgeName);
+  }, [resp, participantName, participantEmpID, storeName, storeID, imgs, remarks, judgeName]);
+
+  // Autofill store details when participant is selected
+  useEffect(() => {
+    if (!participantEmpID || employeeLoading || mappingLoading) return;
+
+    const normalizedEmpId = participantEmpID.toString().trim().toUpperCase();
+    const employee = employeeDirectory.byId[normalizedEmpId];
+
+    if (employee) {
+      if (!participantName || participantName === '') {
+        setParticipantName(employee.empname || '');
+      }
+
+      const employeeStoreCode = employee.store_code || employee.location;
+
+      if (employeeStoreCode && comprehensiveMapping.length > 0) {
+        const normalizedStoreCode = employeeStoreCode.toString().trim().toUpperCase();
+        const storeData = comprehensiveMapping.find((s: any) =>
+          s['Store ID']?.toString().trim().toUpperCase() === normalizedStoreCode ||
+          s['Store Name']?.toLowerCase().includes(employeeStoreCode.toLowerCase())
+        );
+
+        if (storeData) {
+          if (!storeName || storeName === '') {
+            setStoreName(storeData['Store Name'] || '');
+          }
+          if (!storeID || storeID === '') {
+            setStoreID(storeData['Store ID'] || '');
+          }
+          if (!region || region === '') {
+            setRegion(storeData['Region'] || '');
+          }
+        }
+      }
+    }
+  }, [participantEmpID, employeeDirectory, comprehensiveMapping, employeeLoading, mappingLoading]);
 
   useEffect(() => {
     localStorage.setItem('brewLeagueRegionScoresheetType', scoresheetType);
@@ -741,11 +780,13 @@ const BrewLeagueRegionRound: React.FC = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Judge Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Judge Name *</label>
               <input 
-                readOnly 
-                value={judgeName} 
-                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 cursor-not-allowed"
+                value={judgeName}
+                onChange={e => setJudgeName(e.target.value)}
+                required
+                placeholder="Enter judge name"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
               />
             </div>
             <div>

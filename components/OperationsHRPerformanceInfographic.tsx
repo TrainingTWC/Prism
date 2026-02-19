@@ -4,6 +4,7 @@ import InfographicCard from './InfographicCard';
 
 interface OperationsHRPerformanceInfographicProps {
   submissions: AMOperationsSubmission[];
+  hrPersonnel?: { id: string; name: string }[];
 }
 
 const PerformanceStat: React.FC<{
@@ -25,16 +26,40 @@ const PerformanceStat: React.FC<{
     </div>
 );
 
-const OperationsHRPerformanceInfographic: React.FC<OperationsHRPerformanceInfographicProps> = ({ submissions }) => {
+const OperationsHRPerformanceInfographic: React.FC<OperationsHRPerformanceInfographicProps> = ({ submissions, hrPersonnel }) => {
     const performanceData = useMemo(() => {
         if (submissions.length === 0) return { top: null, bottom: null };
+
+        // Build a lookup map for HR IDs to names
+        const hrNameLookup = new Map<string, string>();
+        if (hrPersonnel) {
+            hrPersonnel.forEach(hr => {
+                if (hr.id && hr.name) {
+                    hrNameLookup.set(hr.id.toUpperCase(), hr.name);
+                }
+            });
+        }
+
+        const resolveHRName = (hrId: string, hrName: string): string => {
+            // If hrName looks like it's actually a name (not just an ID), use it
+            if (hrName && !hrName.match(/^[Hh]\d+$/) && hrName !== `HR ${hrId}`) {
+                return hrName;
+            }
+            // Try to resolve from personnel lookup
+            if (hrId) {
+                const resolved = hrNameLookup.get(hrId.toUpperCase());
+                if (resolved) return resolved;
+            }
+            // Fallback
+            return hrName || hrId || 'Unknown';
+        };
 
         const scoresByHR: { [key: string]: { name: string, totalPercent: number, count: number } } = {};
 
         submissions.forEach(submission => {
             const hrId = submission.hrId || 'Unknown';
-            const hrName = submission.hrName || `HR ${hrId}`;
-            const hrKey = `${hrName}_${hrId}`;
+            const hrName = resolveHRName(hrId, submission.hrName);
+            const hrKey = hrId.toUpperCase();
             
             if (!scoresByHR[hrKey]) {
                 scoresByHR[hrKey] = { name: hrName, totalPercent: 0, count: 0 };
@@ -61,7 +86,7 @@ const OperationsHRPerformanceInfographic: React.FC<OperationsHRPerformanceInfogr
 
         return { top, bottom };
 
-    }, [submissions]);
+    }, [submissions, hrPersonnel]);
 
     return (
         <InfographicCard title="Operations Performance by HR">

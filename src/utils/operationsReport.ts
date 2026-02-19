@@ -205,7 +205,7 @@ export const buildOperationsPDF = async (
 
   const metaY = y + 8;
   const dateStr = formatDate(metadata.date || first.submissionTime || first.date || first.Date || '');
-  const auditor = metadata.auditorName || first.trainerName || first.auditor || first.Auditor || '';
+  const auditor = metadata.auditorName || metadata.amName || first.amName || first.areaManager || first.auditor || first.Auditor || '';
   const sid = metadata.storeId || first.storeId || first.store_id || first.StoreID || '';
   const metaLine = [] as string[];
   if (dateStr) metaLine.push(`${dateStr}`);
