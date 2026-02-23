@@ -308,7 +308,7 @@ const SENSORY_SECTIONS: ChecklistSection[] = [
 ];
 
 const LOG_ENDPOINTS = [
-  'https://script.google.com/macros/s/AKfycbxU1_r90HuttOrnGzpkZ47F2a5T20ZT-yGM0HBkOYWKeCgJEjXyaiPezj-Z33TUN-7oMg/exec'
+  'https://script.google.com/macros/s/AKfycbxPX8CZZfgfp7h1uXmzhnMxwGce-OmkCnnvFqrOQVywR0ec1p-Fwl1ekaK8bj9Rn5U5cQ/exec'
 ];
 
 const BrewLeagueRegionRound: React.FC = () => {
