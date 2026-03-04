@@ -593,18 +593,34 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   const loadData = async (isRefresh = false, specificDashboard?: string) => {
     try {
-      // Only show loading if we're actually loading new data
-      const hasLoadedData = Object.values(dataLoadedFlags).some(flag => flag);
-      
-      if (isRefresh) {
-        setRefreshing(true);
-      } else if (!hasLoadedData) {
-        setLoading(true);
-      }
-
       // Determine which data to load based on user role and current dashboard
+      // (must be computed before the loading-flag check so we can check per-dashboard state)
       const targetDashboard = specificDashboard || dashboardType;
       const isAdmin = userRole.role === 'admin';
+
+      // Map dashboard type to its loaded flag so we show the skeleton whenever THIS
+      // specific dashboard's data hasn't been fetched yet — even if other dashboards
+      // have already loaded their own data (fixes two-skeleton bug when editor switches tabs)
+      const dashboardFlagMap: Record<string, boolean> = {
+        hr: dataLoadedFlags.hr,
+        operations: dataLoadedFlags.operations,
+        training: dataLoadedFlags.training,
+        qa: dataLoadedFlags.qa,
+        finance: dataLoadedFlags.finance,
+        'campus-hiring': dataLoadedFlags.campusHiring,
+        shlp: dataLoadedFlags.shlp,
+        'trainer-calendar': true,       // calendar has no separate fetch
+        'bench-planning': true,         // bench planning has no separate fetch
+        'bench-planning-sm-asm': true,  // bench planning sm/asm has no separate fetch
+        consolidated: Object.values(dataLoadedFlags).every(Boolean), // all loaded
+      };
+      const hasLoadedCurrentData = dashboardFlagMap[targetDashboard] ?? Object.values(dataLoadedFlags).some(Boolean);
+
+      if (isRefresh) {
+        setRefreshing(true);
+      } else if (!hasLoadedCurrentData) {
+        setLoading(true);
+      }
 
       // Smart loading: only load data relevant to current view
       // NO PRELOADING - load only what's needed for the current dashboard

@@ -524,10 +524,24 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
         ? JSON.parse(sub.sectionImages) 
         : sub.sectionImages;
       
-      // Add images to corresponding sections
+      // Mapping from TrainingChecklist section.id values to PDF sections object keys
+      // (The checklist uses full names like 'TrainingMaterials', but PDF keys are abbreviations like 'TM')
+      const CHECKLIST_TO_PDF_SECTION: Record<string, string> = {
+        'TrainingMaterials': 'TM',
+        'NewJoiner': 'NJ',
+        'PartnerKnowledge': 'PK',
+        'CustomerExperience': 'CX',
+        'ActionPlan': 'AP',
+        'TSA_Food': 'TSA_Food_Score',
+        'TSA_Coffee': 'TSA_Coffee_Score',
+        'TSA_CX': 'TSA_CX_Score',
+      };
+      
+      // Add images to corresponding sections (try mapped key first, then direct match)
       Object.keys(parsedImages).forEach(sectionId => {
-        if (sections[sectionId] && parsedImages[sectionId] && Array.isArray(parsedImages[sectionId])) {
-          sections[sectionId].images = parsedImages[sectionId];
+        const pdfKey = CHECKLIST_TO_PDF_SECTION[sectionId] || sectionId;
+        if (sections[pdfKey] && parsedImages[sectionId] && Array.isArray(parsedImages[sectionId])) {
+          sections[pdfKey].images = parsedImages[sectionId];
         }
       });
     } catch (error) {
@@ -629,32 +643,32 @@ export const buildTrainingPDF = async (submissions: TrainingAuditSubmission[], m
       
       for (let i = 0; i < sec.images.length; i++) {
         const col = i % imagesPerRow;
-        const row = Math.floor(i / imagesPerRow);
         
-        // Check if we need a new page
-        const neededHeight = imageHeight + 10;
-        if (y + neededHeight > pageBottomLimit) {
-          doc.addPage();
-          y = 20;
+        // At the start of each new row (after the first row), advance y first
+        if (col === 0 && i > 0) {
+          y += imageHeight + imageSpacing;
         }
         
-        // Calculate position (start new row after every 3 images)
-        if (col === 0 && row > 0) {
-          y += imageHeight + imageSpacing;
+        // Check for page break only at the start of each row (after y is advanced)
+        if (col === 0) {
+          if (y + imageHeight > pageBottomLimit) {
+            doc.addPage();
+            y = 20;
+          }
         }
         
         const xPos = 14 + (col * (imageWidth + imageSpacing));
         
         try {
-          // Add image to PDF
-          doc.addImage(sec.images[i], 'JPEG', xPos, y, imageWidth, imageHeight);
+          // Add image to PDF — try JPEG first, fall back to PNG for data URLs
+          const imgFormat = sec.images[i].startsWith('data:image/png') ? 'PNG' : 'JPEG';
+          doc.addImage(sec.images[i], imgFormat, xPos, y, imageWidth, imageHeight);
         } catch (error) {
           console.error('Error adding image to PDF:', error);
         }
       }
       
-      // Move y position down after last row of images
-      const totalRows = Math.ceil(sec.images.length / imagesPerRow);
+      // Move y position down past the last row of images
       y += imageHeight + imageSpacing;
     }
   });
