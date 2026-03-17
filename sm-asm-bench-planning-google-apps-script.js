@@ -468,7 +468,7 @@ function getCandidateData(employeeId) {
       if (readinessRow) {
         const totalScore = readinessRow[6];
         const maxScore = readinessRow[7];
-        const passed = readinessRow[8];
+        const passed = readinessRow[8] === true || String(readinessRow[8]).toLowerCase() === 'true';
         const scoresJSON = readinessRow[5];
         
         // Parse the scores from JSON
@@ -532,7 +532,7 @@ function getCandidateData(employeeId) {
         assessmentStatus = {
           unlocked: true,
           attempted: true,
-          passed: assessmentRow[4] || false,
+          passed: assessmentRow[4] === true || String(assessmentRow[4]).toLowerCase() === 'true',
           score: assessmentRow[7] || 0,  // Column 7 is Percentage
           totalScore: assessmentRow[5] || 0,
           maxScore: assessmentRow[6] || 0,
@@ -729,7 +729,7 @@ function submitSelfAssessment(data) {
     
     const totalScore = correctCount;
     const maxScore = ASSESSMENT_QUESTIONS.length;
-    const percentage = (totalScore / maxScore * 100).toFixed(2);
+    const percentage = parseFloat((totalScore / maxScore * 100).toFixed(2));
     const passed = percentage >= 80;
 
     const newRow = [
@@ -993,7 +993,7 @@ function getPanelistCandidates(panelistId) {
         if (readinessRow) {
           const totalScore = readinessRow[6];
           const maxScore = readinessRow[7];
-          const passed = readinessRow[8];
+          const passed = readinessRow[8] === true || String(readinessRow[8]).toLowerCase() === 'true';
           readinessScore = parseFloat(((totalScore / maxScore) * 100).toFixed(2));
           readinessStatus = passed ? 'Passed' : 'Failed';
         }
@@ -1004,7 +1004,7 @@ function getPanelistCandidates(panelistId) {
         let assessmentScore = null;
         if (assessmentRow) {
           assessmentScore = parseFloat(assessmentRow[7]); // Percentage column
-          const passed = assessmentRow[4];
+          const passed = assessmentRow[4] === true || String(assessmentRow[4]).toLowerCase() === 'true';
           assessmentStatus = passed ? 'Passed' : 'Completed';
         }
         
@@ -1131,7 +1131,7 @@ function getDashboardData() {
       if (readinessRow) {
         const totalScore = readinessRow[6]; // Column 6 is Total Score
         const maxScore = readinessRow[7]; // Column 7 is Max Score
-        const passed = readinessRow[8]; // Column 8 is Passed boolean
+        const passed = readinessRow[8] === true || String(readinessRow[8]).toLowerCase() === 'true'; // Column 8 is Passed boolean
         readinessScore = parseFloat(((totalScore / maxScore) * 100).toFixed(2));
         readinessStatus = passed ? 'Passed' : 'Failed';
       }
@@ -1141,7 +1141,7 @@ function getDashboardData() {
       let assessmentScore = null;
       if (assessmentRow) {
         assessmentScore = parseFloat(assessmentRow[7]); // Column 7 is Percentage
-        const passed = assessmentRow[4]; // Column 4 is Passed boolean
+        const passed = assessmentRow[4] === true || String(assessmentRow[4]).toLowerCase() === 'true'; // Column 4 is Passed boolean
         assessmentStatus = passed ? 'Passed' : 'Completed';
       }
       
@@ -1229,7 +1229,7 @@ function getDashboardData() {
       stats.totalCandidates++;
       
       if (readinessRow) {
-        const passed = readinessRow[8];
+        const passed = readinessRow[8] === true || String(readinessRow[8]).toLowerCase() === 'true';
         if (passed) {
           readinessPassed++;
           stats.readinessPassed++;
