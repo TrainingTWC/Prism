@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CheckCircle, QrCode, ClipboardCheck, Users, AlertCircle, Award, Save, Brain } from 'lucide-react';
 import { UserRole } from '../../roleMapping';
 
-const BT_BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzTnjmViD-jT3d6rBVE-AnK97NcmzPuNMGIQ9Nd1Y5S8Fgkq5MI6J8AAPd8T98wKapqTQ/exec';
+const BT_BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzjQueQRDMichsWK8dTcZbzfh-qTL4DUmGXu-D5n20512BVg1XTde6hxZk6LK-KHluL6w/exec';
 
 interface BenchPlanningBTChecklistProps {
   userRole: UserRole;
