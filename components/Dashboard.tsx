@@ -1664,8 +1664,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       if (!filteredSHLPData) return null;
 
       const totalSubmissions = filteredSHLPData.length;
-      const avgScore = totalSubmissions > 0
-        ? filteredSHLPData.reduce((acc, s) => acc + parseFloat(s.Overall_Percentage || '0'), 0) / totalSubmissions
+      // Only include submissions that have a valid Overall_Percentage (exclude empty/old data)
+      const validPctSubmissions = filteredSHLPData.filter(s => {
+        const val = parseFloat(s.Overall_Percentage as any);
+        return !isNaN(val);
+      });
+      const avgScore = validPctSubmissions.length > 0
+        ? validPctSubmissions.reduce((acc, s) => acc + parseFloat(s.Overall_Percentage as any), 0) / validPctSubmissions.length
         : 0;
       const uniqueTrainers = new Set(filteredSHLPData.map(s => s.Trainer)).size;
       const uniqueStores = new Set(filteredSHLPData.map(s => s.Store)).size;
@@ -6938,13 +6943,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                     {submission['Trainer Names'] || getTrainerNames(submission.Trainer)}
                                   </td>
                                   <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${parseFloat(submission.Overall_Percentage) >= 80
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${parseFloat(submission.Overall_Percentage as any) >= 80
                                         ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                        : parseFloat(submission.Overall_Percentage) >= 60
+                                        : parseFloat(submission.Overall_Percentage as any) >= 60
                                           ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                                           : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                                       }`}>
-                                      {submission.Overall_Percentage}%
+                                      {submission.Overall_Percentage || '—'}%
                                     </span>
                                   </td>
                                 </tr>
@@ -6978,7 +6983,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                             ];
 
                             return sections.map(section => {
-                              const scores = filteredSHLPData.map(s => parseFloat(s[section.key] || '0')).filter(s => s > 0);
+                              const scores = filteredSHLPData.map(s => parseFloat((s as any)[section.key])).filter(s => !isNaN(s));
                               const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
 
                               return (
@@ -7040,7 +7045,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                 .sort((a, b) => b[1].length - a[1].length)
                                 .map(([trainerId, subs]) => {
                                   const trainerName = subs[0]?.['Trainer Names'] || getTrainerNames(trainerId);
-                                  const avgPct = Math.round(subs.reduce((s, sub) => s + parseFloat(sub.Overall_Percentage || '0'), 0) / subs.length);
+                                  const validSubs = subs.filter(sub => !isNaN(parseFloat(sub.Overall_Percentage as any)));
+                                  const avgPct = validSubs.length > 0 ? Math.round(validSubs.reduce((s, sub) => s + parseFloat(sub.Overall_Percentage as any), 0) / validSubs.length) : 0;
                                   const storeSet = new Set(subs.map(s => s.Store));
                                   const storeNames = Array.from(storeSet).map(sid => allStores.find(s => s.id === sid)?.name || sid);
                                   const empSet = new Set(subs.map(s => s['Employee ID']));

@@ -880,6 +880,11 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     }
   });
 
+  // In-browser camera modal state (avoids native camera app which backgrounds/unloads the tab)
+  const [cameraTarget, setCameraTarget] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [tsaExpanded, setTsaExpanded] = useState(false);
@@ -1553,6 +1558,51 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       img.src = result;
     };
     reader.readAsDataURL(file);
+  };
+
+  // Start camera stream when cameraTarget is set; stop it when cleared
+  useEffect(() => {
+    if (!cameraTarget) return;
+    let cancelled = false;
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+      .then(stream => {
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+        streamRef.current = stream;
+        if (videoRef.current) videoRef.current.srcObject = stream;
+      })
+      .catch(err => {
+        if (cancelled) return;
+        console.error('[Camera] getUserMedia error:', err);
+        alert('Unable to access camera. Please allow camera permission and try again.');
+        setCameraTarget(null);
+      });
+    return () => { cancelled = true; };
+  }, [cameraTarget]);
+
+  const closeCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setCameraTarget(null);
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !cameraTarget) return;
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+    canvas.toBlob(blob => {
+      if (!blob) return;
+      const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+      handleImageUpload(cameraTarget, file);
+      closeCamera();
+    }, 'image/jpeg', 0.9);
   };
 
   const removeImage = (sectionId: string, imageIndex: number) => {

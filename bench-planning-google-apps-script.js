@@ -939,7 +939,7 @@ function getPanelistCandidates(panelistId) {
         if (assessmentRow) {
           assessmentScore = parseFloat(assessmentRow[7]); // Percentage column
           const passed = assessmentRow[4] === true || String(assessmentRow[4]).toLowerCase() === 'true';
-          assessmentStatus = passed ? 'Passed' : 'Completed';
+          assessmentStatus = passed ? 'Passed' : 'Failed';
         }
         
         // Get interview status
@@ -1089,7 +1089,7 @@ function getDashboardData() {
       if (assessmentRow) {
         assessmentScore = parseFloat(assessmentRow[7]); // Column 7 is Percentage
         const passed = assessmentRow[4] === true || String(assessmentRow[4]).toLowerCase() === 'true'; // Column 4 is Passed boolean
-        assessmentStatus = passed ? 'Passed' : 'Completed';
+        assessmentStatus = passed ? 'Passed' : 'Failed';
       }
       
       // Check interview status

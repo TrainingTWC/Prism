@@ -23,8 +23,8 @@ export interface StoreCoordinate {
 
 export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   // ============ SOUTH REGION ============
-  'S001': { lat: 0, lng: 0, name: 'Koramangala' },
-  'S002': { lat: 0, lng: 0, name: 'CMH Indira Nagar' },
+  'S001': { lat: 12.973541, lng: 77.652580, name: 'Koramangala' },
+  'S002': { lat: 12.975873, lng: 77.655593, name: 'CMH Indira Nagar' },
   'S003': { lat: 0, lng: 0, name: 'HSR-1' },
   'S004': { lat: 0, lng: 0, name: 'Sadashiv Nagar' },
   'S005': { lat: 0, lng: 0, name: 'Forum Shantiniketan Whitefield' },

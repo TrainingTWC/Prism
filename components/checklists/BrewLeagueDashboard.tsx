@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Trophy, TrendingUp, Users, Award, MapPin, Coffee, Target, BarChart3, Calendar, Filter } from 'lucide-react';
 
 // Google Sheets endpoints for fetching Brew League data
-const BREW_LEAGUE_REGION_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxIGr_utWW1EySanNuTjzG254uCvZiPcE1ZkGtxy6ubiPzGqAmaNHgoR2NrH-R4TXyn8w/exec';
+const BREW_LEAGUE_REGION_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxPX8CZZfgfp7h1uXmzhnMxwGce-OmkCnnvFqrOQVywR0ec1p-Fwl1ekaK8bj9Rn5U5cQ/exec';
 const BREW_LEAGUE_AM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwVN9hWkzScxgOGCJfNqXEh6EOIpBHHckWi9nYULWuRc7wAuxs7po9BmSF2vYkpmvFQ6g/exec';
 
 interface BrewLeagueSubmission {

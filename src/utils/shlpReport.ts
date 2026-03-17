@@ -268,7 +268,9 @@ function processSubmission(sub: any) {
 
   SHLP_SECTIONS.forEach(section => {
     section.items.forEach(item => {
-      const response = (sub as any)[item.id] || '';
+      // Use nullish coalescing so numeric 0 is preserved (0 || '' would become '')
+      const rawResponse = (sub as any)[item.id];
+      const response = (rawResponse !== null && rawResponse !== undefined) ? String(rawResponse) : '';
       const remarksKey = `${item.id}_remarks`;
       const remarks = (sub as any)[remarksKey] || '';
 
@@ -284,7 +286,7 @@ function processSubmission(sub: any) {
         else if (response === 'No') { score = -2; displayAnswer = 'No'; }
         else { displayAnswer = String(response); }
       } else if ((item as any).positiveScore) {
-        maxForQuestion = 2;
+        maxForQuestion = 4;
         if (response === '+2') { score = 4; displayAnswer = '+2 (Exceptional)'; }
         else {
           const points = parseInt(response);
@@ -308,7 +310,8 @@ function processSubmission(sub: any) {
       });
 
       sections[section.id].score += score;
-      if (response !== 'NA' && response !== 'N/A') {
+      // Only add to maxScore when there is an actual response (matches checklist logic)
+      if (response && response !== 'NA' && response !== 'N/A') {
         sections[section.id].maxScore += maxForQuestion;
       }
     });
