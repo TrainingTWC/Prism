@@ -7,7 +7,7 @@ import { AREA_MANAGERS as DEFAULT_AREA_MANAGERS } from '../../constants';
 import { useConfig } from '../../contexts/ConfigContext';
 import { getTrainerName } from '../../utils/trainerMapping';
 import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
-import { checkGeofence, GEOFENCE_RADIUS_METERS } from '../../src/config/storeCoordinates';
+import { checkGeofence, GEOFENCE_RADIUS_METERS, STORE_COORDINATES, getDistanceMeters } from '../../src/config/storeCoordinates';
 
 // Google Sheets endpoint for SHLP data logging (updated with AM Name and Trainer Names columns)
 const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwhWnGIS-ky5zl2xOdPgrnxuuN7drOKVtt8ZxCnLneM-7sZZUsj1CiK04p7tDodmBZ9pg/exec';
@@ -84,7 +84,27 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
   };
 
   // Get available stores, AMs, and trainers from comprehensive mapping
-  const availableStores = comprehensiveMapping || [];
+  const allStores = comprehensiveMapping || [];
+  
+  // Filter stores to only show those within geofence radius (100m)
+  // Stores with placeholder coordinates (0,0) are hidden until configured
+  const availableStores = React.useMemo(() => {
+    if (geoLocation.latitude === null || geoLocation.longitude === null) {
+      return []; // No GPS — show no stores until location is captured
+    }
+    return allStores.filter(store => {
+      const storeId = (store['Store ID'] || '').toString().trim();
+      const coord = STORE_COORDINATES[storeId];
+      if (!coord) return false; // Store not in coordinates list — hide it
+      if (coord.lat === 0 && coord.lng === 0) return false; // Placeholder — hide until configured
+      const distance = getDistanceMeters(
+        geoLocation.latitude!, geoLocation.longitude!,
+        coord.lat, coord.lng
+      );
+      return distance <= GEOFENCE_RADIUS_METERS;
+    });
+  }, [allStores, geoLocation.latitude, geoLocation.longitude]);
+
   const availableAMs = [...new Set(availableStores.map(s => s['AM']).filter(Boolean))];
   const availableTrainers = [...new Set(availableStores
     .map(s => s['Trainer'])
@@ -203,6 +223,11 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         if (metadata.store) {
           const result = checkGeofence(metadata.store, newLat, newLng);
           setGeofenceResult(result);
+          // If the selected store is now out of range, clear the selection
+          if (result && !result.allowed) {
+            setMetadata(prev => ({ ...prev, store: '', amId: '', amName: '', trainerIds: '', trainerNames: '' }));
+            setGeofenceResult(null);
+          }
         }
       },
       (error) => {
@@ -690,6 +715,18 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
               <div className="w-full p-3 bg-gray-100 dark:bg-slate-700 rounded-lg animate-pulse">
                 Loading stores...
               </div>
+            ) : geoLocation.loading ? (
+              <div className="w-full p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-blue-700 dark:text-blue-300 text-sm">
+                Waiting for GPS location to load nearby stores...
+              </div>
+            ) : geoLocation.error ? (
+              <div className="w-full p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
+                Enable location access to see available stores.
+              </div>
+            ) : availableStores.length === 0 ? (
+              <div className="w-full p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-700 dark:text-amber-300 text-sm">
+                No stores found within {GEOFENCE_RADIUS_METERS}m of your location. Move closer to a store location.
+              </div>
             ) : (
               <select
                 value={metadata.store}
@@ -697,12 +734,19 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
                 className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-slate-700 dark:text-slate-100"
                 required
               >
-                <option value="">Select Store</option>
-                {availableStores.map((store) => (
-                  <option key={store['Store ID']} value={store['Store ID']}>
-                    {store['Store ID']} - {store['Store Name']}
-                  </option>
-                ))}
+                <option value="">Select Store ({availableStores.length} nearby)</option>
+                {availableStores.map((store) => {
+                  const sid = (store['Store ID'] || '').toString().trim();
+                  const coord = STORE_COORDINATES[sid];
+                  const dist = (coord && geoLocation.latitude && geoLocation.longitude)
+                    ? Math.round(getDistanceMeters(geoLocation.latitude, geoLocation.longitude, coord.lat, coord.lng))
+                    : null;
+                  return (
+                    <option key={sid} value={sid}>
+                      {sid} - {store['Store Name']}{dist !== null ? ` (${dist}m away)` : ''}
+                    </option>
+                  );
+                })}
               </select>
             )}
           </div>
