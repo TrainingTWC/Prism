@@ -383,10 +383,11 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
   // Access control
   const [loading, setLoading] = useState(true);
   const [notEligible, setNotEligible] = useState(false);
-  const [userType, setUserType] = useState<'manager' | 'candidate' | 'trainer' | 'area_manager'>('candidate');
+  const [userType, setUserType] = useState<'manager' | 'candidate' | 'trainer' | 'area_manager' | 'panelist'>('candidate');
   const [managerCandidates, setManagerCandidates] = useState<any[]>([]);
   const [candidateData, setCandidateData] = useState<any>(null);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [isPanelistConfirmed, setIsPanelistConfirmed] = useState(false);
   const [candidateSearchId, setCandidateSearchId] = useState('');
   
   // Readiness checklist responses (questionId -> score: 0, 1, or 2)
@@ -489,6 +490,28 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
     }
   };
 
+  // Load panelist's candidates from Google Sheets
+  const loadPanelistCandidates = async (panelistId: string) => {
+    try {
+      const response = await fetch(`${BT_BENCH_PLANNING_ENDPOINT}?action=getPanelistCandidates&panelistId=${panelistId}&_t=${new Date().getTime()}`);
+      const data = await response.json();
+      
+      console.log('[BT BENCH] Panelist candidates response:', data);
+      const candidates = data.data?.candidates || data.candidates || [];
+      
+      if (data.success && candidates.length > 0) {
+        setManagerCandidates(candidates);
+        setUserType('panelist');
+        setIsPanelistConfirmed(true);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.log('[BT BENCH] Not a panelist:', error);
+      return false;
+    }
+  };
+
   // Load trainer's candidates from Google Sheets
   const loadTrainerCandidates = async (trainerId: string) => {
     try {
@@ -531,8 +554,19 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
       setLoading(true);
       setNotEligible(false);
       
-      // Step 1: Check if user is a trainer (highest priority)
-      console.log('[BT BENCH] Step 1: Checking trainer role...');
+      // Step 1: Check if user is a panelist (highest priority)
+      console.log('[BT BENCH] Step 1: Checking panelist role...');
+      const isPanelist = await loadPanelistCandidates(userId);
+      console.log('[BT BENCH] Panelist check result:', isPanelist);
+      if (isPanelist) {
+        // Panelists should start at BT Session step (Step 2)
+        setCurrentStep('bt-session');
+        setLoading(false);
+        return;
+      }
+      
+      // Step 2: Check if user is a trainer
+      console.log('[BT BENCH] Step 2: Checking trainer role...');
       const isTrainer = await loadTrainerCandidates(userId);
       console.log('[BT BENCH] Trainer check result:', isTrainer);
       if (isTrainer) {
@@ -542,16 +576,16 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
         return; // Stop here, user is confirmed trainer
       }
       
-      // Step 2: Check if user is a candidate
-      console.log('[BT BENCH] Step 2: Checking candidate role...');
+      // Step 3: Check if user is a candidate
+      console.log('[BT BENCH] Step 3: Checking candidate role...');
       await loadCandidateData(userId);
       
-      // Step 3: Check if user is a manager
-      console.log('[BT BENCH] Step 3: Checking manager role...');
+      // Step 4: Check if user is a manager
+      console.log('[BT BENCH] Step 4: Checking manager role...');
       await loadManagerCandidates(userId);
       
-      // Step 4: Check if user is an Area Manager
-      console.log('[BT BENCH] Step 4: Checking area manager role...');
+      // Step 5: Check if user is an Area Manager
+      console.log('[BT BENCH] Step 5: Checking area manager role...');
       await loadAreaManagerCandidates(userId);
       
       setLoading(false);
@@ -562,18 +596,19 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
   
   // After data loads complete, determine eligibility
   useEffect(() => {
-    // If user is trainer, candidate, or manager - they are eligible
-    if (candidateData || managerCandidates.length > 0) {
+    // If user is trainer, panelist, candidate, or manager - they are eligible
+    if (candidateData || managerCandidates.length > 0 || isPanelistConfirmed) {
       setNotEligible(false);
     } 
     // Only set notEligible if:
     // 1. User is not a candidate (no candidateData)
-    // 2. User is not a manager (no managerCandidates)
-    // 3. Loading is complete
+    // 2. User is not a manager/trainer (no managerCandidates)
+    // 3. User is not a panelist
+    // 4. Loading is complete
     else if (!loading && userId) {
       setNotEligible(true);
     }
-  }, [loading, candidateData, managerCandidates, userId]);
+  }, [loading, candidateData, managerCandidates, isPanelistConfirmed, userId]);
 
   // Load metadata from URL parameters
   useEffect(() => {
@@ -870,8 +905,8 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
         const canFillReadiness = userType === 'manager' || userType === 'area_manager';
         const canEdit = canFillReadiness && !readinessCompleted;
         
-        // Trainers should not see this step
-        if (userType === 'trainer') {
+        // Trainers/Panelists should not see this step
+        if (userType === 'trainer' || userType === 'panelist') {
           return (
             <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
               <div className="flex items-center gap-3 mb-3">
@@ -1042,8 +1077,8 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
         );
 
       case 'bt-session':
-        const canMarkSession = userType === 'trainer' || userType === 'candidate';
-        const canTakeAssessment = userType === 'trainer';
+        const canMarkSession = userType === 'trainer' || userType === 'panelist' || userType === 'candidate';
+        const canTakeAssessment = userType === 'trainer' || userType === 'panelist';
         const totalAssessmentQuestions = SESSION_ASSESSMENT_QUESTIONS.length;
         const answeredAssessmentQuestions = Object.keys(sessionAssessmentResponses).length;
         const correctAnswers = SESSION_ASSESSMENT_QUESTIONS.filter(q => 
@@ -1054,8 +1089,8 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
           <div className="space-y-4 sm:space-y-6">
             {/* Attendance Section */}
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
-              {/* Info banner for trainers */}
-              {userType === 'trainer' && (
+              {/* Info banner for trainers/panelists */}
+              {(userType === 'trainer' || userType === 'panelist') && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
                   <div className="flex items-center gap-2">
                     <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -1073,7 +1108,7 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
                 </h2>
               </div>
               <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mb-4 sm:mb-6">
-                {userType === 'trainer'
+                {userType === 'trainer' || userType === 'panelist'
                   ? 'Mark attendance for the candidate who attended your training session'
                   : 'Candidate will scan QR code provided by trainer to mark attendance for the BT session.'}
               </p>
@@ -1087,7 +1122,7 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
                 <p className="text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 mb-4 sm:mb-6">
                   {btSessionCompleted 
                     ? 'Session attendance has been recorded successfully'
-                    : userType === 'trainer'
+                    : userType === 'trainer' || userType === 'panelist'
                     ? 'Mark attendance for the candidate who attended your training session'
                     : 'Scan the QR code from your trainer to mark attendance'
                   }
@@ -1252,12 +1287,12 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
         const totalSkillQuestions = SKILL_CHECK_PHASES.reduce((sum, phase) => sum + phase.questions.length, 0);
         const answeredSkillQuestions = Object.keys(skillCheckResponses).length;
         const yesCount = Object.values(skillCheckResponses).filter(val => val === true).length;
-        const canFillSkillCheck = userType === 'trainer';
+        const canFillSkillCheck = userType === 'trainer' || userType === 'panelist';
         
         return (
           <div className="space-y-6">
-            {/* Info banner for trainers */}
-            {userType === 'trainer' && (
+            {/* Info banner for trainers/panelists */}
+            {(userType === 'trainer' || userType === 'panelist') && (
               <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
                 <div className="flex items-center gap-2">
                   <Award className="w-5 h-5 text-purple-600 dark:text-purple-400" />
@@ -1522,12 +1557,12 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
         </p>
       </div>
 
-      {/* Candidate Selection (for managers, area managers, and trainers) */}
-      {!candidateData && !notEligible && (userType === 'manager' || userType === 'area_manager' || userType === 'trainer') && (
+      {/* Candidate Selection (for managers, area managers, trainers, and panelists) */}
+      {!candidateData && !notEligible && (userType === 'manager' || userType === 'area_manager' || userType === 'trainer' || userType === 'panelist') && (
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6 mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">
             {userType === 'manager' ? 'Select Your Team Member' : 
-             userType === 'trainer' ? 'Select Candidate for Training Session' :
+             userType === 'trainer' || userType === 'panelist' ? 'Select Candidate for Training Session' :
              'Select Candidate for Assessment'}
           </h3>
           

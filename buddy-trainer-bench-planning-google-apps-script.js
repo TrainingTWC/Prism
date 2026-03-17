@@ -378,6 +378,9 @@ function doGet(e) {
       case 'getAreaManagerCandidates':
         return getAreaManagerCandidates(e.parameter.areaManagerId);
       
+      case 'getPanelistCandidates':
+        return getPanelistCandidates(e.parameter.panelistId);
+      
       case 'getDashboardData':
         return getDashboardData();
       
@@ -816,6 +819,104 @@ function getTrainerCandidates(trainerId) {
 
   } catch (error) {
     return createResponse(false, 'Error retrieving trainer candidates: ' + error.toString());
+  }
+}
+
+/**
+ * Get candidates assigned to a specific panelist
+ * Checks the panelist column (index 4) in BT_Candidates sheet
+ */
+function getPanelistCandidates(panelistId) {
+  try {
+    if (!panelistId) {
+      return createResponse(false, 'Panelist ID is required');
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const candidatesSheet = ss.getSheetByName(SHEETS.CANDIDATES);
+    
+    if (!candidatesSheet) {
+      return createResponse(false, 'Candidates sheet not found');
+    }
+
+    const candidatesData = candidatesSheet.getDataRange().getValues();
+    const panelistIdUpper = panelistId.toUpperCase().trim();
+    
+    // Get progress data from other sheets
+    const readinessSheet = ss.getSheetByName(SHEETS.READINESS);
+    const readinessData = readinessSheet ? readinessSheet.getDataRange().getValues().slice(1) : [];
+    
+    const sessionSheet = ss.getSheetByName(SHEETS.SESSION);
+    const sessionData = sessionSheet ? sessionSheet.getDataRange().getValues().slice(1) : [];
+    
+    const sessionAssessmentSheet = ss.getSheetByName(SHEETS.SESSION_ASSESSMENT);
+    const sessionAssessmentData = sessionAssessmentSheet ? sessionAssessmentSheet.getDataRange().getValues().slice(1) : [];
+    
+    const skillCheckSheet = ss.getSheetByName(SHEETS.SKILL_CHECK);
+    const skillCheckData = skillCheckSheet ? skillCheckSheet.getDataRange().getValues().slice(1) : [];
+    
+    const candidates = [];
+
+    // Filter candidates by panelist ID (column index 4)
+    for (let i = 1; i < candidatesData.length; i++) {
+      const row = candidatesData[i];
+      if (row[0] && row[4] && row[4].toString().toUpperCase().trim() === panelistIdUpper) {
+        const employeeId = row[0].toString().toUpperCase();
+        
+        // Get readiness status
+        const readinessRow = readinessData.find(r => r[1] && r[1].toString().toUpperCase() === employeeId);
+        let readinessStatus = 'Not Started';
+        if (readinessRow) {
+          const passed = readinessRow[8] === true || String(readinessRow[8]).toLowerCase() === 'true';
+          readinessStatus = passed ? 'Passed' : 'Failed';
+        }
+        
+        // Get session status
+        const sessionRow = sessionData.find(r => r[1] && r[1].toString().toUpperCase() === employeeId);
+        let sessionStatus = 'Not Started';
+        if (sessionRow) {
+          sessionStatus = 'Attended';
+        }
+        
+        // Get session assessment status
+        const assessmentRow = sessionAssessmentData.find(r => r[1] && r[1].toString().toUpperCase() === employeeId);
+        let assessmentStatus = 'Not Started';
+        if (assessmentRow) {
+          const passed = assessmentRow[4] === true || String(assessmentRow[4]).toLowerCase() === 'true';
+          assessmentStatus = passed ? 'Passed' : 'Failed';
+        }
+        
+        // Get skill check status
+        const skillCheckRow = skillCheckData.find(r => r[1] && r[1].toString().toUpperCase() === employeeId);
+        let skillCheckStatus = 'Not Started';
+        if (skillCheckRow) {
+          skillCheckStatus = 'Completed';
+        }
+        
+        candidates.push({
+          employeeId: row[0],
+          employeeName: row[1],
+          managerId: row[2],
+          managerName: row[3],
+          panelist: row[4],
+          storeId: row[5] || '',
+          region: row[6] || '',
+          readinessStatus: readinessStatus,
+          sessionStatus: sessionStatus,
+          assessmentStatus: assessmentStatus,
+          skillCheckStatus: skillCheckStatus
+        });
+      }
+    }
+
+    if (candidates.length === 0) {
+      return createResponse(false, 'No candidates found for this panelist');
+    }
+
+    return createResponse(true, 'Panelist candidates retrieved successfully', { candidates });
+
+  } catch (error) {
+    return createResponse(false, 'Error retrieving panelist candidates: ' + error.toString());
   }
 }
 
