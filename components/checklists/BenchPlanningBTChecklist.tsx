@@ -450,6 +450,7 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
   // Load candidate data from Google Sheets
   const loadCandidateData = async (employeeId: string) => {
     try {
+      setLoadingCandidates(true);
       const response = await fetch(
         `${BT_BENCH_PLANNING_ENDPOINT}?action=getCandidateData&employeeId=${employeeId}&_t=${new Date().getTime()}`
       );
@@ -483,10 +484,13 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
         
         return true;
       }
+      console.log('[BT BENCH] getCandidateData returned no data:', data.message);
       return false;
     } catch (error) {
-      console.log('[BT BENCH] Not a candidate:', error);
+      console.log('[BT BENCH] Error loading candidate data:', error);
       return false;
+    } finally {
+      setLoadingCandidates(false);
     }
   };
 
@@ -1575,10 +1579,24 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
                 </label>
                 <select
                   value={candidateSearchId}
-                  onChange={(e) => {
-                    setCandidateSearchId(e.target.value);
-                    if (e.target.value) {
-                      loadCandidateData(e.target.value);
+                  onChange={async (e) => {
+                    const selectedId = e.target.value;
+                    setCandidateSearchId(selectedId);
+                    if (selectedId) {
+                      // Reset previous candidate state
+                      setCandidateData(null);
+                      setReadinessCompleted(false);
+                      setBTSessionCompleted(false);
+                      setSkillCheckCompleted(false);
+                      setReadinessResponses({});
+                      setSessionAssessmentResponses({});
+                      setSkillCheckResponses({});
+                      setSkillCheckRemarks('');
+                      // Load new candidate
+                      const success = await loadCandidateData(selectedId);
+                      if (!success) {
+                        alert('Failed to load candidate data. Please try again.');
+                      }
                     }
                   }}
                   disabled={loadingCandidates || loading}
@@ -1594,9 +1612,10 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
               </div>
               
               {loadingCandidates && (
-                <p className="text-sm text-gray-600 dark:text-slate-400">
-                  Loading your team members...
-                </p>
+                <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  Loading candidate data...
+                </div>
               )}
             </div>
           )}
