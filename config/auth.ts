@@ -66,7 +66,7 @@ export const AUTH_CONFIG: AuthConfig = {
     store: {
       password: 'StoreAccess2025!',
       permissions: ['shlp', 'brew-league', 'bench-planning'],
-      dashboardAccess: []
+      dashboardAccess: ['shlp-dashboard']
     },
     'campus-hiring': {
       password: 'CampusHire2024!',
