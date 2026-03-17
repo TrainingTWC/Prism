@@ -16,7 +16,7 @@ interface BenchPlanningChecklistProps {
 type TabType = 'readiness' | 'assessment' | 'interview';
 
 // Google Apps Script endpoint - UPDATE THIS with your deployed SM-ASM script URL
-const BENCH_PLANNING_SM_ASM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyMynWOxjrwi4892AKUTVgFizmGzkn_CEKUPyv7PHpTAFmSNGbpx1kJMS8Y3wVNV-eJnA/exec';
+const BENCH_PLANNING_SM_ASM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzCqCiGcz16caigdnT_-7GQRoQiUSkJr5ddiDQ912YsG5A5lQV3c3c_yQUKVV0Y7ekA/exec';
 
 // Readiness checklist items for SM to ASM level
 const READINESS_ITEMS = [

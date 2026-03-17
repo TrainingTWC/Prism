@@ -16,7 +16,7 @@ interface BenchPlanningChecklistProps {
 type TabType = 'readiness' | 'assessment' | 'interview';
 
 // Google Apps Script endpoint - UPDATE THIS with your deployed script URL
-const BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzG5BCTTDL3OWdKMGVqFvJ_jyfQBZDYJqZe2iwXBZJijmMEz4EVLdOdMgdZIgCagC6UgA/exec';
+const BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzTnjmViD-jT3d6rBVE-AnK97NcmzPuNMGIQ9Nd1Y5S8Fgkq5MI6J8AAPd8T98wKapqTQ/exec';
 
 // Readiness checklist items from the image
 const READINESS_ITEMS = [

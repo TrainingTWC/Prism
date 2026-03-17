@@ -89,7 +89,7 @@ interface AMWiseData {
   interviewCompleted: number;
 }
 
-const BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbySeztour7tgtLwx7DA8hV8kgtARGtFPAT3S0eI_CrIXAuiutrsxtrRxsB8HFcfqp88XA/exec';
+const BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzTnjmViD-jT3d6rBVE-AnK97NcmzPuNMGIQ9Nd1Y5S8Fgkq5MI6J8AAPd8T98wKapqTQ/exec';
 
 const BenchPlanningDashboard: React.FC<BenchPlanningDashboardProps> = ({ userRole }) => {
   const [loading, setLoading] = useState(true);

@@ -39,7 +39,7 @@ const BenchPlanningPanelistDashboard: React.FC<BenchPlanningPanelistDashboardPro
   panelistName,
   onTakeInterview
 }) => {
-  const BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzG5BCTTDL3OWdKMGVqFvJ_jyfQBZDYJqZe2iwXBZJijmMEz4EVLdOdMgdZIgCagC6UgA/exec';
+  const BENCH_PLANNING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzTnjmViD-jT3d6rBVE-AnK97NcmzPuNMGIQ9Nd1Y5S8Fgkq5MI6J8AAPd8T98wKapqTQ/exec';
 
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
