@@ -278,6 +278,8 @@ function buildSections(sub: FinanceSubmission, questionImages: Record<string, st
       sectionData.rows.push({
         id: q.id,
         questionId: q.id,
+        sectionPrefix: section.prefix,
+        compositeKey: `${section.prefix}_${q.id}`,
         question: q.text,
         answer: responseStr === 'yes' ? 'Yes' : responseStr === 'no' ? 'No' : isNA(response) ? 'N/A' : '',
         score: responseStr === 'yes' ? weight : (isNA(response) ? 'NA' : 0),
@@ -725,9 +727,9 @@ export const buildFinancePDF = async (
         y += (remarkLines.length * 3) + 3;
       }
 
-      // Render images for this question
+      // Render images for this question (try composite key first, then plain questionId)
       if (rowData.questionId) {
-        const images = questionImages[rowData.questionId];
+        const images = questionImages[rowData.compositeKey] || questionImages[rowData.questionId];
 
         if (images && images.length > 0) {
           if (y > 250) {
@@ -773,6 +775,52 @@ export const buildFinancePDF = async (
       y += 4;
     });
 
+    // Display section-level images if they exist (key: sectionId e.g. "CashManagement")
+    const sectionImgs = questionImages[secKey];
+    if (sectionImgs && sectionImgs.length > 0) {
+      if (y > 250) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(71, 85, 105);
+      doc.text('Section Images:', 18, y + 2);
+      y += 6;
+
+      const imagesPerRow = 5;
+      const imageWidth = 32;
+      const imageHeight = 24;
+      const spacing = 3;
+      const startX = 14;
+
+      sectionImgs.forEach((base64Image: string, idx: number) => {
+        try {
+          const col = idx % imagesPerRow;
+          const row = Math.floor(idx / imagesPerRow);
+
+          if (row > 0 && col === 0 && y + imageHeight > 270) {
+            doc.addPage();
+            y = 20;
+          }
+
+          const x = startX + col * (imageWidth + spacing);
+          const currentY = y + row * (imageHeight + spacing);
+
+          doc.addImage(base64Image, 'JPEG', x, currentY, imageWidth, imageHeight);
+          doc.setDrawColor(203, 213, 225);
+          doc.setLineWidth(0.5);
+          doc.rect(x, currentY, imageWidth, imageHeight);
+        } catch (err) {
+          console.warn('Could not add section image to PDF:', err);
+        }
+      });
+
+      const totalRows = Math.ceil(sectionImgs.length / imagesPerRow);
+      y += (imageHeight + spacing) * totalRows + 4;
+    }
+
     // Display section remarks if they exist
     const sectionRemarks = sub[`${secKey}_remarks`];
     if (sectionRemarks && sectionRemarks.trim()) {
@@ -790,7 +838,7 @@ export const buildFinancePDF = async (
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(146, 64, 14);
-      doc.text('Remarks:', 18, y + 8);
+      doc.text('Section Remarks:', 18, y + 8);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(51, 65, 85);
@@ -798,88 +846,6 @@ export const buildFinancePDF = async (
       y += remarksHeight + 8;
     }
   });
-
-  // Add Custom Fields Section
-  // Define standard fields to exclude from custom fields display
-  const standardFields = [
-    'timestamp', 'date', 'storeId', 'storeName', 'region', 'auditor', 'sm',
-    'auditorSignature', 'auditor_signature', 'Auditor Signature',
-    'smSignature', 'sm_signature', 'SM Signature',
-    'totalScore', 'weightedPercentage', 'classification', 'overallRemarks',
-    'overall_remarks', 'Overall Remarks'
-  ];
-
-  // Add all section-related fields to exclude
-  FINANCE_SECTIONS.forEach(sec => {
-    const secKey = sec.prefix;
-    standardFields.push(
-      `${secKey}_score`,
-      `${secKey}_percentage`,
-      `${secKey}_remarks`
-    );
-    sec.questions.forEach(q => {
-      standardFields.push(`${secKey}_${q.id}`);
-    });
-  });
-
-  // Filter custom fields
-  const customFields: { [key: string]: any } = {};
-  Object.keys(sub).forEach(key => {
-    if (!standardFields.includes(key) && sub[key] !== null && sub[key] !== undefined && sub[key] !== '') {
-      customFields[key] = sub[key];
-    }
-  });
-
-  // Display custom fields if any exist
-  const customFieldKeys = Object.keys(customFields);
-  if (customFieldKeys.length > 0) {
-    if (y > 230) {
-      doc.addPage();
-      y = 20;
-    }
-
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(17, 24, 39);
-    doc.text('Additional Information', 14, y);
-    y += 10;
-
-    // Render each custom field
-    customFieldKeys.forEach(key => {
-      const value = customFields[key];
-      const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      
-      // Convert value to string
-      let displayValue = '';
-      if (typeof value === 'object') {
-        displayValue = JSON.stringify(value, null, 2);
-      } else {
-        displayValue = String(value);
-      }
-
-      const valueLines = doc.splitTextToSize(displayValue, 150);
-      const fieldHeight = (valueLines.length * 5) + 8;
-
-      if (y + fieldHeight + 10 > 285) {
-        doc.addPage();
-        y = 20;
-      }
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(71, 85, 105);
-      doc.text(`${displayKey}:`, 18, y);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(51, 65, 85);
-      doc.text(valueLines, 18, y + 6);
-      
-      y += fieldHeight + 2;
-    });
-
-    y += 8;
-  }
 
   // Add Signatures Section
   if (y > 230) {
