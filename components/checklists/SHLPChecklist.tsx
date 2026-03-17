@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserRole } from '../../roleMapping';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, MapPin, AlertTriangle, ShieldCheck, ShieldX } from 'lucide-react';
 import LoadingOverlay from '../LoadingOverlay';
 import { useComprehensiveMapping } from '../../hooks/useComprehensiveMapping';
 import { AREA_MANAGERS as DEFAULT_AREA_MANAGERS } from '../../constants';
 import { useConfig } from '../../contexts/ConfigContext';
 import { getTrainerName } from '../../utils/trainerMapping';
 import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
+import { checkGeofence, GEOFENCE_RADIUS_METERS } from '../../src/config/storeCoordinates';
 
 // Google Sheets endpoint for SHLP data logging (updated with AM Name and Trainer Names columns)
 const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwhWnGIS-ky5zl2xOdPgrnxuuN7drOKVtt8ZxCnLneM-7sZZUsj1CiK04p7tDodmBZ9pg/exec';
@@ -40,6 +41,30 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   
+  // Geolocation state
+  const [geoLocation, setGeoLocation] = useState<{
+    latitude: number | null;
+    longitude: number | null;
+    accuracy: number | null;
+    timestamp: string | null;
+    error: string | null;
+    loading: boolean;
+  }>({
+    latitude: null,
+    longitude: null,
+    accuracy: null,
+    timestamp: null,
+    error: null,
+    loading: true
+  });
+
+  // Geofence validation state
+  const [geofenceResult, setGeofenceResult] = useState<{
+    allowed: boolean;
+    distance: number;
+    storeName: string;
+  } | null>(null);  // null = not checked yet or coordinates not configured
+
   // Employee search state
   const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false);
   const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
@@ -93,6 +118,14 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         trainerIds: trainer1Id, // Use Trainer 1
         trainerNames: trainer1Name // Display Trainer 1 name
       }));
+
+      // Geofence check: validate user is near the selected store
+      if (geoLocation.latitude !== null && geoLocation.longitude !== null) {
+        const result = checkGeofence(storeId, geoLocation.latitude, geoLocation.longitude);
+        setGeofenceResult(result);
+      } else {
+        setGeofenceResult(null);
+      }
     } else {
       setMetadata(prev => ({
         ...prev,
@@ -102,6 +135,7 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
         trainerIds: '',
         trainerNames: ''
       }));
+      setGeofenceResult(null);
     }
   };
 
@@ -140,6 +174,67 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
       document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [employeeSearchOpen]);
+
+  // Capture geolocation on mount
+  const captureGeolocation = () => {
+    setGeoLocation(prev => ({ ...prev, loading: true, error: null }));
+    if (!navigator.geolocation) {
+      setGeoLocation(prev => ({
+        ...prev,
+        loading: false,
+        error: 'Geolocation is not supported by this browser'
+      }));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLat = position.coords.latitude;
+        const newLng = position.coords.longitude;
+        setGeoLocation({
+          latitude: newLat,
+          longitude: newLng,
+          accuracy: Math.round(position.coords.accuracy),
+          timestamp: new Date().toISOString(),
+          error: null,
+          loading: false
+        });
+        // Re-run geofence check with updated location if a store is selected
+        if (metadata.store) {
+          const result = checkGeofence(metadata.store, newLat, newLng);
+          setGeofenceResult(result);
+        }
+      },
+      (error) => {
+        let errorMessage = 'Unable to retrieve location';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location permission denied. Please enable location access.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information unavailable';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out';
+            break;
+        }
+        setGeoLocation(prev => ({
+          ...prev,
+          loading: false,
+          error: errorMessage
+        }));
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    );
+  };
+
+  useEffect(() => {
+    captureGeolocation();
+  }, []);
 
   // Scoring configuration
   const negativeScoring = ['SHLP_1', 'SHLP_2', 'SHLP_3', 'SHLP_5', 'SHLP_11', 'SHLP_13', 'SHLP_15', 'SHLP_23'];
@@ -386,6 +481,22 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
       return;
     }
 
+    // Geofence validation — block submission if outside allowed radius
+    if (geofenceResult && !geofenceResult.allowed) {
+      alert(
+        `You are ${geofenceResult.distance}m away from ${geofenceResult.storeName}. ` +
+        `You must be within ${GEOFENCE_RADIUS_METERS}m of the store to submit this assessment. ` +
+        `Please move closer to the store and refresh your location.`
+      );
+      return;
+    }
+
+    // Require GPS location
+    if (!geoLocation.latitude || !geoLocation.longitude) {
+      alert('Location data is required. Please enable GPS and refresh your location before submitting.');
+      return;
+    }
+
     // Check if all questions are answered
     const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
     const answeredQuestions = Object.keys(responses).length;
@@ -426,6 +537,15 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
           Object.entries(questionRemarks).map(([k, v]) => [`${k}_remarks`, v || ''])
         ),
         
+        // Geolocation data
+        latitude: geoLocation.latitude?.toString() || '',
+        longitude: geoLocation.longitude?.toString() || '',
+        geoAccuracy: geoLocation.accuracy?.toString() || '',
+        geoTimestamp: geoLocation.timestamp || '',
+        googleMapsLink: geoLocation.latitude && geoLocation.longitude
+          ? `https://www.google.com/maps?q=${geoLocation.latitude},${geoLocation.longitude}`
+          : '',
+
         // Section scores
         Store_Readiness_Score: sectionScores.Store_Readiness.toString(),
         Product_Quality_Score: sectionScores.Product_Quality.toString(),
@@ -627,6 +747,103 @@ const SHLPChecklist: React.FC<SHLPChecklistProps> = ({ userRole, onStatsUpdate, 
             />
           </div>
         </div>
+      </div>
+
+      {/* Geotagging & Geofence Section */}
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+          <MapPin className="w-5 h-5 text-emerald-600" />
+          Location Verification
+        </h2>
+
+        {geoLocation.loading ? (
+          <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent" />
+            <span className="text-blue-700 dark:text-blue-300 text-sm">Fetching your location...</span>
+          </div>
+        ) : geoLocation.error ? (
+          <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-red-700 dark:text-red-300 text-sm font-medium">⚠️ {geoLocation.error}</p>
+                <p className="text-red-600 dark:text-red-400 text-xs mt-1">Location data is required for audit compliance.</p>
+              </div>
+              <button
+                type="button"
+                onClick={captureGeolocation}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg font-medium transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-emerald-700 dark:text-emerald-300 text-sm font-medium">✅ Location captured successfully</span>
+              <button
+                type="button"
+                onClick={captureGeolocation}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded-lg font-medium transition-colors"
+              >
+                Refresh Location
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+              <div>
+                <span className="text-gray-500 dark:text-slate-400 text-xs">Latitude</span>
+                <p className="font-mono text-gray-900 dark:text-slate-100">{geoLocation.latitude?.toFixed(6)}</p>
+              </div>
+              <div>
+                <span className="text-gray-500 dark:text-slate-400 text-xs">Longitude</span>
+                <p className="font-mono text-gray-900 dark:text-slate-100">{geoLocation.longitude?.toFixed(6)}</p>
+              </div>
+              <div>
+                <span className="text-gray-500 dark:text-slate-400 text-xs">Accuracy</span>
+                <p className="font-mono text-gray-900 dark:text-slate-100">±{geoLocation.accuracy}m</p>
+              </div>
+            </div>
+            {geoLocation.latitude && geoLocation.longitude && (
+              <a
+                href={`https://www.google.com/maps?q=${geoLocation.latitude},${geoLocation.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 mt-3 text-xs text-emerald-700 dark:text-emerald-400 hover:underline"
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                View on Google Maps
+              </a>
+            )}
+          </div>
+        )}
+
+        {/* Geofence Status */}
+        {metadata.store && !geoLocation.loading && !geoLocation.error && (
+          <div className="mt-4">
+            {geofenceResult === null ? (
+              <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                <span className="text-amber-700 dark:text-amber-300 text-sm">
+                  Geofencing not configured for this store yet. Submission is allowed.
+                </span>
+              </div>
+            ) : geofenceResult.allowed ? (
+              <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span className="text-emerald-700 dark:text-emerald-300 text-sm">
+                  ✅ You are <strong>{geofenceResult.distance}m</strong> from {geofenceResult.storeName} — within the {GEOFENCE_RADIUS_METERS}m allowed radius.
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                <ShieldX className="w-4 h-4 text-red-600 flex-shrink-0" />
+                <span className="text-red-700 dark:text-red-300 text-sm">
+                  🚫 You are <strong>{geofenceResult.distance}m</strong> away from {geofenceResult.storeName}. Must be within <strong>{GEOFENCE_RADIUS_METERS}m</strong> to submit. Move closer and refresh your location.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="space-y-8">
