@@ -272,6 +272,9 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       const canvas = auditorCanvasRef.current;
       const ctx = canvas.getContext('2d');
       if (ctx) {
+        // Fill white first, then draw saved signature
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         const img = new Image();
         img.onload = () => {
           ctx.drawImage(img, 0, 0);
@@ -283,6 +286,9 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       const canvas = smCanvasRef.current;
       const ctx = canvas.getContext('2d');
       if (ctx) {
+        // Fill white first, then draw saved signature
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         const img = new Image();
         img.onload = () => {
           ctx.drawImage(img, 0, 0);
@@ -342,12 +348,24 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
     setMeta(prev => ({ ...prev, [field]: value }));
   };
 
+  // Initialize canvases with white background on mount
+  useEffect(() => {
+    [auditorCanvasRef, smCanvasRef].forEach(ref => {
+      const canvas = ref.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    });
+  }, []);
+
   // Signature drawing functions
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, type: 'auditor' | 'sm') => {
     const canvas = type === 'auditor' ? auditorCanvasRef.current : smCanvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     // Enable smoothing for better quality
@@ -379,7 +397,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
     const canvas = type === 'auditor' ? auditorCanvasRef.current : smCanvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     // Enable smoothing
@@ -428,7 +446,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     setSignatures(prev => ({
       ...prev,
       [type]: ''
@@ -722,14 +741,14 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       localStorage.removeItem('finance_meta');
       localStorage.removeItem('finance_signatures');
 
-      // Clear canvases
+      // Clear canvases (fill white)
       if (auditorCanvasRef.current) {
         const ctx = auditorCanvasRef.current.getContext('2d');
-        if (ctx) ctx.clearRect(0, 0, auditorCanvasRef.current.width, auditorCanvasRef.current.height);
+        if (ctx) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, auditorCanvasRef.current.width, auditorCanvasRef.current.height); }
       }
       if (smCanvasRef.current) {
         const ctx = smCanvasRef.current.getContext('2d');
-        if (ctx) ctx.clearRect(0, 0, smCanvasRef.current.width, smCanvasRef.current.height);
+        if (ctx) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, smCanvasRef.current.width, smCanvasRef.current.height); }
       }
     }
   };
@@ -737,16 +756,30 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   const generatePDF = async () => {
     const { totalScore, maxScore, scorePercentage } = calculateScore();
     
-    // Prepare data for PDF builder - matching FinanceSubmission format
-    const submissionData = {
+    // Detect region from comprehensive mapping
+    let detectedRegion = '';
+    try {
+      if (meta.storeId && comprehensiveMapping.length > 0) {
+        const storeMapping = comprehensiveMapping.find(m => m['Store ID'] === meta.storeId);
+        if (storeMapping) {
+          detectedRegion = storeMapping.Region || '';
+        }
+      }
+    } catch (e) {}
+
+    // Prepare data for PDF builder - matching FinanceSubmission format exactly
+    const submissionData: Record<string, any> = {
       ...responses,
       submissionTime: new Date().toLocaleString(),
       financeAuditorName: meta.financeAuditorName,
+      financeName: meta.financeAuditorName,
       financeAuditorId: meta.financeAuditorId,
+      financeId: meta.financeAuditorId,
       amName: meta.amName,
       amId: meta.amId,
       storeName: meta.storeName,
       storeId: meta.storeId,
+      region: detectedRegion,
       totalScore: totalScore.toString(),
       maxScore: maxScore.toString(),
       scorePercentage: scorePercentage.toString(),
@@ -754,7 +787,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       smSignature: signatures.sm
     };
 
-    // Add individual question remarks and image counts if they are not already in responses
+    // Add individual question remarks
     Object.keys(questionRemarks).forEach(key => {
       submissionData[`${key}_remark`] = questionRemarks[key];
     });
@@ -765,18 +798,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       storeId: meta.storeId,
       auditorName: meta.financeAuditorName,
       date: new Date().toLocaleString(),
-      region: '', 
+      region: detectedRegion, 
     };
-
-    // Region detection
-    try {
-      if (meta.storeId) {
-        const storeMapping = comprehensiveMapping.find(m => m['Store ID'] === meta.storeId);
-        if (storeMapping) {
-          pdfMetadata.region = storeMapping.Region || '';
-        }
-      }
-    } catch (e) {}
 
     const doc = await buildFinancePDF(
       [submissionData], 

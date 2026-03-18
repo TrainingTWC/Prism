@@ -399,16 +399,19 @@ export const buildFinancePDF = async (
   const max = totalFromSheet ? Number(sub.maxScore) : computed.max;
   const pct = max > 0 ? Math.round((total / max) * 100) : 0;
 
-  // Count passed items (Yes answers)
+  // Count passed items (Yes answers) - check all possible key formats
   let passedItems = 0;
   let totalItems = 0;
   FINANCE_SECTIONS.forEach(section => {
     section.questions.forEach(q => {
-      const questionKey = Object.keys(sub).find(k => k.startsWith(`${q.id}:`));
-      if (questionKey) {
+      // Try all key formats: "Q1: question text", "CashManagement_Q1", "Q1"
+      const questionKeyFull = Object.keys(sub).find(k => k.startsWith(`${q.id}:`));
+      const prefixKey = `${section.prefix}_${q.id}`;
+      const response = questionKeyFull ? sub[questionKeyFull] : (sub[prefixKey] || sub[q.id]);
+      
+      if (response !== undefined && response !== null && String(response).trim() !== '') {
         totalItems++;
-        const answer = sub[questionKey];
-        if (answer && String(answer).toLowerCase() === 'yes') {
+        if (String(response).toLowerCase() === 'yes') {
           passedItems++;
         }
       }
@@ -756,7 +759,9 @@ export const buildFinancePDF = async (
               const x = startX + col * (imageWidth + spacing);
               const currentY = y + row * (imageHeight + spacing);
 
-              doc.addImage(base64Image, 'JPEG', x, currentY, imageWidth, imageHeight);
+              // Auto-detect image format from data URL
+              const imgFormat = base64Image.includes('image/png') ? 'PNG' : 'JPEG';
+              doc.addImage(base64Image, imgFormat, x, currentY, imageWidth, imageHeight);
 
               doc.setDrawColor(203, 213, 225);
               doc.setLineWidth(0.5);
@@ -808,7 +813,9 @@ export const buildFinancePDF = async (
           const x = startX + col * (imageWidth + spacing);
           const currentY = y + row * (imageHeight + spacing);
 
-          doc.addImage(base64Image, 'JPEG', x, currentY, imageWidth, imageHeight);
+          // Auto-detect image format from data URL
+          const imgFormat = base64Image.includes('image/png') ? 'PNG' : 'JPEG';
+          doc.addImage(base64Image, imgFormat, x, currentY, imageWidth, imageHeight);
           doc.setDrawColor(203, 213, 225);
           doc.setLineWidth(0.5);
           doc.rect(x, currentY, imageWidth, imageHeight);
