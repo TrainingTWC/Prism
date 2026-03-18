@@ -5,9 +5,8 @@ import LoadingOverlay from '../LoadingOverlay';
 import { useComprehensiveMapping, useAreaManagers } from '../../hooks/useComprehensiveMapping';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { buildFinancePDF } from '@/src/utils/financeReport';
+import { fetchFinanceHistoricData, FinanceHistoricData } from '../../services/dataService';
 
 // Google Sheets endpoint for Finance Audit (QA Pattern)
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzfP0OjIe2-XQut_0DgOFpkAvqkMi0RU6U3HLtDGBpNXeVTnLjHUtzNhlZtonXhy1H0/exec';
@@ -192,10 +191,20 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   const [selectedAmIndex, setSelectedAmIndex] = useState(-1);
   const [selectedStoreIndex, setSelectedStoreIndex] = useState(-1);
 
-  // Signature state
+  // Signature state — detect and discard corrupted (black background) signatures from old alpha:false bug
   const [signatures, setSignatures] = useState<{ auditor: string; sm: string }>(() => {
     try {
-      return JSON.parse(localStorage.getItem('finance_signatures') || '{"auditor":"","sm":""}');
+      const saved = JSON.parse(localStorage.getItem('finance_signatures') || '{"auditor":"","sm":""}');
+      // Clear any old corrupted signatures that were saved with alpha:false (black background)
+      // A valid white-background signature PNG with actual drawing is >5KB. A blank/corrupted one is often small or all-black.
+      // We'll do a one-time migration: clear saved sigs so user re-signs on white canvas.
+      const migrated = localStorage.getItem('finance_sig_migrated_v2');
+      if (!migrated && (saved.auditor || saved.sm)) {
+        localStorage.setItem('finance_sig_migrated_v2', 'true');
+        localStorage.removeItem('finance_signatures');
+        return { auditor: '', sm: '' };
+      }
+      return saved;
     } catch (e) {
       return { auditor: '', sm: '' };
     }
@@ -266,36 +275,26 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
     localStorage.setItem('finance_signatures', JSON.stringify(signatures));
   }, [signatures]);
 
-  // Initialize canvas when signatures are loaded from localStorage
+  // Initialize/restore canvas when signatures change
   useEffect(() => {
-    if (signatures.auditor && auditorCanvasRef.current) {
-      const canvas = auditorCanvasRef.current;
+    const restoreSignature = (canvas: HTMLCanvasElement | null, sigData: string) => {
+      if (!canvas) return;
       const ctx = canvas.getContext('2d');
-      if (ctx) {
-        // Fill white first, then draw saved signature
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (!ctx) return;
+      // Always fill white first
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Then draw saved signature if present
+      if (sigData) {
         const img = new Image();
         img.onload = () => {
           ctx.drawImage(img, 0, 0);
         };
-        img.src = signatures.auditor;
+        img.src = sigData;
       }
-    }
-    if (signatures.sm && smCanvasRef.current) {
-      const canvas = smCanvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        // Fill white first, then draw saved signature
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        const img = new Image();
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0);
-        };
-        img.src = signatures.sm;
-      }
-    }
+    };
+    restoreSignature(auditorCanvasRef.current, signatures.auditor);
+    restoreSignature(smCanvasRef.current, signatures.sm);
   }, [signatures.auditor, signatures.sm]);
 
   // Update stats whenever responses change
@@ -767,14 +766,13 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       }
     } catch (e) {}
 
-    // Prepare data for PDF builder - matching FinanceSubmission format exactly
+    // Build submission data in the same format as the dashboard receives from the Google Sheet
     const submissionData: Record<string, any> = {
-      ...responses,
       submissionTime: new Date().toLocaleString(),
-      financeAuditorName: meta.financeAuditorName,
       financeName: meta.financeAuditorName,
-      financeAuditorId: meta.financeAuditorId,
+      financeAuditorName: meta.financeAuditorName,
       financeId: meta.financeAuditorId,
+      financeAuditorId: meta.financeAuditorId,
       amName: meta.amName,
       amId: meta.amId,
       storeName: meta.storeName,
@@ -787,28 +785,51 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       smSignature: signatures.sm
     };
 
+    // Add all question responses (CashManagement_Q1 format — matches sheet)
+    Object.keys(responses).forEach(key => {
+      submissionData[key] = responses[key];
+    });
+
     // Add individual question remarks
     Object.keys(questionRemarks).forEach(key => {
       submissionData[`${key}_remark`] = questionRemarks[key];
     });
 
-    // Prepare metadata
-    const pdfMetadata = {
+    // Build metadata — same as dashboard PDF path
+    const pdfMetadata: any = {
       storeName: meta.storeName,
       storeId: meta.storeId,
       auditorName: meta.financeAuditorName,
+      smName: '',
       date: new Date().toLocaleString(),
-      region: detectedRegion, 
+      region: detectedRegion,
     };
 
+    // Fetch historic data for this store (same as dashboard)
+    let storeHistoricData: FinanceHistoricData[] = [];
+    try {
+      if (meta.storeId) {
+        const allHistoric = await fetchFinanceHistoricData();
+        if (allHistoric.length > 0) {
+          storeHistoricData = allHistoric
+            .filter(h => h.storeId.toUpperCase() === meta.storeId.toUpperCase())
+            .sort((a, b) => new Date(a.auditDate).getTime() - new Date(b.auditDate).getTime());
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch historic data for PDF:', e);
+    }
+
     const doc = await buildFinancePDF(
-      [submissionData], 
-      pdfMetadata, 
-      { title: 'Financial Controls Assessment' }, 
-      questionImages
+      [submissionData],
+      pdfMetadata,
+      { title: 'Financial Controls Assessment' },
+      questionImages,
+      storeHistoricData
     );
-    
-    doc.save(`finance_audit_${meta.storeName}_${Date.now()}.pdf`);
+
+    const fileName = `Finance_Audit_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
   };
 
   if (submitted) {
@@ -1147,7 +1168,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
             <label className="block text-base sm:text-sm font-medium text-gray-700 dark:text-slate-300">
               Finance Auditor Signature *
             </label>
-            <div className="border-3 border-gray-400 dark:border-slate-500 rounded-xl bg-white p-1 shadow-inner">
+            <div className="border-3 border-gray-400 dark:border-slate-500 rounded-xl p-1 shadow-inner" style={{ backgroundColor: '#FFFFFF' }}>
               <canvas
                 ref={auditorCanvasRef}
                 width={1600}
@@ -1175,7 +1196,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
                   WebkitTouchCallout: 'none',
                   WebkitUserSelect: 'none',
                   userSelect: 'none',
-                  imageRendering: 'crisp-edges'
+                  imageRendering: 'crisp-edges',
+                  backgroundColor: '#FFFFFF'
                 }}
               />
             </div>
@@ -1201,7 +1223,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
             <label className="block text-base sm:text-sm font-medium text-gray-700 dark:text-slate-300">
               Store Manager (SM) Signature *
             </label>
-            <div className="border-3 border-gray-400 dark:border-slate-500 rounded-xl bg-white p-1 shadow-inner">
+            <div className="border-3 border-gray-400 dark:border-slate-500 rounded-xl p-1 shadow-inner" style={{ backgroundColor: '#FFFFFF' }}>
               <canvas
                 ref={smCanvasRef}
                 width={1600}
@@ -1229,7 +1251,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
                   WebkitTouchCallout: 'none',
                   WebkitUserSelect: 'none',
                   userSelect: 'none',
-                  imageRendering: 'crisp-edges'
+                  imageRendering: 'crisp-edges',
+                  backgroundColor: '#FFFFFF'
                 }}
               />
             </div>
