@@ -8,3 +8,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Leaflet map smoothing & tooltip styles ── */
+.leaflet-container {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.leaflet-fade-anim .leaflet-tile,
+.leaflet-fade-anim .leaflet-popup {
+  transition: opacity 0.2s linear;
+}
+.leaflet-zoom-anim .leaflet-zoom-animated {
+  transition: transform 0.25s cubic-bezier(0, 0, 0.25, 1);
+}
+.leaflet-tile-pane {
+  will-change: transform;
+}
+.store-tooltip {
+  white-space: nowrap;
+  font-family: system-ui, -apple-system, sans-serif;
+  border-radius: 8px !important;
+  padding: 4px 10px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+  border: none !important;
+}
+.store-tooltip::before {
+  border-top-color: white !important;
+}

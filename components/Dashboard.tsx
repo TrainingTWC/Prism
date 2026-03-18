@@ -670,6 +670,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             }
           }).catch(err => {
             console.error('❌ Failed to load HR data:', err);
+            setDataLoadedFlags(prev => ({ ...prev, hr: true }));
           })
         );
       }
@@ -682,6 +683,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             setDataLoadedFlags(prev => ({ ...prev, operations: true }));
           }).catch(err => {
             console.error('❌ Failed to load AM Operations data:', err);
+            setDataLoadedFlags(prev => ({ ...prev, operations: true }));
           })
         );
       }
@@ -694,6 +696,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             setDataLoadedFlags(prev => ({ ...prev, training: true }));
           }).catch(err => {
             console.error('❌ Dashboard: Failed to load Training data:', err);
+            setDataLoadedFlags(prev => ({ ...prev, training: true }));
           })
         );
       }
@@ -706,6 +709,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             setDataLoadedFlags(prev => ({ ...prev, qa: true }));
           }).catch(err => {
             console.error('❌ Failed to load QA data:', err);
+            setDataLoadedFlags(prev => ({ ...prev, qa: true }));
           })
         );
       }
@@ -718,6 +722,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             setDataLoadedFlags(prev => ({ ...prev, finance: true }));
           }).catch(err => {
             console.error('❌ Failed to load Finance data:', err);
+            setDataLoadedFlags(prev => ({ ...prev, finance: true }));
           })
         );
         
@@ -739,6 +744,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             setDataLoadedFlags(prev => ({ ...prev, campusHiring: true }));
           }).catch(err => {
             console.error('❌ Failed to load Campus Hiring data:', err);
+            setDataLoadedFlags(prev => ({ ...prev, campusHiring: true }));
           })
         );
       }
@@ -751,6 +757,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             setDataLoadedFlags(prev => ({ ...prev, shlp: true }));
           }).catch(err => {
             console.error('❌ Failed to load SHLP data:', err);
+            setDataLoadedFlags(prev => ({ ...prev, shlp: true }));
           })
         );
       }

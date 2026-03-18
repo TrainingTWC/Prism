@@ -1,11 +1,11 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { STORE_COORDINATES, StoreCoordinate } from '../src/config/storeCoordinates';
 import { Submission } from '../types';
 import { AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission } from '../services/dataService';
 import { SHLPSubmission } from '../services/shlpDataService';
-import { MapPin, Filter, BarChart3, Eye, EyeOff, ChevronDown, ChevronUp, TrendingUp, Building2 } from 'lucide-react';
+import { MapPin, Filter, BarChart3, Eye, EyeOff, ChevronDown, ChevronUp, TrendingUp, Building2, Loader2 } from 'lucide-react';
 import type { LatLngBoundsExpression } from 'leaflet';
 
 /* ───────────────────────────── types ───────────────────────────── */
@@ -84,12 +84,17 @@ function scoreToBg(score: number, hasData: boolean): string {
   return '#fecaca';
 }
 
-/* ────────── Fit map to India on mount ──────── */
-function FitIndia() {
+/* ────────── Smooth map config on mount ──────── */
+function SmoothMapSetup() {
   const map = useMap();
   useEffect(() => {
     map.setMaxBounds(INDIA_BOUNDS);
     map.setMinZoom(4);
+    // Enable smooth inertia for fluid panning
+    (map.options as any).inertia = true;
+    (map.options as any).inertiaDeceleration = 2000;
+    (map.options as any).inertiaMaxSpeed = 1500;
+    (map.options as any).easeLinearity = 0.25;
   }, [map]);
   return null;
 }
@@ -491,7 +496,7 @@ const StoreMapView: React.FC<StoreMapViewProps> = ({
       </div>
 
       {/* ── Map — India Only ── */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden" style={{ height: 580 }}>
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden" style={{ height: 'calc(100vh - 200px)', minHeight: 500, maxHeight: 750 }}>
         {mappedStores.length > 0 ? (
           <MapContainer
             center={INDIA_CENTER}
@@ -499,15 +504,25 @@ const StoreMapView: React.FC<StoreMapViewProps> = ({
             minZoom={4}
             maxZoom={18}
             maxBounds={INDIA_BOUNDS}
-            maxBoundsViscosity={0.8}
+            maxBoundsViscosity={0.5}
+            zoomSnap={0.5}
+            zoomDelta={0.5}
+            wheelDebounceTime={40}
+            wheelPxPerZoomLevel={120}
+            preferCanvas={true}
             style={{ height: '100%', width: '100%' }}
             scrollWheelZoom={true}
+            zoomAnimation={true}
+            markerZoomAnimation={true}
+            fadeAnimation={true}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              maxZoom={20}
+              subdomains="abcd"
             />
-            <FitIndia />
+            <SmoothMapSetup />
 
             {mappedStores.map((store) => {
               const { score, hasData } = getMetricScore(store);
@@ -521,12 +536,21 @@ const StoreMapView: React.FC<StoreMapViewProps> = ({
                   radius={radius}
                   pathOptions={{
                     fillColor: color,
-                    fillOpacity: 0.9,
+                    fillOpacity: 0.85,
                     color: '#ffffff',
-                    weight: 2.5,
+                    weight: 2,
                     opacity: 1,
                   }}
+                  eventHandlers={{
+                    mouseover: (e) => { e.target.setRadius(radius + 4); e.target.setStyle({ weight: 3, fillOpacity: 1 }); },
+                    mouseout: (e) => { e.target.setRadius(radius); e.target.setStyle({ weight: 2, fillOpacity: 0.85 }); },
+                  }}
                 >
+                  <Tooltip direction="top" offset={[0, -8]} opacity={0.95} className="store-tooltip">
+                    <span style={{ fontWeight: 700, fontSize: 12 }}>{store.storeId}</span>
+                    <span style={{ color: '#6b7280', fontSize: 11 }}> — {store.storeName}</span>
+                    {hasData && <span style={{ marginLeft: 6, fontWeight: 800, fontSize: 12, color: scoreToColor(score, true) }}>{Math.round(score)}%</span>}
+                  </Tooltip>
                   <Popup maxWidth={320} minWidth={280}>
                     <div style={{ minWidth: 260, fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: 13 }}>
                       {/* Store header */}
@@ -641,8 +665,12 @@ const StoreMapView: React.FC<StoreMapViewProps> = ({
               <span className="text-lg">{d.icon}</span>
               <div>
                 <p className="text-xs font-medium text-gray-500 dark:text-slate-400">{d.label}</p>
-                <p className="text-sm font-bold" style={{ color: d.count > 0 ? d.accent : '#94a3b8' }}>
-                  {d.count > 0 ? `${d.count} records` : 'Loading...'}
+                <p className="text-sm font-bold flex items-center gap-1" style={{ color: d.count > 0 ? d.accent : '#94a3b8' }}>
+                  {d.count > 0 ? (
+                    `${d.count} records`
+                  ) : (
+                    <><Loader2 className="w-3 h-3 animate-spin" /> Fetching...</>
+                  )}
                 </p>
               </div>
             </div>
