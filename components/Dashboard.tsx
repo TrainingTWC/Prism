@@ -76,6 +76,7 @@ import CampusHiringStats from './CampusHiringStats';
 import TrainerCalendarDashboard from './TrainerCalendarDashboard';
 import BenchPlanningDashboard from './BenchPlanningDashboard';
 import BenchPlanningSMASMDashboard from './BenchPlanningSMASMDashboard';
+import StoreMapView from './StoreMapView';
 import { UserRole, canAccessStore, canAccessAM, canAccessHR } from '../roleMapping';
 import { useAuth } from '../contexts/AuthContext';
 import { useEmployeeDirectory } from '../hooks/useEmployeeDirectory';
@@ -261,6 +262,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       { id: 'trainer-calendar', label: 'Trainer Calendar', access: 'trainer-calendar-dashboard' },
       { id: 'bench-planning', label: 'Bench Planning (Barista to SM)', access: 'bench-planning-dashboard' },
       { id: 'bench-planning-sm-asm', label: 'Bench Planning (SM to ASM)', access: 'bench-planning-sm-asm-dashboard' },
+      { id: 'map-view', label: 'Map View', access: 'all' },
       { id: 'consolidated', label: 'Consolidated View', access: 'all' }
     ];
 
@@ -612,6 +614,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         'trainer-calendar': true,       // calendar has no separate fetch
         'bench-planning': true,         // bench planning has no separate fetch
         'bench-planning-sm-asm': true,  // bench planning sm/asm has no separate fetch
+        'map-view': Object.values(dataLoadedFlags).some(Boolean) || true, // map works even with partial data
         consolidated: Object.values(dataLoadedFlags).every(Boolean), // all loaded
       };
       const hasLoadedCurrentData = dashboardFlagMap[targetDashboard] ?? Object.values(dataLoadedFlags).some(Boolean);
@@ -626,8 +629,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       // NO PRELOADING - load only what's needed for the current dashboard
       const loadPromises: Promise<any>[] = [];
 
-      // Load HR survey data ONLY if currently viewing HR dashboard OR consolidated view
-      if ((targetDashboard === 'hr' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.hr || isRefresh)) {
+      // Load HR survey data ONLY if currently viewing HR dashboard, consolidated view, or map view
+      if ((targetDashboard === 'hr' || targetDashboard === 'map-view' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.hr || isRefresh)) {
         loadPromises.push(
           fetchSubmissions().then(data => {
             setSubmissions(data);
@@ -671,8 +674,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         );
       }
 
-      // Load AM Operations data ONLY if currently viewing Operations dashboard OR consolidated view
-      if ((targetDashboard === 'operations' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.operations || isRefresh)) {
+      // Load AM Operations data ONLY if currently viewing Operations dashboard, consolidated view, or map view
+      if ((targetDashboard === 'operations' || targetDashboard === 'map-view' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.operations || isRefresh)) {
         loadPromises.push(
           fetchAMOperationsData().then(data => {
             setAMOperationsData(data);
@@ -683,8 +686,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         );
       }
 
-      // Load Training Audit data ONLY if currently viewing Training dashboard OR consolidated view
-      if ((targetDashboard === 'training' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.training || isRefresh)) {
+      // Load Training Audit data ONLY if currently viewing Training dashboard, consolidated view, or map view
+      if ((targetDashboard === 'training' || targetDashboard === 'map-view' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.training || isRefresh)) {
         loadPromises.push(
           fetchTrainingData().then(data => {
             setTrainingData(data);
@@ -695,8 +698,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         );
       }
 
-      // Load QA Assessment data ONLY if currently viewing QA dashboard OR consolidated view
-      if ((targetDashboard === 'qa' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.qa || isRefresh)) {
+      // Load QA Assessment data ONLY if currently viewing QA dashboard, consolidated view, or map view
+      if ((targetDashboard === 'qa' || targetDashboard === 'map-view' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.qa || isRefresh)) {
         loadPromises.push(
           fetchQAData().then(data => {
             setQAData(data);
@@ -707,8 +710,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         );
       }
 
-      // Load Finance Audit data ONLY if currently viewing Finance dashboard OR consolidated view
-      if ((targetDashboard === 'finance' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.finance || isRefresh)) {
+      // Load Finance Audit data ONLY if currently viewing Finance dashboard, consolidated view, or map view
+      if ((targetDashboard === 'finance' || targetDashboard === 'map-view' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.finance || isRefresh)) {
         loadPromises.push(
           fetchFinanceData().then(data => {
             setFinanceData(data);
@@ -740,8 +743,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         );
       }
 
-      // Load SHLP data ONLY if currently viewing SHLP dashboard OR consolidated view
-      if ((targetDashboard === 'shlp' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.shlp || isRefresh)) {
+      // Load SHLP data ONLY if currently viewing SHLP dashboard, consolidated view, or map view
+      if ((targetDashboard === 'shlp' || targetDashboard === 'map-view' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.shlp || isRefresh)) {
         loadPromises.push(
           fetchSHLPData().then(data => {
             setSHLPData(data);
@@ -4457,6 +4460,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                   case 'shlp': return <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />;
                   case 'campus-hiring': return <Brain className="w-4 h-4 sm:w-5 sm:h-5" />;
                   case 'trainer-calendar': return <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />;
+                  case 'map-view': return (
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                  );
                   default: return <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />;
                 }
               };
@@ -4473,6 +4481,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                   case 'trainer-calendar': return dashboardType === 'trainer-calendar' ? 'bg-purple-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'bench-planning': return dashboardType === 'bench-planning' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'bench-planning-sm-asm': return dashboardType === 'bench-planning-sm-asm' ? 'bg-amber-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'map-view': return dashboardType === 'map-view' ? 'bg-cyan-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'consolidated': return dashboardType === 'consolidated' ? 'bg-slate-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   default: return 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                 }
@@ -4502,12 +4511,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             {dashboardType === 'trainer-calendar' && 'View and manage trainer schedules and calendar events'}
             {dashboardType === 'bench-planning' && 'View Bench Planning progress for Barista to SM promotion track'}
             {dashboardType === 'bench-planning-sm-asm' && 'View Bench Planning progress for SM to ASM promotion track'}
+            {dashboardType === 'map-view' && 'Interactive map of all stores with colour-graded performance scores'}
             {dashboardType === 'consolidated' && 'View combined insights from all authorized checklist types'}
           </p>
         </div>
       )}
 
-      {dashboardType !== 'campus-hiring' && dashboardType !== 'trainer-calendar' && (() => {
+      {dashboardType !== 'campus-hiring' && dashboardType !== 'trainer-calendar' && dashboardType !== 'map-view' && (() => {
         return (
           <div>
             <DashboardFilters
@@ -4543,7 +4553,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       )}
 
       {/* Check if we have data for the selected dashboard type */}
-      {dashboardType === 'trainer-calendar' ? (
+      {dashboardType === 'map-view' ? (
+        // Store Map View Dashboard
+        <StoreMapView
+          allStores={allStores}
+          hrData={submissions || []}
+          operationsData={amOperationsData || []}
+          trainingData={trainingData || []}
+          qaData={qaData || []}
+          financeData={financeData || []}
+          shlpData={shlpData || []}
+        />
+      ) : dashboardType === 'trainer-calendar' ? (
         // Trainer Calendar Dashboard
         <TrainerCalendarDashboard />
       ) : dashboardType === 'campus-hiring' ? (
