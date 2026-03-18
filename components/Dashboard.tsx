@@ -614,7 +614,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         'trainer-calendar': true,       // calendar has no separate fetch
         'bench-planning': true,         // bench planning has no separate fetch
         'bench-planning-sm-asm': true,  // bench planning sm/asm has no separate fetch
-        'map-view': Object.values(dataLoadedFlags).some(Boolean) || true, // map works even with partial data
+        'map-view': Object.values(dataLoadedFlags).some(Boolean), // map renders once any department loads
         consolidated: Object.values(dataLoadedFlags).every(Boolean), // all loaded
       };
       const hasLoadedCurrentData = dashboardFlagMap[targetDashboard] ?? Object.values(dataLoadedFlags).some(Boolean);
