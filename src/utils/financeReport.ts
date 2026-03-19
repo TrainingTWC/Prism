@@ -480,6 +480,46 @@ export const buildFinancePDF = async (
 
   y += cardHeight + 12;
 
+  // If no base64 images provided, try to load from sheet "Q# Image URL" columns (Google Drive URLs)
+  if (Object.keys(questionImages).length === 0) {
+    const loadedImages: Record<string, string[]> = {};
+    const imageLoadPromises: Promise<void>[] = [];
+
+    for (const section of FINANCE_SECTIONS) {
+      for (const q of section.questions) {
+        const imageUrlKey = `${q.id} Image URL`;
+        const imageUrl = sub[imageUrlKey];
+        if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim()) {
+          const compositeKey = `${section.prefix}_${q.id}`;
+          imageLoadPromises.push(
+            (async () => {
+              try {
+                // Convert Google Drive URL to direct link if needed
+                let directUrl = imageUrl;
+                const driveMatch = imageUrl.match(/\/file\/d\/([^\/]+)/);
+                if (driveMatch) {
+                  directUrl = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+                }
+                const base64 = await loadImage(directUrl);
+                loadedImages[compositeKey] = [base64];
+              } catch (err) {
+                // Image load failed (CORS, timeout, etc.), skip silently
+              }
+            })()
+          );
+        }
+      }
+    }
+
+    if (imageLoadPromises.length > 0) {
+      await Promise.all(imageLoadPromises);
+      if (Object.keys(loadedImages).length > 0) {
+        questionImages = { ...loadedImages, ...questionImages };
+        console.log('📸 Loaded', Object.keys(loadedImages).length, 'images from sheet URLs');
+      }
+    }
+  }
+
   // Build sections with question details (needed for section scores)
   const sections = buildSections(sub, questionImages);
 
@@ -829,7 +869,8 @@ export const buildFinancePDF = async (
     }
 
     // Display section remarks if they exist
-    const sectionRemarks = sub[`${secKey}_remarks`];
+    // sec.remarks is set by buildSections() which handles both "Section 1 Remarks" (sheet) and "CashManagement_remarks" (checklist) formats
+    const sectionRemarks = sec.remarks || sub[`${secKey}_remarks`];
     if (sectionRemarks && sectionRemarks.trim()) {
       const remarksLines = doc.splitTextToSize(sectionRemarks, 170);
       const remarksHeight = Math.max(18, (remarksLines.length * 5) + 12);

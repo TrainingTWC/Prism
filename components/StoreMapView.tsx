@@ -1,12 +1,13 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import React, { useMemo, useState, useRef, useCallback } from 'react';
+import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from 'react-simple-maps';
 import { STORE_COORDINATES, StoreCoordinate } from '../src/config/storeCoordinates';
 import { Submission } from '../types';
 import { AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission } from '../services/dataService';
 import { SHLPSubmission } from '../services/shlpDataService';
-import { MapPin, Filter, BarChart3, Eye, EyeOff, ChevronDown, ChevronUp, TrendingUp, Building2, Loader2 } from 'lucide-react';
-import type { LatLngBoundsExpression } from 'leaflet';
+import { MapPin, Filter, BarChart3, Eye, EyeOff, ChevronDown, ChevronUp, TrendingUp, Building2, Loader2, X } from 'lucide-react';
+
+/* Natural Earth 50m TopoJSON — accurate country boundaries */
+const WORLD_TOPO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json';
 
 /* ───────────────────────────── types ───────────────────────────── */
 
@@ -38,13 +39,6 @@ interface StoreScoreData {
 
 type ColorMetric = 'overall' | 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp';
 type RegionFilter = 'all' | 'South' | 'North' | 'West' | 'East';
-
-/* ─── India map bounds ─── */
-const INDIA_CENTER: [number, number] = [22.5, 78.5];
-const INDIA_BOUNDS: LatLngBoundsExpression = [
-  [6.0, 67.0],   // SW corner
-  [38.0, 98.0],  // NE corner
-];
 
 /* ─────────────────────── colour helpers ────────────────────────── */
 
@@ -84,37 +78,6 @@ function scoreToBg(score: number, hasData: boolean): string {
   return '#fecaca';
 }
 
-/* ────────── Smooth map config on mount ──────── */
-function SmoothMapSetup() {
-  const map = useMap();
-  useEffect(() => {
-    map.setMaxBounds(INDIA_BOUNDS);
-    map.setMinZoom(4);
-    // Enable smooth inertia for fluid panning
-    (map.options as any).inertia = true;
-    (map.options as any).inertiaDeceleration = 2000;
-    (map.options as any).inertiaMaxSpeed = 1500;
-    (map.options as any).easeLinearity = 0.25;
-  }, [map]);
-  return null;
-}
-
-/* ────────── fly-to helper ──────── */
-function FlyToButton({ lat, lng }: { lat: number; lng: number }) {
-  const map = useMap();
-  return (
-    <button
-      style={{
-        fontSize: 11, color: '#3b82f6', fontWeight: 600, textDecoration: 'underline',
-        background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 4,
-      }}
-      onClick={() => map.flyTo([lat, lng], 14, { duration: 1.2 })}
-    >
-      Zoom to Store
-    </button>
-  );
-}
-
 /* ═══════════════════════ MAIN COMPONENT ════════════════════════ */
 
 const StoreMapView: React.FC<StoreMapViewProps> = ({
@@ -130,6 +93,9 @@ const StoreMapView: React.FC<StoreMapViewProps> = ({
   const [regionFilter, setRegionFilter] = useState<RegionFilter>('all');
   const [showUnconfigured, setShowUnconfigured] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStore, setSelectedStore] = useState<StoreScoreData | null>(null);
+  const [tooltipStore, setTooltipStore] = useState<{ store: StoreScoreData; x: number; y: number } | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   /* ─────── region inferring from store ID ─────── */
   function inferRegion(storeId: string): string {
@@ -496,141 +462,191 @@ const StoreMapView: React.FC<StoreMapViewProps> = ({
       </div>
 
       {/* ── Map — India Only ── */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden" style={{ height: 'calc(100vh - 200px)', minHeight: 500, maxHeight: 750 }}>
+      <div
+        ref={mapContainerRef}
+        className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden relative"
+        style={{ height: 'calc(100vh - 200px)', minHeight: 500, maxHeight: 750 }}
+      >
         {mappedStores.length > 0 ? (
-          <MapContainer
-            center={INDIA_CENTER}
-            zoom={5}
-            minZoom={4}
-            maxZoom={18}
-            maxBounds={INDIA_BOUNDS}
-            maxBoundsViscosity={0.5}
-            zoomSnap={0.5}
-            zoomDelta={0.5}
-            wheelDebounceTime={40}
-            wheelPxPerZoomLevel={120}
-            preferCanvas={true}
-            style={{ height: '100%', width: '100%' }}
-            scrollWheelZoom={true}
-            zoomAnimation={true}
-            markerZoomAnimation={true}
-            fadeAnimation={true}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-              maxZoom={20}
-              subdomains="abcd"
-            />
-            <SmoothMapSetup />
+          <>
+            <ComposableMap
+              projection="geoMercator"
+              projectionConfig={{
+                center: [79, 23],
+                scale: 1100,
+              }}
+              width={800}
+              height={700}
+              style={{ width: '100%', height: '100%', background: '#f0f4ff' }}
+            >
+              <ZoomableGroup
+                center={[79, 23]}
+                zoom={1}
+                minZoom={1}
+                maxZoom={12}
+                translateExtent={[[50, -50], [750, 700]]}
+              >
+                {/* India geography from Natural Earth */}
+                <Geographies geography={WORLD_TOPO_URL}>
+                  {({ geographies }) =>
+                    geographies
+                      .filter((geo) => geo.properties.name === 'India')
+                      .map((geo) => (
+                        <Geography
+                          key={geo.rsmKey}
+                          geography={geo}
+                          fill="#e8ecf4"
+                          stroke="#6366f1"
+                          strokeWidth={0.8}
+                          style={{
+                            default: { outline: 'none', fill: '#e8ecf4' },
+                            hover: { outline: 'none', fill: '#dde3f0' },
+                            pressed: { outline: 'none', fill: '#d0d8ec' },
+                          }}
+                        />
+                      ))
+                  }
+                </Geographies>
 
-            {mappedStores.map((store) => {
-              const { score, hasData } = getMetricScore(store);
-              const color = scoreToColor(score, hasData);
-              const radius = hasData ? Math.max(7, Math.min(14, 7 + Math.log2(store.totalSubmissions + 1) * 2)) : 5;
+                {/* Store markers */}
+                {mappedStores.map((store) => {
+                  const { score, hasData } = getMetricScore(store);
+                  const color = scoreToColor(score, hasData);
+                  const r = hasData ? Math.max(3, Math.min(7, 3 + Math.log2(store.totalSubmissions + 1))) : 2.5;
+                  const isSelected = selectedStore?.storeId === store.storeId;
 
-              return (
-                <CircleMarker
-                  key={store.storeId}
-                  center={[store.coord!.lat, store.coord!.lng]}
-                  radius={radius}
-                  pathOptions={{
-                    fillColor: color,
-                    fillOpacity: 0.85,
-                    color: '#ffffff',
-                    weight: 2,
-                    opacity: 1,
-                  }}
-                  eventHandlers={{
-                    mouseover: (e) => { e.target.setRadius(radius + 4); e.target.setStyle({ weight: 3, fillOpacity: 1 }); },
-                    mouseout: (e) => { e.target.setRadius(radius); e.target.setStyle({ weight: 2, fillOpacity: 0.85 }); },
-                  }}
-                >
-                  <Tooltip direction="top" offset={[0, -8]} opacity={0.95} className="store-tooltip">
-                    <span style={{ fontWeight: 700, fontSize: 12 }}>{store.storeId}</span>
-                    <span style={{ color: '#6b7280', fontSize: 11 }}> — {store.storeName}</span>
-                    {hasData && <span style={{ marginLeft: 6, fontWeight: 800, fontSize: 12, color: scoreToColor(score, true) }}>{Math.round(score)}%</span>}
-                  </Tooltip>
-                  <Popup maxWidth={320} minWidth={280}>
-                    <div style={{ minWidth: 260, fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: 13 }}>
-                      {/* Store header */}
-                      <div style={{ borderBottom: '2px solid #e5e7eb', paddingBottom: 8, marginBottom: 8 }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#1e293b' }}>
-                          {store.storeId} — {store.storeName}
+                  return (
+                    <Marker
+                      key={store.storeId}
+                      coordinates={[store.coord!.lng, store.coord!.lat]}
+                    >
+                      <circle
+                        r={isSelected ? r + 3 : r}
+                        fill={color}
+                        fillOpacity={0.85}
+                        stroke={isSelected ? '#312e81' : '#ffffff'}
+                        strokeWidth={isSelected ? 2.5 : 1.5}
+                        style={{ cursor: 'pointer', transition: 'r 0.2s, stroke-width 0.2s' }}
+                        onClick={() => setSelectedStore(isSelected ? null : store)}
+                        onMouseEnter={(e) => {
+                          const rect = mapContainerRef.current?.getBoundingClientRect();
+                          if (rect) {
+                            setTooltipStore({
+                              store,
+                              x: e.clientX - rect.left,
+                              y: e.clientY - rect.top - 40,
+                            });
+                          }
+                        }}
+                        onMouseLeave={() => setTooltipStore(null)}
+                      />
+                    </Marker>
+                  );
+                })}
+              </ZoomableGroup>
+            </ComposableMap>
+
+            {/* Hover tooltip */}
+            {tooltipStore && (
+              <div
+                className="absolute pointer-events-none z-20 bg-white dark:bg-slate-800 shadow-lg rounded-lg px-3 py-2 border border-gray-200 dark:border-slate-600"
+                style={{
+                  left: tooltipStore.x,
+                  top: tooltipStore.y,
+                  transform: 'translate(-50%, -100%)',
+                  maxWidth: 220,
+                }}
+              >
+                <span className="font-bold text-xs text-gray-800 dark:text-slate-200">{tooltipStore.store.storeId}</span>
+                <span className="text-xs text-gray-500 dark:text-slate-400"> — {tooltipStore.store.storeName}</span>
+                {(() => {
+                  const { score: ts, hasData: th } = getMetricScore(tooltipStore.store);
+                  return th ? <span className="ml-1.5 font-extrabold text-xs" style={{ color: scoreToColor(ts, true) }}>{Math.round(ts)}%</span> : null;
+                })()}
+              </div>
+            )}
+
+            {/* Selected store detail panel */}
+            {selectedStore && (
+              <div className="absolute bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-[340px] z-30 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-200 dark:border-slate-600 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-slate-700 border-b border-gray-100 dark:border-slate-600">
+                  <div>
+                    <div className="font-bold text-sm text-gray-800 dark:text-slate-200">
+                      {selectedStore.storeId} — {selectedStore.storeName}
+                    </div>
+                    <div className="text-[11px] text-gray-500 dark:text-slate-400">
+                      {selectedStore.region} Region · {selectedStore.totalSubmissions} submissions
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedStore(null)}
+                    className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                  >
+                    <X className="w-4 h-4 text-gray-400" />
+                  </button>
+                </div>
+
+                <div className="px-4 py-3">
+                  {/* Overall score */}
+                  <div className="flex items-center justify-between rounded-lg px-3 py-2 mb-3" style={{ backgroundColor: scoreToBg(selectedStore.overallAvg, selectedStore.totalSubmissions > 0) }}>
+                    <span className="text-xs font-semibold text-gray-600">Overall Score</span>
+                    <span className="text-lg font-extrabold" style={{ color: scoreToColor(selectedStore.overallAvg, selectedStore.totalSubmissions > 0) }}>
+                      {selectedStore.totalSubmissions > 0 ? `${Math.round(selectedStore.overallAvg)}%` : '—'}
+                    </span>
+                  </div>
+
+                  {/* Department breakdown */}
+                  <div className="space-y-1.5">
+                    {[
+                      { key: 'hr', label: 'HR', data: selectedStore.hr, emoji: '👥' },
+                      { key: 'operations', label: 'Operations', data: selectedStore.operations, emoji: '⚙️' },
+                      { key: 'training', label: 'Training', data: selectedStore.training, emoji: '📚' },
+                      { key: 'qa', label: 'QA', data: selectedStore.qa, emoji: '✅' },
+                      { key: 'finance', label: 'Finance', data: selectedStore.finance, emoji: '💰' },
+                      { key: 'shlp', label: 'SHLP', data: selectedStore.shlp, emoji: '🛡️' },
+                    ].map(dept => (
+                      <div key={dept.key} className="flex items-center gap-2">
+                        <span className="text-[10px] font-medium text-gray-500 w-[70px] text-right">{dept.emoji} {dept.label}</span>
+                        <div className="flex-1 bg-gray-100 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
+                          {dept.data.count > 0 && (
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${Math.min(100, Math.max(3, dept.data.avgScore))}%`,
+                                backgroundColor: scoreToColor(dept.data.avgScore, true),
+                              }}
+                            />
+                          )}
                         </div>
-                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                          {store.region} Region · {store.totalSubmissions} total submissions
-                        </div>
-                      </div>
-
-                      {/* Overall score */}
-                      <div style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '6px 10px', borderRadius: 8, marginBottom: 8,
-                        backgroundColor: scoreToBg(store.overallAvg, store.totalSubmissions > 0),
-                      }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Overall Score</span>
-                        <span style={{ fontSize: 18, fontWeight: 800, color: scoreToColor(store.overallAvg, store.totalSubmissions > 0) }}>
-                          {store.totalSubmissions > 0 ? `${Math.round(store.overallAvg)}%` : '—'}
+                        <span className="text-[11px] font-bold w-8 text-right" style={{ color: dept.data.count > 0 ? scoreToColor(dept.data.avgScore, true) : '#94a3b8' }}>
+                          {dept.data.count > 0 ? `${Math.round(dept.data.avgScore)}%` : '—'}
                         </span>
+                        <span className="text-[9px] text-gray-400 w-5 text-right">({dept.data.count})</span>
                       </div>
+                    ))}
+                  </div>
 
-                      {/* Department breakdown bars */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {[
-                          { key: 'hr', label: 'HR', data: store.hr, emoji: '👥' },
-                          { key: 'operations', label: 'Operations', data: store.operations, emoji: '⚙️' },
-                          { key: 'training', label: 'Training', data: store.training, emoji: '📚' },
-                          { key: 'qa', label: 'QA', data: store.qa, emoji: '✅' },
-                          { key: 'finance', label: 'Finance', data: store.finance, emoji: '💰' },
-                          { key: 'shlp', label: 'SHLP', data: store.shlp, emoji: '🛡️' },
-                        ].map(dept => (
-                          <div key={dept.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 10, width: 75, textAlign: 'right', fontWeight: 500, color: '#6b7280' }}>
-                              {dept.emoji} {dept.label}
-                            </span>
-                            <div style={{
-                              flex: 1, height: 14, backgroundColor: '#f1f5f9', borderRadius: 7, overflow: 'hidden', position: 'relative',
-                            }}>
-                              {dept.data.count > 0 && (
-                                <div style={{
-                                  height: '100%', borderRadius: 7,
-                                  width: `${Math.min(100, Math.max(3, dept.data.avgScore))}%`,
-                                  backgroundColor: scoreToColor(dept.data.avgScore, true),
-                                  transition: 'width 0.5s ease',
-                                }} />
-                              )}
-                            </div>
-                            <span style={{
-                              fontSize: 11, fontWeight: 700, width: 36, textAlign: 'right',
-                              color: dept.data.count > 0 ? scoreToColor(dept.data.avgScore, true) : '#94a3b8',
-                            }}>
-                              {dept.data.count > 0 ? `${Math.round(dept.data.avgScore)}%` : '—'}
-                            </span>
-                            <span style={{ fontSize: 9, color: '#9ca3af', width: 18, textAlign: 'right' }}>
-                              ({dept.data.count})
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Status & Fly-to */}
-                      <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{
-                          fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
-                          backgroundColor: scoreToColor(score, hasData) + '20',
-                          color: scoreToColor(score, hasData),
-                        }}>
+                  {/* Status label */}
+                  {(() => {
+                    const { score, hasData } = getMetricScore(selectedStore);
+                    return (
+                      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
+                        <span
+                          className="text-[11px] font-bold px-2.5 py-1 rounded-md"
+                          style={{
+                            backgroundColor: scoreToColor(score, hasData) + '20',
+                            color: scoreToColor(score, hasData),
+                          }}
+                        >
                           {scoreToLabel(score, hasData)}
                         </span>
-                        <FlyToButton lat={store.coord!.lat} lng={store.coord!.lng} />
                       </div>
-                    </div>
-                  </Popup>
-                </CircleMarker>
-              );
-            })}
-          </MapContainer>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-slate-500">
             <MapPin className="w-16 h-16 mb-3" />
