@@ -2910,6 +2910,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           meta.auditorName = firstRecord.financeAuditorName || firstRecord.financeName || firstRecord['Finance Auditor Name'] || '';
         }
 
+        // Area Manager name
+        if (firstRecord) {
+          const amId = firstRecord.amId || firstRecord.am_id || firstRecord['AM ID'] || firstRecord['AM'] || '';
+          if (amId) {
+            meta.amName = getAMName(amId);
+          }
+          if (!meta.amName) {
+            meta.amName = firstRecord.amName || firstRecord['AM Name'] || firstRecord.areaManagerName || '';
+          }
+        }
+
         // Use submission date from audit data (not download date)
         if (reportData.length > 0) {
           const firstRecord = reportData[0] as any;

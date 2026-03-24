@@ -373,18 +373,20 @@ export const buildFinancePDF = async (
     doc.text(storeName, 14, y + 2);
   }
 
-  // Metadata row: Date | Auditor | Store ID | Region
+  // Metadata row: Date | Auditor | Store ID | Region | AM Name
   const metaY = y + 8;
   const dateStr = formatDate(metadata.date || sub.submissionTime || sub.date || sub.Date || '');
   const auditor = metadata.auditorName || sub.financeName || sub.financeAuditorName || sub.auditor || sub.Auditor || '';
   const sid = metadata.storeId || sub.storeId || sub.store_id || sub.StoreID || '';
   const region = metadata.region || sub.region || sub.Region || '';
+  const amName = metadata.amName || sub.amName || sub['AM Name'] || sub.areaManagerName || '';
   
   const metaLine = [] as string[];
   if (dateStr) metaLine.push(`${dateStr}`);
   if (auditor) metaLine.push(`Auditor: ${auditor}`);
   if (sid) metaLine.push(`Store: ${sid}`);
   if (region) metaLine.push(`Region: ${region}`);
+  if (amName) metaLine.push(`AM: ${amName}`);
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
@@ -721,40 +723,49 @@ export const buildFinancePDF = async (
         y = 20;
       }
 
+      const answerText = String(rowData.answer).toUpperCase();
+      const isNonCompliant = answerText === 'NO';
+      const questionLines = doc.splitTextToSize(rowData.question, 135);
+      const questionHeight = questionLines.length * 4;
+      const rowH = Math.max(5, questionHeight);
+
+      // Draw red background highlight for non-compliance rows
+      if (isNonCompliant) {
+        doc.setFillColor(254, 226, 226); // Light red bg
+        doc.roundedRect(14, y - 1, 182, rowH + 2, 1, 1, 'F');
+      }
+
       // Question number and text
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(71, 85, 105);
+      doc.setTextColor(isNonCompliant ? 153 : 71, isNonCompliant ? 27 : 85, isNonCompliant ? 27 : 105);
       doc.text(`Q${rowIndex + 1}.`, 18, y + 3);
 
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(51, 65, 85);
-      const questionLines = doc.splitTextToSize(rowData.question, 135);
+      doc.setFont('helvetica', isNonCompliant ? 'bold' : 'normal');
+      doc.setTextColor(isNonCompliant ? 153 : 51, isNonCompliant ? 27 : 65, isNonCompliant ? 27 : 85);
       doc.text(questionLines, 26, y + 3);
 
       // Answer and score on the same line
-      const answerText = String(rowData.answer).toUpperCase();
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
       
       // Color code answer
       if (answerText === 'YES') {
         doc.setTextColor(34, 197, 94);
-      } else if (answerText === 'NO') {
-        doc.setTextColor(239, 68, 68);
+      } else if (isNonCompliant) {
+        doc.setTextColor(220, 38, 38); // Bright red for NO
       } else {
         doc.setTextColor(107, 114, 128);
       }
       doc.text(answerText, 165, y + 3);
 
       // Score
-      doc.setTextColor(71, 85, 105);
+      doc.setTextColor(isNonCompliant ? 220 : 71, isNonCompliant ? 38 : 85, isNonCompliant ? 38 : 105);
       doc.text(`${rowData.score}/${rowData.maxScore}`, 182, y + 3);
 
-      const questionHeight = questionLines.length * 4;
-      y += Math.max(5, questionHeight);
+      y += rowH;
 
-      // Render per-question remark if exists
+      // Render per-question remark if exists — bold styling
       if (rowData.remark && rowData.remark.trim()) {
         if (y > 270) {
           doc.addPage();
@@ -762,9 +773,9 @@ export const buildFinancePDF = async (
         }
 
         doc.setFontSize(7);
-        doc.setFont('helvetica', 'italic');
-        doc.setTextColor(107, 114, 128);
-        const remarkLines = doc.splitTextToSize(rowData.remark, 165);
+        doc.setFont('helvetica', 'bolditalic');
+        doc.setTextColor(isNonCompliant ? 153 : 71, isNonCompliant ? 27 : 85, isNonCompliant ? 27 : 105);
+        const remarkLines = doc.splitTextToSize(`Remark: ${rowData.remark}`, 165);
         doc.text(remarkLines, 26, y + 2);
 
         y += (remarkLines.length * 3) + 3;
@@ -887,7 +898,7 @@ export const buildFinancePDF = async (
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(146, 64, 14);
       doc.text('Section Remarks:', 18, y + 8);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
       doc.setTextColor(51, 65, 85);
       doc.text(remarksLines, 18, y + 14, { maxWidth: 170 });

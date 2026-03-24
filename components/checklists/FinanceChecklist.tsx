@@ -800,6 +800,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       storeName: meta.storeName,
       storeId: meta.storeId,
       auditorName: meta.financeAuditorName,
+      amName: meta.amName,
       smName: '',
       date: new Date().toLocaleString(),
       region: detectedRegion,

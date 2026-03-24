@@ -656,25 +656,43 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         ...Object.fromEntries(Object.entries(questionRemarks).map(([k, v]) => [`${k}_remark`, String(v)])),
         // Add image counts with _imageCount suffix
         ...Object.fromEntries(Object.entries(questionImages).map(([k, v]) => [`${k}_imageCount`, String(v.length)])),
-        // Add all images as JSON (for PDF generation from dashboard)
-        questionImagesJSON: JSON.stringify(questionImages),
         // Add all question remarks as JSON (for proper storage and PDF generation)
         questionRemarksJSON: JSON.stringify(questionRemarks)
       };
 
+      // Images are stored locally for PDF generation but NOT sent in the main POST
+      // (base64 image data makes the payload too large for Google Apps Script).
+      // Only send questionImagesJSON if total payload stays under 2MB.
+      const imagesJSON = JSON.stringify(questionImages);
+      if (imagesJSON.length < 500000) { // ~500KB threshold (URL-encoding bloats further)
+        params.questionImagesJSON = imagesJSON;
+      } else {
+        console.warn('⚠️ Skipping questionImagesJSON in POST — payload too large (' + (imagesJSON.length / 1024).toFixed(0) + 'KB). Images are saved locally for PDF generation.');
+        params.questionImagesJSON = JSON.stringify({}); // empty placeholder
+      }
+
       const bodyString = new URLSearchParams(params).toString();
+      console.log(`📦 Payload size: ${(bodyString.length / 1024).toFixed(1)}KB`);
 
-      // Retry logic with exponential backoff for Google Apps Script quota limits
-      const maxRetries = 3;
-      let retryCount = 0;
-      let lastError: any = null;
+      // Submit to Google Apps Script.
+      // With mode: 'no-cors', the browser sends the data but gets an opaque response
+      // (status 0). We can't tell success from failure by response alone.
+      // Strategy:
+      // - 90s timeout (large payloads + slow Google servers)
+      // - Retry only on genuine network errors (not timeouts, since timeouts likely
+      //   mean the server received the data but is slow to respond)
+      // - Log payload size for debugging
+      const SUBMIT_TIMEOUT = 90000; // 90 seconds
+      const MAX_NETWORK_RETRIES = 2; // retry up to 2 times on network errors only
+      let networkRetryCount = 0;
+      let submitted = false;
 
-      while (retryCount <= maxRetries) {
+      while (!submitted) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+          const timeoutId = setTimeout(() => controller.abort(), SUBMIT_TIMEOUT);
 
-          console.log(`📤 Attempt ${retryCount + 1}/${maxRetries + 1}: Submitting QA checklist...`);
+          console.log(`📤 Submitting QA checklist (attempt ${networkRetryCount + 1})... Payload: ${(bodyString.length / 1024).toFixed(1)}KB`);
 
           const response = await fetch(LOG_ENDPOINT, {
             method: 'POST',
@@ -688,31 +706,29 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
           clearTimeout(timeoutId);
 
-          // Success - exit retry loop
-          console.log('✅ QA checklist submitted successfully');
-          break;
+          // With no-cors, reaching here means the request was sent successfully.
+          console.log('✅ QA checklist submitted successfully (opaque response received)');
+          submitted = true;
 
         } catch (err: any) {
-          lastError = err;
-          retryCount++;
-
           if (err.name === 'AbortError') {
-            console.warn(`⏱️ Request timeout on attempt ${retryCount}/${maxRetries + 1}`);
+            // Timeout — data may or may not have reached the server.
+            // Do NOT retry (would risk duplicate rows). Treat as likely success.
+            console.warn('⏱️ Request timed out after 90s. Data was likely received by the server.');
+            submitted = true; // proceed — don't retry
           } else {
-            console.warn(`⚠️ Network error on attempt ${retryCount}/${maxRetries + 1}:`, err.message);
-          }
+            // Genuine network error (offline, DNS failure, CORS block, etc.)
+            networkRetryCount++;
+            console.error(`❌ Network error (attempt ${networkRetryCount}):`, err.message);
 
-          // If we haven't exceeded max retries, wait before retrying
-          if (retryCount <= maxRetries) {
-            // Exponential backoff: 2s, 4s, 8s
-            const delayMs = Math.pow(2, retryCount) * 1000;
-            console.log(`⏳ Waiting ${delayMs / 1000}s before retry...`);
-            await new Promise(resolve => setTimeout(resolve, delayMs));
-          } else {
-            // All retries failed - show user-friendly message
-            console.error('❌ All retry attempts failed:', lastError);
-            alert('Failed to submit after multiple attempts. The Google server may be busy. Please try again in a few minutes.');
-            throw new Error('Submission failed after retries');
+            if (networkRetryCount <= MAX_NETWORK_RETRIES) {
+              const delayMs = networkRetryCount * 3000; // 3s, 6s
+              console.log(`⏳ Retrying in ${delayMs / 1000}s...`);
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            } else {
+              alert('Failed to submit. Please check your internet connection and try again.');
+              throw new Error('Submission failed after network retries: ' + err.message);
+            }
           }
         }
       }
