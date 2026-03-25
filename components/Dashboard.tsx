@@ -2689,11 +2689,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
         console.log('📝 Building QA PDF with submission data:', reportData[0]);
         console.log('📝 Question Remarks JSON field:', reportData[0]?.['Question Remarks JSON'] || reportData[0]?.questionRemarksJSON);
+        console.log('📝 Submission keys:', Object.keys(reportData[0] || {}));
 
-        const pdf = await buildQAPDF(reportData as any, meta, { title: 'QA Assessment Report' }, questionImages);
-        pdf.save(fileName);
-        setIsGenerating(false);
-        showNotificationMessage('QA Assessment PDF generated successfully!', 'success');
+        try {
+          const pdf = await buildQAPDF(reportData as any, meta, { title: 'QA Assessment Report' }, questionImages);
+          pdf.save(fileName);
+          setIsGenerating(false);
+          showNotificationMessage('QA Assessment PDF generated successfully!', 'success');
+        } catch (qaErr) {
+          console.error('QA PDF generation failed:', qaErr);
+          setIsGenerating(false);
+          showNotificationMessage('Failed to generate QA PDF. Check console for details.', 'error');
+        }
         return;
       }
 

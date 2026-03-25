@@ -7,6 +7,7 @@ import { useConfig } from '../../contexts/ConfigContext';
 import { QA_SECTIONS } from '../../config/qaQuestions';
 import { useComprehensiveMapping, useAreaManagers, useStoreDetails } from '../../hooks/useComprehensiveMapping';
 import ImageEditor from '../ImageEditor';
+import { buildQAPDF } from '../../src/utils/qaReport';
 
 // Google Sheets endpoint for logging data - Updated to capture all 116 questions
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwGIDlsSGyRhR40G0zLmYpbs5C-ShrZffwnKcn3hikZPeDFtcWbeDzewT49yJQ_8YCUkA/exec';
@@ -138,6 +139,12 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   // Image editor state
   const [editingImage, setEditingImage] = useState<{ questionId: string; imageIndex: number; imageData: string } | null>(null);
 
+  // Category-wise view state: null = show category overview, string = show that section
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+
+  // Validation highlight state
+  const [highlightedQuestion, setHighlightedQuestion] = useState<string | null>(null);
+
   // Load comprehensive mapping data
   const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
   const { areaManagers, loading: amLoading } = useAreaManagers();
@@ -174,6 +181,40 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       }));
     }
   }, [authUserRole, employeeData]);
+
+  // Back button / navigation protection
+  useEffect(() => {
+    const hasProgress = Object.keys(responses).length > 0;
+    if (!hasProgress || submitted) return;
+
+    // Handle browser back/forward buttons
+    const handlePopState = (e: PopStateEvent) => {
+      // Push state back so URL doesn't change
+      window.history.pushState(null, '', window.location.href);
+      const leave = window.confirm('You have unsaved progress. Are you sure you want to leave? Your responses will be lost.');
+      if (leave) {
+        // Actually navigate back
+        window.removeEventListener('popstate', handlePopState);
+        window.history.back();
+      }
+    };
+
+    // Handle tab close / refresh
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    // Push an initial state so back button triggers popstate instead of leaving
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [Object.keys(responses).length > 0, submitted]);
 
   // Function to load drafts from Google Sheets
   const loadDraftsFromSheet = async () => {
@@ -536,21 +577,63 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   };
 
   const handleSubmit = async () => {
+    // Check required meta fields first
+    const requiredFields = ['qaName', 'qaId', 'amName', 'amId', 'storeName', 'storeId', 'city'];
+    const missingFields = requiredFields.filter(field => !meta[field as keyof SurveyMeta]);
+
+    if (missingFields.length > 0) {
+      alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      const infoSection = document.getElementById('audit-information');
+      if (infoSection) {
+        infoSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        infoSection.classList.add('ring-2', 'ring-red-500');
+        setTimeout(() => infoSection.classList.remove('ring-2', 'ring-red-500'), 3000);
+      }
+      return;
+    }
+
+    // Find first unanswered question and scroll to it
     const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
     const answeredQuestions = Object.keys(responses).filter(key =>
       responses[key] && responses[key] !== '' && !key.includes('_remarks')
     ).length;
 
     if (answeredQuestions < totalQuestions) {
-      alert(`Please answer all questions. You have answered ${answeredQuestions} out of ${totalQuestions} questions.`);
-      return;
-    }
+      // Find the first unanswered question
+      let firstMissedId: string | null = null;
+      let firstMissedSection: string | null = null;
+      for (const section of sections) {
+        for (const item of section.items) {
+          const key = `${section.id}_${item.id}`;
+          if (!responses[key] || responses[key] === '') {
+            firstMissedId = key;
+            firstMissedSection = section.id;
+            break;
+          }
+        }
+        if (firstMissedId) break;
+      }
 
-    const requiredFields = ['qaName', 'qaId', 'amName', 'amId', 'storeName', 'storeId', 'city'];
-    const missingFields = requiredFields.filter(field => !meta[field as keyof SurveyMeta]);
+      // Switch to the section containing the missed question
+      if (firstMissedSection) {
+        setActiveSection(firstMissedSection);
+      }
 
-    if (missingFields.length > 0) {
-      alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      // Use requestAnimationFrame to wait for DOM update after section switch
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (firstMissedId) {
+            const el = document.getElementById(`q_${firstMissedId}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setHighlightedQuestion(firstMissedId);
+              setTimeout(() => setHighlightedQuestion(null), 3000);
+            }
+          }
+        }, 100);
+      });
+
+      alert(`Please answer all questions. You have answered ${answeredQuestions} out of ${totalQuestions} questions. Scrolling to the first missed question.`);
       return;
     }
 
@@ -763,6 +846,70 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     } catch (error) {
       console.error('Error submitting QA survey:', error);
       alert('Error submitting survey. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Generate PDF report from current in-memory state (available after submission)
+  const generatePDF = async () => {
+    try {
+      setIsLoading(true);
+      hapticFeedback.confirm();
+
+      // Build a submission object from current React state
+      const submission: Record<string, any> = {
+        submissionTime: new Date().toLocaleString('en-GB', { hour12: false }),
+        qaName: meta.qaName,
+        qaId: meta.qaId,
+        amName: meta.amName,
+        amId: meta.amId,
+        storeName: meta.storeName,
+        storeId: meta.storeId,
+        city: meta.city,
+        ...responses,
+        questionRemarksJSON: JSON.stringify(questionRemarks),
+        auditorSignature: signatures.auditor || '',
+        smSignature: signatures.sm || '',
+      };
+
+      // Calculate scores
+      let totalScore = 0;
+      let maxScore = 0;
+      sections.forEach(section => {
+        section.items.forEach(item => {
+          const resp = responses[`${section.id}_${item.id}`];
+          if (resp === 'na') return;
+          if (!resp) return;
+          maxScore += item.w;
+          if (section.id === 'ZeroTolerance') {
+            if (resp === 'compliant') totalScore += item.w;
+          } else {
+            if (resp === 'compliant') totalScore += item.w;
+            else if (resp === 'partially-compliant') totalScore += Math.floor(item.w / 2);
+          }
+        });
+      });
+      submission.totalScore = String(totalScore);
+      submission.maxScore = String(maxScore);
+      submission.scorePercentage = String(maxScore > 0 ? Math.round((totalScore / maxScore) * 100 * 100) / 100 : 0);
+
+      const pdfMeta = {
+        storeName: meta.storeName,
+        storeId: meta.storeId,
+        auditorName: meta.qaName,
+        date: submission.submissionTime,
+        region: '',
+      };
+
+      const fileName = `QA_Assessment_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const pdf = await buildQAPDF([submission] as any, pdfMeta, { title: 'QA Assessment Report' }, questionImages);
+      pdf.save(fileName);
+      hapticFeedback.success();
+    } catch (error) {
+      console.error('Error generating QA PDF:', error);
+      alert('Error generating PDF report. Please try again from the dashboard.');
+      hapticFeedback.error();
     } finally {
       setIsLoading(false);
     }
@@ -1068,12 +1215,23 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
             <p className="text-green-700 dark:text-green-400 mb-6">
               Thank you for completing the Quality Assurance assessment. Your responses have been recorded.
             </p>
-            <button
-              onClick={resetSurvey}
-              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-            >
-              Take Another Assessment
-            </button>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={generatePDF}
+                className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Download PDF
+              </button>
+              <button
+                onClick={resetSurvey}
+                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Take Another Assessment
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1396,175 +1554,393 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         </div>
       </div>
 
-      {/* QA Sections */}
+      {/* QA Sections - Category-wise View */}
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4 sm:mb-6">
           Quality Assessment
         </h2>
 
-        <div className="space-y-6 sm:space-y-8">
-          {sections.map((section, sectionIndex) => {
-            // Generate section prefix for serial numbers (ZT, S, M, etc.)
-            const sectionPrefix = section.id === 'ZeroTolerance' ? 'ZT' :
-              section.id === 'Store' ? 'S' :
-                section.id === 'Maintenance' ? 'M' :
-                  section.id === 'A' ? 'A' :
-                    section.id === 'HR' ? 'HR' :
-                      section.id.substring(0, 2).toUpperCase();
+        {/* Category Overview Cards (shown when no section is active) */}
+        {activeSection === null ? (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+              Select a category to begin the assessment. Complete all categories to submit.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sections.map((section) => {
+                const answered = section.items.filter(item => {
+                  const key = `${section.id}_${item.id}`;
+                  return responses[key] && responses[key] !== '';
+                }).length;
+                const total = section.items.length;
+                const pct = total > 0 ? Math.round((answered / total) * 100) : 0;
+                const isComplete = answered === total;
 
-            // Ensure options exist, fallback to default
-            const sectionOptions = section.options || (section.id === 'ZeroTolerance' ? ['compliant', 'non-compliant'] : ['compliant', 'partially-compliant', 'not-compliant', 'na']);
+                // Calculate section score
+                let sectionScore = 0;
+                let sectionMax = 0;
+                section.items.forEach(item => {
+                  const resp = responses[`${section.id}_${item.id}`];
+                  if (resp === 'na') return;
+                  if (!resp) return;
+                  sectionMax += item.w;
+                  if (section.id === 'ZeroTolerance') {
+                    if (resp === 'compliant') sectionScore += item.w;
+                  } else {
+                    if (resp === 'compliant') sectionScore += item.w;
+                    else if (resp === 'partially-compliant') sectionScore += Math.floor(item.w / 2);
+                  }
+                });
+                const scorePct = sectionMax > 0 ? Math.round((sectionScore / sectionMax) * 100) : 0;
 
-            return (
-              <div key={section.id} className="border-l-4 border-orange-500 pl-3 sm:pl-4">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3 sm:mb-4 text-orange-700 dark:text-orange-300">
-                  {section.title}
-                </h3>
+                const sectionIcon = section.id === 'ZeroTolerance' ? '🚨' :
+                  section.id === 'Store' ? '🏪' :
+                    section.id === 'Maintenance' ? '🔧' :
+                      section.id === 'A' ? '🍽️' :
+                        section.id === 'HR' ? '👥' : '📋';
 
-                <div className="space-y-4">
-                  {section.items?.map((item, itemIndex) => {
-                    const serialNumber = `${sectionPrefix}-${itemIndex + 1}`;
-                    return (
-                      <div key={item.id} className="p-3 sm:p-4 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <div className="flex items-start gap-2 sm:gap-3 mb-3">
-                          <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-md text-xs font-bold flex-shrink-0">
-                            {serialNumber}
-                          </span>
-                          <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-slate-100 leading-relaxed flex-1">
-                            {item.q}
-                          </p>
-                        </div>
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => {
+                      setActiveSection(section.id);
+                      hapticFeedback.select();
+                    }}
+                    className={`text-left p-4 sm:p-5 rounded-xl border-2 transition-all duration-200 hover:shadow-md active:scale-[0.98] ${
+                      isComplete
+                        ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20'
+                        : answered > 0
+                          ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/10'
+                          : 'border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-2xl">{sectionIcon}</span>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-sm sm:text-base">
+                          {section.title}
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">
+                          {total} questions &middot; Max {section.maxScore} pts
+                        </p>
+                      </div>
+                      {isComplete && (
+                        <span className="text-green-600 dark:text-green-400 text-lg">✅</span>
+                      )}
+                    </div>
 
-                        {/* Response Options - Stacked on mobile, wrapped on desktop */}
-                        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3 mb-3 pl-0 sm:pl-9">
-                          {sectionOptions.map(option => (
-                            <label key={option} className="flex items-center gap-2 sm:gap-2 cursor-pointer p-2 sm:p-0 rounded hover:bg-gray-100 dark:hover:bg-slate-700 sm:hover:bg-transparent transition-colors min-h-[44px] sm:min-h-0">
-                              <input
-                                type="radio"
-                                name={`${section.id}_${item.id}`}
-                                value={option}
-                                checked={responses[`${section.id}_${item.id}`] === option}
-                                onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                className="w-5 h-5 sm:w-4 sm:h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500 flex-shrink-0"
-                              />
-                              <span className="text-sm sm:text-sm text-gray-700 dark:text-slate-300 font-medium">
-                                {option === 'compliant' ? 'Compliance' :
-                                  option === 'partially-compliant' ? 'Partial Compliance' :
-                                    option === 'not-compliant' ? 'Non-Compliance' :
-                                      option === 'non-compliant' ? 'Non-Compliance' :
-                                        'N/A'}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
+                    {/* Progress bar */}
+                    <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 mb-2">
+                      <div
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          isComplete ? 'bg-green-500' : answered > 0 ? 'bg-orange-500' : 'bg-gray-300 dark:bg-slate-500'
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
 
-                        {/* Image Upload Section - Multiple Images Support */}
-                        <div className="pl-0 sm:pl-9">
-                          <div className="space-y-3">
-                            {/* Upload Buttons - Always Visible with MULTIPLE selection */}
-                            <div className="flex flex-col sm:flex-row gap-2">
-                              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                📷 Camera
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium text-gray-600 dark:text-slate-400">
+                        {answered}/{total} answered ({pct}%)
+                      </span>
+                      {answered > 0 && (
+                        <span className={`text-xs font-bold ${scorePct >= 80 ? 'text-green-600' : scorePct >= 60 ? 'text-orange-600' : 'text-red-600'}`}>
+                          Score: {scorePct}%
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Overall progress summary */}
+            <div className="mt-6 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg border border-gray-200 dark:border-slate-600">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Overall Progress</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-slate-100">
+                  {Object.keys(responses).filter(k => responses[k] && responses[k] !== '' && !k.includes('_remarks')).length} / {sections.reduce((sum, s) => sum + s.items.length, 0)} questions
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-3">
+                <div
+                  className="bg-orange-500 h-3 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${Math.round((Object.keys(responses).filter(k => responses[k] && responses[k] !== '' && !k.includes('_remarks')).length / Math.max(1, sections.reduce((sum, s) => sum + s.items.length, 0))) * 100)}%`
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Active Section - Show questions for the selected category */
+          <div>
+            {/* Section Navigation Header */}
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200 dark:border-slate-600">
+              <button
+                onClick={() => {
+                  setActiveSection(null);
+                  hapticFeedback.select();
+                }}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                All Categories
+              </button>
+
+              <div className="flex gap-2">
+                {(() => {
+                  const currentIdx = sections.findIndex(s => s.id === activeSection);
+                  return (
+                    <>
+                      <button
+                        disabled={currentIdx <= 0}
+                        onClick={() => {
+                          if (currentIdx > 0) {
+                            setActiveSection(sections[currentIdx - 1].id);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            hapticFeedback.select();
+                          }
+                        }}
+                        className="px-3 py-2 text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        ← Prev
+                      </button>
+                      <button
+                        disabled={currentIdx >= sections.length - 1}
+                        onClick={() => {
+                          if (currentIdx < sections.length - 1) {
+                            setActiveSection(sections[currentIdx + 1].id);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            hapticFeedback.select();
+                          }
+                        }}
+                        className="px-3 py-2 text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Next →
+                      </button>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Render active section questions */}
+            {sections.filter(s => s.id === activeSection).map((section) => {
+              const sectionPrefix = section.id === 'ZeroTolerance' ? 'ZT' :
+                section.id === 'Store' ? 'S' :
+                  section.id === 'Maintenance' ? 'M' :
+                    section.id === 'A' ? 'A' :
+                      section.id === 'HR' ? 'HR' :
+                        section.id.substring(0, 2).toUpperCase();
+
+              const sectionOptions = section.options || (section.id === 'ZeroTolerance' ? ['compliant', 'non-compliant'] : ['compliant', 'partially-compliant', 'not-compliant', 'na']);
+
+              const answered = section.items.filter(item => {
+                const key = `${section.id}_${item.id}`;
+                return responses[key] && responses[key] !== '';
+              }).length;
+
+              return (
+                <div key={section.id}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-orange-700 dark:text-orange-300">
+                      {section.title}
+                    </h3>
+                    <span className="text-xs font-medium px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full">
+                      {answered}/{section.items.length} answered
+                    </span>
+                  </div>
+
+                  <div className="space-y-4">
+                    {section.items?.map((item, itemIndex) => {
+                      const serialNumber = `${sectionPrefix}-${itemIndex + 1}`;
+                      const questionKey = `${section.id}_${item.id}`;
+                      const isHighlighted = highlightedQuestion === questionKey;
+                      return (
+                        <div
+                          key={item.id}
+                          id={`q_${questionKey}`}
+                          className={`p-3 sm:p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-all duration-300 ${
+                            isHighlighted
+                              ? 'border-red-500 ring-2 ring-red-400 bg-red-50 dark:bg-red-900/20'
+                              : 'border-gray-200 dark:border-slate-600'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2 sm:gap-3 mb-3">
+                            <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-md text-xs font-bold flex-shrink-0">
+                              {serialNumber}
+                            </span>
+                            <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-slate-100 leading-relaxed flex-1">
+                              {item.q}
+                            </p>
+                          </div>
+
+                          {/* Response Options */}
+                          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3 mb-3 pl-0 sm:pl-9">
+                            {sectionOptions.map(option => (
+                              <label key={option} className="flex items-center gap-2 sm:gap-2 cursor-pointer p-2 sm:p-0 rounded hover:bg-gray-100 dark:hover:bg-slate-700 sm:hover:bg-transparent transition-colors min-h-[44px] sm:min-h-0">
                                 <input
-                                  type="file"
-                                  accept="image/*"
-                                  capture="environment"
-                                  onChange={(e) => {
-                                    const files = e.target.files;
-                                    if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
-                                    e.target.value = ''; // Reset input to allow same file again
-                                  }}
-                                  className="hidden"
+                                  type="radio"
+                                  name={`${section.id}_${item.id}`}
+                                  value={option}
+                                  checked={responses[`${section.id}_${item.id}`] === option}
+                                  onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                                  className="w-5 h-5 sm:w-4 sm:h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500 flex-shrink-0"
                                 />
+                                <span className="text-sm sm:text-sm text-gray-700 dark:text-slate-300 font-medium">
+                                  {option === 'compliant' ? 'Compliance' :
+                                    option === 'partially-compliant' ? 'Partial Compliance' :
+                                      option === 'not-compliant' ? 'Non-Compliance' :
+                                        option === 'non-compliant' ? 'Non-Compliance' :
+                                          'N/A'}
+                                </span>
                               </label>
+                            ))}
+                          </div>
 
-                              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                🖼️ Gallery (Multiple)
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  multiple
-                                  onChange={(e) => {
-                                    const files = e.target.files;
-                                    if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
-                                    e.target.value = ''; // Reset input to allow same file again
-                                  }}
-                                  className="hidden"
-                                />
-                              </label>
+                          {/* Image Upload Section */}
+                          <div className="pl-0 sm:pl-9">
+                            <div className="space-y-3">
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                <label className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                  📷 Camera
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    onChange={(e) => {
+                                      const files = e.target.files;
+                                      if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
+                                      e.target.value = '';
+                                    }}
+                                    className="hidden"
+                                  />
+                                </label>
+
+                                <label className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                  🖼️ Gallery (Multiple)
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={(e) => {
+                                      const files = e.target.files;
+                                      if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
+                                      e.target.value = '';
+                                    }}
+                                    className="hidden"
+                                  />
+                                </label>
+                              </div>
+
+                              {/* Display Uploaded Images */}
+                              {questionImages[`${section.id}_${item.id}`] && questionImages[`${section.id}_${item.id}`].length > 0 && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  {questionImages[`${section.id}_${item.id}`].map((image, idx) => (
+                                    <div key={idx} className="relative">
+                                      <img
+                                        src={image}
+                                        alt={`Upload ${idx + 1}`}
+                                        className="w-full h-48 object-cover rounded-lg border-2 border-gray-300 dark:border-slate-600"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingImage({ questionId: `${section.id}_${item.id}`, imageIndex: idx, imageData: image })}
+                                        className="absolute top-2 left-2 p-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                        title="Edit image"
+                                      >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => removeImage(`${section.id}_${item.id}`, idx)}
+                                        className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                        title="Remove image"
+                                      >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                      </button>
+                                      <div className="absolute bottom-2 left-2 px-2 py-1 bg-black bg-opacity-60 text-white text-xs rounded">
+                                        {idx + 1} of {questionImages[`${section.id}_${item.id}`].length}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
 
-                            {/* Display Uploaded Images */}
-                            {questionImages[`${section.id}_${item.id}`] && questionImages[`${section.id}_${item.id}`].length > 0 && (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {questionImages[`${section.id}_${item.id}`].map((image, idx) => (
-                                  <div key={idx} className="relative">
-                                    <img
-                                      src={image}
-                                      alt={`Upload ${idx + 1}`}
-                                      className="w-full h-48 object-cover rounded-lg border-2 border-gray-300 dark:border-slate-600"
-                                    />
-                                    {/* Edit Button */}
-                                    <button
-                                      type="button"
-                                      onClick={() => setEditingImage({ questionId: `${section.id}_${item.id}`, imageIndex: idx, imageData: image })}
-                                      className="absolute top-2 left-2 p-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
-                                      title="Edit image"
-                                    >
-                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                      </svg>
-                                    </button>
-                                    {/* Delete Button */}
-                                    <button
-                                      type="button"
-                                      onClick={() => removeImage(`${section.id}_${item.id}`, idx)}
-                                      className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
-                                      title="Remove image"
-                                    >
-                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                    </button>
-                                    {/* Image Counter */}
-                                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-black bg-opacity-60 text-white text-xs rounded">
-                                      {idx + 1} of {questionImages[`${section.id}_${item.id}`].length}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Per-Question Remarks - Inline after each point */}
-                          <div className="mt-3">
-                            <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                              💬 Comments / NC Description for {serialNumber}
-                            </label>
-                            <textarea
-                              value={questionRemarks[`${section.id}_${item.id}`] || ''}
-                              onChange={(e) => setQuestionRemarks(prev => ({ ...prev, [`${section.id}_${item.id}`]: e.target.value }))}
-                              placeholder="Add comments or describe non-compliance for this point..."
-                              rows={2}
-                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                            />
+                            {/* Per-Question Remarks */}
+                            <div className="mt-3">
+                              <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                                💬 Comments / NC Description for {serialNumber}
+                              </label>
+                              <textarea
+                                value={questionRemarks[`${section.id}_${item.id}`] || ''}
+                                onChange={(e) => setQuestionRemarks(prev => ({ ...prev, [`${section.id}_${item.id}`]: e.target.value }))}
+                                placeholder="Add comments or describe non-compliance for this point..."
+                                rows={2}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+
+                  {/* Section footer with navigation */}
+                  <div className="mt-6 flex items-center justify-between pt-4 border-t border-gray-200 dark:border-slate-600">
+                    <button
+                      onClick={() => {
+                        setActiveSection(null);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        hapticFeedback.select();
+                      }}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                    >
+                      ← Back to Categories
+                    </button>
+                    {(() => {
+                      const currentIdx = sections.findIndex(s => s.id === activeSection);
+                      if (currentIdx < sections.length - 1) {
+                        return (
+                          <button
+                            onClick={() => {
+                              setActiveSection(sections[currentIdx + 1].id);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                              hapticFeedback.select();
+                            }}
+                            className="px-4 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors"
+                          >
+                            Next: {sections[currentIdx + 1].title} →
+                          </button>
+                        );
+                      }
+                      return (
+                        <span className="text-sm text-green-600 dark:text-green-400 font-medium">
+                          ✅ Last category
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Signatures Section - Mobile Optimized */}

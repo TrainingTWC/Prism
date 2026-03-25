@@ -166,6 +166,11 @@ function resolveSubmissionValue(submission: any, fieldPrefix: string, questionId
   // Try with colon format from Google Sheets (e.g., "S_1: Description")
   const colonKeys = Object.keys(submission).filter(k => k.startsWith(`${directKey}:`));
   if (colonKeys.length > 0) return submission[colonKeys[0]];
+
+  // Case-insensitive fallback for any key containing the directKey
+  const lowerKey = directKey.toLowerCase();
+  const fuzzyMatch = Object.keys(submission).find(k => k.toLowerCase() === lowerKey || k.toLowerCase().startsWith(lowerKey + ':'));
+  if (fuzzyMatch) return submission[fuzzyMatch];
   
   return undefined;
 }
@@ -468,21 +473,21 @@ export const buildQAPDF = async (
         if (section.id === 'ZeroTolerance') {
           if (response === 'compliant') {
             numeric = item.w;
-            display = 'Compliant';
+            display = 'Compliance';
           } else if (response === 'non-compliant') {
             numeric = 0;
-            display = 'Non-Compliant';
+            display = 'Non-Compliance';
           }
         } else {
           if (response === 'compliant') {
             numeric = item.w;
-            display = 'Compliant';
+            display = 'Compliance';
           } else if (response === 'partially-compliant' || response === 'partially compliant') {
             numeric = Math.floor(item.w / 2);
-            display = 'Partially Compliant';
+            display = 'Partial Compliance';
           } else if (response === 'not-compliant' || response === 'not compliant') {
             numeric = 0;
-            display = 'Not Compliant';
+            display = 'Non-Compliance';
           }
         }
         // Always add to section score - sections show actual performance
@@ -694,15 +699,15 @@ export const buildQAPDF = async (
           if (data.section === 'body') {
             if (data.column.index === 1) {
               const text = String(data.cell.raw).toLowerCase();
-              if (text === 'compliant') {
+              if (text === 'compliance') {
                 data.cell.styles.textColor = [34, 197, 94];
                 data.cell.styles.fillColor = [240, 253, 244];
                 data.cell.styles.fontStyle = 'bold';
-              } else if (text === 'non-compliant' || text === 'not compliant') {
+              } else if (text === 'non-compliance') {
                 data.cell.styles.textColor = [239, 68, 68];
                 data.cell.styles.fillColor = [254, 242, 242];
                 data.cell.styles.fontStyle = 'bold';
-              } else if (text === 'partially compliant') {
+              } else if (text === 'partial compliance') {
                 data.cell.styles.textColor = [245, 158, 11];
                 data.cell.styles.fillColor = [254, 252, 232];
                 data.cell.styles.fontStyle = 'bold';
