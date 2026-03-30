@@ -20,6 +20,7 @@ export interface ComprehensiveMapping {
   'E-Learning Specialist'?: string;
   'Training Head'?: string;
   'HR Head'?: string;
+  'City'?: string;
   // Normalized properties added during load
   id?: string;
   name?: string;
@@ -92,6 +93,7 @@ export const loadComprehensiveMapping = async (): Promise<ComprehensiveMapping[]
               const amId = normalizeId(row.AM || row['AM'] || row['AM ID'] || row['Area Manager ID'] || row.amId || row.areaManagerId);
               const amName = row['AM Name'] || row.amName || row.areaManagerName || '';
               const region = row['Region'] || row.region || '';
+              const city = row['City'] || row.city || '';
 
               // Normalize HRBP columns (Google Sheets returns 'HRBP 1', 'HRBP 2', 'HRBP 3')
               const hrbp1Id = normalizeId(row['HRBP 1 ID'] || row['HRBP 1'] || row.HRBP || '');
@@ -163,6 +165,8 @@ export const loadComprehensiveMapping = async (): Promise<ComprehensiveMapping[]
                 'Trainer': trainer1Id || row.Trainer,
                 'Trainer ID': trainer1Id,
                 'Trainer Name': trainer1Name,
+                // City
+                'City': city,
               } as ComprehensiveMapping;
             });
             

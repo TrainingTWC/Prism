@@ -18,12 +18,15 @@ import BenchPlanningBTChecklist from './checklists/BenchPlanningBTChecklist';
 import BrewLeagueRegionRound from './checklists/BrewLeagueRegionRound';
 import BrewLeagueAMRound from './checklists/BrewLeagueAMRound';
 import BrewLeagueDashboard from './checklists/BrewLeagueDashboard';
+import QAAMReviewChecklist from './checklists/QAAMReviewChecklist';
+import QACAPAChecklist from './checklists/QACAPAChecklist';
+import { ClipboardCheck, ShieldAlert } from 'lucide-react';
 
 interface ChecklistsAndSurveysProps {
   userRole: UserRole;
 }
 
-type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning' | 'brew-league';
+type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning' | 'brew-league' | 'qa-am-review' | 'qa-capa';
 type BrewLeagueSubType = 'store' | 'am' | 'region' | 'dashboard';
 type BenchPlanningSubType = 'barista-sm' | 'sm-asm' | 'barista-bt';
 type BTSessionStep = 'readiness' | 'bt-session' | 'skill-check';
@@ -46,7 +49,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     'trainer-calendar': { completed: 0, total: 0, score: 0 },
     'bench-planning': { completed: 0, total: 0, score: 0 },
     'bench-planning-sm-asm': { completed: 0, total: 0, score: 0 },
-    'brew-league': { completed: 0, total: 0, score: 0 }
+    'brew-league': { completed: 0, total: 0, score: 0 },
+    'qa-am-review': { completed: 0, total: 0, score: 0 },
+    'qa-capa': { completed: 0, total: 0, score: 0 }
   });
 
   // Get auditor info from URL parameters
@@ -69,7 +74,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
       { id: 'forms' as ChecklistType, label: 'Forms & Surveys', icon: FileText, color: 'bg-teal-500' },
       { id: 'trainer-calendar' as ChecklistType, label: 'Trainer Calendar', icon: Calendar, color: 'bg-purple-600' },
       { id: 'bench-planning' as ChecklistType, label: 'Bench Planning', icon: Briefcase, color: 'bg-sky-600' },
-      { id: 'brew-league' as ChecklistType, label: 'Brew League', icon: Trophy, color: 'bg-amber-600' }
+      { id: 'brew-league' as ChecklistType, label: 'Brew League', icon: Trophy, color: 'bg-amber-600' },
+      { id: 'qa-am-review' as ChecklistType, label: 'QA AM Review', icon: ClipboardCheck, color: 'bg-rose-500' },
+      { id: 'qa-capa' as ChecklistType, label: 'QA CAPA', icon: ShieldAlert, color: 'bg-amber-500' }
     ];
 
     // For admin or editor role with Full Access, show all checklists
@@ -96,7 +103,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     { id: 'forms' as ChecklistType, label: 'Forms & Surveys', icon: FileText, color: 'bg-teal-500' },
     { id: 'trainer-calendar' as ChecklistType, label: 'Trainer Calendar', icon: Calendar, color: 'bg-purple-600' },
     { id: 'bench-planning' as ChecklistType, label: 'Bench Planning', icon: Briefcase, color: 'bg-sky-600' },
-    { id: 'brew-league' as ChecklistType, label: 'Brew League', icon: Trophy, color: 'bg-amber-600' }
+    { id: 'brew-league' as ChecklistType, label: 'Brew League', icon: Trophy, color: 'bg-amber-600' },
+    { id: 'qa-am-review' as ChecklistType, label: 'QA AM Review', icon: ClipboardCheck, color: 'bg-rose-500' },
+    { id: 'qa-capa' as ChecklistType, label: 'QA CAPA', icon: ShieldAlert, color: 'bg-amber-500' }
   ];
 
   const updateChecklistStats = (type: ChecklistType, stats: { completed: number; total: number; score: number }) => {
@@ -357,6 +366,10 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
         return <FormsChecklist {...commonProps} />;
       case 'trainer-calendar':
         return <TrainerCalendarChecklist {...commonProps} />;
+      case 'qa-am-review':
+        return <QAAMReviewChecklist {...commonProps} />;
+      case 'qa-capa':
+        return <QACAPAChecklist {...commonProps} />;
       default:
         return <HRChecklist {...commonProps} />;
     }

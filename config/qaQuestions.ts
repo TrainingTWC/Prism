@@ -187,6 +187,19 @@ export const QA_SECTIONS: QASection[] = [
   }
 ];
 
+/**
+ * Lookup map: questionId (e.g. "ZeroTolerance_ZT_2") → full question text
+ */
+export const QUESTION_MAP: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  for (const section of QA_SECTIONS) {
+    for (const item of section.items) {
+      map[`${section.id}_${item.id}`] = item.q;
+    }
+  }
+  return map;
+})();
+
 // Helper function to calculate score
 export function calculateQAScore(responses: Record<string, string>): {
   totalScore: number;

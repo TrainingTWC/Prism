@@ -540,19 +540,12 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     return trainers.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
   })();
 
-  // Filter MOD list - only Store Manager, Assistant Store Manager, Shift Supervisor
-  // Also filter by region if a store is selected
+  // MOD list — show all employees in the same region as the selected store
   const modEmployees = (() => {
-    const allowedDesignations = [
-      'store manager',
-      'assistant store manager',
-      'shift supervisor',
-      'shift manager',
-      'store head',
-      'assistant manager'
-    ];
+    const allEmps = Object.values(employeeDirectory.byId);
+    if (!allEmps.length) return [];
 
-    // Get the region from the selected store
+    // Find the selected store's region
     let selectedStoreRegion = '';
     if (meta.storeId) {
       const selectedStore = allStores.find((store: any) => {
@@ -560,43 +553,37 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         return storeId === normalizeId(meta.storeId);
       });
       if (selectedStore) {
-        selectedStoreRegion = selectedStore['Region'] || selectedStore.region || '';
+        selectedStoreRegion = (selectedStore['Region'] || selectedStore.region || '').toLowerCase().trim();
       }
     }
 
-    // Build a set of store IDs in the same region
+    // Collect all store IDs in that region
     const storeIdsInRegion = new Set<string>();
     if (selectedStoreRegion) {
       allStores.forEach((store: any) => {
-        const storeRegion = (store['Region'] || store.region || '').toLowerCase().trim();
-        if (storeRegion === selectedStoreRegion.toLowerCase().trim()) {
-          const storeCode = normalizeId(store['Store ID'] || store.storeId || store.StoreID || store.store_id);
-          storeIdsInRegion.add(storeCode);
+        const r = (store['Region'] || store.region || '').toLowerCase().trim();
+        if (r === selectedStoreRegion) {
+          storeIdsInRegion.add(normalizeId(store['Store ID'] || store.storeId || store.StoreID || store.store_id));
+          // Also add store name normalized so we can match employees by location name
+          const storeName = (store['Store Name'] || store.storeName || store.name || '').toUpperCase().trim();
+          if (storeName) storeIdsInRegion.add(storeName);
         }
       });
     }
 
-    const employees = Object.values(employeeDirectory.byId)
+    // Filter employees: if region found, show everyone in that region; otherwise show all
+    const employees = allEmps
       .filter((emp: any) => {
-        const designation = (emp.designation || '').toLowerCase().trim();
-        const hasAllowedDesignation = allowedDesignations.some(allowed => designation.includes(allowed));
-
-        // If no store selected yet, show all managers
-        if (!selectedStoreRegion) {
-          return hasAllowedDesignation;
-        }
-
-        // Filter by region - check if employee's store_code is in the same region
-        const empStoreCode = normalizeId(emp.store_code || emp.location || '');
-        const isInSameRegion = storeIdsInRegion.has(empStoreCode);
-
-        return hasAllowedDesignation && isInSameRegion;
+        if (!selectedStoreRegion || storeIdsInRegion.size === 0) return true;
+        const empStore = normalizeId(emp.store_code || '');
+        const empLocation = (emp.location || '').toUpperCase().trim();
+        return storeIdsInRegion.has(empStore) || storeIdsInRegion.has(empLocation);
       })
       .map((emp: any) => ({
         id: emp.employee_code,
         name: emp.empname,
         designation: emp.designation,
-        location: emp.location
+        location: emp.store_code || emp.location || ''
       }));
 
     return employees.sort((a: any, b: any) => a.name.localeCompare(b.name));

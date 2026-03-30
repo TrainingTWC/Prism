@@ -8,12 +8,8 @@ import { QA_SECTIONS } from '../../config/qaQuestions';
 import { useComprehensiveMapping, useAreaManagers, useStoreDetails } from '../../hooks/useComprehensiveMapping';
 import ImageEditor from '../ImageEditor';
 import { buildQAPDF } from '../../src/utils/qaReport';
-
-// Google Sheets endpoint for logging data - Updated to capture all 116 questions
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwGIDlsSGyRhR40G0zLmYpbs5C-ShrZffwnKcn3hikZPeDFtcWbeDzewT49yJQ_8YCUkA/exec';
-
-// Google Sheets endpoint for draft management
-const DRAFT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxCtm2UGYSLsR6ZhJ9jxr_pHBwU3dVnJQhqg1VQ1asrf7aX4rW6rxopGKlrOvgXr-QShg/exec';
+// Unified QA endpoint — handles QA submission, AM Follow-Up, and CAPA creation in one call
+const QA_ENDPOINT = import.meta.env.VITE_QA_SCRIPT_URL || '';
 
 interface SurveyResponse {
   [key: string]: string;
@@ -27,6 +23,7 @@ interface SurveyMeta {
   storeName: string;
   storeId: string;
   city: string;
+  region: string;
 }
 
 interface Store {
@@ -103,7 +100,8 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         amId: existingSubmission.amId || '',
         storeName: existingSubmission.storeName || '',
         storeId: existingSubmission.storeId || '',
-        city: existingSubmission.city || ''
+        city: existingSubmission.city || '',
+        region: existingSubmission.region || ''
       };
     }
 
@@ -123,7 +121,8 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       amId: (stored as any).amId || '',
       storeName: (stored as any).storeName || '',
       storeId: (stored as any).storeId || '',
-      city: (stored as any).city || ''
+      city: (stored as any).city || '',
+      region: (stored as any).region || ''
     };
   });
 
@@ -154,8 +153,9 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     return comprehensiveMapping.map(store => ({
       name: store['Store Name'],
       id: store['Store ID'],
-      region: store['Region'],
-      amId: store['AM']
+      region: store['Region'] || '',
+      amId: store['AM'] || '',
+      city: store['City'] || ''
     })).sort((a, b) => a.name.localeCompare(b.name));
   }, [comprehensiveMapping]);
 
@@ -218,13 +218,13 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
   // Function to load drafts from Google Sheets
   const loadDraftsFromSheet = async () => {
-    if (!DRAFT_ENDPOINT || !meta.qaId) {
+    if (!QA_ENDPOINT || !meta.qaId) {
       return;
     }
 
     setDraftsLoading(true);
     try {
-      const url = `${DRAFT_ENDPOINT}?action=getDrafts&qaId=${encodeURIComponent(meta.qaId)}`;
+      const url = `${QA_ENDPOINT}?action=getDrafts&qaId=${encodeURIComponent(meta.qaId)}`;
 
       const response = await fetch(url, {
         method: 'GET',
@@ -259,18 +259,25 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     loadDraftsFromSheet();
   }, [meta.qaId]);
 
-  // Auto-fill AM when store is selected from comprehensive mapping
+  // Auto-fill AM, Region, and City when store is selected from comprehensive mapping
   useEffect(() => {
     if (meta.storeId && comprehensiveMapping.length > 0) {
       const store = comprehensiveMapping.find(s => s['Store ID'] === meta.storeId);
-      if (store && store.AM && !meta.amId) {
-        const am = areaManagers.find(a => a.id === store.AM);
-        if (am) {
-          setMeta(prev => ({
-            ...prev,
-            amId: am.id,
-            amName: am.name
-          }));
+      if (store) {
+        const updates: Partial<SurveyMeta> = {};
+        // Auto-fill AM
+        if (store.AM) {
+          const am = areaManagers.find(a => a.id === store.AM);
+          if (am) {
+            updates.amId = am.id;
+            updates.amName = am.name;
+          }
+        }
+        // Auto-fill Region and City
+        updates.region = store['Region'] || '';
+        updates.city = store['City'] || '';
+        if (Object.keys(updates).length > 0) {
+          setMeta(prev => ({ ...prev, ...updates }));
         }
       }
     }
@@ -395,7 +402,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
   // Draft management functions
   const saveDraft = async () => {
-    if (!DRAFT_ENDPOINT) {
+    if (!QA_ENDPOINT) {
       alert('Draft endpoint not configured. Cannot save draft.');
       return;
     }
@@ -436,7 +443,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         metaJSON: JSON.stringify(meta)
       });
 
-      await fetch(DRAFT_ENDPOINT, {
+      await fetch(QA_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -475,14 +482,14 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   };
 
   const loadDraft = async (draftId: string) => {
-    if (!DRAFT_ENDPOINT) {
+    if (!QA_ENDPOINT) {
       alert('Draft endpoint not configured. Cannot load draft.');
       return;
     }
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${DRAFT_ENDPOINT}?action=loadDraft&draftId=${encodeURIComponent(draftId)}`);
+      const response = await fetch(`${QA_ENDPOINT}?action=loadDraft&draftId=${encodeURIComponent(draftId)}`);
       const data = await response.json();
 
       if (data.success && data.data?.draft) {
@@ -509,7 +516,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   const deleteDraft = async (draftId: string) => {
     if (!confirm('Are you sure you want to delete this draft?')) return;
 
-    if (!DRAFT_ENDPOINT) {
+    if (!QA_ENDPOINT) {
       alert('Draft endpoint not configured. Cannot delete draft.');
       return;
     }
@@ -521,7 +528,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         draftId: draftId
       });
 
-      await fetch(DRAFT_ENDPOINT, {
+      await fetch(QA_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -565,7 +572,9 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       amName: '',
       amId: '',
       storeName: '',
-      storeId: ''
+      storeId: '',
+      city: '',
+      region: ''
     });
     setQuestionImages({});
     setQuestionRemarks({});
@@ -578,7 +587,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
   const handleSubmit = async () => {
     // Check required meta fields first
-    const requiredFields = ['qaName', 'qaId', 'amName', 'amId', 'storeName', 'storeId', 'city'];
+    const requiredFields = ['qaName', 'qaId', 'amName', 'amId', 'storeName', 'storeId'];
     const missingFields = requiredFields.filter(field => !meta[field as keyof SurveyMeta]);
 
     if (missingFields.length > 0) {
@@ -677,8 +686,8 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
       const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100 * 100) / 100 : 0;
 
-      // Detect region and correct store ID from comprehensive mapping
-      let detectedRegion = '';
+      // Use region from meta (auto-filled) and correct store ID from comprehensive mapping
+      let detectedRegion = meta.region || '';
       let correctedStoreId = meta.storeId;
       try {
         if (meta.storeId && comprehensiveMapping.length > 0) {
@@ -699,7 +708,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
           }
 
           if (storeMapping) {
-            detectedRegion = storeMapping.Region || '';
+            if (!detectedRegion) detectedRegion = storeMapping.Region || '';
             correctedStoreId = storeMapping['Store ID'];
           }
         }
@@ -777,7 +786,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
           console.log(`📤 Submitting QA checklist (attempt ${networkRetryCount + 1})... Payload: ${(bodyString.length / 1024).toFixed(1)}KB`);
 
-          const response = await fetch(LOG_ENDPOINT, {
+          const response = await fetch(QA_ENDPOINT, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',
@@ -815,6 +824,9 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
           }
         }
       }
+
+      // AM Follow-Up + CAPA are now created server-side by the unified GAS script
+      // No extra network calls needed from the frontend
 
       // Delete draft if submission was successful
       if (currentDraftId) {
@@ -1441,49 +1453,6 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Area Manager
-            </label>
-            <input
-              type="text"
-              value={amSearchTerm || (meta.amId ? meta.amName.split(' ')[0] : '')}
-              onChange={(e) => {
-                setAmSearchTerm(e.target.value);
-                setShowAmDropdown(true);
-                setSelectedAmIndex(-1);
-              }}
-              onFocus={() => setShowAmDropdown(true)}
-              onBlur={() => setTimeout(() => setShowAmDropdown(false), 200)}
-              placeholder="Search Area Manager..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-            />
-
-            {showAmDropdown && (
-              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                {filteredAreaManagers.length > 0 ? (
-                  filteredAreaManagers.map((am, index) => (
-                    <button
-                      key={am.id}
-                      onClick={() => {
-                        handleMetaChange('amId', am.id as string);
-                        handleMetaChange('amName', am.name as string);
-                        setAmSearchTerm('');
-                        setShowAmDropdown(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                        }`}
-                    >
-                      {am.name.split(' ')[0]}
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400">No area managers found</div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               Store
             </label>
             <input
@@ -1527,29 +1496,44 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              City
+              Area Manager <span className="text-xs text-gray-400">(auto-filled)</span>
             </label>
-            <select
-              value={meta.city}
-              onChange={(e) => handleMetaChange('city', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-            >
-              <option value="">Select City</option>
-              <option value="bangalore">Bangalore</option>
-              <option value="mangalore">Mangalore</option>
-              <option value="mysore">Mysore</option>
-              <option value="pune">Pune</option>
-              <option value="mumbai">Mumbai</option>
-              <option value="thane">Thane</option>
-              <option value="ahemdabad">Ahemdabad</option>
-              <option value="delhi ncr">Delhi NCR</option>
-              <option value="chandigarh">Chandigarh</option>
-              <option value="panchkula">Panchkula</option>
-              <option value="agra">Agra</option>
-              <option value="hyderabad">Hyderabad</option>
-              <option value="chennai">Chennai</option>
-              <option value="coonoor">Coonoor</option>
-            </select>
+            <input
+              type="text"
+              value={meta.amName ? meta.amName.split(' ')[0] : ''}
+              readOnly
+              tabIndex={-1}
+              placeholder="Select a store to auto-fill"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-md bg-gray-100 dark:bg-slate-900 text-gray-700 dark:text-slate-300 cursor-not-allowed"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+              Region <span className="text-xs text-gray-400">(auto-filled)</span>
+            </label>
+            <input
+              type="text"
+              value={meta.region || ''}
+              readOnly
+              tabIndex={-1}
+              placeholder="Select a store to auto-fill"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-md bg-gray-100 dark:bg-slate-900 text-gray-700 dark:text-slate-300 cursor-not-allowed"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+              City <span className="text-xs text-gray-400">(auto-filled)</span>
+            </label>
+            <input
+              type="text"
+              value={meta.city || ''}
+              readOnly
+              tabIndex={-1}
+              placeholder="Select a store to auto-fill"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-md bg-gray-100 dark:bg-slate-900 text-gray-700 dark:text-slate-300 cursor-not-allowed"
+            />
           </div>
         </div>
       </div>

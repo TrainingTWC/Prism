@@ -50,7 +50,7 @@ export const AUTH_CONFIG: AuthConfig = {
     },
     qa: {
       password: 'QualityCheck2024!',
-      permissions: ['qa', 'dashboard'],
+      permissions: ['qa', 'qa-am-review', 'qa-capa', 'dashboard'],
       dashboardAccess: ['qa-dashboard']
     },
     finance: {
@@ -60,14 +60,14 @@ export const AUTH_CONFIG: AuthConfig = {
     },
     operations: {
       password: 'OpsAccess2024!',
-      permissions: ['operations', 'shlp', 'bench-planning', 'brew-league', 'dashboard'],
+      permissions: ['operations', 'shlp', 'bench-planning', 'brew-league', 'qa-am-review', 'qa-capa', 'dashboard'],
       dashboardAccess: ['operations-dashboard', 'shlp-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
     },
     store: {
       password: 'StoreAccess2025!',
-      permissions: ['shlp', 'brew-league', 'bench-planning', 'dashboard'],
+      permissions: ['shlp', 'brew-league', 'bench-planning', 'qa-capa', 'dashboard'],
       dashboardAccess: ['shlp-dashboard']
-    },
+    }, 
     'campus-hiring': {
       password: 'CampusHire2024!',
       permissions: ['campus-hiring'],
@@ -75,12 +75,12 @@ export const AUTH_CONFIG: AuthConfig = {
     },
     admin: {
       password: 'AdminView2024!',
-      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'dashboard'],
+      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'qa-am-review', 'qa-capa', 'dashboard'],
       dashboardAccess: ['all', 'campus-hiring-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'trainer-calendar-dashboard']
     },
     editor: {
       password: 'Editornotcreator2025!',
-      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'dashboard'],
+      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'qa-am-review', 'qa-capa', 'dashboard'],
       dashboardAccess: ['all', 'campus-hiring-dashboard', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
     }
   },

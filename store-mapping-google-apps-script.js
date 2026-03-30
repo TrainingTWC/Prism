@@ -120,6 +120,9 @@ function getStoreMapping() {
         'Menu Type': row[24] ? row[24].toString().trim() : '',
         'Price Group': row[25] ? row[25].toString().trim() : '',
         
+        // City
+        'City': row[26] ? row[26].toString().trim() : '',
+        
         // Legacy field for backward compatibility (uses HRBP 1)
         'HRBP': row[5] ? row[5].toString().trim() : '',
         'HRBP Name': row[6] ? row[6].toString().trim() : ''
