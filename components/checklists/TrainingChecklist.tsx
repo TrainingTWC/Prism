@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { GraduationCap, Calendar as CalendarIcon, ClipboardCheck, Home } from 'lucide-react';
+import { GraduationCap, Calendar as CalendarIcon, ClipboardCheck, Home, MapPin, AlertTriangle } from 'lucide-react';
 import { AREA_MANAGERS as DEFAULT_AREA_MANAGERS } from '../../constants';
 import { hapticFeedback } from '../../utils/haptics';
 import { useConfig } from '../../contexts/ConfigContext';
 import { useComprehensiveMapping } from '../../hooks/useComprehensiveMapping';
 import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
+import { checkGeofence, STORE_COORDINATES, getDistanceMeters } from '../../src/config/storeCoordinates';
 import TrainingCalendar from './TrainingCalendar';
 import ImageEditor from '../ImageEditor';
+
+const TRAINING_GEOFENCE_RADIUS = 50; // 50 meters for training audits
 
 interface Store {
   name: string;
@@ -381,6 +384,112 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     }
   }, [meta.trainerId, meta.trainerName, allStores]);
 
+  // Geolocation state
+  const [geoLocation, setGeoLocation] = useState<{
+    latitude: number | null;
+    longitude: number | null;
+    accuracy: number | null;
+    timestamp: string | null;
+    error: string | null;
+    loading: boolean;
+  }>({
+    latitude: null,
+    longitude: null,
+    accuracy: null,
+    timestamp: null,
+    error: null,
+    loading: true
+  });
+
+  const [geofenceResult, setGeofenceResult] = useState<{
+    allowed: boolean;
+    distance: number;
+    storeName: string;
+  } | null>(null);
+
+  // Capture geolocation on mount
+  const captureGeolocation = () => {
+    setGeoLocation(prev => ({ ...prev, loading: true, error: null }));
+    if (!navigator.geolocation) {
+      setGeoLocation(prev => ({
+        ...prev,
+        loading: false,
+        error: 'Geolocation is not supported by this browser'
+      }));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLat = position.coords.latitude;
+        const newLng = position.coords.longitude;
+        setGeoLocation({
+          latitude: newLat,
+          longitude: newLng,
+          accuracy: Math.round(position.coords.accuracy),
+          timestamp: new Date().toISOString(),
+          error: null,
+          loading: false
+        });
+        // Re-run geofence check if a store is already selected
+        if (meta.storeId) {
+          const result = checkGeofence(meta.storeId, newLat, newLng, TRAINING_GEOFENCE_RADIUS);
+          setGeofenceResult(result);
+          if (result && !result.allowed) {
+            setMeta(prev => ({ ...prev, storeId: '', storeName: '' }));
+            setGeofenceResult(null);
+          }
+        }
+      },
+      (error) => {
+        let errorMessage = 'Unable to retrieve location';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location permission denied. Please enable location access.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information unavailable';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out';
+            break;
+        }
+        setGeoLocation(prev => ({
+          ...prev,
+          loading: false,
+          error: errorMessage
+        }));
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    );
+  };
+
+  useEffect(() => {
+    captureGeolocation();
+  }, []);
+
+  // Filter stores: only show those within 50m geofence radius
+  const availableStores = React.useMemo(() => {
+    if (geoLocation.latitude === null || geoLocation.longitude === null) {
+      return []; // No GPS — show no stores until location is captured
+    }
+    return allStores.filter((store: any) => {
+      const storeId = (store['Store ID'] || store.storeId || store.StoreID || store.store_id || '').toString().trim();
+      const coord = STORE_COORDINATES[storeId];
+      if (!coord) return false;
+      if (coord.lat === 0 && coord.lng === 0) return false;
+      const distance = getDistanceMeters(
+        geoLocation.latitude!, geoLocation.longitude!,
+        coord.lat, coord.lng
+      );
+      return distance <= TRAINING_GEOFENCE_RADIUS;
+    });
+  }, [allStores, geoLocation.latitude, geoLocation.longitude]);
+
   // Add state for dropdown handling
   const [amSearchTerm, setAmSearchTerm] = useState('');
   const [modSearchTerm, setModSearchTerm] = useState('');
@@ -658,14 +767,23 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     return filteredEmployees.sort((a: any, b: any) => a.name.localeCompare(b.name));
   })();
 
+  // Build uniqueStores from geofenced availableStores
   const uniqueStores = (() => {
-    const stores = allStores.map((row: any) => ({
-      name: row['Store Name'] || row.storeName || row.name,
-      id: normalizeId(row['Store ID'] || row.storeId || row.StoreID || row.store_id)
-    }));
+    const stores = availableStores.map((row: any) => {
+      const sid = (row['Store ID'] || row.storeId || row.StoreID || row.store_id || '').toString().trim();
+      const coord = STORE_COORDINATES[sid];
+      const dist = (coord && geoLocation.latitude && geoLocation.longitude)
+        ? Math.round(getDistanceMeters(geoLocation.latitude, geoLocation.longitude, coord.lat, coord.lng))
+        : null;
+      return {
+        name: row['Store Name'] || row.storeName || row.name,
+        id: normalizeId(sid),
+        distance: dist
+      };
+    });
     return stores
       .filter((store: any) => store.name && store.id)
-      .sort((a: any, b: any) => a.name.localeCompare(b.name));
+      .sort((a: any, b: any) => (a.distance ?? 999) - (b.distance ?? 999));
   })();
 
   // Cascading filter functions for dropdown searches
@@ -1750,6 +1868,12 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       return;
     }
 
+    // Require GPS location
+    if (!geoLocation.latitude || !geoLocation.longitude) {
+      alert('Location data is required. Please enable GPS and refresh your location before submitting.');
+      return;
+    }
+
     // Check if all required meta fields are filled
     const missingFields: string[] = [];
     if (!meta.storeName || !meta.storeId) missingFields.push('Store Location');
@@ -1841,6 +1965,14 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         storeName: meta.storeName,
         storeId: meta.storeId,
         mod: meta.mod,
+        // Geolocation data
+        latitude: geoLocation.latitude?.toString() || '',
+        longitude: geoLocation.longitude?.toString() || '',
+        geoAccuracy: geoLocation.accuracy?.toString() || '',
+        geoTimestamp: geoLocation.timestamp || '',
+        googleMapsLink: geoLocation.latitude && geoLocation.longitude
+          ? `https://www.google.com/maps?q=${geoLocation.latitude},${geoLocation.longitude}`
+          : '',
         totalScore: totalScore.toString(),
         maxScore: maxScore.toString(),
         percentage: percentage.toString(),
@@ -2272,49 +2404,81 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
               </div>
 
               <div className="md:col-span-2" data-tour="store-select">
-                <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                    Store Location
-                  </label>
-                  <input
-                    type="text"
-                    value={storeSearchTerm || (meta.storeId ? `${meta.storeName} (${meta.storeId})` : '')}
-                    onChange={(e) => {
-                      setStoreSearchTerm(e.target.value);
-                      setShowStoreDropdown(true);
-                      setSelectedStoreIndex(-1);
-                    }}
-                    onFocus={() => setShowStoreDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowStoreDropdown(false), 200)}
-                    placeholder="Search Store..."
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-                  />
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                  Store Location <span className="text-xs font-normal text-gray-500">(within {TRAINING_GEOFENCE_RADIUS}m)</span>
+                </label>
+                {mappingLoading ? (
+                  <div className="w-full p-3 bg-gray-100 dark:bg-slate-700 rounded-md animate-pulse text-sm">
+                    Loading stores...
+                  </div>
+                ) : geoLocation.loading ? (
+                  <div className="w-full p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md text-blue-700 dark:text-blue-300 text-sm">
+                    📍 Waiting for GPS location to load nearby stores...
+                  </div>
+                ) : geoLocation.error ? (
+                  <div className="w-full p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
+                    ⚠️ Enable location access to see available stores.
+                    <button type="button" onClick={captureGeolocation} className="ml-2 underline font-medium">Retry</button>
+                  </div>
+                ) : availableStores.length === 0 ? (
+                  <div className="w-full p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md text-amber-700 dark:text-amber-300 text-sm">
+                    No stores found within {TRAINING_GEOFENCE_RADIUS}m. Move closer to a store location.
+                    <button type="button" onClick={captureGeolocation} className="ml-2 underline font-medium">Refresh GPS</button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={storeSearchTerm || (meta.storeId ? `${meta.storeName} (${meta.storeId})` : '')}
+                      onChange={(e) => {
+                        setStoreSearchTerm(e.target.value);
+                        setShowStoreDropdown(true);
+                        setSelectedStoreIndex(-1);
+                      }}
+                      onFocus={() => setShowStoreDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowStoreDropdown(false), 200)}
+                      placeholder={`Search Store (${uniqueStores.length} nearby)...`}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+                    />
 
-                  {showStoreDropdown && (
-                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                      {filteredStores.length > 0 ? (
-                        filteredStores.map((store, index) => (
-                          <button
-                            key={store.id}
-                            onClick={() => {
-                              handleMetaChange('storeId', store.id as string);
-                              handleMetaChange('storeName', store.name as string);
-                              autoFillFields('store', store.id as string);
-                              setStoreSearchTerm('');
-                              setShowStoreDropdown(false);
-                            }}
-                            className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${index === selectedStoreIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                              }`}
-                          >
-                            <div className="truncate">{store.name} ({store.id})</div>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No stores found</div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                    {showStoreDropdown && (
+                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                        {filteredStores.length > 0 ? (
+                          filteredStores.map((store, index) => (
+                            <button
+                              key={store.id}
+                              onClick={() => {
+                                handleMetaChange('storeId', store.id as string);
+                                handleMetaChange('storeName', store.name as string);
+                                autoFillFields('store', store.id as string);
+                                setStoreSearchTerm('');
+                                setShowStoreDropdown(false);
+                                // Geofence check
+                                if (geoLocation.latitude !== null && geoLocation.longitude !== null) {
+                                  const result = checkGeofence(store.id as string, geoLocation.latitude, geoLocation.longitude, TRAINING_GEOFENCE_RADIUS);
+                                  setGeofenceResult(result);
+                                }
+                              }}
+                              className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${index === selectedStoreIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                                }`}
+                            >
+                              <div className="truncate">
+                                {store.name} ({store.id})
+                                {(store as any).distance !== null && (store as any).distance !== undefined && (
+                                  <span className="text-xs text-emerald-600 dark:text-emerald-400 ml-1">
+                                    {(store as any).distance}m away
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No stores found</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="md:col-span-2 relative">
@@ -2364,6 +2528,99 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Location Verification Section */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-3 sm:p-4 border-b border-gray-200 dark:border-slate-700">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-emerald-600" />
+              Location Verification
+              <span className="text-xs font-normal text-gray-500 dark:text-slate-400">({TRAINING_GEOFENCE_RADIUS}m radius)</span>
+            </h2>
+
+            {geoLocation.loading ? (
+              <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent" />
+                <span className="text-blue-700 dark:text-blue-300 text-sm">Fetching your location...</span>
+              </div>
+            ) : geoLocation.error ? (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-red-700 dark:text-red-300 text-sm font-medium flex items-center gap-1">
+                      <AlertTriangle className="w-4 h-4" /> {geoLocation.error}
+                    </p>
+                    <p className="text-red-600 dark:text-red-400 text-xs mt-1">Location data is required for audit compliance.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={captureGeolocation}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg font-medium transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-emerald-700 dark:text-emerald-300 text-sm font-medium">✅ Location captured</span>
+                  <button
+                    type="button"
+                    onClick={captureGeolocation}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded-lg font-medium transition-colors"
+                  >
+                    Refresh
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <span className="text-gray-500 dark:text-slate-400 text-xs">Latitude</span>
+                    <p className="font-mono text-gray-900 dark:text-slate-100 text-xs">{geoLocation.latitude?.toFixed(6)}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 dark:text-slate-400 text-xs">Longitude</span>
+                    <p className="font-mono text-gray-900 dark:text-slate-100 text-xs">{geoLocation.longitude?.toFixed(6)}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 dark:text-slate-400 text-xs">Accuracy</span>
+                    <p className="font-mono text-gray-900 dark:text-slate-100 text-xs">±{geoLocation.accuracy}m</p>
+                  </div>
+                </div>
+                {geoLocation.latitude && geoLocation.longitude && (
+                  <a
+                    href={`https://www.google.com/maps?q=${geoLocation.latitude},${geoLocation.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-2 text-xs text-emerald-700 dark:text-emerald-400 hover:underline"
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    View on Google Maps
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Geofence Status */}
+            {meta.storeId && !geoLocation.loading && !geoLocation.error && geofenceResult && (
+              <div className="mt-3">
+                {geofenceResult.allowed ? (
+                  <div className="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    <MapPin className="w-4 h-4 text-emerald-600" />
+                    <span className="text-emerald-700 dark:text-emerald-300 text-sm">
+                      ✅ Within geofence — {geofenceResult.distance}m from {geofenceResult.storeName}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                    <span className="text-red-700 dark:text-red-300 text-sm">
+                      ❌ Outside geofence — {geofenceResult.distance}m from {geofenceResult.storeName} (must be within {TRAINING_GEOFENCE_RADIUS}m)
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Training sections - Full Width */}

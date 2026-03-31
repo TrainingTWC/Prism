@@ -151,6 +151,9 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
   const [amSearchTerm, setAmSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
   const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
+  // Track whether AM and Store were auto-filled from mapping (locked) or need manual entry (editable)
+  const [amAutoFilled, setAmAutoFilled] = useState(false);
+  const [storeAutoFilled, setStoreAutoFilled] = useState(false);
   const [showAmDropdown, setShowAmDropdown] = useState(false);
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
@@ -451,81 +454,84 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
   }, [employeeDirectory, employeeSearchTerm]);
 
   // Auto-fill store and AM when employee is selected
-  // SAME APPROACH AS SHLP - using comprehensiveMapping (Store Mapping Google Sheet)
+  // Uses emp.store_code from Employee Master → looks up Store Mapping for AM and Store Name
   const handleEmployeeSelect = (emp: any) => {
-    console.log('=====================================');
-    console.log('[HRChecklist] 👤 Employee selected:', emp.empname, emp.employee_code);
-    console.log('[HRChecklist] 📍 Employee full data:', emp);
-    
-    // Check if employee has store_code
-    if (!emp.store_code) {
-      console.error('[HRChecklist] ❌ Employee has NO store_code in EMP. Master!');
-      console.error('[HRChecklist] Employee must have store_code to auto-fill store and AM');
-      console.log('=====================================');
-      
-      // Set employee info only
-      setMeta(prev => ({
-        ...prev,
-        empName: emp.empname || '',
-        empId: emp.employee_code || ''
-      }));
-      
-      setEmployeeSearchTerm('');
-      setShowEmployeeDropdown(false);
-      return;
-    }
-    
-    const storeId = emp.store_code.toString().trim();
-    console.log('[HRChecklist] 🔍 Looking for Store ID:', storeId);
-    console.log('[HRChecklist] 📊 Total stores in mapping:', allStores.length);
-    
-    // SAME LOGIC AS SHLP: Find store in comprehensive mapping
-    const normalize = (v: any) => (v ?? '').toString().trim();
-    const selectedStore = allStores.find(s => normalize(s['Store ID']) === normalize(storeId));
-    
-    if (!selectedStore) {
-      console.error('[HRChecklist] ❌ Store NOT FOUND in Store Mapping!');
-      console.error('[HRChecklist] Looking for Store ID:', storeId);
-      console.error('[HRChecklist] First 10 Store IDs in mapping:', 
-        allStores.slice(0, 10).map((s: any) => s['Store ID']).join(', '));
-      console.log('=====================================');
-      
-      // Set employee info only
-      setMeta(prev => ({
-        ...prev,
-        empName: emp.empname || '',
-        empId: emp.employee_code || ''
-      }));
-      
-      setEmployeeSearchTerm('');
-      setShowEmployeeDropdown(false);
-      return;
-    }
-    
-    console.log('[HRChecklist] ✅ Found store:', selectedStore['Store ID'], selectedStore['Store Name']);
-    
-    // Get store and AM data
-    const storeName = (selectedStore['Store Name'] || '').toString().trim();
-    const amId = (selectedStore['AM'] || '').toString().trim();
-    const amName = (selectedStore['AM Name'] || '').toString().trim() || amId;
-    
-    console.log('[HRChecklist] Store data:', { storeId, storeName });
-    console.log('[HRChecklist] AM data:', { amId, amName });
-    
-    // SINGLE STATE UPDATE - set everything at once like SHLP does
-    setMeta(prev => ({
-      ...prev,
+    const normalize = (v: any) => (v ?? '').toString().trim().toUpperCase();
+
+    // Start with employee info
+    const updates: Partial<SurveyMeta> = {
       empName: emp.empname || '',
       empId: emp.employee_code || '',
-      storeId: storeId,
-      storeName: storeName,
-      amId: amId,
-      amName: amName
-    }));
-    
-    console.log('[HRChecklist] ✅ ALL FIELDS SET:', { storeName, storeId, amName, amId });
-    console.log('=====================================');
-    
+      // Reset AM and Store — will be filled below if mapping found
+      amId: '',
+      amName: '',
+      storeId: '',
+      storeName: ''
+    };
+
+    let foundStore = false;
+    let foundAM = false;
+
+    // 1. Get store_code from Employee Master
+    const empStoreCode = normalize(emp.store_code || emp.location || '');
+    console.log('[HRChecklist] Employee selected:', emp.empname, '| store_code:', empStoreCode);
+
+    if (empStoreCode && allStores.length > 0) {
+      // 2. Look up store in Store Mapping — first by Store ID, then by Store Name
+      let selectedStore = allStores.find((s: any) => {
+        const sid = normalize(s['Store ID'] || s.storeId || s.StoreID || s.store_id || s.id);
+        return sid === empStoreCode;
+      });
+
+      // Fallback: match by Store Name (emp master sometimes has location name instead of Store ID)
+      if (!selectedStore) {
+        selectedStore = allStores.find((s: any) => {
+          const sName = normalize(s['Store Name'] || s.storeName || s.name || '');
+          return sName === empStoreCode;
+        });
+        if (selectedStore) {
+          console.log('[HRChecklist] Matched by Store Name instead of Store ID');
+        }
+      }
+
+      if (selectedStore) {
+        // 3. Get store info from mapping
+        const storeId = (selectedStore['Store ID'] || selectedStore.storeId || '').toString().trim();
+        const storeName = (selectedStore['Store Name'] || selectedStore.storeName || selectedStore.name || '').toString().trim();
+        updates.storeId = storeId || empStoreCode;
+        updates.storeName = storeName || empStoreCode;
+        foundStore = true;
+        console.log('[HRChecklist] Store found:', storeId, storeName);
+
+        // 4. Get AM from mapping
+        const amId = normalize(selectedStore['AM'] || selectedStore.amId || selectedStore['AM ID'] || '');
+        const amName = (selectedStore['AM Name'] || selectedStore.amName || '').toString().trim();
+        if (amId) {
+          updates.amId = amId;
+          updates.amName = amName || amId;
+          foundAM = true;
+          console.log('[HRChecklist] AM found:', amId, amName);
+        } else {
+          console.log('[HRChecklist] No AM in mapping for store:', storeId);
+        }
+      } else {
+        // Neither Store ID nor Store Name matched — leave fields open for user
+        updates.storeId = empStoreCode;
+        console.log('[HRChecklist] Store NOT found in mapping by ID or Name:', empStoreCode,
+          '| Sample Store IDs:', allStores.slice(0, 5).map((s: any) => s['Store ID']).join(', '),
+          '| Sample Store Names:', allStores.slice(0, 5).map((s: any) => s['Store Name']).join(', '));
+      }
+    } else if (!empStoreCode) {
+      console.log('[HRChecklist] Employee has no store_code:', emp.employee_code);
+    } else {
+      console.log('[HRChecklist] Store mapping not loaded yet. Stores:', allStores.length);
+    }
+
+    setMeta(prev => ({ ...prev, ...updates }));
+    setAmAutoFilled(foundAM);
+    setStoreAutoFilled(foundStore);
+    setStoreSearchTerm('');
+    setAmSearchTerm('');
     setEmployeeSearchTerm('');
     setShowEmployeeDropdown(false);
   };
@@ -888,14 +894,55 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
               Area Manager *
             </label>
-            <input
-              type="text"
-              value={meta.amName && meta.amId ? `${meta.amName} (${meta.amId})` : ''}
-              readOnly
-              placeholder="Auto-filled from employee selection"
-              required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 cursor-not-allowed"
-            />
+            {amAutoFilled ? (
+              <input
+                type="text"
+                value={meta.amName && meta.amId ? `${meta.amName} (${meta.amId})` : ''}
+                readOnly
+                required
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 cursor-not-allowed"
+              />
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={amSearchTerm || (meta.amId ? `${meta.amName} (${meta.amId})` : '')}
+                  onChange={(e) => {
+                    setAmSearchTerm(e.target.value);
+                    setShowAmDropdown(true);
+                    setSelectedAmIndex(-1);
+                  }}
+                  onFocus={() => setShowAmDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowAmDropdown(false), 200)}
+                  placeholder="Search Area Manager..."
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+                />
+                {showAmDropdown && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {filteredAreaManagers.length > 0 ? (
+                      filteredAreaManagers.map((am, index) => (
+                        <button
+                          key={am.id}
+                          type="button"
+                          onClick={() => {
+                            handleMetaChange('amId', am.id);
+                            handleMetaChange('amName', am.name);
+                            setAmSearchTerm('');
+                            setShowAmDropdown(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm ${index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''}`}
+                        >
+                          {am.name} ({am.id})
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No area managers found</div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           <div>
@@ -959,14 +1006,55 @@ const HRChecklist: React.FC<HRChecklistProps> = ({ userRole, onStatsUpdate }) =>
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                 Store Location *
               </label>
-              <input
-                type="text"
-                value={meta.storeName ? `${meta.storeName} (${meta.storeId})` : ''}
-                readOnly
-                placeholder="Auto-filled from employee selection"
-                required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 cursor-not-allowed"
-              />
+              {storeAutoFilled ? (
+                <input
+                  type="text"
+                  value={meta.storeName ? `${meta.storeName} (${meta.storeId})` : ''}
+                  readOnly
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 cursor-not-allowed"
+                />
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    value={storeSearchTerm || (meta.storeId ? `${meta.storeName} (${meta.storeId})` : '')}
+                    onChange={(e) => {
+                      setStoreSearchTerm(e.target.value);
+                      setShowStoreDropdown(true);
+                      setSelectedStoreIndex(-1);
+                    }}
+                    onFocus={() => setShowStoreDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowStoreDropdown(false), 200)}
+                    placeholder="Search Store..."
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+                  />
+                  {showStoreDropdown && (
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                      {filteredStores.length > 0 ? (
+                        filteredStores.map((store, index) => (
+                          <button
+                            key={store.id}
+                            type="button"
+                            onClick={() => {
+                              handleMetaChange('storeId', store.id);
+                              handleMetaChange('storeName', store.name);
+                              setStoreSearchTerm('');
+                              setShowStoreDropdown(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm ${index === selectedStoreIndex ? 'bg-gray-100 dark:bg-slate-700' : ''}`}
+                          >
+                            {store.name} ({store.id})
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-gray-500 dark:text-slate-400 text-sm">No stores found</div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
