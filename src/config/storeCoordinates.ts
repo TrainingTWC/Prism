@@ -27,7 +27,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S002': { lat: 12.9788, lng: 77.64528, name: 'CMH Indira Nagar' },
   'S003': { lat: 12.90996, lng: 77.637846, name: 'HSR-1' },
   'S004': { lat: 13.008266, lng: 77.57984, name: 'Sadashiv Nagar' },
-  'S005': { lat: 12.989302, lng: 77.728248, name: 'Forum Shantiniketan Whitefield' },
+  'S005': { lat: 12.989465, lng: 77.728713, name: 'Forum Shantiniketan Whitefield' },
   'S006': { lat: 13.167301, lng: 77.631606, name: 'New Airport Road' },
   'S007': { lat: 12.971612, lng: 77.595997, name: 'UB City' },
   'S008': { lat: 12.922306, lng: 77.669381, name: 'Bellandur' },
