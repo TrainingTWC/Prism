@@ -152,7 +152,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S229': { lat: 28.403961, lng: 76.947823, name: 'Store S229' },
   'S235': { lat: 28.509773, lng: 77.07148, name: 'Store S235' },
   'S236': { lat: 28.498665, lng: 77.403206, name: 'Store S236' },
-  'S241': { lat: 28.467115, lng: 77.081787, name: 'Store S241' },
+  'S241': { lat: 28.467237, lng: 77.081672, name: 'Store S241' },
   'S242': { lat: 28.560591, lng: 77.356214, name: 'Store S242' },
 
   // ============ WEST REGION ============
