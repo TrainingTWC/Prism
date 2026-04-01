@@ -137,7 +137,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S171': { lat: 28.38712, lng: 77.35335, name: 'Omaxe World Street' },
   'S172': { lat: 28.39419, lng: 77.32825, name: 'Faridabad Sec 14' },
   'S173': { lat: 28.715782, lng: 77.132595, name: 'Rohini Sec 14' },
-  'S174': { lat: 28.538237, lng: 77.140118, name: 'Vasant Kunj' },
+  'S174': { lat: 28.538301, lng: 77.142750, name: 'Vasant Kunj' },
   'S176': { lat: 28.401268, lng: 77.101513, name: 'Capital CyberScape' },
   'S182': { lat: 28.640295, lng: 77.120185, name: 'Rajouri Garden' },
   'S187': { lat: 28.663416, lng: 77.153519, name: 'DLF Midtown' },
