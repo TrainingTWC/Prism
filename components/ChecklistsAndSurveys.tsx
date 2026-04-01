@@ -21,7 +21,8 @@ import BrewLeagueDashboard from './checklists/BrewLeagueDashboard';
 import QAAMReviewChecklist from './checklists/QAAMReviewChecklist';
 import QACAPAChecklist from './checklists/QACAPAChecklist';
 import QACAPADashboard from './checklists/QACAPADashboard';
-import { ClipboardCheck, ShieldAlert } from 'lucide-react';
+import VendorAuditChecklist from './checklists/VendorAuditChecklist';
+import { ClipboardCheck, ShieldAlert, Factory } from 'lucide-react';
 
 interface ChecklistsAndSurveysProps {
   userRole: UserRole;
@@ -30,6 +31,7 @@ interface ChecklistsAndSurveysProps {
 type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning' | 'brew-league' | 'qa-am-review' | 'qa-capa' | 'qa-capa-dashboard';
 type BrewLeagueSubType = 'store' | 'am' | 'region' | 'dashboard';
 type BenchPlanningSubType = 'barista-sm' | 'sm-asm' | 'barista-bt';
+type QASubType = 'store-qa' | 'vendor-audit';
 type BTSessionStep = 'readiness' | 'bt-session' | 'skill-check';
 
 const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole }) => {
@@ -37,6 +39,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
   const [activeChecklist, setActiveChecklist] = useState<ChecklistType | null>(null);
   const [brewLeagueSubSection, setBrewLeagueSubSection] = useState<BrewLeagueSubType | null>(null);
   const [benchPlanningSubSection, setBenchPlanningSubSection] = useState<BenchPlanningSubType | null>(null);
+  const [qaSubSection, setQASubSection] = useState<QASubType | null>(null);
   const [btSessionStep, setBTSessionStep] = useState<BTSessionStep>('readiness');
   const [checklistStats, setChecklistStats] = useState({
     hr: { completed: 0, total: 0, score: 0 },
@@ -128,6 +131,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
     setActiveChecklist(null);
     setBrewLeagueSubSection(null);
     setBenchPlanningSubSection(null);
+    setQASubSection(null);
     setBTSessionStep('readiness');
   };
 
@@ -138,6 +142,10 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
   const handleBackToBenchPlanning = () => {
     setBenchPlanningSubSection(null);
     setBTSessionStep('readiness');
+  };
+
+  const handleBackToQA = () => {
+    setQASubSection(null);
   };
 
   const renderActiveChecklist = () => {
@@ -351,6 +359,75 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
       }
     }
 
+    // Handle QA subsections
+    if (activeChecklist === 'qa' && !qaSubSection) {
+      return (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+              <CheckCircle className="w-8 h-8 text-orange-500" />
+              Quality Assurance
+            </h2>
+            <p className="text-gray-600 dark:text-slate-400 mb-6">
+              Select the type of QA audit to begin.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <button
+              onClick={() => setQASubSection('store-qa')}
+              className="group p-8 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-orange-400 dark:hover:border-orange-400 bg-white dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-orange-500 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <CheckCircle className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                  Store QA
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+                  Quality assurance audit for store operations, hygiene, and compliance
+                </p>
+                <span className="mt-2 text-sm text-orange-600 dark:text-orange-400 font-medium group-hover:text-orange-700 dark:group-hover:text-orange-300">
+                  Open →
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setQASubSection('vendor-audit')}
+              className="group p-8 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-teal-400 dark:hover:border-teal-400 bg-white dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-all duration-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-teal-600 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <Factory className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                  Vendor Audit
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+                  FSSAI-aligned food safety and quality audit for vendor establishments
+                </p>
+                <span className="mt-2 text-sm text-teal-600 dark:text-teal-400 font-medium group-hover:text-teal-700 dark:group-hover:text-teal-300">
+                  Open →
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Render QA subsection
+    if (activeChecklist === 'qa' && qaSubSection) {
+      if (qaSubSection === 'store-qa') {
+        return <QAChecklist {...commonProps} />;
+      }
+      if (qaSubSection === 'vendor-audit') {
+        return <VendorAuditChecklist {...commonProps} />;
+      }
+    }
+
     switch (activeChecklist) {
       case 'hr':
         return <HRChecklist {...commonProps} />;
@@ -358,8 +435,6 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
         return <OperationsChecklist {...commonProps} />;
       case 'training':
         return <TrainingChecklist {...commonProps} />;
-      case 'qa':
-        return <QAChecklist {...commonProps} />;
       case 'finance':
         return <FinanceChecklist {...commonProps} />;
       case 'shlp':
@@ -406,9 +481,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
               <div className="flex items-center space-x-4">
                 {/* Back Button */}
                 <button
-                  onClick={benchPlanningSubSection ? handleBackToBenchPlanning : brewLeagueSubSection ? handleBackToBrewLeague : handleBackToOverview}
+                  onClick={qaSubSection ? handleBackToQA : benchPlanningSubSection ? handleBackToBenchPlanning : brewLeagueSubSection ? handleBackToBrewLeague : handleBackToOverview}
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                  aria-label={benchPlanningSubSection ? "Back to Bench Planning" : brewLeagueSubSection ? "Back to Brew League" : "Back to checklists overview"}
+                  aria-label={qaSubSection ? "Back to QA" : benchPlanningSubSection ? "Back to Bench Planning" : brewLeagueSubSection ? "Back to Brew League" : "Back to checklists overview"}
                 >
                   <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-slate-400" />
                 </button>
@@ -445,8 +520,22 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
                       <span className="text-gray-400 dark:text-slate-500">/</span>
                     </>
                   )}
+                  {qaSubSection && (
+                    <>
+                      <button
+                        onClick={handleBackToQA}
+                        className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
+                      >
+                        {getChecklistLabel(activeChecklist)}
+                      </button>
+                      <span className="text-gray-400 dark:text-slate-500">/</span>
+                    </>
+                  )}
                   <span className="text-gray-900 dark:text-slate-100 font-medium">
-                    {benchPlanningSubSection
+                    {qaSubSection
+                      ? qaSubSection === 'store-qa' ? 'Store QA'
+                        : 'Vendor Audit'
+                      : benchPlanningSubSection
                       ? benchPlanningSubSection === 'barista-bt' ? 'Buddy Trainer'
                         : benchPlanningSubSection === 'barista-sm' ? 'Shift Manager'
                         : 'ASM'

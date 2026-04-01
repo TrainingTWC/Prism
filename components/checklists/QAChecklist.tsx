@@ -2050,12 +2050,14 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
           >
             Reset Assessment
           </button>
+          {/* Autofill button hidden - moved to vendor audit for testing
           <button
             onClick={autofillForTesting}
             className="px-4 sm:px-6 py-3 btn-primary-gradient text-white rounded-lg font-medium transition-transform duration-150 active:scale-95 min-h-[48px]"
           >
             🧪 Autofill Test Data
           </button>
+          */}
         </div>
         <button
           onClick={handleSubmit}
