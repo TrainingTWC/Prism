@@ -121,7 +121,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S113': { lat: 28.55203, lng: 77.207921, name: 'Hauz Khaz' },
   'S120': { lat: 28.620718, lng: 77.08025, name: 'Janakpuri C Block' },
   'S121': { lat: 28.527834, lng: 77.216941, name: 'DLF Avenue Mall - Saket' },
-  'S122': { lat: 30.691843, lng: 76.712175, name: 'Jubilee Walk Mohali' },
+  'S122': { lat: 30.692295, lng: 76.713325, name: 'Jubilee Walk Mohali' },
   'S126': { lat: 28.64265, lng: 77.106681, name: 'Pacific Mall -Tagore Garden' },
   'S129': { lat: 28.55782, lng: 77.164451, name: 'Basant Lok' },
   'S141': { lat: 28.665255, lng: 77.092567, name: 'Paschim Vihar' },
