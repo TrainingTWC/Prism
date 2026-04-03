@@ -5250,7 +5250,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
 
                             return (
                               <div
-                                className="flex items-center justify-center gap-3 w-full ml-10"
+                                className="flex items-center justify-center gap-2 w-full"
                                 onClick={(e) => {
                                   // Prevent pie chart area clicks from bubbling up to card tap
                                   e.stopPropagation();
@@ -5262,8 +5262,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                               >
                                 {/* Compact Pie Chart using SVG */}
                                 <svg
-                                  width="70"
-                                  height="70"
+                                  width="56"
+                                  height="56"
                                   viewBox="0 0 70 70"
                                   className="flex-shrink-0"
                                   onClick={(e) => e.stopPropagation()}
@@ -5323,11 +5323,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                                 </svg>
 
                                 {/* Legend - Right side, smaller and thinner */}
-                                <div className="flex flex-col gap-1.5">
+                                <div className="flex flex-col gap-1">
                                   {healthData.map((entry) => (
                                     <div
                                       key={entry.name}
-                                      className="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity"
+                                      className="flex items-center gap-1.5 cursor-pointer hover:opacity-70 transition-opacity"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (entry.name === 'Needs Attention') {
@@ -5345,7 +5345,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                                         className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                                         style={{ backgroundColor: entry.color }}
                                       />
-                                      <span className="text-xl font-bold text-gray-900 dark:text-white leading-none">
+                                      <span className="text-base font-bold text-gray-900 dark:text-white leading-none">
                                         {entry.value}
                                       </span>
                                     </div>

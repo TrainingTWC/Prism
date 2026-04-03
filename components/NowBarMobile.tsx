@@ -122,6 +122,7 @@ const NowBarMobile: React.FC<NowBarMobileProps> = ({ pills }) => {
               style={{
                 touchAction: 'none',
                 willChange: 'transform',
+                overflow: 'hidden',
               }}
             >
               <div className="px-6 py-4 flex items-center justify-between w-full">

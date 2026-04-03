@@ -57,7 +57,7 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
     <div className="w-full h-full">
       {/* Card container — matches StatCard style */}
       <div
-        className="flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-5 py-3 sm:py-4 rounded-2xl border border-white/40 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02] h-full"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 px-3 sm:px-5 py-3 sm:py-4 rounded-2xl border border-white/40 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02] h-full overflow-hidden"
       >
         {/* Left: Label - Clickable */}
         <button
@@ -68,10 +68,12 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
           <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 leading-tight">Store Health</span>
         </button>
 
-        {/* Center: Pie chart (flexible) */}
-        <div className="flex-1 flex items-center justify-center">
+        {/* Center + Right: Pie chart and legend together */}
+        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Pie chart */}
+        <div className="flex-shrink-0">
           {totalSubmissions > 0 ? (
-            <div className="w-12 h-12 sm:w-14 sm:h-14">
+            <div className="w-10 h-10 sm:w-14 sm:h-14">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -103,7 +105,7 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
         </div>
 
         {/* Right: Legend - order fixed to green, yellow, red to match design */}
-        <div className="flex-shrink-0 flex flex-col items-start gap-1">
+        <div className="flex-shrink-0 flex flex-col items-start gap-0.5">
           {[
             // Perfect Shot (green), Brewing (yellow), Needs Attention (red)
             healthData.find(h => h.name === 'Perfect Shot'),
@@ -114,14 +116,15 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
               <button
                 key={entry.name}
                 onClick={() => propsOnOpen('scoreRange', '', entry.name)}
-                className="flex items-center gap-2 text-left p-0.5 rounded-md"
+                className="flex items-center gap-1 sm:gap-2 text-left p-0.5 rounded-md"
                 title={entry.name}
               >
-                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
-                <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{entry.value}</span>
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100">{entry.value}</span>
               </button>
             )
           ))}
+        </div>
         </div>
       </div>
     </div>
