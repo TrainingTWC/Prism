@@ -57,7 +57,7 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
     <div className="w-full h-full">
       {/* Card container — matches StatCard style */}
       <div
-        className="flex items-center justify-between gap-3 px-5 py-4 rounded-2xl border border-white/40 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02] h-full"
+        className="flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-5 py-3 sm:py-4 rounded-2xl border border-white/40 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02] h-full"
       >
         {/* Left: Label - Clickable */}
         <button
@@ -65,7 +65,7 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
           className="flex-shrink-0 text-left cursor-pointer"
           title="Click to view month-by-month breakdown"
         >
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 leading-tight">Store Health</span>
+          <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 leading-tight">Store Health</span>
         </button>
 
         {/* Center: Pie chart (flexible) */}

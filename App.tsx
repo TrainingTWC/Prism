@@ -303,7 +303,7 @@ const AppContent: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 flex">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 flex overflow-x-hidden">
       {/* Sidebar */}
       <Sidebar
         activeSection={activeSection}
@@ -321,7 +321,7 @@ const AppContent: React.FC = () => {
       />
 
       {/* Main content area — left padding for sidebar icon strip */}
-      <div className="flex-1 flex flex-col min-h-screen transition-all duration-300 pl-14 lg:pl-[4.25rem]">
+      <div className="flex-1 flex flex-col min-h-screen min-w-0 transition-all duration-300 pl-14 lg:pl-[4.25rem]">
         {/* Top Bar */}
         <div className="sticky top-0 z-20">
           <TopBar searchItems={searchItems} onSearchSelect={handleSearchSelect} />

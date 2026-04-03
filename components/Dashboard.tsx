@@ -4652,9 +4652,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
               {/* Stats Grid - Different layouts based on dashboard type */}
               {dashboardType === 'training' ? (
                 <>
-                  {/* Training Stats - Desktop/Tablet layout - All pills in one horizontal line */}
-                  <div className="hidden md:block mb-8 px-2">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+                  {/* Training Stats - Responsive grid */}
+                  <div className="mb-6 sm:mb-8 px-0 sm:px-2">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-8">
                       <StatCard title="Total Submissions" value={stats?.totalSubmissions} onClick={handleTotalSubmissionsClick} loading={isTrainingLoading} />
                       <StatCard title="Stores Covered" value={stats?.uniqueStores} onClick={handleStoresCoveredClick} loading={isTrainingLoading} />
                       {/* For training dashboard, provide structured avg data so StatCard can render trend */}

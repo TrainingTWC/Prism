@@ -69,14 +69,14 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick, loading = fa
 
     return (
       <div
-        className={`${CARD} flex items-center justify-between px-5 py-4 ${isClickable ? 'cursor-pointer' : ''}`}
+        className={`${CARD} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 px-4 sm:px-5 py-3 sm:py-4 ${isClickable ? 'cursor-pointer' : ''}`}
         onClick={isClickable ? onClick : undefined}
       >
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           {title}
         </span>
         <div className="flex items-center gap-2">
-          <span className={`text-2xl font-extrabold ${colorClass}`}>{pct}%</span>
+          <span className={`text-xl sm:text-2xl font-extrabold ${colorClass}`}>{pct}%</span>
           {delta !== null && <DeltaBadge delta={delta} />}
         </div>
       </div>
@@ -94,7 +94,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick, loading = fa
         const delta = previous != null ? latest - previous : null;
         return (
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">
+            <span className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100">
               {latest}%
             </span>
             {delta !== null && <DeltaBadge delta={delta} />}
@@ -102,13 +102,13 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick, loading = fa
         );
       }
       return (
-        <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">
+        <span className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100">
           {avg.aggregate ?? '—'}%
         </span>
       );
     }
     return (
-      <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">
+      <span className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100">
         {String(value ?? 'N/A')}
       </span>
     );
@@ -116,10 +116,10 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, onClick, loading = fa
 
   return (
     <div
-      className={`${CARD} flex items-center justify-between px-5 py-4 ${isClickable ? 'cursor-pointer' : ''}`}
+      className={`${CARD} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 px-4 sm:px-5 py-3 sm:py-4 ${isClickable ? 'cursor-pointer' : ''}`}
       onClick={isClickable ? onClick : undefined}
     >
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {title}
       </span>
       {renderValue()}
