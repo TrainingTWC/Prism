@@ -1615,7 +1615,7 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
   // Fetch training audit submissions from Google Sheets
   const fetchTrainingAudits = async () => {
     try {
-      const url = 'https://script.google.com/macros/s/AKfycbytDw7gOZXNJdJ-oS_G347Xj9NiUxBRmPfmwRZgQ3SbKqZ2OQ2D0j5nNm91vxMOrlwRQg/exec';
+      const url = 'https://script.google.com/macros/s/AKfycbzf9JUyi676a_BVuelxd9uPk30wPJExCgH__nmO7jFzECiDnzH03TFKi9xjwxc50JA01A/exec';
       console.log('📡 Fetching Training Audit submissions...');
       const response = await fetch(url);
       const data = await response.json();
@@ -1775,8 +1775,8 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
       // Store health logic
       let health = 'No Audit';
       if (auditScore !== null) {
-        health = auditScore < 56 ? 'Needs Attention' : 
-                 auditScore < 81 ? 'Brewing' : 'Perfect Shot';
+        health = auditScore < 71 ? 'Needs Attention' : 
+                 auditScore < 86 ? 'Brewing' : 'Perfect Shot';
       }
 
       // Format audit month for display (e.g., "Nov. 2025")
@@ -1988,8 +1988,8 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
               let healthColor = 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
               
               if (auditScore !== null) {
-                health = auditScore < 56 ? 'Needs Attention' : 
-                         auditScore < 81 ? 'Brewing' : 'Perfect Shot';
+                health = auditScore < 71 ? 'Needs Attention' : 
+                         auditScore < 86 ? 'Brewing' : 'Perfect Shot';
                 healthColor = health === 'Perfect Shot' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' :
                              health === 'Brewing' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
                              'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';

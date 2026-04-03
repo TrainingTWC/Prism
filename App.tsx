@@ -1,21 +1,25 @@
 
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Brain, CheckSquare, HelpCircle, Users, LogOut } from 'lucide-react';
 import Dashboard from './components/Dashboard';
-import AIInsights from './components/AIInsights';
 import ChecklistsAndSurveys from './components/ChecklistsAndSurveys';
-import Header from './components/Header';
+import TopBar from './components/TopBar';
+import Sidebar, { SidebarSection } from './components/Sidebar';
 import Login from './components/Login';
 import AccessDenied from './components/AccessDenied';
 import { getUserRole, UserRole } from './roleMapping';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConfigProvider } from './contexts/ConfigContext';
-import AdminConfig from './components/AdminConfig';
+import HomePage from './components/HomePage';
 import { startPreload } from './services/preloadService';
 
 const AppContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeSection, setActiveSection] = useState<SidebarSection>('home');
+  const [dashboardType, setDashboardType] = useState<string>('');
+  const [activeChecklist, setActiveChecklist] = useState<string>('');
+  const [qaSubTab, setQaSubTab] = useState<'stores' | 'vendors'>('stores');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userId, setUserId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -149,7 +153,7 @@ const AppContent: React.FC = () => {
     
     // If HR ID is present, default to checklists tab
     if (hrIdParam) {
-      setActiveTab('checklists');
+      setActiveSection('checklists');
     }
     
     if (userIdParam && !urlParams.get('EMPID')) {
@@ -163,12 +167,12 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
-  // Set default tab if current one is not allowed - MUST be before any conditional returns
+  // Set default section if current one is not allowed
   useEffect(() => {
-    if (isAuthenticated && !hasPermission('dashboard') && activeTab === 'dashboard') {
-      setActiveTab('checklists');
+    if (isAuthenticated && !hasPermission('dashboard') && activeSection === 'dashboard') {
+      setActiveSection('checklists');
     }
-  }, [isAuthenticated, activeTab, hasPermission]);
+  }, [isAuthenticated, activeSection, hasPermission]);
 
   // Show loading while checking authentication
   if (authLoading || loading) {
@@ -219,53 +223,123 @@ const AppContent: React.FC = () => {
   }
 
   const isEditor = authUserRole === 'editor' || authUserRole === 'admin';
-  
-  const tabs = [];
-  if (hasPermission('dashboard')) {
-    tabs.push({ id: 'dashboard', label: 'Dashboard', icon: BarChart3 });
-  }
-  
-  tabs.push({ id: 'checklists', label: 'Checklists & Surveys', icon: CheckSquare });
-  
-  if (isEditor) {
-    tabs.push({ id: 'admin', label: 'Admin', icon: HelpCircle });
-  }
 
-  // For all other roles, show the normal interface
+  // Build available dashboards list (same logic as Dashboard component)
+  const getAvailableDashboardTypes = () => {
+    const allTypes = [
+      { id: 'map-view', label: 'Map View' },
+      { id: 'hr', label: 'HR' },
+      { id: 'operations', label: 'Operations' },
+      { id: 'training', label: 'Training' },
+      { id: 'qa', label: 'QA' },
+      { id: 'finance', label: 'Finance' },
+      { id: 'shlp', label: 'SHLP' },
+      { id: 'campus-hiring', label: 'Campus Hiring' },
+      { id: 'trainer-calendar', label: 'Trainer Calendar' },
+      { id: 'bench-planning', label: 'Bench Planning' },
+      { id: 'bench-planning-sm-asm', label: 'Bench Planning (SM-ASM)' },
+      { id: 'consolidated', label: 'Consolidated' },
+    ];
+    if (authUserRole === 'editor') return allTypes;
+    return allTypes.filter(type => {
+      if (type.id === 'consolidated') return false;
+      if (type.id === 'map-view') return true;
+      return hasDashboardAccess(type.id + '-dashboard');
+    });
+  };
+
+  // Build available checklists list
+  const getAvailableChecklists = () => {
+    const allChecklists = [
+      { id: 'hr', label: 'HR' },
+      { id: 'operations', label: 'Operations' },
+      { id: 'training', label: 'Training' },
+      { id: 'qa', label: 'QA' },
+      { id: 'finance', label: 'Finance' },
+      { id: 'shlp', label: 'SHLP' },
+      { id: 'campus-hiring', label: 'Campus Hiring' },
+      { id: 'forms', label: 'Forms & Surveys' },
+      { id: 'trainer-calendar', label: 'Trainer Calendar' },
+      { id: 'bench-planning', label: 'Bench Planning' },
+      { id: 'brew-league', label: 'Brew League' },
+      { id: 'qa-am-review', label: 'QA AM Review' },
+      { id: 'qa-capa', label: 'QA CAPA' },
+      { id: 'qa-capa-dashboard', label: 'CAPA Dashboard' },
+    ];
+    if (isEditor || hasPermission('Full Access') || hasPermission('All Dashboards')) return allChecklists;
+    return allChecklists.filter(c => hasPermission(c.id));
+  };
+
+  const availableDashboardTypes = getAvailableDashboardTypes();
+  const availableChecklists = getAvailableChecklists();
+
+  const handleNavigate = (section: SidebarSection, dType?: string, qaTab?: 'stores' | 'vendors', checklist?: string) => {
+    setActiveSection(section);
+    if (section === 'dashboard' && dType) {
+      setDashboardType(dType);
+    } else if (section === 'dashboard' && !dType && !dashboardType && availableDashboardTypes.length > 0) {
+      setDashboardType(availableDashboardTypes[0].id);
+    }
+    if (qaTab) setQaSubTab(qaTab);
+    if (section === 'checklists' && checklist) {
+      setActiveChecklist(checklist);
+    }
+  };
+
+  // Build search items for TopBar
+  const searchItems = [
+    ...availableDashboardTypes.map(d => ({ id: d.id, label: d.label, section: 'dashboard' as const })),
+    ...availableChecklists.map(c => ({ id: c.id, label: c.label, section: 'checklists' as const })),
+  ];
+
+  const handleSearchSelect = (item: { id: string; label: string; section: 'dashboard' | 'checklists' }) => {
+    if (item.section === 'dashboard') {
+      handleNavigate('dashboard', item.id);
+    } else {
+      handleNavigate('checklists', undefined, undefined, item.id);
+    }
+  };
+
+
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
-      <Header />
-      
-      {/* Tab Navigation */}
-      <nav className="px-2 sm:px-4 lg:px-8 border-b border-gray-200 dark:border-slate-700">
-        <div className="flex space-x-4 sm:space-x-8 overflow-x-auto">
-          {tabs.map(tab => {
-            const IconComponent = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 outline-none ${
-                  activeTab === tab.id
-                    ? 'border-sky-400 text-sky-400'
-                    : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 hover:border-gray-300 dark:hover:border-slate-300'
-                }`}
-              >
-                <IconComponent className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">{tab.label}</span>
-                <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 flex">
+      {/* Sidebar */}
+      <Sidebar
+        activeSection={activeSection}
+        dashboardType={dashboardType}
+        activeChecklist={activeChecklist}
+        qaSubTab={qaSubTab}
+        onNavigate={handleNavigate}
+        availableDashboardTypes={availableDashboardTypes}
+        availableChecklists={availableChecklists}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        mobileOpen={sidebarMobileOpen}
+        onMobileClose={() => setSidebarMobileOpen(false)}
+        onMobileExpand={() => setSidebarMobileOpen(true)}
+      />
 
-      <main className="p-2 sm:p-4 lg:p-8">
-        {activeTab === 'dashboard' && hasPermission('dashboard') && <Dashboard userRole={userRole} />}
-        {activeTab === 'ai-insights' && hasPermission('dashboard') && <AIInsights userRole={userRole} />}
-        {activeTab === 'checklists' && <ChecklistsAndSurveys userRole={userRole} />}
-        {activeTab === 'admin' && isEditor && <AdminConfig />}
-      </main>
+      {/* Main content area — left padding for sidebar icon strip */}
+      <div className="flex-1 flex flex-col min-h-screen transition-all duration-300 pl-14 lg:pl-[4.25rem]">
+        {/* Top Bar */}
+        <div className="sticky top-0 z-20">
+          <TopBar searchItems={searchItems} onSearchSelect={handleSearchSelect} />
+        </div>
+
+        {/* Page content */}
+        <main className="flex-1 p-2 sm:p-4 lg:p-6">
+          {activeSection === 'home' && (
+            <HomePage onNavigate={(section) => handleNavigate(section as SidebarSection, section === 'dashboard' ? availableDashboardTypes[0]?.id : undefined)} />
+          )}
+          {activeSection === 'dashboard' && hasPermission('dashboard') && (
+            <Dashboard userRole={userRole!} initialDashboardType={dashboardType} />
+          )}
+          {activeSection === 'checklists' && (
+            <ChecklistsAndSurveys userRole={userRole!} preSelectedChecklist={activeChecklist} />
+          )}
+        </main>
+      </div>
     </div>
   );
 };

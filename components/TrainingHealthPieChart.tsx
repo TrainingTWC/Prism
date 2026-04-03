@@ -34,11 +34,11 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
     submissions.forEach(submission => {
       const percentage = parseFloat(submission.percentageScore || '0');
       
-      if (percentage < 56) {
+      if (percentage < 71) {
         needsAttention++;
-      } else if (percentage >= 56 && percentage < 81) {
+      } else if (percentage >= 71 && percentage < 86) {
         brewing++;
-      } else if (percentage >= 81 && percentage <= 100) {
+      } else if (percentage >= 86 && percentage <= 100) {
         perfectShot++;
       }
     });
@@ -54,20 +54,18 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
   const totalSubmissions = healthData.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <div className="group p-1 sm:p-2 w-full h-full">
-      {/* Pill container - left label, centered pie, right legend */}
+    <div className="w-full h-full">
+      {/* Card container — matches StatCard style */}
       <div
-        className="relative flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-full border border-slate-200/60 dark:border-slate-700/60 bg-white/60 dark:bg-slate-800/60 shadow-lg transition-all duration-200 hover:shadow-2xl h-full"
-        style={{ backdropFilter: 'blur(14px) saturate(160%)', minHeight: 60 }}
+        className="flex items-center justify-between gap-3 px-5 py-4 rounded-2xl border border-white/40 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02] h-full"
       >
         {/* Left: Label - Clickable */}
         <button
           onClick={handleHealthBreakdownClick}
-          className="flex-shrink-0 w-20 sm:w-24 text-left transition-transform duration-150 hover:scale-105 cursor-pointer"
+          className="flex-shrink-0 text-left cursor-pointer"
           title="Click to view month-by-month breakdown"
         >
-          <div className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider leading-tight">Store</div>
-          <div className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider leading-tight">Health</div>
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 leading-tight">Store Health</span>
         </button>
 
         {/* Center: Pie chart (flexible) */}
@@ -105,7 +103,7 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
         </div>
 
         {/* Right: Legend - order fixed to green, yellow, red to match design */}
-        <div className="flex-shrink-0 w-24 sm:w-28 flex flex-col items-start gap-1">
+        <div className="flex-shrink-0 flex flex-col items-start gap-1">
           {[
             // Perfect Shot (green), Brewing (yellow), Needs Attention (red)
             healthData.find(h => h.name === 'Perfect Shot'),
@@ -116,11 +114,11 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
               <button
                 key={entry.name}
                 onClick={() => propsOnOpen('scoreRange', '', entry.name)}
-                className="flex items-center gap-2 text-left transition-transform duration-150 hover:scale-105 p-0.5 rounded-md"
+                className="flex items-center gap-2 text-left p-0.5 rounded-md"
                 title={entry.name}
               >
-                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: entry.color }} />
-                <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100">{entry.value}</span>
+                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{entry.value}</span>
               </button>
             )
           ))}

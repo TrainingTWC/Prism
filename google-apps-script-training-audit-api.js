@@ -16,7 +16,7 @@ const CONFIG = {
 /**
  * TRAINING CHECKLIST - GOOGLE APPS SCRIPT (UPDATED VERSION)
  * Updated with new training checklist fields as specified
- * URL: https://script.google.com/macros/s/AKfycby4mvh50i16eJKxzJ23u9FgOimnl-q_qZlcUUcFygn39S0t8pQAg1rii8vTzb5vhAGchg/exec
+ * URL: https://script.google.com/macros/s/AKfycbzf9JUyi676a_BVuelxd9uPk30wPJExCgH__nmO7jFzECiDnzH03TFKi9xjwxc50JA01A/exec
  */
 
 function doPost(e) {

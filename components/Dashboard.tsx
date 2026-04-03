@@ -83,9 +83,10 @@ import { useEmployeeDirectory } from '../hooks/useEmployeeDirectory';
 
 interface DashboardProps {
   userRole: UserRole;
+  initialDashboardType?: string;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
+const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType }) => {
   const { userRole: authUserRole, hasPermission, hasDashboardAccess } = useAuth();
   const { config, loading: configLoading } = useConfig();
   const { directory: employeeDirectory, loading: employeeLoading } = useEmployeeDirectory();
@@ -281,11 +282,19 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   const availableDashboardTypes = getAvailableDashboardTypes();
 
-  // Dashboard type selection - default to first available type
+  // Dashboard type selection - use prop if provided, else default to first available type
   const [dashboardType, setDashboardType] = useState<string>(() => {
+    if (initialDashboardType) return initialDashboardType;
     const available = getAvailableDashboardTypes();
     return available.length > 0 ? available[0].id as any : 'consolidated';
   });
+
+  // Sync dashboardType when initialDashboardType prop changes from sidebar
+  useEffect(() => {
+    if (initialDashboardType && initialDashboardType !== dashboardType) {
+      setDashboardType(initialDashboardType);
+    }
+  }, [initialDashboardType]);
 
   // Notification overlay state
   const [showNotification, setShowNotification] = useState(false);
@@ -1307,9 +1316,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       // Apply store health semantic filter if provided
       if (filters.health) {
         const pct = parseFloat(submission.percentageScore || '0');
-        if (filters.health === 'Needs Attention' && pct >= 56) return false;
-        if (filters.health === 'Brewing' && (pct < 56 || pct >= 81)) return false;
-        if (filters.health === 'Perfect Shot' && pct < 81) return false;
+        if (filters.health === 'Needs Attention' && pct >= 71) return false;
+        if (filters.health === 'Brewing' && (pct < 71 || pct >= 86)) return false;
+        if (filters.health === 'Perfect Shot' && pct < 86) return false;
       }
 
       // Apply month filter
@@ -1432,9 +1441,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
       if (filters.health) {
         const pct = parseFloat(submission.percentageScore || '0');
-        if (filters.health === 'Needs Attention' && pct >= 56) return false;
-        if (filters.health === 'Brewing' && (pct < 56 || pct >= 81)) return false;
-        if (filters.health === 'Perfect Shot' && pct < 81) return false;
+        if (filters.health === 'Needs Attention' && pct >= 71) return false;
+        if (filters.health === 'Brewing' && (pct < 71 || pct >= 86)) return false;
+        if (filters.health === 'Perfect Shot' && pct < 86) return false;
       }
 
       // Apply month filter
@@ -1721,9 +1730,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
             if (filters.health) {
               const pct = parseFloat(submission.percentageScore || submission.percentage_score || '0');
-              if (filters.health === 'Needs Attention' && pct >= 56) return false;
-              if (filters.health === 'Brewing' && (pct < 56 || pct >= 81)) return false;
-              if (filters.health === 'Perfect Shot' && pct < 81) return false;
+              if (filters.health === 'Needs Attention' && pct >= 71) return false;
+              if (filters.health === 'Brewing' && (pct < 71 || pct >= 86)) return false;
+              if (filters.health === 'Perfect Shot' && pct < 86) return false;
             }
 
             return true;
@@ -4076,9 +4085,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
           // Determine health status based on percentage
           let healthStatus = '';
-          if (percentage < 56) {
+          if (percentage < 71) {
             healthStatus = 'Needs Attention';
-          } else if (percentage >= 56 && percentage < 81) {
+          } else if (percentage >= 71 && percentage < 86) {
             healthStatus = 'Brewing';
           } else {
             healthStatus = 'Perfect Shot';
@@ -4459,8 +4468,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
       {/* Desktop refresh/last-updated removed to simplify header. Mobile refresh remains in compact bar. */}
 
-      {/* Dashboard Type Selector */}
-      {availableDashboardTypes.length > 1 && (
+      {/* Dashboard Type Selector - hidden when controlled by sidebar */}
+      {!initialDashboardType && availableDashboardTypes.length > 1 && (
         <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3 sm:mb-4">
             Available Dashboards ({authUserRole?.toUpperCase()} Access)
@@ -5226,9 +5235,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
                             filteredTrainingData.forEach(submission => {
                               const percentage = parseFloat(submission.percentageScore || '0');
-                              if (percentage < 56) needsAttention++;
-                              else if (percentage >= 56 && percentage < 81) brewing++;
-                              else if (percentage >= 81) perfectShot++;
+                              if (percentage < 71) needsAttention++;
+                              else if (percentage >= 71 && percentage < 86) brewing++;
+                              else if (percentage >= 86) perfectShot++;
                             });
 
                             const total = needsAttention + brewing + perfectShot;
@@ -5364,9 +5373,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                           onClick: () => setShowAuditScoreDetails(true),
                           value: (
                             <div className="flex items-center gap-3">
-                              <span className={`text-4xl font-black ${((stats as any).latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) < 55
+                              <span className={`text-4xl font-black ${((stats as any).latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) < 71
                                   ? 'text-red-600'
-                                  : ((stats as any).latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) >= 55 && ((stats as any).latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) < 81
+                                  : ((stats as any).latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) >= 71 && ((stats as any).latestScore ?? (typeof stats.avgScore === 'number' ? Math.round(stats.avgScore) : 0)) < 86
                                     ? 'text-amber-500'
                                     : 'text-emerald-500'
                                 }`}>
@@ -5697,10 +5706,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                   // Determine health status
                                   let healthStatus = 'Needs Attention';
                                   let auditInterval = 30; // days
-                                  if (percentage >= 81) {
+                                  if (percentage >= 86) {
                                     healthStatus = 'Perfect Shot';
                                     auditInterval = 60;
-                                  } else if (percentage >= 56) {
+                                  } else if (percentage >= 71) {
                                     healthStatus = 'Brewing';
                                     auditInterval = 45;
                                   }
@@ -6118,10 +6127,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                     // Determine health status and interval
                                     let healthStatus = 'Needs Attention';
                                     let auditInterval = 30;
-                                    if (percentage >= 81) {
+                                    if (percentage >= 86) {
                                       healthStatus = 'Perfect Shot';
                                       auditInterval = 60;
-                                    } else if (percentage >= 56) {
+                                    } else if (percentage >= 71) {
                                       healthStatus = 'Brewing';
                                       auditInterval = 45;
                                     }
@@ -6178,10 +6187,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
                                   // Determine health status and interval
                                   let healthStatus = 'Needs Attention';
                                   let auditInterval = 30;
-                                  if (percentage >= 81) {
+                                  if (percentage >= 86) {
                                     healthStatus = 'Perfect Shot';
                                     auditInterval = 60;
-                                  } else if (percentage >= 56) {
+                                  } else if (percentage >= 71) {
                                     healthStatus = 'Brewing';
                                     auditInterval = 45;
                                   }

@@ -102,9 +102,9 @@ export default function StoreTrends({
       // Calculate categories based on cumulative stores
       const categories = { needsAttention: 0, brewing: 0, perfectShot: 0 };
       cumulativeStores.forEach((percentage) => {
-        if (percentage < 55) {
+        if (percentage < 71) {
           categories.needsAttention++;
-        } else if (percentage >= 55 && percentage <= 80) {
+        } else if (percentage >= 71 && percentage <= 85) {
           categories.brewing++;
         } else {
           categories.perfectShot++;

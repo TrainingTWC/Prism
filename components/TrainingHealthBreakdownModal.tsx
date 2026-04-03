@@ -77,8 +77,8 @@ export default function TrainingHealthBreakdownModal({ isOpen, onClose, submissi
 
   // Helper function to categorize store by score
   const categorizeHealth = (percentage: number): 'needsAttention' | 'brewing' | 'perfectShot' => {
-    if (percentage < 56) return 'needsAttention';
-    if (percentage < 81) return 'brewing';
+    if (percentage < 71) return 'needsAttention';
+    if (percentage < 86) return 'brewing';
     return 'perfectShot';
   };
 

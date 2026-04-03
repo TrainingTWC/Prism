@@ -4,7 +4,7 @@ import React from 'react';
 type AverageValue = {
   latest?: number | null;
   previous?: number | null;
-  aggregate?: number | null; // used when there is no latest/previous
+  aggregate?: number | null;
 };
 
 interface StatCardProps {
@@ -14,190 +14,115 @@ interface StatCardProps {
   loading?: boolean;
 }
 
-const TrendArrow: React.FC<{ latest: number; previous?: number | null }> = ({ latest, previous }) => {
-  if (previous === null || previous === undefined) return <span className="text-slate-900 dark:text-slate-100 font-black text-xl sm:text-2xl">{latest}%</span>;
-  const delta = latest - previous;
+/* ── Shared card shell ── */
+const CARD =
+  'rounded-2xl border border-white/40 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02]';
+
+/* ── Small delta badge ── */
+const DeltaBadge: React.FC<{ delta: number }> = ({ delta }) => {
   const up = delta >= 0;
   const color = up ? 'text-emerald-600' : 'text-rose-600';
-  const bgColor = up ? 'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800' : 'bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800';
+  const bg = up
+    ? 'bg-emerald-50 dark:bg-emerald-900/25 border-emerald-200/60 dark:border-emerald-700/40'
+    : 'bg-rose-50 dark:bg-rose-900/25 border-rose-200/60 dark:border-rose-700/40';
   const arrow = up ? '↗' : '↘';
   return (
-    <div className="flex flex-col items-center gap-1">
-      <span className="text-slate-900 dark:text-slate-100 font-black text-xl sm:text-2xl">{latest}%</span>
-      <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full border ${bgColor} ${color} shadow-sm`}>
-        <span className="text-xs font-bold">{arrow}</span>
-        <span className="text-xs font-bold">{Math.abs(Math.round(delta))}%</span>
-      </div>
-    </div>
+    <span className={`inline-flex items-center gap-0.5 px-1.5 py-px rounded-full text-[11px] font-semibold border ${bg} ${color}`}>
+      {arrow} {Math.abs(Math.round(delta))}%
+    </span>
   );
 };
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, onClick, loading = false }) => {
-  // If value is structured AverageValue, render compact trend view
-  const isAvgObject = typeof value === 'object' && value !== null && ('latest' in (value as any) || 'aggregate' in (value as any));
-  
-  // Check if this is the Audit Percentage card
+  const isAvgObject =
+    typeof value === 'object' &&
+    value !== null &&
+    ('latest' in (value as any) || 'aggregate' in (value as any));
+
   const isAuditPercentage = title === 'Audit Percentage';
-  
-  // Check if this card should be clickable
-  const isClickable = onClick && (title === 'Total Submissions' || title === 'Stores Covered' || title === 'Audit Percentage');
-  
-  // Get the percentage value for color coding
-  const getPercentageValue = () => {
-    if (isAvgObject) {
-      const avg = value as AverageValue;
-      return avg.latest ?? avg.aggregate ?? 0;
-    }
-    return 0;
-  };
-  
-  // Get color based on percentage
-  const getPercentageColor = (percentage: number) => {
-    if (percentage < 55) return 'text-red-600'; // Needs Attention
-    if (percentage >= 55 && percentage < 81) return 'text-amber-600'; // Brewing
-    return 'text-emerald-600'; // Perfect Shot
-  };
+  const isClickable =
+    onClick && (title === 'Total Submissions' || title === 'Stores Covered' || title === 'Audit Percentage');
 
-  if (isAuditPercentage) {
-    const percentageValue = getPercentageValue();
-    const colorClass = getPercentageColor(percentageValue);
-    
-    if (loading) {
-      return (
-        <div className="group relative p-1 sm:p-2 h-full flex items-center">
-          <div className="absolute inset-1 sm:inset-2 bg-gradient-to-br from-white/95 via-white/85 to-white/75 dark:from-slate-800/95 dark:via-slate-800/85 dark:to-slate-800/75 backdrop-blur-md rounded-full"></div>
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-100/60 via-transparent to-slate-200/40 dark:from-slate-700/40 dark:via-transparent dark:to-slate-800/60 rounded-full shadow-2xl" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)' }}></div>
-          <div className="relative flex items-center justify-between px-4 sm:px-6 py-2 rounded-full border border-slate-200/60 dark:border-slate-700/60 bg-white/50 dark:bg-slate-800/50 w-full" style={{ backdropFilter: 'blur(20px) saturate(180%)' }}>
-            <div className="flex flex-col items-start text-left flex-shrink-0 gap-1">
-              <div className="h-3 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
-              <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
-            </div>
-            <div className="flex items-center justify-center flex-1 ml-2">
-              <div className="h-7 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
-            </div>
-            <div className="w-12 flex-shrink-0"></div>
-          </div>
-        </div>
-      );
-    }
-    
-    return (
-      <div className={`group relative p-1 sm:p-2 h-full flex items-center ${isClickable ? 'cursor-pointer' : ''}`} onClick={isClickable ? onClick : undefined}>
-        {/* Premium gradient background with glass effect */}
-        <div className="absolute inset-1 sm:inset-2 bg-gradient-to-br from-white/95 via-white/85 to-white/75 dark:from-slate-800/95 dark:via-slate-800/85 dark:to-slate-800/75 backdrop-blur-md rounded-full"></div>
-        {/* Enhanced shadow layer */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-100/60 via-transparent to-slate-200/40 dark:from-slate-700/40 dark:via-transparent dark:to-slate-800/60 rounded-full shadow-2xl" 
-             style={{ 
-               boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)' 
-             }}></div>
-        
-        <div className={`relative flex items-center justify-between px-4 sm:px-6 py-2 rounded-full border border-slate-200/60 dark:border-slate-700/60 transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] group-hover:border-slate-300/80 dark:group-hover:border-slate-600/80 bg-white/50 dark:bg-slate-800/50 w-full ${isClickable ? 'hover:bg-white/70 dark:hover:bg-slate-800/70' : ''}`} 
-             style={{ 
-               backdropFilter: 'blur(20px) saturate(180%)'
-             }}>
-          
-          {/* Title on the left - 2 lines */}
-          <div className="flex flex-col items-start text-left flex-shrink-0">
-            <span className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 leading-tight uppercase tracking-wider">Audit</span>
-            <span className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 leading-tight uppercase tracking-wider">Percentage</span>
-          </div>
-          
-          {/* Percentage in the center-right */}
-          <div className="flex items-center justify-center flex-1 ml-2">
-            <span className={`text-xl sm:text-2xl font-black ${colorClass}`}>
-              {percentageValue}%
-            </span>
-          </div>
-          
-          {/* Trend indicator on the right */}
-          <div className="flex flex-col items-end text-right flex-shrink-0 ml-2">
-            {isAvgObject && (() => {
-              const avg = value as AverageValue;
-              if (avg.previous !== null && avg.previous !== undefined && avg.latest !== null && avg.latest !== undefined) {
-                const delta = avg.latest - avg.previous;
-                const up = delta >= 0;
-                const trendColor = up ? 'text-emerald-600' : 'text-rose-600';
-                const bgColor = up ? 'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800' : 'bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800';
-                const arrow = up ? '↗' : '↘';
-                return (
-                  <div className="flex flex-col items-end gap-0.5">
-                    <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border ${bgColor} ${trendColor} shadow-sm`}>
-                      <span className="text-xs font-bold">{arrow}</span>
-                      <span className="text-xs font-bold">{Math.abs(Math.round(delta))}%</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">vs prev</span>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  /* ── Loading skeleton (shared) ── */
   if (loading) {
     return (
-      <div className="group relative p-1 sm:p-2 h-full flex items-center">
-        <div className="absolute inset-1 sm:inset-2 bg-gradient-to-br from-white/95 via-white/85 to-white/75 dark:from-slate-800/95 dark:via-slate-800/85 dark:to-slate-800/75 backdrop-blur-md rounded-full"></div>
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-100/60 via-transparent to-slate-200/40 dark:from-slate-700/40 dark:via-transparent dark:to-slate-800/60 rounded-full shadow-2xl" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)' }}></div>
-        <div className="relative flex items-center justify-center gap-3 px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-slate-200/60 dark:border-slate-700/60 bg-white/50 dark:bg-slate-800/50 w-full flex-row" style={{ backdropFilter: 'blur(20px) saturate(180%)' }}>
-          <div className="flex flex-row items-center justify-between w-full space-x-4">
-            <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
-            <div className="h-7 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
-          </div>
+      <div className={`${CARD} flex items-center gap-4 px-5 py-4 ${isClickable ? 'cursor-pointer' : ''}`}>
+        <div className="flex-1 space-y-2">
+          <div className="h-3 w-20 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+          <div className="h-6 w-14 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
         </div>
       </div>
     );
   }
 
-  return (
-    <div className={`group relative p-1 sm:p-2 h-full flex items-center ${isClickable ? 'cursor-pointer' : ''}`} onClick={isClickable ? onClick : undefined}>
-      {/* Premium gradient background with glass effect */}
-      <div className="absolute inset-1 sm:inset-2 bg-gradient-to-br from-white/95 via-white/85 to-white/75 dark:from-slate-800/95 dark:via-slate-800/85 dark:to-slate-800/75 backdrop-blur-md rounded-full"></div>
-      {/* Enhanced shadow layer */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-100/60 via-transparent to-slate-200/40 dark:from-slate-700/40 dark:via-transparent dark:to-slate-800/60 rounded-full shadow-2xl" 
-           style={{ 
-             boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)' 
-           }}></div>
-      
-      <div className={`relative flex items-center justify-center gap-3 px-4 sm:px-6 rounded-full border border-slate-200/60 dark:border-slate-700/60 transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] group-hover:border-slate-300/80 dark:group-hover:border-slate-600/80 bg-white/50 dark:bg-slate-800/50 w-full ${
-        title === 'Total Submissions' || title === 'Stores Covered' 
-          ? 'py-2 sm:py-3 flex-row' 
-          : 'py-3 sm:py-4'
-      } ${isClickable ? 'hover:bg-white/70 dark:hover:bg-slate-800/70' : ''}`} 
-           style={{ 
-             backdropFilter: 'blur(20px) saturate(180%)'
-           }}>
-        <div className={`flex ${title === 'Total Submissions' || title === 'Stores Covered' ? 'flex-row items-center justify-between w-full' : 'flex-col items-center text-center'} min-w-0 ${title === 'Total Submissions' || title === 'Stores Covered' ? 'space-x-4' : 'space-y-1'}`}>
-          <span className={`leading-tight uppercase tracking-wider ${
-            title === 'Total Submissions' || title === 'Stores Covered' 
-              ? 'text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 text-left' 
-              : 'text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400'
-          }`}>{title}</span>
-          {isAvgObject ? (
-            (() => {
-              const avg = value as AverageValue;
-              if (avg.latest !== undefined && avg.latest !== null) {
-                return (
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100">
-                      <TrendArrow latest={avg.latest as number} previous={avg.previous ?? null} />
-                    </div>
-                    {avg.previous !== null && avg.previous !== undefined && (
-                      <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold">vs prev</div>
-                    )}
-                  </div>
-                );
-              }
-              return <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100">{avg.aggregate ?? '—'}%</div>;
-            })()
-          ) : (
-            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100">{String(value ?? 'N/A')}</div>
-          )}
+  /* ── Audit Percentage card ── */
+  if (isAuditPercentage) {
+    const avg = isAvgObject ? (value as AverageValue) : null;
+    const pct = avg ? (avg.latest ?? avg.aggregate ?? 0) : 0;
+    const colorClass =
+      pct < 71 ? 'text-red-500' : pct < 86 ? 'text-amber-500' : 'text-emerald-500';
+
+    const delta =
+      avg && avg.previous != null && avg.latest != null
+        ? avg.latest - avg.previous
+        : null;
+
+    return (
+      <div
+        className={`${CARD} flex items-center justify-between px-5 py-4 ${isClickable ? 'cursor-pointer' : ''}`}
+        onClick={isClickable ? onClick : undefined}
+      >
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          {title}
+        </span>
+        <div className="flex items-center gap-2">
+          <span className={`text-2xl font-extrabold ${colorClass}`}>{pct}%</span>
+          {delta !== null && <DeltaBadge delta={delta} />}
         </div>
       </div>
+    );
+  }
+
+  /* ── Generic stat card ── */
+  const renderValue = () => {
+    if (isAvgObject) {
+      const avg = value as AverageValue;
+      const latest = avg.latest;
+      const previous = avg.previous;
+
+      if (latest != null) {
+        const delta = previous != null ? latest - previous : null;
+        return (
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">
+              {latest}%
+            </span>
+            {delta !== null && <DeltaBadge delta={delta} />}
+          </div>
+        );
+      }
+      return (
+        <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">
+          {avg.aggregate ?? '—'}%
+        </span>
+      );
+    }
+    return (
+      <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">
+        {String(value ?? 'N/A')}
+      </span>
+    );
+  };
+
+  return (
+    <div
+      className={`${CARD} flex items-center justify-between px-5 py-4 ${isClickable ? 'cursor-pointer' : ''}`}
+      onClick={isClickable ? onClick : undefined}
+    >
+      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        {title}
+      </span>
+      {renderValue()}
     </div>
   );
 };

@@ -1,6 +1,12 @@
 /**
  * TRAINING CHECKLIST - GOOGLE APPS SCRIPT (UPDATED VERSION)
  * Updated with new training checklist fields as specified
+ * 
+ * TWO-SHEET ARCHITECTURE:
+ * - "Training Audit" (All Data) — full historical archive, never pruned
+ * - "Training Audit - Last 90 Days" — auto-pruned working sheet for fast dashboard reads
+ * 
+ * Setup: Run setupTrainingAudit() once from Apps Script editor to initialize.
  */
 
 function doPost(e) {
@@ -230,11 +236,28 @@ function doPost(e) {
       // NEW COLUMNS ADDED AFTER EXISTING DATA
       params.auditorName || '', params.auditorId || '',
       
-      // Section Images (stored as JSON string)
-      params.sectionImages || ''
+      // Section Images (stored as JSON string, truncated to stay within Sheets 50k char cell limit)
+      (params.sectionImages || '').length > 49999 
+        ? (params.sectionImages || '').substring(0, 49999) 
+        : (params.sectionImages || '')
     ];
 
     sheet.appendRow(row);
+
+    // Also write to "Last 90 Days" sheet for fast dashboard reads
+    try {
+      var recentSheet = ss.getSheetByName('Training Audit - Last 90 Days');
+      if (!recentSheet) {
+        recentSheet = ss.insertSheet('Training Audit - Last 90 Days');
+        recentSheet.getRange(1, 1, 1, header.length).setValues([header]);
+        console.log('Created "Training Audit - Last 90 Days" sheet');
+      }
+      recentSheet.appendRow(row);
+      console.log('Row appended to both sheets successfully');
+    } catch (recentErr) {
+      console.log('Warning: Could not write to Last 90 Days sheet: ' + recentErr.toString());
+      // Non-fatal — main sheet write already succeeded
+    }
 
     return ContentService
       .createTextOutput(JSON.stringify({ status: 'OK' }))
@@ -251,7 +274,8 @@ function doGet(e) {
   try {
     var params = (e && e.parameter) ? e.parameter : {};
     if (params.action === 'getData') {
-      return getTrainingChecklistData();
+      var source = params.source || 'recent'; // 'recent' = Last 90 Days, 'all' = full archive
+      return getTrainingChecklistData(source);
     } else if (params.action === 'getStoreInfo' && params.storeId) {
       // Provide store info to frontend for auto-population
       var storeInfo = getStoreInfo(params.storeId);
@@ -270,19 +294,38 @@ function doGet(e) {
   }
 }
 
-function getTrainingChecklistData() {
+function getTrainingChecklistData(source) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    
-    // Try multiple possible sheet names
-    var possibleSheetNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
     var sheet = null;
     
-    for (var i = 0; i < possibleSheetNames.length; i++) {
-      sheet = ss.getSheetByName(possibleSheetNames[i]);
+    // Default to "Last 90 Days" sheet for fast reads; fall back to full archive
+    if (source === 'all') {
+      // Explicitly requested full archive
+      var possibleSheetNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
+      for (var i = 0; i < possibleSheetNames.length; i++) {
+        sheet = ss.getSheetByName(possibleSheetNames[i]);
+        if (sheet) {
+          console.log('Using full archive sheet: ' + possibleSheetNames[i]);
+          break;
+        }
+      }
+    } else {
+      // Default: use Last 90 Days sheet for performance
+      sheet = ss.getSheetByName('Training Audit - Last 90 Days');
       if (sheet) {
-        console.log('Found sheet: ' + possibleSheetNames[i]);
-        break;
+        console.log('Using Last 90 Days sheet for fast read');
+      } else {
+        // Fallback to main sheet if Last 90 Days doesn't exist yet
+        console.log('Last 90 Days sheet not found, falling back to main sheet');
+        var possibleSheetNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
+        for (var i = 0; i < possibleSheetNames.length; i++) {
+          sheet = ss.getSheetByName(possibleSheetNames[i]);
+          if (sheet) {
+            console.log('Fallback to sheet: ' + possibleSheetNames[i]);
+            break;
+          }
+        }
       }
     }
     
@@ -304,6 +347,20 @@ function getTrainingChecklistData() {
     }
     
     var rows = data.slice(1);
+    
+    // When source is 'recent', filter to last 90 days from today
+    // This guarantees correctness even if cleanup hasn't run or we fell back to the main sheet
+    if (source !== 'all') {
+      var cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 90);
+      rows = rows.filter(function(row) {
+        var ts = row[0]; // Server Timestamp (column 0)
+        var rowDate = (ts instanceof Date) ? ts : new Date(ts);
+        return !isNaN(rowDate.getTime()) && rowDate >= cutoff;
+      });
+      console.log('After 90-day filter: ' + rows.length + ' rows (cutoff: ' + cutoff.toISOString() + ')');
+    }
+    
     console.log('Processing ' + rows.length + ' data rows');
     console.log('Header row: ' + JSON.stringify(data[0]));
     if (rows.length > 0) {
@@ -414,290 +471,68 @@ function getTrainingChecklistData() {
   }
 }
 
-// Cache for store mapping data to avoid repeated API calls
+// Cache for store mapping data to avoid repeated sheet reads within the same execution
 var storeMappingCache = null;
-var cacheExpiry = null;
-var CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
+/**
+ * Reads store mapping directly from the "Store_Mapping" sheet in the same spreadsheet.
+ * This is the ONLY source of truth — no hardcoded data, no external URLs.
+ *
+ * Store_Mapping columns (26+):
+ *  0: Store ID, 1: Store Name, 2: AM ID, 3: AM Name, 4: Region,
+ *  5: HRBP 1 ID, 6: HRBP 1 Name, 7: HRBP 2 ID, 8: HRBP 2 Name, 9: HRBP 3 ID, 10: HRBP 3 Name,
+ *  11: Trainer 1 ID, 12: Trainer 1 Name, 13: Trainer 2 ID, 14: Trainer 2 Name, 15: Trainer 3 ID, 16: Trainer 3 Name,
+ *  17: Regional Trainer ID, 18: Regional Trainer Name,
+ *  19: Regional HR ID, 20: Regional HR Name, 21: HR Head ID, 22: HR Head Name,
+ *  23: Store Format, 24: Menu Type, 25: Price Group, 26: City
+ */
 function getStoreMapping() {
-  // Check if cache is valid (less than 30 minutes old)
-  if (storeMappingCache && cacheExpiry && new Date().getTime() < cacheExpiry) {
+  // Return cached version if available (within same script execution)
+  if (storeMappingCache) {
     return storeMappingCache;
   }
-  
-  try {
-    // Try multiple possible URLs for the store mapping
-    // Since GitHub raw URLs might have issues, we'll rely more on the fallback
-    var mappingUrls = [
-      // Try GitHub URLs (might be 404)
-      'https://raw.githubusercontent.com/TrainingTWC/hr-connect-dashboard/main/public/hr_mapping.json',
-      'https://raw.githubusercontent.com/TrainingTWC/hr-connect-dashboard/main/hr_mapping.json',
-      'https://raw.githubusercontent.com/TrainingTWC/hr-connect-dashboard/main/public/twc_store_mapping.json',
-      // Add more working URLs here if available
-    ];
-    
-    var response = null;
-    
-    // Try each URL until one works
-    for (var i = 0; i < mappingUrls.length; i++) {
-      try {
-        console.log('Trying to fetch store mapping from: ' + mappingUrls[i]);
-        response = UrlFetchApp.fetch(mappingUrls[i], {
-          method: 'GET',
-          muteHttpExceptions: true
-        });
-        
-        if (response.getResponseCode() === 200) {
-          console.log('Successfully fetched from: ' + mappingUrls[i]);
-          break;
-        } else {
-          console.log('Failed to fetch from ' + mappingUrls[i] + ': HTTP ' + response.getResponseCode());
-        }
-      } catch (e) {
-        console.log('Exception fetching from URL ' + mappingUrls[i] + ': ' + e.toString());
-        continue;
-      }
-    }
-    
-    if (!response || response.getResponseCode() !== 200) {
-      console.log('All external mapping URLs failed, using fallback data');
-      throw new Error('All mapping URLs failed - will use fallback');
-    }
-    
-    var jsonData = JSON.parse(response.getContentText());
-    console.log('Successfully parsed JSON data with ' + jsonData.length + ' records');
-    
-    // Transform the array format to object format for easy lookup
-    var mappingObject = {};
-    for (var j = 0; j < jsonData.length; j++) {
-      var store = jsonData[j];
-      // Handle both possible field name formats
-      var storeId = store['Store ID'] || store['storeId'] || store['store_id'];
-      if (storeId) {
-        mappingObject[storeId] = {
-          storeName: store['Store Name'] || store['locationName'] || store['store_name'] || '',
-          amId: store['AM'] || store['Area Manager ID'] || store['areaManagerId'] || store['area_manager_id'] || '',
-          amName: store['AM Name'] || store['Area Manager Name'] || store['areaManagerName'] || store['area_manager_name'] || '',
-          hrbpId: store['HRBP 1'] || store['HRBP ID'] || store['hrbpId'] || store['hrbp_id'] || '',
-          regionalHrId: store['Regional HR'] || store['Regional HR ID'] || store['regionalHrId'] || store['regional_hr_id'] || '',
-          region: store['Region'] || store['region'] || '',
-          hrHeadId: store['HR Head'] || store['HR Head ID'] || store['hrHeadId'] || store['hr_head_id'] || '',
-          lmsHeadId: store['LMS Head ID'] || store['lmsHeadId'] || store['lms_head_id'] || '',
-          trainer: store['Trainer 1 Name'] || store['Trainer'] || store['trainer'] || '',
-          trainerId: store['Trainer 1'] || store['Trainer ID'] || store['trainerId'] || store['trainer_id'] || '',
-          trainerName: store['Trainer 1 Name'] || store['Trainer Name'] || store['trainerName'] || store['trainer_name'] || ''
-        };
-      }
-    }
-    
-    // Update cache
-    storeMappingCache = mappingObject;
-    cacheExpiry = new Date().getTime() + CACHE_DURATION;
-    
-    console.log('Successfully loaded ' + Object.keys(mappingObject).length + ' store mappings from external source');
-    return mappingObject;
-    
-  } catch (error) {
-    console.log('Failed to fetch external store mapping, using fallback: ' + error.toString());
-    
-    // Fallback to minimal essential mappings for immediate functionality
-    return getFallbackStoreMapping();
-  }
-}
 
-// Fallback function for essential store mappings in case external API fails
-function getFallbackStoreMapping() {
-  console.log('Using fallback store mapping with essential store data');
-  var fallbackMapping = {
-    // North Region Stores - Essential mappings
-    'S192': {storeName: 'Bhutani City Centre Noida', amId: 'H1766', amName: 'Naresh Kumar Sharma', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
-    'S027': {storeName: 'Defence Colony', amId: 'H1766', amName: 'Naresh Kumar Sharma', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
-    'S037': {storeName: 'Khan Market', amId: 'H1766', amName: 'Naresh Kumar Sharma', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
-    'S049': {storeName: 'Connaught Place', amId: 'H1766', amName: 'Naresh Kumar Sharma', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
-    'S055': {storeName: 'Kalkaji', amId: 'H1766', amName: 'Naresh Kumar Sharma', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
-    'S039': {storeName: 'Sector 07', amId: 'H2396', amName: 'Amit Kumar', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
-    'S042': {storeName: 'Sector 35', amId: 'H2396', amName: 'Amit Kumar', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
-    'S062': {storeName: 'Panchkula', amId: 'H2396', amName: 'Amit Kumar', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
-    'S122': {storeName: 'Jubilee Walk Mohali', amId: 'H2396', amName: 'Amit Kumar', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
-    'S024': {storeName: 'Deer Park', amId: 'H535', amName: 'Aman Vij', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169', trainerName: 'Hema'},
-    'S035': {storeName: 'GK 1', amId: 'H535', amName: 'Aman Vij', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
-    'S072': {storeName: 'Kailash Colony', amId: 'H535', amName: 'Aman Vij', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
-    'S142': {storeName: 'Green Park', amId: 'H535', amName: 'Aman Vij', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169', trainerName: 'Hema'},
-    'S171': {storeName: 'Omaxe World Street', amId: 'H535', amName: 'Aman Vij', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595', trainerName: 'Kailash'},
-    'S172': {storeName: 'Faridabad Sec 14', amId: 'H535', hrbpId: 'H3578', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S197': {storeName: 'DLF Saltstayz', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S198': {storeName: 'DLF Star Tower', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S105': {storeName: 'Platina', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S029': {storeName: '32 Mile Stone', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S038': {storeName: 'Vatika Business Park', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S073': {storeName: 'Golf Course', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S099': {storeName: 'Sushant Lok', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S100': {storeName: 'AIPL Business Club', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S102': {storeName: 'Fortis', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S148': {storeName: 'Vensej Mall', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S150': {storeName: 'Airia Mall', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S154': {storeName: 'DME 63 LHS', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S155': {storeName: 'DME 69 RHS', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S164': {storeName: 'Nirvana Courtyard', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S176': {storeName: 'Capital Cyberscape', amId: 'H2396', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S026': {storeName: 'GK 2', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S028': {storeName: 'Saket', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S036': {storeName: 'Punjabi Bagh', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S040': {storeName: 'Ambience Mall, Vasant Kunj', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S041': {storeName: 'Netaji Subhash Place', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S113': {storeName: 'Hauz Khas', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S120': {storeName: 'Janakpuri', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S129': {storeName: 'Basant Lok', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S121': {storeName: 'DLF Avenue Mall - Saket', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S126': {storeName: 'Pacific Mall - Tagore Garden', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S141': {storeName: 'Paschim Vihar', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Hema', trainerId: 'h1169'},
-    'S173': {storeName: 'Rohini Sec 14', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S174': {storeName: 'Vasant Kunj', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S182': {storeName: 'Rajouri Garden', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S188': {storeName: 'Shalimar Bagh Metro', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S200': {storeName: 'Malviya Nagar', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    'S187': {storeName: 'DLF Midtown', amId: 'H955', hrbpId: 'H2165', regionalHrId: 'H2165', region: 'North', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Kailash', trainerId: 'h2595'},
-    
-    // South Region Stores
-    'S053': {storeName: 'TWC-Varthur', amId: 'H546', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S032': {storeName: 'TWC-Brookfield', amId: 'H546', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S005': {storeName: 'TWC-Forum Shantiniketan Whitefield', amId: 'H546', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S091': {storeName: 'TWC-Nexus Mall, Whitefield', amId: 'H546', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S019': {storeName: 'TWC-PMC-Bangalore', amId: 'H546', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S065': {storeName: 'TWC-Manipal Hospital', amId: 'H546', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S189': {storeName: 'Brookfield - Nxt Whitefield', amId: 'H546', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S034': {storeName: 'TWC-Karthik Nagar - Marathahalli', amId: 'H546', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S184': {storeName: 'Prestige Techno star', amId: 'H546', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S143': {storeName: 'TWC-Kilpauk', amId: 'H3362', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S144': {storeName: 'TWC-Express Avenue Mall', amId: 'H3362', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S145': {storeName: 'TWC-Adyar', amId: 'H3362', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S157': {storeName: 'TWC-Kathipara Urban Square', amId: 'H3362', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S123': {storeName: 'TWC-Phoenix Palladium Chennai', amId: 'H3362', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S021': {storeName: 'TWC-Bedford Coonoor', amId: 'H3362', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S178': {storeName: 'TWC-Besant Nagar', amId: 'H3362', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S199': {storeName: 'Mettupalayam', amId: 'H3362', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S201': {storeName: 'Ashoka Nagar', amId: 'H3362', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S063': {storeName: 'TWC-BTM Layout', amId: 'H1355', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    
-    // Additional South Region Stores (commonly used)
-    'S001': {storeName: 'TWC-Koramangala', amId: 'H1355', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S002': {storeName: 'TWC-CMH Indira Nagar', amId: 'H546', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S003': {storeName: 'TWC-Banashankari', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    'S004': {storeName: 'TWC-Sadashiv Nagar', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S006': {storeName: 'TWC-Jayanagar', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    'S007': {storeName: 'TWC-Malleshwaram 18th Cross', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S008': {storeName: 'TWC-JP Nagar', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    'S009': {storeName: 'TWC-12th Main Indira Nagar', amId: 'H546', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S011': {storeName: 'TWC-Cunningham Road', amId: 'H2155', hrbpId: 'H1972', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S012': {storeName: 'TWC-Malleshwaram', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S014': {storeName: 'TWC-Vasant Nagar', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S015': {storeName: 'TWC-Banaswadi', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S016': {storeName: 'TWC-RT Nagar', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S017': {storeName: 'TWC-Yelahanka', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S018': {storeName: 'TWC-Hebbal', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S020': {storeName: 'TWC-New Bel Road', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S022': {storeName: 'TWC-HSR Layout', amId: 'H1355', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    'S023': {storeName: 'TWC-HRBR Layout', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S030': {storeName: 'TWC-Frazer town', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S031': {storeName: 'TWC-Lavelle Road', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S033': {storeName: 'TWC-UB City', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S050': {storeName: 'TWC-Richmond Road', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S051': {storeName: 'TWC-Indiranagar', amId: 'H546', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S067': {storeName: 'TWC-Electronic City', amId: 'H1355', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    'S068': {storeName: 'TWC-Koramangala 8th Block', amId: 'H1355', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S069': {storeName: 'TWC-Vijaya Bank Layout', amId: 'H1355', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    'S070': {storeName: 'TWC-Sahakar Nagar', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S092': {storeName: 'TWC-Manyata Embassy NXT', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S094': {storeName: 'TWC-Prestige Ozone', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S095': {storeName: 'TWC-Sahakara Nagar', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S110': {storeName: 'TWC-Phoenix Mall of Asia', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S114': {storeName: 'TWC-Yelahanka New Town', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S115': {storeName: 'TWC-Whitefield Main Road', amId: 'H546', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S119': {storeName: 'TWC-Ramamurthy Nagar', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S125': {storeName: 'TWC-Vijayanagar', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    'S131': {storeName: 'TWC-Brigade Utopia', amId: 'H1355', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S133': {storeName: 'TWC-Residency Road', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S139': {storeName: 'TWC-Church Street', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S140': {storeName: 'TWC-Harlur Road', amId: 'H2601', hrbpId: 'H1972', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S146': {storeName: 'TWC-Rajajinagar', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    'S149': {storeName: 'TWC-Nagavara', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sheldon', trainerId: 'h1697'},
-    'S152': {storeName: 'TWC-Commercial Street', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mahadev', trainerId: 'h1761'},
-    'S156': {storeName: 'TWC-Akshay Nagar', amId: 'H1355', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    'S158': {storeName: 'TWC-Rajarajeshwari Nagar', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    'S159': {storeName: 'TWC-Yeshwanthpur', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    'S185': {storeName: 'Basaveshwar Nagar', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    'S190': {storeName: 'Mathikere', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    'S191': {storeName: 'Sparsh Hospital 2 Raj Rajeshwari Nagar', amId: 'H833', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    'S193': {storeName: 'Lal Bagh Road', amId: 'H2155', hrbpId: 'H2761', regionalHrId: 'H3551', region: 'South', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Mallika', trainerId: 'h701'},
-    
-    // West Region Stores  
-    'S096': {storeName: 'Mahavir Nagar', amId: 'H1575', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S088': {storeName: 'Kandivali Thakur Village', amId: 'H1575', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S076': {storeName: 'Emerald Borivali', amId: 'H1575', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S090': {storeName: 'Oberoi Mall', amId: 'H1575', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S061': {storeName: 'Juhu', amId: 'H1575', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S138': {storeName: 'Damodar Santacruz', amId: 'H1575', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S116': {storeName: 'Crossword, Santacruz', amId: 'H1575', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S132': {storeName: 'Ekta Tripolis Goregoan', amId: 'H1575', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S165': {storeName: 'Sky City', amId: 'H1575', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S078': {storeName: 'Cuff Parade, Star Mansion', amId: 'H3386', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S086': {storeName: 'Inorbit Mall', amId: 'H2262', hrbpId: 'H3247', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sunil', trainerId: 'h3247'},
-    'S066': {storeName: 'Khajaguda', amId: 'H2262', hrbpId: 'H3247', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sunil', trainerId: 'h3247'},
-    'S081': {storeName: 'Sainikpuri', amId: 'H2262', hrbpId: 'H3247', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sunil', trainerId: 'h3247'},
-    'S082': {storeName: 'Salarpuria Sattva', amId: 'H2262', hrbpId: 'H3247', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sunil', trainerId: 'h3247'},
-    'S083': {storeName: 'Kondapur', amId: 'H2262', hrbpId: 'H3247', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sunil', trainerId: 'h3247'},
-    'S085': {storeName: 'Platina', amId: 'H2262', hrbpId: 'H3247', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sunil', trainerId: 'h3247'},
-    'S084': {storeName: 'Banjara Hills', amId: 'H2262', hrbpId: 'H3247', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sunil', trainerId: 'h3247'},
-    'S108': {storeName: 'Hyderabad Airport Inside', amId: 'H2262', hrbpId: 'H3247', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sunil', trainerId: 'h3247'},
-    'S169': {storeName: 'Himayat Nagar', amId: 'H2262', hrbpId: 'H3247', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sunil', trainerId: 'h3247'},
-    'S175': {storeName: 'Madeenaguda', amId: 'H2262', hrbpId: 'H3247', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sunil', trainerId: 'h3247'},
-    'S206': {storeName: 'Capital Land ITPH', amId: 'H2262', hrbpId: 'H3247', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sunil', trainerId: 'h3247'},
-    'S194': {storeName: 'Manikonda', amId: 'H2262', hrbpId: 'H3247', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sunil', trainerId: 'h3247'},
-    
-    // Additional West Region Stores (commonly used)
-    'S043': {storeName: 'Kemps Corner', amId: 'H3386', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S044': {storeName: 'Lokhandwala', amId: 'H3386', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S045': {storeName: 'Mahim', amId: 'H2908', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S047': {storeName: 'R City', amId: 'H2908', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S048': {storeName: 'Kalyani Nagar - Pune', amId: 'H2758', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S057': {storeName: 'Versova', amId: 'H3386', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S058': {storeName: 'Wanowrie', amId: 'H2758', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S059': {storeName: 'Koregoan Park', amId: 'H2758', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S060': {storeName: 'Kothrud', amId: 'H2758', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S074': {storeName: 'Phoenix Market City - Pune', amId: 'H2758', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S075': {storeName: 'Runwal Greens Mulund', amId: 'H2908', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S077': {storeName: 'Sea Castle, Marine Lines', amId: 'H3386', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S080': {storeName: 'Balewadi Highstreet', amId: 'H2758', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S087': {storeName: 'Equinox, BKC', amId: 'H2908', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S089': {storeName: 'Viviana Mall', amId: 'H2273', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S097': {storeName: 'Chembur', amId: 'H2908', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S103': {storeName: 'The Walk', amId: 'H2273', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S104': {storeName: 'MOM, Wakad', amId: 'H2758', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S106': {storeName: 'Andheri, Chakala', amId: 'H3386', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S107': {storeName: 'Vile Parle', amId: 'H3386', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S109': {storeName: 'FC Road', amId: 'H2758', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S111': {storeName: 'CBD Belapur', amId: 'H2273', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S117': {storeName: 'Andheri, Marol', amId: 'H3386', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S118': {storeName: 'Inorbit Vashi', amId: 'H2273', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S127': {storeName: 'Seawoods Highstreet', amId: 'H2273', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S128': {storeName: 'Bibewadi', amId: 'H2758', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S130': {storeName: 'Pimple Saudagar', amId: 'H2758', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S134': {storeName: 'Westend Aundh', amId: 'H2758', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S135': {storeName: 'Worli', amId: 'H3386', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S136': {storeName: 'Pimple Nilakh', amId: 'H2758', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S137': {storeName: 'Vashi Palm Beach', amId: 'H2273', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S147': {storeName: 'Pune Mumbai Expressway', amId: 'H2273', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S161': {storeName: 'Seawoods Nexus', amId: 'H2273', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S162': {storeName: 'Delloitte, Mumbai', amId: 'H2908', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S163': {storeName: 'Phoenix Market City- Mumbai', amId: 'H2908', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S168': {storeName: 'Panchpakhadi', amId: 'H2273', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'},
-    'S170': {storeName: 'Pokhran Road', amId: 'H2273', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Priyanka', trainerId: 'h3252'},
-    'S177': {storeName: 'Nariman Point', amId: 'H3386', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Sunil', trainerId: 'h3247'},
-    'S180': {storeName: 'Dellloitte Thane', amId: 'H2273', hrbpId: 'H3603', regionalHrId: 'HC002', region: 'West', hrHeadId: 'H2081', lmsHeadId: 'H541', trainer: 'Viraj', trainerId: 'h1278'}
-  };
-  
-  console.log('Fallback mapping contains ' + Object.keys(fallbackMapping).length + ' stores');
-  return fallbackMapping;
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Store_Mapping');
+
+  if (!sheet) {
+    console.log('ERROR: Store_Mapping sheet not found in this spreadsheet.');
+    return {};
+  }
+
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) {
+    console.log('Store_Mapping sheet has no data rows.');
+    return {};
+  }
+
+  var mappingObject = {};
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var storeId = row[0] ? row[0].toString().trim() : '';
+    if (!storeId) continue;
+
+    mappingObject[storeId] = {
+      storeName:      row[1]  ? row[1].toString().trim()  : '',
+      amId:           row[2]  ? row[2].toString().trim()  : '',
+      amName:         row[3]  ? row[3].toString().trim()  : '',
+      region:         row[4]  ? row[4].toString().trim()  : '',
+      hrbpId:         row[5]  ? row[5].toString().trim()  : '',
+      hrbpName:       row[6]  ? row[6].toString().trim()  : '',
+      trainerId:      row[11] ? row[11].toString().trim() : '',
+      trainerName:    row[12] ? row[12].toString().trim() : '',
+      trainer:        row[12] ? row[12].toString().trim() : '',
+      regionalHrId:   row[19] ? row[19].toString().trim() : '',
+      regionalHrName: row[20] ? row[20].toString().trim() : '',
+      hrHeadId:       row[21] ? row[21].toString().trim() : '',
+      hrHeadName:     row[22] ? row[22].toString().trim() : '',
+      lmsHeadId:      ''  // Add to Store_Mapping sheet if needed
+    };
+  }
+
+  storeMappingCache = mappingObject;
+  console.log('Store mapping loaded from Store_Mapping sheet: ' + Object.keys(mappingObject).length + ' stores');
+  return mappingObject;
 }
 
 function detectRegionFromStoreId(storeId) {
@@ -717,23 +552,13 @@ function getStoreInfo(storeId) {
   
   try {
     var mapping = getStoreMapping();
-    console.log('Available store IDs in mapping: ' + Object.keys(mapping).slice(0, 10).join(', ') + '...');
-    
     var storeInfo = mapping[storeId];
     
     if (!storeInfo) {
-      console.log('Store ID ' + storeId + ' not found in mapping');
-      console.log('Checking for similar store IDs...');
-      var similarStores = Object.keys(mapping).filter(function(id) {
-        return id.indexOf(storeId) !== -1 || storeId.indexOf(id) !== -1;
-      });
-      if (similarStores.length > 0) {
-        console.log('Similar store IDs found: ' + similarStores.join(', '));
-      }
+      console.log('Store ID ' + storeId + ' not found in Store_Mapping sheet');
       return { region: 'Unknown', storeName: '', amId: '', amName: '', hrbpId: '', regionalHrId: '', hrHeadId: '', lmsHeadId: '', trainer: '', trainerId: '', trainerName: '' };
     }
     
-    // Ensure we return a clean object with all expected fields
     var cleanStoreInfo = {
       region: storeInfo.region || 'Unknown',
       storeName: storeInfo.storeName || '',
@@ -746,7 +571,6 @@ function getStoreInfo(storeId) {
       trainer: storeInfo.trainer || '',
       trainerId: storeInfo.trainerId || '',
       trainerName: storeInfo.trainerName || storeInfo.trainer || ''
-      // Notably NO 'mod' field - MOD must be user input only
     };
     
     console.log('Store info found for ' + storeId + ': ' + JSON.stringify(cleanStoreInfo));
@@ -756,4 +580,187 @@ function getStoreInfo(storeId) {
     console.log('Error in getStoreInfo: ' + error.toString());
     return { region: 'Error', storeName: '', amId: '', amName: '', hrbpId: '', regionalHrId: '', hrHeadId: '', lmsHeadId: '', trainer: '', trainerId: '', trainerName: '' };
   }
+}
+
+// ============================================================
+// TWO-SHEET ARCHITECTURE: Setup, Backfill & Auto-Cleanup
+// ============================================================
+
+/**
+ * ONE-TIME SETUP: Run this manually from the Apps Script editor.
+ * 1. Creates "Training Audit - Last 90 Days" sheet if missing
+ * 2. Backfills existing last-90-day rows from the main sheet
+ * 3. Installs a daily trigger to auto-prune old data
+ */
+function setupTrainingAudit() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var possibleNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
+  var mainSheet = null;
+  for (var i = 0; i < possibleNames.length; i++) {
+    mainSheet = ss.getSheetByName(possibleNames[i]);
+    if (mainSheet) break;
+  }
+  if (!mainSheet) {
+    console.log('ERROR: No main Training Audit sheet found. Nothing to set up.');
+    return;
+  }
+  console.log('Main sheet found: ' + mainSheet.getName());
+
+  var recentSheet = ss.getSheetByName('Training Audit - Last 90 Days');
+  if (!recentSheet) {
+    recentSheet = ss.insertSheet('Training Audit - Last 90 Days');
+    console.log('Created new sheet: Training Audit - Last 90 Days');
+  } else {
+    console.log('Sheet "Training Audit - Last 90 Days" already exists');
+  }
+
+  initializeLast90Days(mainSheet, recentSheet);
+  installCleanupTrigger();
+
+  console.log('=== SETUP COMPLETE ===');
+  console.log('• "Training Audit - Last 90 Days" sheet is ready');
+  console.log('• Daily cleanup trigger installed (runs at 2-3 AM)');
+  console.log('• doPost now writes to both sheets automatically');
+  console.log('• getData reads from Last 90 Days by default (?source=all for archive)');
+}
+
+/**
+ * Backfills the "Last 90 Days" sheet with qualifying rows from the main sheet.
+ */
+function initializeLast90Days(mainSheet, recentSheet) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  if (!mainSheet) {
+    var possibleNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
+    for (var i = 0; i < possibleNames.length; i++) {
+      mainSheet = ss.getSheetByName(possibleNames[i]);
+      if (mainSheet) break;
+    }
+  }
+  if (!recentSheet) {
+    recentSheet = ss.getSheetByName('Training Audit - Last 90 Days');
+  }
+  if (!mainSheet || !recentSheet) {
+    console.log('ERROR: Cannot find required sheets for backfill.');
+    return;
+  }
+
+  var lastRow = mainSheet.getLastRow();
+  if (lastRow <= 1) {
+    console.log('Main sheet has no data rows. Nothing to backfill.');
+    var headerRange = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn());
+    recentSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).setValues(headerRange.getValues());
+    return;
+  }
+
+  var allData = mainSheet.getDataRange().getValues();
+  var header = allData[0];
+  var cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - 90);
+
+  var recentRows = [];
+  for (var r = 1; r < allData.length; r++) {
+    var timestamp = allData[r][0];
+    var rowDate;
+    if (timestamp instanceof Date) {
+      rowDate = timestamp;
+    } else {
+      rowDate = new Date(timestamp);
+    }
+    if (!isNaN(rowDate.getTime()) && rowDate >= cutoffDate) {
+      // Truncate any cell exceeding Google Sheets' 50,000 char limit
+      var safeRow = allData[r].map(function(cell) {
+        if (typeof cell === 'string' && cell.length > 49999) {
+          console.log('Truncating oversized cell (' + cell.length + ' chars) in row ' + (r + 1));
+          return cell.substring(0, 49999);
+        }
+        return cell;
+      });
+      recentRows.push(safeRow);
+    }
+  }
+
+  recentSheet.clearContents();
+  recentSheet.getRange(1, 1, 1, header.length).setValues([header]);
+
+  if (recentRows.length > 0) {
+    recentSheet.getRange(2, 1, recentRows.length, header.length).setValues(recentRows);
+    console.log('Backfilled ' + recentRows.length + ' rows (out of ' + (allData.length - 1) + ' total) into Last 90 Days sheet');
+  } else {
+    console.log('No rows within the last 90 days found. Header-only sheet created.');
+  }
+}
+
+/**
+ * Daily cleanup: removes rows older than 90 days from "Training Audit - Last 90 Days".
+ * Does NOT touch the main "Training Audit" archive sheet.
+ */
+function cleanupOldData() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var recentSheet = ss.getSheetByName('Training Audit - Last 90 Days');
+
+  if (!recentSheet) {
+    console.log('cleanupOldData: "Training Audit - Last 90 Days" sheet not found. Skipping.');
+    return;
+  }
+
+  var lastRow = recentSheet.getLastRow();
+  if (lastRow <= 1) {
+    console.log('cleanupOldData: No data rows to clean.');
+    return;
+  }
+
+  var cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - 90);
+
+  var timestamps = recentSheet.getRange(2, 1, lastRow - 1, 1).getValues();
+
+  var rowsToDelete = [];
+  for (var r = 0; r < timestamps.length; r++) {
+    var ts = timestamps[r][0];
+    var rowDate;
+    if (ts instanceof Date) {
+      rowDate = ts;
+    } else {
+      rowDate = new Date(ts);
+    }
+    if (!isNaN(rowDate.getTime()) && rowDate < cutoffDate) {
+      rowsToDelete.push(r + 2);
+    }
+  }
+
+  if (rowsToDelete.length === 0) {
+    console.log('cleanupOldData: No rows older than 90 days. Nothing to remove.');
+    return;
+  }
+
+  rowsToDelete.sort(function(a, b) { return b - a; });
+  for (var d = 0; d < rowsToDelete.length; d++) {
+    recentSheet.deleteRow(rowsToDelete[d]);
+  }
+
+  console.log('cleanupOldData: Removed ' + rowsToDelete.length + ' rows older than 90 days.');
+}
+
+/**
+ * Installs a daily time-based trigger for cleanupOldData().
+ * Safe to call multiple times — removes existing cleanup triggers first.
+ */
+function installCleanupTrigger() {
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var t = 0; t < triggers.length; t++) {
+    if (triggers[t].getHandlerFunction() === 'cleanupOldData') {
+      ScriptApp.deleteTrigger(triggers[t]);
+      console.log('Removed existing cleanupOldData trigger');
+    }
+  }
+
+  ScriptApp.newTrigger('cleanupOldData')
+    .timeBased()
+    .everyDays(1)
+    .atHour(2)
+    .create();
+
+  console.log('Daily cleanupOldData trigger installed (runs at 2-3 AM)');
 }

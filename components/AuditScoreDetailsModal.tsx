@@ -144,9 +144,9 @@ const AuditScoreDetailsModal: React.FC<AuditScoreDetailsModalProps> = ({
     if (filters.health) {
       storesArray = storesArray.filter(store => {
         const latestScore = store.scores[0]?.score || 0;
-        if (filters.health === 'Needs Attention' && latestScore >= 56) return false;
-        if (filters.health === 'Brewing' && (latestScore < 56 || latestScore >= 81)) return false;
-        if (filters.health === 'Perfect Shot' && latestScore < 81) return false;
+        if (filters.health === 'Needs Attention' && latestScore >= 71) return false;
+        if (filters.health === 'Brewing' && (latestScore < 71 || latestScore >= 86)) return false;
+        if (filters.health === 'Perfect Shot' && latestScore < 86) return false;
         return true;
       });
     }
@@ -159,8 +159,8 @@ const AuditScoreDetailsModal: React.FC<AuditScoreDetailsModalProps> = ({
 
   // Get health category based on score
   const getHealthCategory = (score: number) => {
-    if (score < 56) return { label: 'Needs Attention', color: 'text-red-600 bg-red-100 dark:bg-red-900/30' };
-    if (score < 81) return { label: 'Brewing', color: 'text-amber-600 bg-amber-100 dark:bg-amber-900/30' };
+    if (score < 71) return { label: 'Needs Attention', color: 'text-red-600 bg-red-100 dark:bg-red-900/30' };
+    if (score < 86) return { label: 'Brewing', color: 'text-amber-600 bg-amber-100 dark:bg-amber-900/30' };
     return { label: 'Perfect Shot', color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30' };
   };
 

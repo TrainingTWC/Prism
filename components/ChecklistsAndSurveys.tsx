@@ -26,6 +26,7 @@ import { ClipboardCheck, ShieldAlert, Factory } from 'lucide-react';
 
 interface ChecklistsAndSurveysProps {
   userRole: UserRole;
+  preSelectedChecklist?: string;
 }
 
 type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning' | 'brew-league' | 'qa-am-review' | 'qa-capa' | 'qa-capa-dashboard';
@@ -34,9 +35,11 @@ type BenchPlanningSubType = 'barista-sm' | 'sm-asm' | 'barista-bt';
 type QASubType = 'store-qa' | 'vendor-audit';
 type BTSessionStep = 'readiness' | 'bt-session' | 'skill-check';
 
-const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole }) => {
+const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, preSelectedChecklist }) => {
   const { userRole: authUserRole, hasPermission, logout } = useAuth();
-  const [activeChecklist, setActiveChecklist] = useState<ChecklistType | null>(null);
+  const [activeChecklist, setActiveChecklist] = useState<ChecklistType | null>(
+    (preSelectedChecklist as ChecklistType) || null
+  );
   const [brewLeagueSubSection, setBrewLeagueSubSection] = useState<BrewLeagueSubType | null>(null);
   const [benchPlanningSubSection, setBenchPlanningSubSection] = useState<BenchPlanningSubType | null>(null);
   const [qaSubSection, setQASubSection] = useState<QASubType | null>(null);
@@ -64,7 +67,12 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole })
   const auditorName = urlParams.get('auditorName') || urlParams.get('name') || urlParams.get('hrName') || 'Unknown Auditor';
   const auditorId = urlParams.get('auditorId') || urlParams.get('id') || urlParams.get('hrId') || 'unknown';
 
-  // No auto-open effects for streamlined roles - let user choose from overview
+  // Sync with sidebar-driven checklist selection
+  useEffect(() => {
+    if (preSelectedChecklist) {
+      setActiveChecklist(preSelectedChecklist as ChecklistType);
+    }
+  }, [preSelectedChecklist]);
 
   // Filter checklists based on user permissions
   const getAvailableChecklists = () => {
