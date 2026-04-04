@@ -2013,7 +2013,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       // Add section images as JSON
       formData.append('sectionImages', JSON.stringify(sectionImages));
 
-      const response = await fetch('https://script.google.com/macros/s/AKfycbzf9JUyi676a_BVuelxd9uPk30wPJExCgH__nmO7jFzECiDnzH03TFKi9xjwxc50JA01A/exec', {
+      const response = await fetch('https://script.google.com/macros/s/AKfycbyzke9rJVv0rkIvKDDk0qArbWAQWLQr0M-ip_BZb3_gFPHkNRTUEjhExsTWKYXYZUep_A/exec', {
         method: 'POST',
         body: formData
       });

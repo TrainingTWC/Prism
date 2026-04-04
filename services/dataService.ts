@@ -11,7 +11,7 @@ const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz2pAj_RBIwRmJf
 const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyKzDHP-iEpJTacXk_lPl6eNCJXtg5imabCdzYPVIWrHPNMXRHUDNO9PeijCKKWalBm/exec';
 
 // Training Audit endpoint - UPDATED URL
-const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzf9JUyi676a_BVuelxd9uPk30wPJExCgH__nmO7jFzECiDnzH03TFKi9xjwxc50JA01A/exec';
+const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyzke9rJVv0rkIvKDDk0qArbWAQWLQr0M-ip_BZb3_gFPHkNRTUEjhExsTWKYXYZUep_A/exec';
 
 // QA Assessment endpoint - Uses unified QA script from .env
 const QA_ENDPOINT = import.meta.env.VITE_QA_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbwGIDlsSGyRhR40G0zLmYpbs5C-ShrZffwnKcn3hikZPeDFtcWbeDzewT49yJQ_8YCUkA/exec';

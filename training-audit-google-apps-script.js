@@ -243,21 +243,8 @@ function doPost(e) {
     ];
 
     sheet.appendRow(row);
-
-    // Also write to "Last 90 Days" sheet for fast dashboard reads
-    try {
-      var recentSheet = ss.getSheetByName('Training Audit - Last 90 Days');
-      if (!recentSheet) {
-        recentSheet = ss.insertSheet('Training Audit - Last 90 Days');
-        recentSheet.getRange(1, 1, 1, header.length).setValues([header]);
-        console.log('Created "Training Audit - Last 90 Days" sheet');
-      }
-      recentSheet.appendRow(row);
-      console.log('Row appended to both sheets successfully');
-    } catch (recentErr) {
-      console.log('Warning: Could not write to Last 90 Days sheet: ' + recentErr.toString());
-      // Non-fatal — main sheet write already succeeded
-    }
+    console.log('Row appended to main sheet successfully');
+    // "Last 90 Days" sheet is formula-driven (FILTER) — no dual-write needed
 
     return ContentService
       .createTextOutput(JSON.stringify({ status: 'OK' }))
@@ -583,18 +570,24 @@ function getStoreInfo(storeId) {
 }
 
 // ============================================================
-// TWO-SHEET ARCHITECTURE: Setup, Backfill & Auto-Cleanup
+// TWO-SHEET ARCHITECTURE: Formula-Driven Last 90 Days
 // ============================================================
 
 /**
- * ONE-TIME SETUP: Run this manually from the Apps Script editor.
- * 1. Creates "Training Audit - Last 90 Days" sheet if missing
- * 2. Backfills existing last-90-day rows from the main sheet
- * 3. Installs a daily trigger to auto-prune old data
+ * ONE-TIME SETUP: Run this from the Apps Script editor.
+ * Creates (or resets) the "Training Audit - Last 90 Days" sheet with a single
+ * FILTER formula that auto-pulls rows from the main sheet where the timestamp
+ * is within the last 90 days.
+ *
+ * Benefits over the old Apps Script sync approach:
+ *  - Instant / real-time — no triggers, no daily rebuild
+ *  - Always in sync — every new row in the main sheet appears automatically
+ *  - Zero maintenance — no dual-write, no cleanup jobs
  */
 function setupTrainingAudit() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
+  // Find the main sheet
   var possibleNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
   var mainSheet = null;
   for (var i = 0; i < possibleNames.length; i++) {
@@ -605,162 +598,59 @@ function setupTrainingAudit() {
     console.log('ERROR: No main Training Audit sheet found. Nothing to set up.');
     return;
   }
-  console.log('Main sheet found: ' + mainSheet.getName());
+  var mainName = mainSheet.getName();
+  console.log('Main sheet found: ' + mainName);
 
+  // Determine column range (e.g. A:BY for 77 columns)
+  var lastCol = mainSheet.getLastColumn();
+  var lastColLetter = columnToLetter(lastCol);
+  console.log('Main sheet has ' + lastCol + ' columns (A-' + lastColLetter + ')');
+
+  // Create or reset the Last 90 Days sheet
   var recentSheet = ss.getSheetByName('Training Audit - Last 90 Days');
   if (!recentSheet) {
     recentSheet = ss.insertSheet('Training Audit - Last 90 Days');
     console.log('Created new sheet: Training Audit - Last 90 Days');
   } else {
-    console.log('Sheet "Training Audit - Last 90 Days" already exists');
+    recentSheet.clearContents();
+    console.log('Cleared existing "Training Audit - Last 90 Days" sheet');
   }
 
-  initializeLast90Days(mainSheet, recentSheet);
-  installCleanupTrigger();
+  // Row 1: Copy the header from the main sheet
+  var headerValues = mainSheet.getRange(1, 1, 1, lastCol).getValues();
+  recentSheet.getRange(1, 1, 1, lastCol).setValues(headerValues);
 
-  console.log('=== SETUP COMPLETE ===');
-  console.log('• "Training Audit - Last 90 Days" sheet is ready');
-  console.log('• Daily cleanup trigger installed (runs at 2-3 AM)');
-  console.log('• doPost now writes to both sheets automatically');
-  console.log('• getData reads from Last 90 Days by default (?source=all for archive)');
-}
+  // Row 2, Cell A2: FILTER formula that auto-pulls last 90 days
+  // References the main sheet dynamically — always up to date
+  var formula = '=IFERROR(FILTER(\'' + mainName + '\'!A2:' + lastColLetter
+    + ', \'' + mainName + '\'!A2:A >= TODAY()-90), "")';
+  recentSheet.getRange(2, 1).setFormula(formula);
 
-/**
- * Backfills the "Last 90 Days" sheet with qualifying rows from the main sheet.
- */
-function initializeLast90Days(mainSheet, recentSheet) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  if (!mainSheet) {
-    var possibleNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
-    for (var i = 0; i < possibleNames.length; i++) {
-      mainSheet = ss.getSheetByName(possibleNames[i]);
-      if (mainSheet) break;
-    }
-  }
-  if (!recentSheet) {
-    recentSheet = ss.getSheetByName('Training Audit - Last 90 Days');
-  }
-  if (!mainSheet || !recentSheet) {
-    console.log('ERROR: Cannot find required sheets for backfill.');
-    return;
-  }
-
-  var lastRow = mainSheet.getLastRow();
-  if (lastRow <= 1) {
-    console.log('Main sheet has no data rows. Nothing to backfill.');
-    var headerRange = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn());
-    recentSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).setValues(headerRange.getValues());
-    return;
-  }
-
-  var allData = mainSheet.getDataRange().getValues();
-  var header = allData[0];
-  var cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - 90);
-
-  var recentRows = [];
-  for (var r = 1; r < allData.length; r++) {
-    var timestamp = allData[r][0];
-    var rowDate;
-    if (timestamp instanceof Date) {
-      rowDate = timestamp;
-    } else {
-      rowDate = new Date(timestamp);
-    }
-    if (!isNaN(rowDate.getTime()) && rowDate >= cutoffDate) {
-      // Truncate any cell exceeding Google Sheets' 50,000 char limit
-      var safeRow = allData[r].map(function(cell) {
-        if (typeof cell === 'string' && cell.length > 49999) {
-          console.log('Truncating oversized cell (' + cell.length + ' chars) in row ' + (r + 1));
-          return cell.substring(0, 49999);
-        }
-        return cell;
-      });
-      recentRows.push(safeRow);
-    }
-  }
-
-  recentSheet.clearContents();
-  recentSheet.getRange(1, 1, 1, header.length).setValues([header]);
-
-  if (recentRows.length > 0) {
-    recentSheet.getRange(2, 1, recentRows.length, header.length).setValues(recentRows);
-    console.log('Backfilled ' + recentRows.length + ' rows (out of ' + (allData.length - 1) + ' total) into Last 90 Days sheet');
-  } else {
-    console.log('No rows within the last 90 days found. Header-only sheet created.');
-  }
-}
-
-/**
- * Daily cleanup: removes rows older than 90 days from "Training Audit - Last 90 Days".
- * Does NOT touch the main "Training Audit" archive sheet.
- */
-function cleanupOldData() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var recentSheet = ss.getSheetByName('Training Audit - Last 90 Days');
-
-  if (!recentSheet) {
-    console.log('cleanupOldData: "Training Audit - Last 90 Days" sheet not found. Skipping.');
-    return;
-  }
-
-  var lastRow = recentSheet.getLastRow();
-  if (lastRow <= 1) {
-    console.log('cleanupOldData: No data rows to clean.');
-    return;
-  }
-
-  var cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - 90);
-
-  var timestamps = recentSheet.getRange(2, 1, lastRow - 1, 1).getValues();
-
-  var rowsToDelete = [];
-  for (var r = 0; r < timestamps.length; r++) {
-    var ts = timestamps[r][0];
-    var rowDate;
-    if (ts instanceof Date) {
-      rowDate = ts;
-    } else {
-      rowDate = new Date(ts);
-    }
-    if (!isNaN(rowDate.getTime()) && rowDate < cutoffDate) {
-      rowsToDelete.push(r + 2);
-    }
-  }
-
-  if (rowsToDelete.length === 0) {
-    console.log('cleanupOldData: No rows older than 90 days. Nothing to remove.');
-    return;
-  }
-
-  rowsToDelete.sort(function(a, b) { return b - a; });
-  for (var d = 0; d < rowsToDelete.length; d++) {
-    recentSheet.deleteRow(rowsToDelete[d]);
-  }
-
-  console.log('cleanupOldData: Removed ' + rowsToDelete.length + ' rows older than 90 days.');
-}
-
-/**
- * Installs a daily time-based trigger for cleanupOldData().
- * Safe to call multiple times — removes existing cleanup triggers first.
- */
-function installCleanupTrigger() {
+  // Remove any old cleanupOldData triggers (no longer needed)
   var triggers = ScriptApp.getProjectTriggers();
   for (var t = 0; t < triggers.length; t++) {
     if (triggers[t].getHandlerFunction() === 'cleanupOldData') {
       ScriptApp.deleteTrigger(triggers[t]);
-      console.log('Removed existing cleanupOldData trigger');
+      console.log('Removed old cleanupOldData trigger (no longer needed)');
     }
   }
 
-  ScriptApp.newTrigger('cleanupOldData')
-    .timeBased()
-    .everyDays(1)
-    .atHour(2)
-    .create();
+  console.log('=== SETUP COMPLETE ===');
+  console.log('• "Training Audit - Last 90 Days" is now formula-driven (FILTER)');
+  console.log('• No triggers needed — data updates in real-time');
+  console.log('• doPost writes to main sheet only; Last 90 Days auto-syncs');
+  console.log('• Formula: ' + formula);
+}
 
-  console.log('Daily cleanupOldData trigger installed (runs at 2-3 AM)');
+/**
+ * Helper: convert a 1-based column number to a letter (1=A, 26=Z, 27=AA, etc.)
+ */
+function columnToLetter(col) {
+  var letter = '';
+  while (col > 0) {
+    var mod = (col - 1) % 26;
+    letter = String.fromCharCode(65 + mod) + letter;
+    col = Math.floor((col - mod - 1) / 26);
+  }
+  return letter;
 }
