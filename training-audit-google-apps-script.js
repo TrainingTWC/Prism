@@ -286,33 +286,16 @@ function getTrainingChecklistData(source) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = null;
     
-    // Default to "Last 90 Days" sheet for fast reads; fall back to full archive
-    if (source === 'all') {
-      // Explicitly requested full archive
-      var possibleSheetNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
-      for (var i = 0; i < possibleSheetNames.length; i++) {
-        sheet = ss.getSheetByName(possibleSheetNames[i]);
-        if (sheet) {
-          console.log('Using full archive sheet: ' + possibleSheetNames[i]);
-          break;
-        }
-      }
-    } else {
-      // Default: use Last 90 Days sheet for performance
-      sheet = ss.getSheetByName('Training Audit - Last 90 Days');
+    // Always read from the MAIN sheet (static data = fast).
+    // The "Last 90 Days" formula sheet is for human viewing in Google Sheets only —
+    // reading formula-driven sheets via Apps Script is slower because Sheets must
+    // evaluate the FILTER formula on every getValues() call.
+    var possibleSheetNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
+    for (var i = 0; i < possibleSheetNames.length; i++) {
+      sheet = ss.getSheetByName(possibleSheetNames[i]);
       if (sheet) {
-        console.log('Using Last 90 Days sheet for fast read');
-      } else {
-        // Fallback to main sheet if Last 90 Days doesn't exist yet
-        console.log('Last 90 Days sheet not found, falling back to main sheet');
-        var possibleSheetNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
-        for (var i = 0; i < possibleSheetNames.length; i++) {
-          sheet = ss.getSheetByName(possibleSheetNames[i]);
-          if (sheet) {
-            console.log('Fallback to sheet: ' + possibleSheetNames[i]);
-            break;
-          }
-        }
+        console.log('Using main sheet: ' + possibleSheetNames[i]);
+        break;
       }
     }
     

@@ -1,27 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Users, Settings, GraduationCap, CheckCircle, DollarSign, ArrowLeft, Home, Brain, FileText, Calendar, Trophy, Coffee, BarChart3, Briefcase, LogOut } from 'lucide-react';
 import { UserRole } from '../roleMapping';
 import { useAuth } from '../contexts/AuthContext';
 import ThemeToggle from './ThemeToggle';
-import HRChecklist from './checklists/HRChecklist';
-import OperationsChecklist from './checklists/OperationsChecklist';
-import TrainingChecklist from './checklists/TrainingChecklist';
-import QAChecklist from './checklists/QAChecklist';
-import FinanceChecklist from './checklists/FinanceChecklist';
-import CampusHiringChecklist from './checklists/CampusHiringChecklist';
-import FormsChecklist from './checklists/FormsChecklist';
-import TrainerCalendarChecklist from './checklists/TrainerCalendarChecklist';
-import SHLPChecklist from './checklists/SHLPChecklist';
-import BenchPlanningChecklist from './checklists/BenchPlanningChecklist';
-import BenchPlanningSMASMChecklist from './checklists/BenchPlanningSMASMChecklist';
-import BenchPlanningBTChecklist from './checklists/BenchPlanningBTChecklist';
-import BrewLeagueRegionRound from './checklists/BrewLeagueRegionRound';
-import BrewLeagueAMRound from './checklists/BrewLeagueAMRound';
-import BrewLeagueDashboard from './checklists/BrewLeagueDashboard';
-import QAAMReviewChecklist from './checklists/QAAMReviewChecklist';
-import QACAPAChecklist from './checklists/QACAPAChecklist';
-import QACAPADashboard from './checklists/QACAPADashboard';
-import VendorAuditChecklist from './checklists/VendorAuditChecklist';
+const HRChecklist = lazy(() => import('./checklists/HRChecklist'));
+const OperationsChecklist = lazy(() => import('./checklists/OperationsChecklist'));
+const TrainingChecklist = lazy(() => import('./checklists/TrainingChecklist'));
+const QAChecklist = lazy(() => import('./checklists/QAChecklist'));
+const FinanceChecklist = lazy(() => import('./checklists/FinanceChecklist'));
+const CampusHiringChecklist = lazy(() => import('./checklists/CampusHiringChecklist'));
+const FormsChecklist = lazy(() => import('./checklists/FormsChecklist'));
+const TrainerCalendarChecklist = lazy(() => import('./checklists/TrainerCalendarChecklist'));
+const SHLPChecklist = lazy(() => import('./checklists/SHLPChecklist'));
+const BenchPlanningChecklist = lazy(() => import('./checklists/BenchPlanningChecklist'));
+const BenchPlanningSMASMChecklist = lazy(() => import('./checklists/BenchPlanningSMASMChecklist'));
+const BenchPlanningBTChecklist = lazy(() => import('./checklists/BenchPlanningBTChecklist'));
+const BrewLeagueRegionRound = lazy(() => import('./checklists/BrewLeagueRegionRound'));
+const BrewLeagueAMRound = lazy(() => import('./checklists/BrewLeagueAMRound'));
+const BrewLeagueDashboard = lazy(() => import('./checklists/BrewLeagueDashboard'));
+const QAAMReviewChecklist = lazy(() => import('./checklists/QAAMReviewChecklist'));
+const QACAPAChecklist = lazy(() => import('./checklists/QACAPAChecklist'));
+const QACAPADashboard = lazy(() => import('./checklists/QACAPADashboard'));
+const VendorAuditChecklist = lazy(() => import('./checklists/VendorAuditChecklist'));
 import { ClipboardCheck, ShieldAlert, Factory } from 'lucide-react';
 
 interface ChecklistsAndSurveysProps {
@@ -581,7 +581,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
           {/* Checklist Content */}
           <div className="h-full overflow-y-auto pb-20">
             <div className="w-full p-4 sm:p-6">
+              <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>}>
               {renderActiveChecklist()}
+              </Suspense>
             </div>
           </div>
         </div>

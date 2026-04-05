@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
-import Dashboard from './components/Dashboard';
-import ChecklistsAndSurveys from './components/ChecklistsAndSurveys';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const ChecklistsAndSurveys = lazy(() => import('./components/ChecklistsAndSurveys'));
 import TopBar from './components/TopBar';
 import Sidebar, { SidebarSection } from './components/Sidebar';
 import Login from './components/Login';
@@ -10,7 +10,7 @@ import { getUserRole, UserRole } from './roleMapping';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConfigProvider } from './contexts/ConfigContext';
-import HomePage from './components/HomePage';
+const HomePage = lazy(() => import('./components/HomePage'));
 import { startPreload } from './services/preloadService';
 
 const AppContent: React.FC = () => {
@@ -329,6 +329,7 @@ const AppContent: React.FC = () => {
 
         {/* Page content */}
         <main className="flex-1 p-2 sm:p-4 lg:p-6">
+          <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>}>
           {activeSection === 'home' && (
             <HomePage onNavigate={(section) => handleNavigate(section as SidebarSection, section === 'dashboard' ? availableDashboardTypes[0]?.id : undefined)} />
           )}
@@ -338,6 +339,7 @@ const AppContent: React.FC = () => {
           {activeSection === 'checklists' && (
             <ChecklistsAndSurveys userRole={userRole!} preSelectedChecklist={activeChecklist} />
           )}
+          </Suspense>
         </main>
       </div>
     </div>
