@@ -286,16 +286,24 @@ function getTrainingChecklistData(source) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = null;
     
-    // Always read from the MAIN sheet (static data = fast).
-    // The "Last 90 Days" formula sheet is for human viewing in Google Sheets only —
-    // reading formula-driven sheets via Apps Script is slower because Sheets must
-    // evaluate the FILTER formula on every getValues() call.
-    var possibleSheetNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
-    for (var i = 0; i < possibleSheetNames.length; i++) {
-      sheet = ss.getSheetByName(possibleSheetNames[i]);
+    // For 'recent' (default), read from the formula-driven "Last 90 Days" sheet
+    // so only 90-day data is returned. For 'all', read from the main sheet.
+    if (source !== 'all') {
+      sheet = ss.getSheetByName('Training Audit - Last 90 Days');
       if (sheet) {
-        console.log('Using main sheet: ' + possibleSheetNames[i]);
-        break;
+        console.log('Using Last 90 Days sheet');
+      }
+    }
+    
+    // Fallback to main sheet if Last 90 Days not found, or if source is 'all'
+    if (!sheet) {
+      var possibleSheetNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
+      for (var i = 0; i < possibleSheetNames.length; i++) {
+        sheet = ss.getSheetByName(possibleSheetNames[i]);
+        if (sheet) {
+          console.log('Using main sheet: ' + possibleSheetNames[i]);
+          break;
+        }
       }
     }
     
@@ -317,19 +325,6 @@ function getTrainingChecklistData(source) {
     }
     
     var rows = data.slice(1);
-    
-    // When source is 'recent', filter to last 90 days from today
-    // This guarantees correctness even if cleanup hasn't run or we fell back to the main sheet
-    if (source !== 'all') {
-      var cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 90);
-      rows = rows.filter(function(row) {
-        var ts = row[0]; // Server Timestamp (column 0)
-        var rowDate = (ts instanceof Date) ? ts : new Date(ts);
-        return !isNaN(rowDate.getTime()) && rowDate >= cutoff;
-      });
-      console.log('After 90-day filter: ' + rows.length + ' rows (cutoff: ' + cutoff.toISOString() + ')');
-    }
     
     console.log('Processing ' + rows.length + ' data rows');
     console.log('Header row: ' + JSON.stringify(data[0]));
