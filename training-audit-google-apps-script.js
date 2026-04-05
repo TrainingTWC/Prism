@@ -286,24 +286,15 @@ function getTrainingChecklistData(source) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = null;
     
-    // For 'recent' (default), read from the formula-driven "Last 90 Days" sheet
-    // so only 90-day data is returned. For 'all', read from the main sheet.
-    if (source !== 'all') {
-      sheet = ss.getSheetByName('Training Audit - Last 90 Days');
+    // PERFORMANCE: Always read from the main sheet (raw data, no formulas).
+    // The "Last 90 Days" FILTER-formula sheet is slow because getValues()
+    // forces formula recalculation. Instead, we filter by date in JavaScript.
+    var possibleSheetNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
+    for (var i = 0; i < possibleSheetNames.length; i++) {
+      sheet = ss.getSheetByName(possibleSheetNames[i]);
       if (sheet) {
-        console.log('Using Last 90 Days sheet');
-      }
-    }
-    
-    // Fallback to main sheet if Last 90 Days not found, or if source is 'all'
-    if (!sheet) {
-      var possibleSheetNames = ['Training Audit', 'Training Checklist', 'TrainingAudit', 'Training'];
-      for (var i = 0; i < possibleSheetNames.length; i++) {
-        sheet = ss.getSheetByName(possibleSheetNames[i]);
-        if (sheet) {
-          console.log('Using main sheet: ' + possibleSheetNames[i]);
-          break;
-        }
+        console.log('Using main sheet: ' + possibleSheetNames[i]);
+        break;
       }
     }
     
@@ -314,23 +305,47 @@ function getTrainingChecklistData(source) {
         .setMimeType(ContentService.MimeType.JSON);
     }
     
-    var data = sheet.getDataRange().getValues();
-    console.log('Sheet found: ' + sheet.getName() + ', Rows: ' + data.length);
-    
-    if (data.length <= 1) {
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) {
       console.log('No data rows found (only header or empty sheet)');
       return ContentService
         .createTextOutput(JSON.stringify([]))
         .setMimeType(ContentService.MimeType.JSON);
     }
     
-    var rows = data.slice(1);
+    // PERFORMANCE: Read only the columns we need (skip Section Images column at the end)
+    // Columns A through BW (75 columns) — excludes the last "Section Images" column
+    var lastCol = sheet.getLastColumn();
+    var dataColCount = Math.min(lastCol, 75); // 75 = everything before sectionImages
+    var data = sheet.getRange(1, 1, lastRow, dataColCount).getValues();
+    
+    console.log('Sheet: ' + sheet.getName() + ', Rows: ' + data.length + ', Cols read: ' + dataColCount + ' (of ' + lastCol + ')');
+    
+    var rows = data.slice(1); // skip header
+    
+    // For 'recent' (default), filter to last 90 days using JavaScript date comparison
+    // This is MUCH faster than reading from a FILTER-formula sheet
+    if (source !== 'all') {
+      var cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - 90);
+      var cutoffTime = cutoffDate.getTime();
+      
+      var beforeCount = rows.length;
+      rows = rows.filter(function(row) {
+        var timestamp = row[0]; // Server Timestamp is column A
+        if (!timestamp) return false;
+        var rowDate;
+        if (timestamp instanceof Date) {
+          rowDate = timestamp;
+        } else {
+          rowDate = new Date(timestamp);
+        }
+        return !isNaN(rowDate.getTime()) && rowDate.getTime() >= cutoffTime;
+      });
+      console.log('Date filter: ' + beforeCount + ' total → ' + rows.length + ' in last 90 days');
+    }
     
     console.log('Processing ' + rows.length + ' data rows');
-    console.log('Header row: ' + JSON.stringify(data[0]));
-    if (rows.length > 0) {
-      console.log('First data row: ' + JSON.stringify(rows[0]));
-    }
     
     var jsonData = rows.map(function(row) {
       var obj = {};
@@ -411,18 +426,16 @@ function getTrainingChecklistData(source) {
       obj.TSA_Coffee_remarks = row[colIndex++] || '';
       obj.TSA_CX_remarks = row[colIndex++] || '';
       
-      // NEW COLUMNS ADDED AFTER EXISTING DATA
-      obj.auditorName = row[colIndex++] || '';
-      obj.auditorId = row[colIndex++] || '';
+      // Auditor info
+      obj.auditorName = (colIndex < dataColCount) ? (row[colIndex++] || '') : '';
+      obj.auditorId = (colIndex < dataColCount) ? (row[colIndex++] || '') : '';
       
-      // Section Images (JSON string)
-      obj.sectionImages = row[colIndex++] || '';
+      // sectionImages intentionally excluded for dashboard performance
       
       return obj;
     });
     
     console.log('Returning ' + jsonData.length + ' processed records');
-    console.log('Sample record: ' + JSON.stringify(jsonData[0] || {}));
     
     return ContentService
       .createTextOutput(JSON.stringify(jsonData))

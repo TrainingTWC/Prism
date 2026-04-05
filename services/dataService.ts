@@ -947,18 +947,21 @@ export const fetchTrainingData = async (forceRefresh = false): Promise<TrainingA
 
     console.log(`✅ [Training] Processing ${data.length} records...`);
 
-    // Load store mapping ONCE before processing all records (PERFORMANCE FIX)
-    const mappingData = await loadStoreMapping();
+    // Only load store mapping if any records have Unknown/empty region
+    const needsMapping = data.some((row: any) => !row.region || row.region === 'Unknown');
+    let storeIdIndex = new Map<string, any>();
+    let storeNameIndex = new Map<string, any>();
     
-    // PERFORMANCE: Build a Map index for O(1) store lookups instead of O(n) .find() per row
-    const storeIdIndex = new Map<string, any>();
-    const storeNameIndex = new Map<string, any>();
-    mappingData.forEach(mapping => {
-      const sid = mapping["Store ID"] || mapping.storeId;
-      if (sid) storeIdIndex.set(sid.toString(), mapping);
-      const sname = mapping["Store Name"] || mapping.storeName;
-      if (sname) storeNameIndex.set(sname.toLowerCase(), mapping);
-    });
+    if (needsMapping) {
+      const mappingData = await loadStoreMapping();
+      mappingData.forEach(mapping => {
+        const sid = mapping["Store ID"] || mapping.storeId;
+        if (sid) storeIdIndex.set(sid.toString(), mapping);
+        const sname = mapping["Store Name"] || mapping.storeName;
+        if (sname) storeNameIndex.set(sname.toLowerCase(), mapping);
+      });
+      console.log(`📍 [Training] ${data.filter((r: any) => !r.region || r.region === 'Unknown').length} records need region mapping`);
+    }
 
     // PERFORMANCE: Merge region mapping + score recalculation into a single pass
     const processedData = data.map((row: any) => {
