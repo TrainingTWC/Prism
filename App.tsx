@@ -243,7 +243,7 @@ const AppContent: React.FC = () => {
     if (authUserRole === 'editor') return allTypes;
     return allTypes.filter(type => {
       if (type.id === 'consolidated') return false;
-      if (type.id === 'map-view') return true;
+      if (type.id === 'map-view') return false;
       return hasDashboardAccess(type.id + '-dashboard');
     });
   };

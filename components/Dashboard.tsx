@@ -263,7 +263,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       { id: 'trainer-calendar', label: 'Trainer Calendar', access: 'trainer-calendar-dashboard' },
       { id: 'bench-planning', label: 'Bench Planning (Barista to SM)', access: 'bench-planning-dashboard' },
       { id: 'bench-planning-sm-asm', label: 'Bench Planning (SM to ASM)', access: 'bench-planning-sm-asm-dashboard' },
-      { id: 'map-view', label: 'Map View', access: 'all' },
+      { id: 'map-view', label: 'Map View', access: 'editor-only' },
       { id: 'consolidated', label: 'Consolidated View', access: 'all' }
     ];
 
@@ -271,10 +271,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       return allTypes; // Editor can see everything including consolidated
     }
 
-    // For all other roles (including admin), exclude consolidated dashboard
+    // For all other roles (including admin), exclude consolidated and map-view
     return allTypes.filter(type => {
       if (type.id === 'consolidated') {
         return false; // Consolidated is ONLY for editor
+      }
+      if (type.id === 'map-view') {
+        return false; // Map View is ONLY for editor
       }
       return hasDashboardAccess(type.access);
     });
