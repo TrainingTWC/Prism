@@ -28,6 +28,37 @@ const CAMPUS_HIRING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbPYyW_
 // Cache for store mapping data
 let storeMappingCache: any[] | null = null;
 
+// ─── In-memory data cache (survives component unmount/remount) ───
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+const dataCache: Record<string, CacheEntry<any>> = {};
+
+function getCached<T>(key: string): T | null {
+  const entry = dataCache[key];
+  if (entry && Date.now() - entry.timestamp < CACHE_TTL_MS) {
+    console.log(`⚡ [Cache] Returning cached "${key}" (age: ${Math.round((Date.now() - entry.timestamp) / 1000)}s)`);
+    return entry.data;
+  }
+  return null;
+}
+
+function setCache<T>(key: string, data: T): void {
+  dataCache[key] = { data, timestamp: Date.now() };
+}
+
+export function clearDataCache(key?: string): void {
+  if (key) {
+    delete dataCache[key];
+  } else {
+    Object.keys(dataCache).forEach(k => delete dataCache[k]);
+  }
+}
+
 /**
  * Shared fetch utility with retry logic for Google Apps Script endpoints.
  * Chrome uses HTTP/3 (QUIC) for Google domains, which can fail with
@@ -502,7 +533,11 @@ const convertSheetsDataToSubmissions = async (sheetsData: any[]): Promise<Submis
   return results;
 };
 
-export const fetchSubmissions = async (): Promise<Submission[]> => {
+export const fetchSubmissions = async (forceRefresh = false): Promise<Submission[]> => {
+  if (!forceRefresh) {
+    const cached = getCached<Submission[]>('hr');
+    if (cached) return cached;
+  }
   try {
     const data = await fetchWithRetry(
       SHEETS_ENDPOINT + '?action=getData',
@@ -535,6 +570,7 @@ export const fetchSubmissions = async (): Promise<Submission[]> => {
     // Deduplicate submissions - keep only the latest submission per employee per day
     const deduplicatedSubmissions = deduplicateSubmissions(submissions);
 
+    setCache('hr', deduplicatedSubmissions);
     return deduplicatedSubmissions;
   } catch (error) {
     // Return mock data instead of empty array for demo purposes
@@ -650,7 +686,11 @@ const applyRegionMapping = async (dataArray: any[]): Promise<AMOperationsSubmiss
   return processedData as AMOperationsSubmission[];
 };
 
-export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]> => {
+export const fetchAMOperationsData = async (forceRefresh = false): Promise<AMOperationsSubmission[]> => {
+  if (!forceRefresh) {
+    const cached = getCached<AMOperationsSubmission[]>('amOps');
+    if (cached) return cached;
+  }
   try {
     const data = await fetchWithRetry(
       AM_OPS_ENDPOINT + '?action=getData',
@@ -736,6 +776,7 @@ export const fetchAMOperationsData = async (): Promise<AMOperationsSubmission[]>
     console.log('Processed data length:', processedData.length);
     console.log('Processed data sample:', processedData[0]);
 
+    setCache('amOps', processedData);
     return processedData;
 
   } catch (error) {
@@ -883,7 +924,11 @@ function recalculateTrainingScore(submission: any): { totalScore: string; maxSco
 }
 
 // Fetch Training Audit data
-export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> => {
+export const fetchTrainingData = async (forceRefresh = false): Promise<TrainingAuditSubmission[]> => {
+  if (!forceRefresh) {
+    const cached = getCached<TrainingAuditSubmission[]>('training');
+    if (cached) return cached;
+  }
   try {
     const data = await fetchWithRetry(
       TRAINING_AUDIT_ENDPOINT + '?action=getData',
@@ -966,6 +1011,7 @@ export const fetchTrainingData = async (): Promise<TrainingAuditSubmission[]> =>
     });
 
     console.log(`✅ [Training] Done! Returning ${processedData.length} processed records`);
+    setCache('training', processedData);
     return processedData as TrainingAuditSubmission[];
 
   } catch (error) {
@@ -992,7 +1038,11 @@ export interface QASubmission {
 }
 
 // Fetch QA Assessment data
-export const fetchQAData = async (): Promise<QASubmission[]> => {
+export const fetchQAData = async (forceRefresh = false): Promise<QASubmission[]> => {
+  if (!forceRefresh) {
+    const cached = getCached<QASubmission[]>('qa');
+    if (cached) return cached;
+  }
   try {
     const data = await fetchWithRetry(
       QA_ENDPOINT + '?action=getData',
@@ -1042,6 +1092,7 @@ export const fetchQAData = async (): Promise<QASubmission[]> => {
       };
     });
 
+    setCache('qa', processedData);
     return processedData as QASubmission[];
 
   } catch (error) {
@@ -1244,7 +1295,11 @@ export interface FinanceSubmission {
 }
 
 // Fetch Finance Audit data
-export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
+export const fetchFinanceData = async (forceRefresh = false): Promise<FinanceSubmission[]> => {
+  if (!forceRefresh) {
+    const cached = getCached<FinanceSubmission[]>('finance');
+    if (cached) return cached;
+  }
   try {
     let data = await fetchWithRetry(
       FINANCE_ENDPOINT + '?action=getData',
@@ -1358,6 +1413,7 @@ export const fetchFinanceData = async (): Promise<FinanceSubmission[]> => {
       };
     });
 
+    setCache('finance', processedData);
     return processedData as FinanceSubmission[];
 
   } catch (error) {
@@ -1388,7 +1444,11 @@ export interface CampusHiringSubmission {
 }
 
 // Fetch Campus Hiring data
-export const fetchCampusHiringData = async (): Promise<CampusHiringSubmission[]> => {
+export const fetchCampusHiringData = async (forceRefresh = false): Promise<CampusHiringSubmission[]> => {
+  if (!forceRefresh) {
+    const cached = getCached<CampusHiringSubmission[]>('campusHiring');
+    if (cached) return cached;
+  }
   try {
     const data = await fetchWithRetry(
       CAMPUS_HIRING_ENDPOINT + '?action=getData',
@@ -1428,6 +1488,7 @@ export const fetchCampusHiringData = async (): Promise<CampusHiringSubmission[]>
       };
     });
 
+    setCache('campusHiring', processedData);
     return processedData;
 
   } catch (error) {
@@ -1444,7 +1505,11 @@ export interface FinanceHistoricData {
 }
 
 // Fetch Finance Historic Data
-export const fetchFinanceHistoricData = async (): Promise<FinanceHistoricData[]> => {
+export const fetchFinanceHistoricData = async (forceRefresh = false): Promise<FinanceHistoricData[]> => {
+  if (!forceRefresh) {
+    const cached = getCached<FinanceHistoricData[]>('financeHistoric');
+    if (cached) return cached;
+  }
   try {
     // Return empty array if endpoint not configured
     if (!FINANCE_HISTORIC_ENDPOINT || FINANCE_HISTORIC_ENDPOINT === 'YOUR_HISTORIC_ENDPOINT_URL_HERE') {
@@ -1459,6 +1524,7 @@ export const fetchFinanceHistoricData = async (): Promise<FinanceHistoricData[]>
 
     const data = result?.data || [];
     if (!Array.isArray(data)) return [];
+    setCache('financeHistoric', data);
     return data;
 
   } catch (error) {

@@ -65,7 +65,17 @@ export interface SHLPSubmission {
 
 const SHLP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwhWnGIS-ky5zl2xOdPgrnxuuN7drOKVtt8ZxCnLneM-7sZZUsj1CiK04p7tDodmBZ9pg/exec';
 
-export const fetchSHLPData = async (): Promise<SHLPSubmission[]> => {
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+let shlpCache: { data: SHLPSubmission[]; timestamp: number } | null = null;
+
+export const clearSHLPCache = () => { shlpCache = null; };
+
+export const fetchSHLPData = async (forceRefresh = false): Promise<SHLPSubmission[]> => {
+  if (!forceRefresh && shlpCache && (Date.now() - shlpCache.timestamp < CACHE_TTL)) {
+    console.log('📦 [SHLP] Returning cached data');
+    return shlpCache.data;
+  }
+
   try {
 
     const response = await fetch(`${SHLP_ENDPOINT}?action=getSHLPData`);
@@ -77,6 +87,7 @@ export const fetchSHLPData = async (): Promise<SHLPSubmission[]> => {
     const result = await response.json();
 
     if (result.result === 'success' && Array.isArray(result.data)) {
+      shlpCache = { data: result.data, timestamp: Date.now() };
       return result.data;
     } else {
       console.warn('⚠️ Unexpected SHLP API response structure:', result);

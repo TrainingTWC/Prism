@@ -644,7 +644,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       // Load HR survey data ONLY if currently viewing HR dashboard, consolidated view, or map view
       if ((targetDashboard === 'hr' || targetDashboard === 'map-view' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.hr || isRefresh)) {
         loadPromises.push(
-          fetchSubmissions().then(data => {
+          fetchSubmissions(isRefresh).then(data => {
             setSubmissions(data);
             setDataLoadedFlags(prev => ({ ...prev, hr: true }));
 
@@ -690,7 +690,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       // Load AM Operations data ONLY if currently viewing Operations dashboard, consolidated view, or map view
       if ((targetDashboard === 'operations' || targetDashboard === 'map-view' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.operations || isRefresh)) {
         loadPromises.push(
-          fetchAMOperationsData().then(data => {
+          fetchAMOperationsData(isRefresh).then(data => {
             setAMOperationsData(data);
             setDataLoadedFlags(prev => ({ ...prev, operations: true }));
           }).catch(err => {
@@ -703,7 +703,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       // Load Training Audit data ONLY if currently viewing Training dashboard, consolidated view, or map view
       if ((targetDashboard === 'training' || targetDashboard === 'map-view' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.training || isRefresh)) {
         loadPromises.push(
-          fetchTrainingData().then(data => {
+          fetchTrainingData(isRefresh).then(data => {
             setTrainingData(data);
             setDataLoadedFlags(prev => ({ ...prev, training: true }));
           }).catch(err => {
@@ -716,7 +716,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       // Load QA Assessment data ONLY if currently viewing QA dashboard, consolidated view, or map view
       if ((targetDashboard === 'qa' || targetDashboard === 'map-view' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.qa || isRefresh)) {
         loadPromises.push(
-          fetchQAData().then(data => {
+          fetchQAData(isRefresh).then(data => {
             setQAData(data);
             setDataLoadedFlags(prev => ({ ...prev, qa: true }));
           }).catch(err => {
@@ -729,7 +729,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       // Load Finance Audit data ONLY if currently viewing Finance dashboard, consolidated view, or map view
       if ((targetDashboard === 'finance' || targetDashboard === 'map-view' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.finance || isRefresh)) {
         loadPromises.push(
-          fetchFinanceData().then(data => {
+          fetchFinanceData(isRefresh).then(data => {
             setFinanceData(data);
             setDataLoadedFlags(prev => ({ ...prev, finance: true }));
           }).catch(err => {
@@ -740,7 +740,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         
         // Also load historic data for finance dashboard
         loadPromises.push(
-          fetchFinanceHistoricData().then(data => {
+          fetchFinanceHistoricData(isRefresh).then(data => {
             setFinanceHistoricData(data);
           }).catch(err => {
             console.error('❌ Failed to load Finance historic data:', err);
@@ -751,7 +751,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       // Load Campus Hiring data if viewing campus hiring dashboard or admin consolidated view
       if ((targetDashboard === 'campus-hiring' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.campusHiring || isRefresh)) {
         loadPromises.push(
-          fetchCampusHiringData().then(data => {
+          fetchCampusHiringData(isRefresh).then(data => {
             setCampusHiringData(data);
             setDataLoadedFlags(prev => ({ ...prev, campusHiring: true }));
           }).catch(err => {
@@ -764,7 +764,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       // Load SHLP data ONLY if currently viewing SHLP dashboard, consolidated view, or map view
       if ((targetDashboard === 'shlp' || targetDashboard === 'map-view' || (targetDashboard === 'consolidated' && isAdmin)) && (!dataLoadedFlags.shlp || isRefresh)) {
         loadPromises.push(
-          fetchSHLPData().then(data => {
+          fetchSHLPData(isRefresh).then(data => {
             setSHLPData(data);
             setDataLoadedFlags(prev => ({ ...prev, shlp: true }));
           }).catch(err => {
