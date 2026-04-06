@@ -55,6 +55,8 @@ function doGet(e) {
     Logger.log('doGet action=' + action);
 
     switch (action) {
+      case 'getData':
+        return getQAData(params);
       case 'getAMReviews':
         return getAMReviews(params);
       case 'getCAPAs':
@@ -439,6 +441,101 @@ function autoCreateFollowUps(params, qaTimestamp) {
 // ===========================
 // READ OPERATIONS
 // ===========================
+
+/**
+ * Return all QA audit rows from the "QA" sheet as JSON array.
+ * Called by the QA Dashboard via ?action=getData
+ */
+function getQAData(params) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('QA');
+  if (!sheet) return json([]);
+
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return json([]);
+
+  var headers = data[0];
+  var records = [];
+
+  // Explicit mapping for metadata columns to match frontend QASubmission interface
+  var fieldMap = {
+    'Timestamp': 'timestamp',
+    'Submission Time': 'submissionTime',
+    'QA Auditor Name': 'qaName',
+    'QA Auditor ID': 'qaId',
+    'AM Name': 'amName',
+    'AM ID': 'amId',
+    'Store Name': 'storeName',
+    'Store ID': 'storeId',
+    'City': 'city',
+    'Region': 'region',
+    'Total Score': 'totalScore',
+    'Max Score': 'maxScore',
+    'Score %': 'scorePercentage',
+    'Auditor Signature': 'auditorSignature',
+    'SM Signature': 'smSignature',
+    'Remarks JSON': 'questionRemarksJSON',
+    'Images JSON': 'questionImagesJSON'
+  };
+
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var rec = {};
+
+    // Map metadata columns using explicit field names
+    for (var j = 0; j < headers.length; j++) {
+      var key = fieldMap[headers[j]] || toCamelCase(headers[j]);
+      var val = row[j];
+      if (val instanceof Date) {
+        val = Utilities.formatDate(val, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+      }
+      rec[key] = val !== undefined && val !== null ? String(val) : '';
+    }
+
+    // Add question responses using the frontend's expected section_question keys
+    // Column indices based on qaHeaders(): metadata = 0-14, questions start at 15
+    var colIdx = 15;
+    // ZeroTolerance: ZT_1..ZT_6
+    for (var q = 1; q <= 6; q++) {
+      if (colIdx < headers.length) {
+        rec['ZeroTolerance_ZT_' + q] = row[colIdx] !== undefined ? String(row[colIdx]) : '';
+        colIdx++;
+      }
+    }
+    // Store: S_1..S_94
+    for (var q = 1; q <= 94; q++) {
+      if (colIdx < headers.length) {
+        rec['Store_S_' + q] = row[colIdx] !== undefined ? String(row[colIdx]) : '';
+        colIdx++;
+      }
+    }
+    // QA: A_1..A_3
+    for (var q = 1; q <= 3; q++) {
+      if (colIdx < headers.length) {
+        rec['A_A_' + q] = row[colIdx] !== undefined ? String(row[colIdx]) : '';
+        colIdx++;
+      }
+    }
+    // Maintenance: M_1..M_11
+    for (var q = 1; q <= 11; q++) {
+      if (colIdx < headers.length) {
+        rec['Maintenance_M_' + q] = row[colIdx] !== undefined ? String(row[colIdx]) : '';
+        colIdx++;
+      }
+    }
+    // HR: HR_1..HR_2
+    for (var q = 1; q <= 2; q++) {
+      if (colIdx < headers.length) {
+        rec['HR_HR_' + q] = row[colIdx] !== undefined ? String(row[colIdx]) : '';
+        colIdx++;
+      }
+    }
+
+    records.push(rec);
+  }
+
+  Logger.log('getQAData returning ' + records.length + ' records');
+  return json(records);
+}
 
 function getAMReviews(params) {
   var amId = upper(params.amId);
