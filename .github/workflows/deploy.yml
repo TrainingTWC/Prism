@@ -41,6 +41,9 @@ jobs:
           VITE_TRAINER_CALENDAR_SCRIPT_URL: ${{ secrets.VITE_TRAINER_CALENDAR_SCRIPT_URL }}
           VITE_EMPLOYEE_DIRECTORY_URL: ${{ secrets.VITE_EMPLOYEE_DIRECTORY_URL }}
           VITE_STORE_MAPPING_SCRIPT_URL: ${{ secrets.VITE_STORE_MAPPING_SCRIPT_URL }}
+          VITE_QA_SCRIPT_URL: ${{ secrets.VITE_QA_SCRIPT_URL }}
+          VITE_VENDOR_AUDIT_SCRIPT_URL: ${{ secrets.VITE_VENDOR_AUDIT_SCRIPT_URL }}
+          VITE_QA_CAPA_SCRIPT_URL: ${{ secrets.VITE_QA_CAPA_SCRIPT_URL }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

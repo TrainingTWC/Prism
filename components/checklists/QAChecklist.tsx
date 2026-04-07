@@ -9,7 +9,7 @@ import { useComprehensiveMapping, useAreaManagers, useStoreDetails } from '../..
 import ImageEditor from '../ImageEditor';
 import { buildQAPDF } from '../../src/utils/qaReport';
 // Unified QA endpoint — handles QA submission, AM Follow-Up, and CAPA creation in one call
-const QA_ENDPOINT = import.meta.env.VITE_QA_SCRIPT_URL || '';
+const QA_ENDPOINT = import.meta.env.VITE_QA_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbxVpSB9TBa6UKjZlaT4wUumDNZ0xNmfH0yg6zTZkcp-SyGzyO9q1BaU1X4vuWSpoF1FgA/exec';
 
 interface SurveyResponse {
   [key: string]: string;
@@ -443,12 +443,16 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         metaJSON: JSON.stringify(meta)
       });
 
-      await fetch(QA_ENDPOINT, {
+      const draftResponse = await fetch(QA_ENDPOINT, {
         method: 'POST',
-        mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString()
+        body: params.toString(),
+        redirect: 'follow'
       });
+      const draftResult = await draftResponse.json();
+      if (!draftResult.success) {
+        throw new Error(draftResult.message || 'Failed to save draft');
+      }
 
       // Update local draft list
       const draftMetadata: DraftMetadata = {
@@ -528,12 +532,16 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         draftId: draftId
       });
 
-      await fetch(QA_ENDPOINT, {
+      const delResponse = await fetch(QA_ENDPOINT, {
         method: 'POST',
-        mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString()
+        body: params.toString(),
+        redirect: 'follow'
       });
+      const delResult = await delResponse.json();
+      if (!delResult.success) {
+        throw new Error(delResult.message || 'Failed to delete draft');
+      }
 
       // Remove from local draft list
       const updatedDrafts = drafts.filter(d => d.id !== draftId);
@@ -643,6 +651,11 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       });
 
       alert(`Please answer all questions. You have answered ${answeredQuestions} out of ${totalQuestions} questions. Scrolling to the first missed question.`);
+      return;
+    }
+
+    if (!QA_ENDPOINT) {
+      alert('QA submission endpoint is not configured. Please contact the administrator.');
       return;
     }
 
@@ -767,62 +780,68 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       console.log(`📦 Payload size: ${(bodyString.length / 1024).toFixed(1)}KB`);
 
       // Submit to Google Apps Script.
-      // With mode: 'no-cors', the browser sends the data but gets an opaque response
-      // (status 0). We can't tell success from failure by response alone.
-      // Strategy:
-      // - 90s timeout (large payloads + slow Google servers)
-      // - Retry only on genuine network errors (not timeouts, since timeouts likely
-      //   mean the server received the data but is slow to respond)
-      // - Log payload size for debugging
+      // GAS web apps deployed as "Anyone" support CORS for simple POST requests.
+      // We use default CORS mode so we can read the actual JSON response and verify success.
       const SUBMIT_TIMEOUT = 90000; // 90 seconds
-      const MAX_NETWORK_RETRIES = 2; // retry up to 2 times on network errors only
-      let networkRetryCount = 0;
+      const MAX_RETRIES = 2;
+      let retryCount = 0;
       let submitted = false;
+      let lastError = '';
 
-      while (!submitted) {
+      while (!submitted && retryCount <= MAX_RETRIES) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), SUBMIT_TIMEOUT);
+
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), SUBMIT_TIMEOUT);
-
-          console.log(`📤 Submitting QA checklist (attempt ${networkRetryCount + 1})... Payload: ${(bodyString.length / 1024).toFixed(1)}KB`);
+          console.log(`📤 Submitting QA checklist (attempt ${retryCount + 1})... Payload: ${(bodyString.length / 1024).toFixed(1)}KB`);
 
           const response = await fetch(QA_ENDPOINT, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: bodyString,
-            mode: 'no-cors',
+            redirect: 'follow',
             signal: controller.signal
           });
 
           clearTimeout(timeoutId);
 
-          // With no-cors, reaching here means the request was sent successfully.
-          console.log('✅ QA checklist submitted successfully (opaque response received)');
-          submitted = true;
+          // Read actual response from GAS
+          const result = await response.json();
+          console.log('📨 GAS response:', result);
 
-        } catch (err: any) {
-          if (err.name === 'AbortError') {
-            // Timeout — data may or may not have reached the server.
-            // Do NOT retry (would risk duplicate rows). Treat as likely success.
-            console.warn('⏱️ Request timed out after 90s. Data was likely received by the server.');
-            submitted = true; // proceed — don't retry
+          if (result.success) {
+            console.log('✅ QA checklist submitted successfully');
+            submitted = true;
           } else {
-            // Genuine network error (offline, DNS failure, CORS block, etc.)
-            networkRetryCount++;
-            console.error(`❌ Network error (attempt ${networkRetryCount}):`, err.message);
+            lastError = result.message || result.error || 'Unknown server error';
+            console.error('❌ GAS returned error:', lastError);
+            retryCount++;
+          }
+        } catch (err: any) {
+          clearTimeout(timeoutId);
 
-            if (networkRetryCount <= MAX_NETWORK_RETRIES) {
-              const delayMs = networkRetryCount * 3000; // 3s, 6s
+          if (err.name === 'AbortError') {
+            console.warn('⏱️ Request timed out after 90s. Data may have been received.');
+            // Timeout likely means GAS processed it but was slow responding — treat as success
+            submitted = true;
+          } else {
+            retryCount++;
+            lastError = err.message || 'Network error';
+            console.error(`❌ Fetch error (attempt ${retryCount}):`, lastError);
+
+            if (retryCount <= MAX_RETRIES) {
+              const delayMs = retryCount * 3000;
               console.log(`⏳ Retrying in ${delayMs / 1000}s...`);
               await new Promise(resolve => setTimeout(resolve, delayMs));
-            } else {
-              alert('Failed to submit. Please check your internet connection and try again.');
-              throw new Error('Submission failed after network retries: ' + err.message);
             }
           }
         }
+      }
+
+      if (!submitted) {
+        alert('Failed to submit QA audit: ' + lastError + '\nPlease check your internet connection and try again.');
+        setIsLoading(false);
+        return;
       }
 
       // AM Follow-Up + CAPA are now created server-side by the unified GAS script
