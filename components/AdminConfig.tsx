@@ -1615,7 +1615,7 @@ const StoreHealthExport: React.FC<{ config: any; setJson: (s: string) => void; s
   // Fetch training audit submissions from Google Sheets
   const fetchTrainingAudits = async () => {
     try {
-      const url = 'https://script.google.com/macros/s/AKfycbwBksiEJQDbM-xM0gJt89Zcr2FRYeAYDcEsebdIgNL2SP4yDdUWJjm9wO5QqrwI4JLreQ/exec';
+      const url = 'https://script.google.com/macros/s/AKfycbxyjUsQItpMVUuzCDaYAT-sNyh7p--5bMnSHCyS2xWGE-StHAmVG9WV75kr4N1wM4reHw/exec';
       console.log('📡 Fetching Training Audit submissions...');
       const response = await fetch(url);
       const data = await response.json();
