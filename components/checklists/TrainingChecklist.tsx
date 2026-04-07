@@ -275,6 +275,20 @@ const SECTIONS = [
   }
 ];
 
+// Zero Tolerance: If any of these items are marked "No", the entire audit score becomes 0%
+const ZERO_TOLERANCE_ITEMS = [
+  // Coffee Dial-In
+  { sectionId: 'TrainingMaterials', itemId: 'TM_5', label: 'Coffee Dial-In (Dial-in One-pager visible)' },
+  // New Joiner Training & Records — all items
+  { sectionId: 'NewJoiner', itemId: 'NJ_1', label: 'New Joiner Training (OJT book available)' },
+  { sectionId: 'NewJoiner', itemId: 'NJ_2', label: 'New Joiner Training (Trainees completing skill checks)' },
+  { sectionId: 'NewJoiner', itemId: 'NJ_3', label: 'New Joiner Training (Training progression aligned)' },
+  { sectionId: 'NewJoiner', itemId: 'NJ_4', label: 'New Joiner Training (Post-barista progressions awareness)' },
+  { sectionId: 'NewJoiner', itemId: 'NJ_5', label: 'New Joiner Training (SHLP training completed)' },
+  { sectionId: 'NewJoiner', itemId: 'NJ_6', label: 'New Joiner Training (FOSTAC-certified managers)' },
+  { sectionId: 'NewJoiner', itemId: 'NJ_7', label: 'New Joiner Training (ASM/SM training completed)' },
+];
+
 interface TrainingChecklistProps {
   userRole?: any;
   onStatsUpdate?: (stats: { completed: number; total: number; score: number }) => void;
@@ -583,6 +597,21 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
           });
         }
       });
+
+      // Zero Tolerance check: if any ZT item is "no"/"No", entire score is 0
+      const failedZTItems: string[] = [];
+      ZERO_TOLERANCE_ITEMS.forEach(({ sectionId, itemId, label }) => {
+        const resp = responses[`${sectionId}_${itemId}`];
+        if (resp === 'no' || resp === 'No') {
+          failedZTItems.push(label);
+        }
+      });
+      setZeroToleranceFailed(failedZTItems.length > 0);
+      setZeroToleranceFailedItems(failedZTItems);
+
+      if (failedZTItems.length > 0) {
+        totalScore = 0;
+      }
 
       const scorePercentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
       onStatsUpdate({ completed, total, score: scorePercentage });
@@ -992,6 +1021,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [zeroToleranceFailed, setZeroToleranceFailed] = useState(false);
+  const [zeroToleranceFailedItems, setZeroToleranceFailedItems] = useState<string[]>([]);
   const [tsaExpanded, setTsaExpanded] = useState(false);
   const [tsaCoffeeExpanded, setTsaCoffeeExpanded] = useState(false);
   const [tsaCXExpanded, setTsaCXExpanded] = useState(false);
@@ -1947,7 +1978,22 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         maxScore += sectionMax;
       });
 
-      const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+      // Zero Tolerance check: if any ZT item is "no", entire score is 0
+      let ztFailed = false;
+      const failedZTLabels: string[] = [];
+      ZERO_TOLERANCE_ITEMS.forEach(({ sectionId, itemId, label }) => {
+        const resp = responses[`${sectionId}_${itemId}`];
+        if (resp === 'no' || resp === 'No') {
+          ztFailed = true;
+          failedZTLabels.push(label);
+        }
+      });
+
+      if (ztFailed) {
+        totalScore = 0;
+      }
+
+      const percentage = ztFailed ? 0 : (maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0);
 
       // For dashboards, we want the designated (store-mapped) trainer, not the auditor.
       const dashboardTrainerName = meta.mappedTrainerName || meta.trainerName;
@@ -1977,6 +2023,9 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         maxScore: maxScore.toString(),
         percentage: percentage.toString(),
         type: 'Training',
+        // Zero Tolerance
+        zeroToleranceFailed: ztFailed ? 'Yes' : 'No',
+        zeroToleranceFailedItems: failedZTLabels.join('; '),
         // TSA individual scores (0/5/10 based on percentage)
         TSA_Food_Score: calculateTSAFoodScore().toString(),
         TSA_Coffee_Score: calculateTSACoffeeScore().toString(),
@@ -2278,6 +2327,28 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
               Comprehensive training assessment for trainers.
             </p>
           </div>
+
+          {/* Zero Tolerance Warning Banner */}
+          {zeroToleranceFailed && (
+            <div className="bg-red-50 dark:bg-red-900/30 border-b-2 border-red-400 dark:border-red-600 p-3 sm:p-4">
+              <div className="flex items-start gap-2">
+                <span className="text-red-600 dark:text-red-400 text-lg shrink-0">🚨</span>
+                <div>
+                  <h3 className="text-sm font-bold text-red-800 dark:text-red-300">
+                    ZERO TOLERANCE TRIGGERED — Score: 0%
+                  </h3>
+                  <p className="text-xs text-red-700 dark:text-red-400 mt-1">
+                    The following critical items are marked "No", resulting in the entire audit being scored zero:
+                  </p>
+                  <ul className="text-xs text-red-700 dark:text-red-400 mt-1 list-disc list-inside">
+                    {zeroToleranceFailedItems.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Meta Information Form - Full Width */}
           <div id="audit-information" className="bg-gray-50 dark:bg-slate-900 p-3 sm:p-4 border-b border-gray-200 dark:border-slate-700">
@@ -3503,15 +3574,23 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                     </h3>
 
                     <div className="space-y-2 sm:space-y-3">
-                      {section.items.map((item, itemIndex) => (
-                        <div key={item.id} className="p-3 sm:p-4 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                      {section.items.map((item, itemIndex) => {
+                        const isZT = ZERO_TOLERANCE_ITEMS.some(zt => zt.sectionId === section.id && zt.itemId === item.id);
+                        const ztTriggered = isZT && (responses[`${section.id}_${item.id}`] === 'no' || responses[`${section.id}_${item.id}`] === 'No');
+                        return (
+                        <div key={item.id} className={`p-3 sm:p-4 border rounded-lg transition-colors ${ztTriggered ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/20' : isZT ? 'border-amber-300 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-900/10' : 'border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/50'}`}>
                           <div className="flex items-start gap-2 sm:gap-3">
-                            <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
+                            <span className={`inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full text-xs font-medium flex-shrink-0 mt-0.5 ${ztTriggered ? 'bg-red-200 dark:bg-red-900/50 text-red-800 dark:text-red-300' : isZT ? 'bg-amber-200 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300' : 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300'}`}>
                               {itemIndex + 1}
                             </span>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-2 sm:mb-3">
                                 {item.q}
+                                {isZT && (
+                                  <span className={`ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${ztTriggered ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200' : 'bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200'}`}>
+                                    🚨 ZERO TOLERANCE
+                                  </span>
+                                )}
                               </p>
                               <div className="flex flex-wrap gap-2 sm:gap-4">
                                 {['yes', 'no', 'na'].map(option => (
@@ -3531,7 +3610,8 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                             </div>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {/* Section Remarks */}

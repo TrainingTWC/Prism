@@ -161,7 +161,8 @@ function doPost(e) {
       'TSA_Food_remarks', 'TSA_Coffee_remarks', 'TSA_CX_remarks',
       
       // NEW COLUMNS ADDED AFTER EXISTING DATA
-      'Auditor Name', 'Auditor ID', 'Section Images'
+      'Auditor Name', 'Auditor ID', 'Section Images',
+      'Zero Tolerance Failed', 'Zero Tolerance Items'
     ];
 
     // Ensure header row exists
@@ -239,7 +240,11 @@ function doPost(e) {
       // Section Images (stored as JSON string, truncated to stay within Sheets 50k char cell limit)
       (params.sectionImages || '').length > 49999 
         ? (params.sectionImages || '').substring(0, 49999) 
-        : (params.sectionImages || '')
+        : (params.sectionImages || ''),
+      
+      // Zero Tolerance tracking
+      params.zeroToleranceFailed || 'No',
+      params.zeroToleranceFailedItems || ''
     ];
 
     sheet.appendRow(row);
@@ -303,7 +308,7 @@ function getTrainingChecklistData(source) {
       return ContentService
         .createTextOutput(JSON.stringify([]))
         .setMimeType(ContentService.MimeType.JSON);
-    }
+    }``
     
     var lastRow = sheet.getLastRow();
     if (lastRow <= 1) {
