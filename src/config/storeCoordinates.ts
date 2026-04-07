@@ -61,7 +61,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S082': { lat: 17.433349, lng: 78.382206, name: 'Salarpuria Sattva' },
   'S091': { lat: 12.959843, lng: 77.747427, name: 'Nexus Mall, Whitefield' },
   'S092': { lat: 13.041517, lng: 77.619525, name: 'Manyata Embassy NXT' },
-  'S094': { lat: 12.888883, lng: 77.562913, name: 'Forum South Bangalore' },
+  'S094': { lat: 12.888105, lng: 77.563196, name: 'Forum South Bangalore' },
   'S095': { lat: 12.891707, lng: 77.583905, name: 'JP Nagar 7th Phase' },
   'S114': { lat: 13.200182, lng: 77.708414, name: 'BIAL T1 Kiosk' },
   'S115': { lat: 12.98596, lng: 77.58756, name: 'Deloitte - Bangalore' },
