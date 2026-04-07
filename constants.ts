@@ -318,8 +318,11 @@ export const TRAINING_QUESTIONS: Question[] = [
   { id: 'TM_4', title: 'One-pager – Cold/Cue Cards displayed?', type: 'radio', choices: [
     {label: 'Yes', score: 1}, {label: 'No', score: 0}
   ]},
-  { id: 'TM_5', title: 'Dial-in One-pager visible?', type: 'radio', choices: [
-    {label: 'Yes', score: 2}, {label: 'No', score: 0}
+  { id: 'TM_5', title: 'Dial-in one pager available?', type: 'radio', choices: [
+    {label: 'Yes', score: 1}, {label: 'No', score: 0}
+  ]},
+  { id: 'TM_10', title: 'Dial-in done?', type: 'radio', choices: [
+    {label: 'Yes', score: 1}, {label: 'No', score: 0}
   ]},
   { id: 'TM_6', title: 'New-launch learning material available?', type: 'radio', choices: [
     {label: 'Yes', score: 1}, {label: 'No', score: 0}

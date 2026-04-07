@@ -144,8 +144,23 @@ async function loadImage(url: string): Promise<string> {
   });
 }
 
+// Zero Tolerance item IDs — if any of these are answered "No", entire audit score = 0%
+const ZERO_TOLERANCE_IDS = ['TM_5', 'TM_10', 'NJ_1', 'NJ_2', 'NJ_3', 'NJ_4', 'NJ_5', 'NJ_6', 'NJ_7'];
+
 // Compute overall total and max from submission using TRAINING_QUESTIONS
 function computeOverall(submission: any): { total: number; max: number; pct: number } {
+  // Check zero tolerance: if stored flag exists OR any ZT item answered "No"
+  let ztFailed = String(submission.zeroToleranceFailed || '').toLowerCase() === 'yes';
+  if (!ztFailed) {
+    for (const ztId of ZERO_TOLERANCE_IDS) {
+      const val = resolveSubmissionValue(submission, ztId);
+      if (String(val || '').toLowerCase() === 'no') {
+        ztFailed = true;
+        break;
+      }
+    }
+  }
+
   let total = 0;
   let max = 0;
   for (const q of TRAINING_QUESTIONS) {
@@ -192,6 +207,9 @@ function computeOverall(submission: any): { total: number; max: number; pct: num
 
     total += numeric;
     max += qMax;
+  }
+  if (ztFailed) {
+    total = 0;
   }
   const pct = max > 0 ? Math.round((total / max) * 100) : 0;
   return { total, max, pct };

@@ -162,7 +162,8 @@ function doPost(e) {
       
       // NEW COLUMNS ADDED AFTER EXISTING DATA
       'Auditor Name', 'Auditor ID', 'Section Images',
-      'Zero Tolerance Failed', 'Zero Tolerance Items'
+      'Zero Tolerance Failed', 'Zero Tolerance Items',
+      'TM_10'
     ];
 
     // Ensure header row exists
@@ -244,7 +245,10 @@ function doPost(e) {
       
       // Zero Tolerance tracking
       params.zeroToleranceFailed || 'No',
-      params.zeroToleranceFailedItems || ''
+      params.zeroToleranceFailedItems || '',
+      
+      // TM_10 (Dial-in done) - appended to preserve column order
+      params.TM_10 || ''
     ];
 
     sheet.appendRow(row);
@@ -321,7 +325,7 @@ function getTrainingChecklistData(source) {
     // PERFORMANCE: Read only the columns we need (skip Section Images column at the end)
     // Columns A through BW (75 columns) — excludes the last "Section Images" column
     var lastCol = sheet.getLastColumn();
-    var dataColCount = Math.min(lastCol, 75); // 75 = everything before sectionImages
+    var dataColCount = Math.min(lastCol, 80); // 80 = includes auditor, sectionImages, ZT, and TM_10
     var data = sheet.getRange(1, 1, lastRow, dataColCount).getValues();
     
     console.log('Sheet: ' + sheet.getName() + ', Rows: ' + data.length + ', Cols read: ' + dataColCount + ' (of ' + lastCol + ')');
@@ -435,7 +439,13 @@ function getTrainingChecklistData(source) {
       obj.auditorName = (colIndex < dataColCount) ? (row[colIndex++] || '') : '';
       obj.auditorId = (colIndex < dataColCount) ? (row[colIndex++] || '') : '';
       
-      // sectionImages intentionally excluded for dashboard performance
+      // Read sectionImages column (skip it for performance) then Zero Tolerance columns
+      if (colIndex < dataColCount) colIndex++; // skip sectionImages
+      obj.zeroToleranceFailed = (colIndex < dataColCount) ? (row[colIndex++] || '') : '';
+      obj.zeroToleranceFailedItems = (colIndex < dataColCount) ? (row[colIndex++] || '') : '';
+      
+      // TM_10 (Dial-in done) - appended column
+      obj.TM_10 = (colIndex < dataColCount) ? (row[colIndex++] || '') : '';
       
       return obj;
     });

@@ -59,7 +59,8 @@ const SECTIONS = [
       { id: 'TM_2', q: 'BRM available at store?', w: 1 },
       { id: 'TM_3', q: 'One-pager – Hot/Cue Cards displayed?', w: 1 },
       { id: 'TM_4', q: 'One-pager – Cold/Cue Cards displayed?', w: 1 },
-      { id: 'TM_5', q: 'Dial-in One-pager visible?', w: 2 },
+      { id: 'TM_5', q: 'Dial-in one pager available?', w: 1 },
+      { id: 'TM_10', q: 'Dial-in done?', w: 1 },
       { id: 'TM_6', q: 'New-launch learning material available?', w: 1 },
       { id: 'TM_7', q: 'COFFEE & HD Playbook in store?', w: 1 },
       { id: 'TM_8', q: 'MSDS, chemical chart and Shelf life chart available?', w: 1 },
@@ -278,7 +279,8 @@ const SECTIONS = [
 // Zero Tolerance: If any of these items are marked "No", the entire audit score becomes 0%
 const ZERO_TOLERANCE_ITEMS = [
   // Coffee Dial-In
-  { sectionId: 'TrainingMaterials', itemId: 'TM_5', label: 'Coffee Dial-In (Dial-in One-pager visible)' },
+  { sectionId: 'TrainingMaterials', itemId: 'TM_5', label: 'Coffee Dial-In (Dial-in one pager available)' },
+  { sectionId: 'TrainingMaterials', itemId: 'TM_10', label: 'Coffee Dial-In (Dial-in done)' },
   // New Joiner Training & Records — all items
   { sectionId: 'NewJoiner', itemId: 'NJ_1', label: 'New Joiner Training (OJT book available)' },
   { sectionId: 'NewJoiner', itemId: 'NJ_2', label: 'New Joiner Training (Trainees completing skill checks)' },
