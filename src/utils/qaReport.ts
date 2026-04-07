@@ -497,11 +497,15 @@ export const buildQAPDF = async (
       }
 
       // Get per-question remark
+      // Keys in questionRemarksJSON use full format: ZeroTolerance_ZT_1, Store_S_1, etc.
+      const fullRemarkKey = `${section.id}_${item.id}_remark`;
       const questionRemarkKey = `${section.id}_${questionId}_remark`;
       const altRemarkKey = `${prefix}_${questionId}_remark`;
       let questionRemark = '';
       
-      if (sub[questionRemarkKey]) {
+      if (sub[fullRemarkKey]) {
+        questionRemark = String(sub[fullRemarkKey]).trim();
+      } else if (sub[questionRemarkKey]) {
         questionRemark = String(sub[questionRemarkKey]).trim();
       } else if (sub[altRemarkKey]) {
         questionRemark = String(sub[altRemarkKey]).trim();

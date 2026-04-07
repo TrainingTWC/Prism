@@ -67,6 +67,13 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   });
 
   const [questionImages, setQuestionImages] = useState<Record<string, string[]>>(() => {
+    if (editMode && existingSubmission) {
+      // Parse from questionImagesJSON if available
+      if (existingSubmission.questionImagesJSON) {
+        try { return JSON.parse(existingSubmission.questionImagesJSON); } catch (e) { /* fall through */ }
+      }
+      return {};
+    }
     try {
       return JSON.parse(localStorage.getItem('qa_images') || '{}');
     } catch (e) {
@@ -75,6 +82,13 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   });
 
   const [questionRemarks, setQuestionRemarks] = useState<Record<string, string>>(() => {
+    if (editMode && existingSubmission) {
+      // Parse from questionRemarksJSON if available
+      if (existingSubmission.questionRemarksJSON) {
+        try { return JSON.parse(existingSubmission.questionRemarksJSON); } catch (e) { /* fall through */ }
+      }
+      return {};
+    }
     try {
       return JSON.parse(localStorage.getItem('qa_remarks') || '{}');
     } catch (e) {
@@ -496,13 +510,19 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       const response = await fetch(`${QA_ENDPOINT}?action=loadDraft&draftId=${encodeURIComponent(draftId)}`);
       const data = await response.json();
 
-      if (data.success && data.data?.draft) {
-        const draft = data.data.draft;
-        setResponses(draft.responses || {});
-        setMeta(draft.meta || {});
-        setQuestionImages(draft.questionImages || {});
-        setQuestionRemarks(draft.questionRemarks || {});
-        setSignatures(draft.signatures || { auditor: '', sm: '' });
+      if (data.success && (data.draft || data.data?.draft)) {
+        const draft = data.draft || data.data.draft;
+        // GAS returns JSON strings — parse them
+        const responses = typeof draft.responsesJSON === 'string' ? JSON.parse(draft.responsesJSON) : (draft.responses || {});
+        const meta = typeof draft.metaJSON === 'string' ? JSON.parse(draft.metaJSON) : (draft.meta || {});
+        const images = typeof draft.questionImagesJSON === 'string' ? JSON.parse(draft.questionImagesJSON) : (draft.questionImages || {});
+        const remarks = typeof draft.questionRemarksJSON === 'string' ? JSON.parse(draft.questionRemarksJSON) : (draft.questionRemarks || {});
+        const sigs = typeof draft.signaturesJSON === 'string' ? JSON.parse(draft.signaturesJSON) : (draft.signatures || { auditor: '', sm: '' });
+        setResponses(responses);
+        setMeta(meta);
+        setQuestionImages(images);
+        setQuestionRemarks(remarks);
+        setSignatures(sigs);
         setCurrentDraftId(draftId);
         setShowDraftList(false);
         hapticFeedback.success();
