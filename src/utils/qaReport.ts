@@ -513,7 +513,7 @@ export const buildQAPDF = async (
 
       sections[section.id].rows.push({
         id: item.id,
-        questionId: `${section.id}_${questionId}`, // Add full question ID for image lookup
+        questionId: `${section.id}_${item.id}`, // Must match upload key format: section.id + '_' + item.id
         question: item.q,
         answer: display,
         score: numeric,
@@ -751,25 +751,28 @@ export const buildQAPDF = async (
       }
 
       // Render images for this question immediately below it
-      if (rowData.questionId) {
-        // Try multiple image key formats
+      if (rowData.questionId && Object.keys(questionImages).length > 0) {
+        // Primary key: matches upload format ${section.id}_${item.id}
         const imageKey = rowData.questionId;
         let images = questionImages[imageKey];
+        let matchedKey = images?.length ? imageKey : '';
         
         if (!images || images.length === 0) {
-          const altKey = imageKey.replace(/_([A-Z]+)_/, '_$1');
-          images = questionImages[altKey];
+          // Fallback: try with section title instead of id (handles QA section where id='A' but title='QA')
+          const titleKey = `${sec.title.replace(/\s+/g, '')}_${rowData.id}`;
+          images = questionImages[titleKey];
+          matchedKey = images?.length ? titleKey : '';
         }
         
         if (!images || images.length === 0) {
-          const parts = rowData.id.split('_');
-          if (parts.length >= 2) {
-            const sectionImageKey = `${sec.title.replace(/\s+/g, '')}_${rowData.id}`;
-            images = questionImages[sectionImageKey];
-          }
+          // Legacy fallback: try shortened key format
+          const shortKey = `${secKey}_${rowData.id.split('_').pop()}`;
+          images = questionImages[shortKey];
+          matchedKey = images?.length ? shortKey : '';
         }
-        
+
         if (images && images.length > 0) {
+          console.log(`📸 Found ${images.length} image(s) for ${rowData.questionId} (matched: ${matchedKey})`);
           // Check if we need a new page for images
           if (y > 250) {
             doc.addPage();
