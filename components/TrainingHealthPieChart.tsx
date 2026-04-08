@@ -58,31 +58,31 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
     <div className="w-full h-full">
       {/* Card container — matches StatCard style */}
       <div
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 px-3 sm:px-5 py-3 sm:py-4 rounded-2xl border border-white/40 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02] h-full overflow-hidden"
+        className="flex flex-col items-center justify-center gap-2 px-3 sm:px-5 py-3 sm:py-4 rounded-2xl border border-white/40 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02] h-full overflow-hidden"
       >
-        {/* Left: Label - Clickable */}
+        {/* Top: Label - Clickable */}
         <button
           onClick={handleHealthBreakdownClick}
-          className="flex-shrink-0 text-left cursor-pointer"
+          className="flex-shrink-0 text-left cursor-pointer self-start"
           title="Click to view month-by-month breakdown"
         >
           <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 leading-tight">Store Health</span>
         </button>
 
-        {/* Center + Right: Pie chart and legend together */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Center: Pie chart and legend side by side */}
+        <div className="flex items-center justify-center gap-3 sm:gap-4 w-full">
         {/* Pie chart */}
         <div className="flex-shrink-0">
           {totalSubmissions > 0 ? (
-            <div className="w-10 h-10 sm:w-14 sm:h-14">
+            <div className="w-16 h-16 sm:w-20 sm:h-20">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={healthData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={10}
-                    outerRadius={24}
+                    innerRadius="35%"
+                    outerRadius="90%"
                     paddingAngle={2}
                     dataKey="value"
                   >
@@ -106,7 +106,7 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
         </div>
 
         {/* Right: Legend - order fixed to green, yellow, red to match design */}
-        <div className="flex-shrink-0 flex flex-col items-start gap-0.5">
+        <div className="flex-shrink-0 flex flex-col items-start gap-1 sm:gap-1.5">
           {[
             // Perfect Shot (green), Brewing (yellow), Needs Attention (red)
             healthData.find(h => h.name === 'Perfect Shot'),
@@ -117,11 +117,11 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
               <button
                 key={entry.name}
                 onClick={() => propsOnOpen('scoreRange', '', entry.name)}
-                className="flex items-center gap-1 sm:gap-2 text-left p-0.5 rounded-md"
+                className="flex items-center gap-1.5 sm:gap-2 text-left p-0.5 rounded-md"
                 title={entry.name}
               >
-                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
-                <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100">{entry.value}</span>
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100">{entry.value}</span>
               </button>
             )
           ))}
