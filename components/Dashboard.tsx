@@ -1319,9 +1319,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       // Apply store health semantic filter if provided
       if (filters.health) {
         const pct = parseFloat(submission.percentageScore || '0');
-        if (filters.health === 'Needs Attention' && pct >= 71) return false;
-        if (filters.health === 'Brewing' && (pct < 71 || pct >= 86)) return false;
-        if (filters.health === 'Perfect Shot' && pct < 86) return false;
+        const ztFailed = String((submission as any).zeroToleranceFailed || '').toLowerCase() === 'yes';
+        if (filters.health === 'Needs Attention' && !ztFailed && pct >= 71) return false;
+        if (filters.health === 'Brewing' && (ztFailed || pct < 71 || pct >= 86)) return false;
+        if (filters.health === 'Perfect Shot' && (ztFailed || pct < 86)) return false;
       }
 
       // Apply month filter
@@ -1444,9 +1445,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
 
       if (filters.health) {
         const pct = parseFloat(submission.percentageScore || '0');
-        if (filters.health === 'Needs Attention' && pct >= 71) return false;
-        if (filters.health === 'Brewing' && (pct < 71 || pct >= 86)) return false;
-        if (filters.health === 'Perfect Shot' && pct < 86) return false;
+        const ztFailed = String((submission as any).zeroToleranceFailed || '').toLowerCase() === 'yes';
+        if (filters.health === 'Needs Attention' && !ztFailed && pct >= 71) return false;
+        if (filters.health === 'Brewing' && (ztFailed || pct < 71 || pct >= 86)) return false;
+        if (filters.health === 'Perfect Shot' && (ztFailed || pct < 86)) return false;
       }
 
       // Apply month filter
@@ -1733,9 +1735,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
 
             if (filters.health) {
               const pct = parseFloat(submission.percentageScore || submission.percentage_score || '0');
-              if (filters.health === 'Needs Attention' && pct >= 71) return false;
-              if (filters.health === 'Brewing' && (pct < 71 || pct >= 86)) return false;
-              if (filters.health === 'Perfect Shot' && pct < 86) return false;
+              const ztFailed = String((submission as any).zeroToleranceFailed || '').toLowerCase() === 'yes';
+              if (filters.health === 'Needs Attention' && !ztFailed && pct >= 71) return false;
+              if (filters.health === 'Brewing' && (ztFailed || pct < 71 || pct >= 86)) return false;
+              if (filters.health === 'Perfect Shot' && (ztFailed || pct < 86)) return false;
             }
 
             return true;
@@ -4085,10 +4088,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
           const storeId = submission.storeId;
           const submissionDate = new Date(submission.submissionTime);
           const percentage = parseFloat(submission.percentageScore || '0');
+          const ztFailed = String((submission as any).zeroToleranceFailed || '').toLowerCase() === 'yes';
 
-          // Determine health status based on percentage
+          // Determine health status based on percentage and ZT
           let healthStatus = '';
-          if (percentage < 71) {
+          if (ztFailed || percentage < 71) {
             healthStatus = 'Needs Attention';
           } else if (percentage >= 71 && percentage < 86) {
             healthStatus = 'Brewing';
@@ -5238,7 +5242,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
 
                             filteredTrainingData.forEach(submission => {
                               const percentage = parseFloat(submission.percentageScore || '0');
-                              if (percentage < 71) needsAttention++;
+                              const ztFailed = String((submission as any).zeroToleranceFailed || '').toLowerCase() === 'yes';
+                              if (ztFailed || percentage < 71) needsAttention++;
                               else if (percentage >= 71 && percentage < 86) brewing++;
                               else if (percentage >= 86) perfectShot++;
                             });
@@ -5707,12 +5712,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                                   const percentage = parseFloat(submission.percentageScore || '0');
 
                                   // Determine health status
+                                  const ztFailed = String((submission as any).zeroToleranceFailed || '').toLowerCase() === 'yes';
                                   let healthStatus = 'Needs Attention';
                                   let auditInterval = 30; // days
-                                  if (percentage >= 86) {
+                                  if (!ztFailed && percentage >= 86) {
                                     healthStatus = 'Perfect Shot';
                                     auditInterval = 60;
-                                  } else if (percentage >= 71) {
+                                  } else if (!ztFailed && percentage >= 71) {
                                     healthStatus = 'Brewing';
                                     auditInterval = 45;
                                   }
@@ -6188,12 +6194,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                                   const percentage = parseFloat(submission.percentageScore || '0');
 
                                   // Determine health status and interval
+                                  const ztFailed = String((submission as any).zeroToleranceFailed || '').toLowerCase() === 'yes';
                                   let healthStatus = 'Needs Attention';
                                   let auditInterval = 30;
-                                  if (percentage >= 86) {
+                                  if (!ztFailed && percentage >= 86) {
                                     healthStatus = 'Perfect Shot';
                                     auditInterval = 60;
-                                  } else if (percentage >= 71) {
+                                  } else if (!ztFailed && percentage >= 71) {
                                     healthStatus = 'Brewing';
                                     auditInterval = 45;
                                   }

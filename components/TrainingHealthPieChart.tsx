@@ -33,8 +33,9 @@ const TrainingHealthPieChart: React.FC<TrainingHealthPieChartProps> = ({ submiss
 
     submissions.forEach(submission => {
       const percentage = parseFloat(submission.percentageScore || '0');
-      
-      if (percentage < 71) {
+      const ztFailed = String((submission as any).zeroToleranceFailed || '').toLowerCase() === 'yes';
+
+      if (ztFailed || percentage < 71) {
         needsAttention++;
       } else if (percentage >= 71 && percentage < 86) {
         brewing++;

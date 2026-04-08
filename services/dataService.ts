@@ -914,8 +914,19 @@ function recalculateTrainingScore(submission: any): { totalScore: string; maxSco
     max += qMax;
   }
 
-  const pct = max > 0 ? Math.round((total / max) * 100) : 0;
-  
+  let pct = max > 0 ? Math.round((total / max) * 100) : 0;
+
+  // Zero Tolerance: if any ZT item is answered "no", entire score becomes 0
+  const ZT_ITEM_IDS = ['TM_5', 'TM_10', 'NJ_1', 'NJ_2', 'NJ_3', 'NJ_5', 'NJ_6', 'NJ_7'];
+  const ztFailed = ZT_ITEM_IDS.some(id => {
+    const val = String(submission[id] || '').toLowerCase().trim();
+    return val === 'no' || val === 'n' || val === 'false';
+  }) || String(submission.zeroToleranceFailed || '').toLowerCase() === 'yes';
+
+  if (ztFailed) {
+    pct = 0;
+  }
+
   return {
     totalScore: total.toString(),
     maxScore: max.toString(),
