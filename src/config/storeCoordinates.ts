@@ -213,7 +213,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S216': { lat: 19.135483, lng: 72.832993, name: 'Kotia Nirman- Andheri West' },
   'S219': { lat: 18.515943, lng: 73.879613, name: 'Pune Camp' },
   'S237': { lat: 19.111132, lng: 72.87464, name: 'Store S237' },
-  'S240': { lat: 18.931602, lng: 72.827042, name: 'Churchgate' },
+  'S240': { lat: 18.931487, lng: 72.827050, name: 'Churchgate' },
 
   // ============ EAST / HYDERABAD / CHENNAI ============
   'S066': { lat: 17.418249, lng: 78.36412, name: 'Sparsh Hospice - KHAJAGUDA' },
