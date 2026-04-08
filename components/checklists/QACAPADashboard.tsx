@@ -104,7 +104,7 @@ const QACAPADashboard: React.FC<QACAPADashboardProps> = ({ onBack }) => {
     }
   };
 
-  useEffect(() => { loadCAPAs(); }, [employeeData?.code]);
+  useEffect(() => { loadCAPAs(); }, [employeeData?.code, authRole]);
 
   // Derived data
   const regions = useMemo(() => {

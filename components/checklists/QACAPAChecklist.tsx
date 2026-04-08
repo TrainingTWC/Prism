@@ -94,7 +94,7 @@ const QACAPAChecklist: React.FC<QACAPAChecklistProps> = ({ userRole, onStatsUpda
     }
   };
 
-  useEffect(() => { loadCAPAs(); }, [employeeData?.code]);
+  useEffect(() => { loadCAPAs(); }, [employeeData?.code, authRole]);
 
   const loadStoreManagers = async (storeId: string) => {
     if (storeManagers[storeId]) return;

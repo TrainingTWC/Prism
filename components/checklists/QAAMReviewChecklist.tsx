@@ -48,7 +48,7 @@ const QAAMReviewChecklist: React.FC<QAAMReviewChecklistProps> = ({ userRole, onS
 
   useEffect(() => {
     loadReviews();
-  }, [employeeData?.code]);
+  }, [employeeData?.code, authRole]);
 
   const toggleExpand = (index: number) => {
     if (expandedReview === index) {
