@@ -69,7 +69,8 @@ const QACAPAChecklist: React.FC<QACAPAChecklistProps> = ({ userRole, onStatsUpda
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const loadCAPAs = async () => {
-    if (!employeeData?.code || !authRole) return;
+    console.log('[QACAPAChecklist] loadCAPAs called, empCode:', employeeData?.code, 'authRole:', authRole);
+    if (!employeeData?.code || !authRole) { console.log('[QACAPAChecklist] Skipping - missing empCode or authRole'); return; }
     setIsLoading(true);
     try {
       let params: { storeId?: string; assigneeId?: string; auditorId?: string; amId?: string; all?: boolean } = {};
@@ -94,13 +95,15 @@ const QACAPAChecklist: React.FC<QACAPAChecklistProps> = ({ userRole, onStatsUpda
       } else {
         params = { assigneeId: employeeData.code };
       }
+      console.log('[QACAPAChecklist] Fetching with params:', JSON.stringify(params));
       const data = await fetchCAPAs(params);
+      console.log('[QACAPAChecklist] Got', data.length, 'CAPAs');
       setCAPAs(data);
       const total = data.length;
       const completed = data.filter(r => r.status === 'Closed').length;
       onStatsUpdate({ completed, total, score: total > 0 ? Math.round((completed / total) * 100) : 0 });
     } catch (error) {
-      console.error('Failed to load CAPAs:', error);
+      console.error('[QACAPAChecklist] Failed to load CAPAs:', error);
     } finally {
       setIsLoading(false);
     }

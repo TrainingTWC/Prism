@@ -20,7 +20,8 @@ const QAAMReviewChecklist: React.FC<QAAMReviewChecklistProps> = ({ userRole, onS
   const [submittingIndex, setSubmittingIndex] = useState<number | null>(null);
 
   const loadReviews = async () => {
-    if (!employeeData?.code || !authRole) return;
+    console.log('[QAAMReview] loadReviews called, empCode:', employeeData?.code, 'authRole:', authRole);
+    if (!employeeData?.code || !authRole) { console.log('[QAAMReview] Skipping - missing empCode or authRole'); return; }
     setIsLoading(true);
     try {
       // Fetch based on role: QA/Admin/Editor sees all, Operations (AM) sees their reviews

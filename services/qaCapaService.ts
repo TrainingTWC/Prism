@@ -432,7 +432,8 @@ export async function submitCAPA(payload: {
  * Fetch AM Review records with flexible filtering
  */
 export async function fetchAMReviews(params: { amId?: string; auditorId?: string; all?: boolean }): Promise<CAPARecord[]> {
-  if (!CAPA_ENDPOINT) return [];
+  console.log('[AMReview] fetchAMReviews called, endpoint:', CAPA_ENDPOINT ? 'SET' : 'EMPTY', 'params:', JSON.stringify(params));
+  if (!CAPA_ENDPOINT) { console.warn('[AMReview] No endpoint!'); return []; }
 
   try {
     const urlParams = new URLSearchParams({ action: 'getAMReviews' });
@@ -440,10 +441,14 @@ export async function fetchAMReviews(params: { amId?: string; auditorId?: string
     if (params.auditorId) urlParams.set('auditorId', params.auditorId);
     if (params.all) urlParams.set('all', 'true');
 
-    const response = await fetch(`${CAPA_ENDPOINT}?${urlParams.toString()}`);
-    if (!response.ok) return [];
+    const url = `${CAPA_ENDPOINT}?${urlParams.toString()}`;
+    console.log('[AMReview] Fetching:', url);
+    const response = await fetch(url);
+    console.log('[AMReview] Response status:', response.status, response.ok);
+    if (!response.ok) { console.warn('[AMReview] Response not ok:', response.status); return []; }
     const data = await response.json();
-    if (!data.success) return [];
+    console.log('[AMReview] Data received, success:', data.success, 'records:', data.records?.length);
+    if (!data.success) { console.warn('[AMReview] Data not success:', data); return []; }
 
     return (data.records || []).map((r: any) => ({
       ...r,
@@ -460,7 +465,8 @@ export async function fetchAMReviews(params: { amId?: string; auditorId?: string
  * Fetch CAPA records with flexible filtering
  */
 export async function fetchCAPAs(params: { storeId?: string; assigneeId?: string; auditorId?: string; amId?: string; all?: boolean }): Promise<CAPARecord[]> {
-  if (!CAPA_ENDPOINT) return [];
+  console.log('[CAPA] fetchCAPAs called, endpoint:', CAPA_ENDPOINT ? 'SET' : 'EMPTY', 'params:', JSON.stringify(params));
+  if (!CAPA_ENDPOINT) { console.warn('[CAPA] No endpoint!'); return []; }
 
   try {
     const urlParams = new URLSearchParams({ action: 'getCAPAs' });
@@ -470,10 +476,14 @@ export async function fetchCAPAs(params: { storeId?: string; assigneeId?: string
     if (params.amId) urlParams.set('amId', params.amId);
     if (params.all) urlParams.set('all', 'true');
 
-    const response = await fetch(`${CAPA_ENDPOINT}?${urlParams.toString()}`);
-    if (!response.ok) return [];
+    const url = `${CAPA_ENDPOINT}?${urlParams.toString()}`;
+    console.log('[CAPA] Fetching:', url);
+    const response = await fetch(url);
+    console.log('[CAPA] Response status:', response.status, response.ok);
+    if (!response.ok) { console.warn('[CAPA] Response not ok:', response.status); return []; }
     const data = await response.json();
-    if (!data.success) return [];
+    console.log('[CAPA] Data received, success:', data.success, 'records:', data.records?.length);
+    if (!data.success) { console.warn('[CAPA] Data not success:', data); return []; }
 
     return (data.records || []).map((r: any) => ({
       ...r,

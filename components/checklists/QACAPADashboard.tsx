@@ -80,7 +80,8 @@ const QACAPADashboard: React.FC<QACAPADashboardProps> = ({ onBack }) => {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const loadCAPAs = async () => {
-    if (!employeeData?.code || !authRole) return;
+    console.log('[QACAPADashboard] loadCAPAs called, empCode:', employeeData?.code, 'authRole:', authRole);
+    if (!employeeData?.code || !authRole) { console.log('[QACAPADashboard] Skipping - missing empCode or authRole'); return; }
     setIsLoading(true);
     try {
       let params: { storeId?: string; assigneeId?: string; auditorId?: string; amId?: string; all?: boolean } = {};
