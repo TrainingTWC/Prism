@@ -96,9 +96,9 @@ const SECTIONS = [
       { id: 'NJ_2', q: 'Are trainees referring to the OJT book and completing their skill checks?', w: 1 },
       { id: 'NJ_3', q: 'Is training progression aligned with the Training Calendar/Plan?', w: 1 },
       { id: 'NJ_4', q: 'Are team members aware of post-barista training progressions?', w: 1 },
-      { id: 'NJ_5', q: 'Have managers completed SHLP training as per the calendar?', w: 2 },
-      { id: 'NJ_6', q: 'Are there at least 2 FOSTAC-certified managers in the store?', w: 2 },
-      { id: 'NJ_7', q: 'Is ASM/SM training completed as per the Training Calendar?', w: 2 }
+      { id: 'NJ_5', q: 'Have managers completed SHLP training?', w: 2 },
+      { id: 'NJ_6', q: 'Are there at least 2 FOSTAC-certified managers in the store? (Including Area manager /Trainer)', w: 2 },
+      { id: 'NJ_7', q: 'Is ASM/SM training completed?', w: 2 }
     ]
   },
   {
@@ -285,7 +285,6 @@ const ZERO_TOLERANCE_ITEMS = [
   { sectionId: 'NewJoiner', itemId: 'NJ_1', label: 'New Joiner Training (OJT book available)' },
   { sectionId: 'NewJoiner', itemId: 'NJ_2', label: 'New Joiner Training (Trainees completing skill checks)' },
   { sectionId: 'NewJoiner', itemId: 'NJ_3', label: 'New Joiner Training (Training progression aligned)' },
-  { sectionId: 'NewJoiner', itemId: 'NJ_4', label: 'New Joiner Training (Post-barista progressions awareness)' },
   { sectionId: 'NewJoiner', itemId: 'NJ_5', label: 'New Joiner Training (SHLP training completed)' },
   { sectionId: 'NewJoiner', itemId: 'NJ_6', label: 'New Joiner Training (FOSTAC-certified managers)' },
   { sectionId: 'NewJoiner', itemId: 'NJ_7', label: 'New Joiner Training (ASM/SM training completed)' },
