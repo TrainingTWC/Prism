@@ -740,13 +740,14 @@ export const buildQAPDF = async (
         doc.setFont('helvetica', 'italic');
         doc.setTextColor(107, 114, 128); // gray-500
         doc.text('💬 Comment:', 18, y + 4);
+        y += 6;
         
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(55, 65, 81); // gray-700
-        const remarkLines = doc.splitTextToSize(rowData.remark, 160);
-        doc.text(remarkLines, 40, y + 4);
+        const remarkLines = doc.splitTextToSize(rowData.remark, 155);
+        doc.text(remarkLines, 22, y + 2);
         
-        y += (remarkLines.length * 4) + 3;
+        y += (remarkLines.length * 4.5) + 3;
       }
 
       // Render images for this question immediately below it
@@ -821,8 +822,8 @@ export const buildQAPDF = async (
 
     // Display section remarks if they exist
     if (sec.remarks && sec.remarks.trim()) {
-      const remarksLines = doc.splitTextToSize(sec.remarks, 170);
-      const remarksHeight = Math.max(18, (remarksLines.length * 5) + 12);
+      const remarksLines = doc.splitTextToSize(sec.remarks, 168);
+      const remarksHeight = Math.max(20, (remarksLines.length * 5) + 16);
       const pageBottomLimit = 285;
       
       if (y + remarksHeight + 20 > pageBottomLimit) {
@@ -840,7 +841,7 @@ export const buildQAPDF = async (
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(51, 65, 85);
-      doc.text(remarksLines, 18, y + 14, { maxWidth: 170 });
+      doc.text(remarksLines, 18, y + 15, { maxWidth: 168 });
       y += remarksHeight + 8;
     }
   });
