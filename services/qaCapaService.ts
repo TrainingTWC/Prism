@@ -9,7 +9,7 @@ import { CAPA_MAP } from '../config/qaCapaMap';
 import { fetchEmployeeDirectory, EmployeeRow } from './employeeDirectoryService';
 
 // Unified QA endpoint for AM Review and CAPA read/update operations
-const CAPA_ENDPOINT = import.meta.env.VITE_QA_SCRIPT_URL || '';
+const CAPA_ENDPOINT = import.meta.env.VITE_QA_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbxVpSB9TBa6UKjZlaT4wUumDNZ0xNmfH0yg6zTZkcp-SyGzyO9q1BaU1X4vuWSpoF1FgA/exec';
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
 export interface QAFinding {
