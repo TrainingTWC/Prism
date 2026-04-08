@@ -20,15 +20,13 @@ const QAAMReviewChecklist: React.FC<QAAMReviewChecklistProps> = ({ userRole, onS
   const [submittingIndex, setSubmittingIndex] = useState<number | null>(null);
 
   const loadReviews = async () => {
-    if (!employeeData?.code) return;
+    if (!employeeData?.code || !authRole) return;
     setIsLoading(true);
     try {
-      // Fetch based on role: QA sees their audits, Operations (AM) sees their reviews, Admin sees all
+      // Fetch based on role: QA/Admin/Editor sees all, Operations (AM) sees their reviews
       let params: { amId?: string; auditorId?: string; all?: boolean } = {};
-      if (authRole === 'admin' || authRole === 'editor') {
+      if (authRole === 'admin' || authRole === 'editor' || authRole === 'qa') {
         params = { all: true };
-      } else if (authRole === 'qa') {
-        params = { auditorId: employeeData.code };
       } else {
         // operations / default — AM sees reviews assigned to them
         params = { amId: employeeData.code };

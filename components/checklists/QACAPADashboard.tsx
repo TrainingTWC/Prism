@@ -80,17 +80,29 @@ const QACAPADashboard: React.FC<QACAPADashboardProps> = ({ onBack }) => {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const loadCAPAs = async () => {
-    if (!employeeData?.code) return;
+    if (!employeeData?.code || !authRole) return;
     setIsLoading(true);
     try {
       let params: { storeId?: string; assigneeId?: string; auditorId?: string; amId?: string; all?: boolean } = {};
       // Role-based data access
-      if (authRole === 'admin' || authRole === 'editor') {
+      if (authRole === 'admin' || authRole === 'editor' || authRole === 'qa') {
         params = { all: true };
-      } else if (authRole === 'qa') {
-        params = { auditorId: employeeData.code };
       } else if (authRole === 'operations') {
         params = { amId: employeeData.code };
+      } else if (authRole === 'store') {
+        // Look up user's store_code from employee directory
+        try {
+          const { fetchEmployeeDirectory } = await import('../../services/employeeDirectoryService');
+          const dir = await fetchEmployeeDirectory();
+          const emp = dir.byId[employeeData.code.toUpperCase()];
+          if (emp?.store_code) {
+            params = { storeId: emp.store_code };
+          } else {
+            params = { assigneeId: employeeData.code };
+          }
+        } catch {
+          params = { assigneeId: employeeData.code };
+        }
       } else {
         // Store-level: SM, ASM, Shift Manager, Barista
         params = { assigneeId: employeeData.code };
