@@ -45,6 +45,9 @@ const QAEditModal: React.FC<QAEditModalProps> = ({ isOpen, onClose, submission, 
             editMode={true}
             existingSubmission={{
               ...submission,
+              // Map Google Sheets column names to camelCase keys expected by QAChecklist
+              questionImagesJSON: submission.questionImagesJSON || submission['Question Images JSON'],
+              questionRemarksJSON: submission.questionRemarksJSON || submission['Question Remarks JSON'],
               responses: extractResponses(submission)
             }}
           />
@@ -88,7 +91,7 @@ function extractResponses(submission: any): Record<string, string> {
       // If already in correct format (has section prefix), use as-is
       if (key.startsWith('ZeroTolerance_') || key.startsWith('Store_') || 
           key.startsWith('Maintenance_') || key.startsWith('HR_HR_') ||
-          (key.startsWith('A_') && key.includes('_'))) {
+          key.startsWith('A_A_')) {
         responses[fieldName] = submission[key];
       }
       // Map to correct format for checklist
@@ -99,7 +102,8 @@ function extractResponses(submission: any): Record<string, string> {
         const mappedKey = `Store_${fieldName}`;
         responses[mappedKey] = submission[key];
       } else if (fieldName.startsWith('A_')) {
-        responses[fieldName] = submission[key];
+        const mappedKey = `A_${fieldName}`;
+        responses[mappedKey] = submission[key];
       } else if (fieldName.startsWith('M_')) {
         const mappedKey = `Maintenance_${fieldName}`;
         responses[mappedKey] = submission[key];
