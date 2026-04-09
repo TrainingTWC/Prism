@@ -372,29 +372,32 @@ function autoCreateFollowUps(params, qaTimestamp) {
     'Findings JSON'
   ]);
 
-  // Resolve store managers from Employee Directory sheet (if available)
+  // Resolve store managers from Employee Master spreadsheet (separate workbook)
   var assignedNames = '';
   var assignedIds = '';
   try {
-    // Try common employee sheet names
-    var empSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Emp. Master 2')
-      || SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Emp Master')
-      || SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Employee Directory');
+    var EMP_SPREADSHEET_ID = '1EX2PX0ryGoKR8GUWSK9roApoCSrVERYu3WP8x7YZcIk';
+    var empSS = SpreadsheetApp.openById(EMP_SPREADSHEET_ID);
+    var empSheet = empSS.getSheetByName('EMP. Master');
     if (empSheet) {
       var empData = empSheet.getDataRange().getValues();
       var empHeaders = empData[0];
 
       // Flexible column lookup — try multiple possible header names (case-insensitive)
-      var storeCodeCol = findCol(empHeaders, ['store_code', 'store code', 'storecode', 'store id', 'storeid']);
+      var storeCodeCol = findCol(empHeaders, ['store_id', 'store id', 'store_code', 'store code', 'storecode', 'storeid']);
       var desigCol = findCol(empHeaders, ['designation', 'desig', 'position', 'role', 'title']);
       var nameCol = findCol(empHeaders, ['empname', 'emp name', 'employee name', 'name', 'employee_name']);
       var idCol = findCol(empHeaders, ['employee_code', 'emp code', 'employee code', 'empcode', 'emp_code', 'emp id', 'empid']);
 
       Logger.log('Employee columns found — store:' + storeCodeCol + ' desig:' + desigCol + ' name:' + nameCol + ' id:' + idCol);
-      Logger.log('Headers: ' + JSON.stringify(empHeaders));
 
       if (storeCodeCol >= 0 && desigCol >= 0) {
-        var targetDesig = ['store manager', 'shift manager', 'assistant store manager'];
+        var targetDesig = [
+          'store manager', 'shift manager', 'assistant store manager',
+          'sm', 'asm', 'shift mgr', 'store mgr', 'asst store manager',
+          'shift incharge', 'shift in charge', 'senior shift', 'sstm',
+          'café manager', 'cafe manager', 'outlet manager'
+        ];
         var storeId = (params.storeID || '').toUpperCase().trim();
         var names = [];
         var ids = [];
@@ -402,15 +405,21 @@ function autoCreateFollowUps(params, qaTimestamp) {
         for (var i = 1; i < empData.length; i++) {
           var empStore = String(empData[i][storeCodeCol] || '').toUpperCase().trim();
           var empDesig = String(empData[i][desigCol] || '').toLowerCase().trim();
-          if (empStore === storeId && targetDesig.indexOf(empDesig) >= 0) {
-            if (nameCol >= 0) names.push(String(empData[i][nameCol] || ''));
-            if (idCol >= 0) ids.push(String(empData[i][idCol] || ''));
+          if (empStore === storeId) {
+            var matches = targetDesig.some(function(kw) { return empDesig === kw || empDesig.indexOf(kw) >= 0; });
+            if (matches) {
+              if (nameCol >= 0) names.push(String(empData[i][nameCol] || ''));
+              if (idCol >= 0) ids.push(String(empData[i][idCol] || ''));
+            }
           }
         }
 
         assignedNames = names.join(', ');
         assignedIds = ids.join(', ');
+        Logger.log('Resolved ' + names.length + ' managers for store ' + storeId + ': ' + assignedNames);
       }
+    } else {
+      Logger.log('EMP. Master sheet not found in employee spreadsheet');
     }
   } catch (empErr) {
     Logger.log('Could not resolve store managers: ' + empErr);

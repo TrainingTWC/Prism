@@ -104,6 +104,51 @@ function createCAPA(params) {
   
   var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
   
+  // If assignee fields are empty, resolve from Employee Master
+  var assignedToNames = params.assignedToNames || '';
+  var assignedToIds = params.assignedToIds || '';
+  if (!assignedToNames && params.storeId) {
+    try {
+      var EMP_SPREADSHEET_ID = '1EX2PX0ryGoKR8GUWSK9roApoCSrVERYu3WP8x7YZcIk';
+      var empSS = SpreadsheetApp.openById(EMP_SPREADSHEET_ID);
+      var empSheet = empSS.getSheetByName('EMP. Master');
+      if (empSheet) {
+        var empData = empSheet.getDataRange().getValues();
+        var empHeaders = empData[0];
+        var storeCodeCol = findColByNames(empHeaders, ['store_id', 'store id', 'store_code', 'store code']);
+        var desigCol = findColByNames(empHeaders, ['designation', 'desig']);
+        var nameCol = findColByNames(empHeaders, ['empname', 'emp name', 'employee name', 'name']);
+        var idCol = findColByNames(empHeaders, ['employee_code', 'emp code', 'employee code']);
+        if (storeCodeCol >= 0 && desigCol >= 0) {
+          var targetDesig = [
+            'store manager', 'shift manager', 'assistant store manager',
+            'sm', 'asm', 'shift mgr', 'store mgr', 'asst store manager',
+            'shift incharge', 'shift in charge', 'senior shift', 'sstm',
+            'café manager', 'cafe manager', 'outlet manager'
+          ];
+          var sid = (params.storeId || '').toUpperCase().trim();
+          var names = [], ids = [];
+          for (var i = 1; i < empData.length; i++) {
+            var es = String(empData[i][storeCodeCol] || '').toUpperCase().trim();
+            var ed = String(empData[i][desigCol] || '').toLowerCase().trim();
+            if (es === sid) {
+              var match = targetDesig.some(function(kw) { return ed === kw || ed.indexOf(kw) >= 0; });
+              if (match) {
+                if (nameCol >= 0) names.push(String(empData[i][nameCol] || ''));
+                if (idCol >= 0) ids.push(String(empData[i][idCol] || ''));
+              }
+            }
+          }
+          assignedToNames = names.join(', ');
+          assignedToIds = ids.join(', ');
+          Logger.log('Resolved ' + names.length + ' managers for store ' + sid + ': ' + assignedToNames);
+        }
+      }
+    } catch (empErr) {
+      Logger.log('Could not resolve store managers: ' + empErr);
+    }
+  }
+  
   var row = [
     timestamp,
     params.qaSubmissionTime || '',
@@ -115,8 +160,8 @@ function createCAPA(params) {
     params.region || '',
     params.amName || '',
     params.amId || '',
-    params.assignedToNames || '',
-    params.assignedToIds || '',
+    assignedToNames,
+    assignedToIds,
     params.qaScore || '',
     params.totalFindings || '0',
     'Open',
@@ -125,9 +170,19 @@ function createCAPA(params) {
   ];
   
   sheet.appendRow(row);
-  Logger.log('Created QA CAPA for store: ' + params.storeName + ' assigned to: ' + params.assignedToNames);
+  Logger.log('Created QA CAPA for store: ' + params.storeName + ' assigned to: ' + assignedToNames);
   
   return jsonResponse({ success: true, message: 'QA CAPA created successfully' });
+}
+
+// Helper: find column index by trying multiple header names (case-insensitive)
+function findColByNames(headers, possibleNames) {
+  for (var n = 0; n < possibleNames.length; n++) {
+    for (var i = 0; i < headers.length; i++) {
+      if (String(headers[i]).toLowerCase().trim() === possibleNames[n]) return i;
+    }
+  }
+  return -1;
 }
 
 // ===========================
