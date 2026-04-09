@@ -49,6 +49,7 @@ import TrainingHRPerformanceInfographic from './TrainingHRPerformanceInfographic
 import TrainingAverageScoreChart from './TrainingAverageScoreChart';
 import TrainingRadarChart from './TrainingRadarChart';
 import TrainingHealthPieChart from './TrainingHealthPieChart';
+import TrainingZeroToleranceSection from './TrainingZeroToleranceSection';
 import OperationsRadarChart from './OperationsRadarChart';
 import TrainingDetailModal from './TrainingDetailModal';
 import TrainingHealthBreakdownModal from './TrainingHealthBreakdownModal';
@@ -5448,6 +5449,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                   <div className="grid grid-cols-1 gap-6">
                     <TrainingRadarChart submissions={filteredTrainingData} />
                   </div>
+
+                  {/* Zero Tolerance Section — uses raw (non-deduplicated) data to catch ALL ZT failures */}
+                  <TrainingZeroToleranceSection submissions={rawFilteredTrainingData} />
 
                   {/* Audit Coverage & History Section */}
                   <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 mt-6">
