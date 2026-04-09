@@ -70,7 +70,9 @@ const QACAPAChecklist: React.FC<QACAPAChecklistProps> = ({ userRole, onStatsUpda
 
   const loadCAPAs = async () => {
     console.log('[QACAPAChecklist] loadCAPAs called, empCode:', employeeData?.code, 'authRole:', authRole);
-    if (!employeeData?.code || !authRole) { console.log('[QACAPAChecklist] Skipping - missing empCode or authRole'); return; }
+    if (!authRole) { console.log('[QACAPAChecklist] Skipping - missing authRole'); return; }
+    const needsEmpCode = authRole !== 'admin' && authRole !== 'editor' && authRole !== 'qa';
+    if (needsEmpCode && !employeeData?.code) { console.log('[QACAPAChecklist] Skipping - non-admin role missing empCode'); return; }
     setIsLoading(true);
     try {
       let params: { storeId?: string; assigneeId?: string; auditorId?: string; amId?: string; all?: boolean } = {};

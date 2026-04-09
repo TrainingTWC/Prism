@@ -21,7 +21,9 @@ const QAAMReviewChecklist: React.FC<QAAMReviewChecklistProps> = ({ userRole, onS
 
   const loadReviews = async () => {
     console.log('[QAAMReview] loadReviews called, empCode:', employeeData?.code, 'authRole:', authRole);
-    if (!employeeData?.code || !authRole) { console.log('[QAAMReview] Skipping - missing empCode or authRole'); return; }
+    if (!authRole) { console.log('[QAAMReview] Skipping - missing authRole'); return; }
+    const needsEmpCode = authRole !== 'admin' && authRole !== 'editor' && authRole !== 'qa';
+    if (needsEmpCode && !employeeData?.code) { console.log('[QAAMReview] Skipping - non-admin role missing empCode'); return; }
     setIsLoading(true);
     try {
       // Fetch based on role: QA/Admin/Editor sees all, Operations (AM) sees their reviews
@@ -30,7 +32,7 @@ const QAAMReviewChecklist: React.FC<QAAMReviewChecklistProps> = ({ userRole, onS
         params = { all: true };
       } else {
         // operations / default — AM sees reviews assigned to them
-        params = { amId: employeeData.code };
+        params = { amId: employeeData!.code };
       }
       const data = await fetchAMReviews(params);
       setReviews(data);

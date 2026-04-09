@@ -81,7 +81,10 @@ const QACAPADashboard: React.FC<QACAPADashboardProps> = ({ onBack }) => {
 
   const loadCAPAs = async () => {
     console.log('[QACAPADashboard] loadCAPAs called, empCode:', employeeData?.code, 'authRole:', authRole);
-    if (!employeeData?.code || !authRole) { console.log('[QACAPADashboard] Skipping - missing empCode or authRole'); return; }
+    if (!authRole) { console.log('[QACAPADashboard] Skipping - missing authRole'); return; }
+    // For roles that need employee code, check it's available
+    const needsEmpCode = authRole !== 'admin' && authRole !== 'editor' && authRole !== 'qa';
+    if (needsEmpCode && !employeeData?.code) { console.log('[QACAPADashboard] Skipping - non-admin role missing empCode'); return; }
     setIsLoading(true);
     try {
       let params: { storeId?: string; assigneeId?: string; auditorId?: string; amId?: string; all?: boolean } = {};
@@ -118,6 +121,12 @@ const QACAPADashboard: React.FC<QACAPADashboardProps> = ({ onBack }) => {
   };
 
   useEffect(() => { loadCAPAs(); }, [employeeData?.code, authRole]);
+  // Also load when role is set but no employeeData (password-only login for admin/editor/qa)
+  useEffect(() => {
+    if (authRole && (authRole === 'admin' || authRole === 'editor' || authRole === 'qa') && capas.length === 0 && !isLoading) {
+      loadCAPAs();
+    }
+  }, [authRole]);
 
   // Derived data
   const regions = useMemo(() => {
