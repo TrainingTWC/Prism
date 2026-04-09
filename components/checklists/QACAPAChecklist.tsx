@@ -402,7 +402,7 @@ const QACAPAChecklist: React.FC<QACAPAChecklistProps> = ({ userRole, onStatsUpda
       {capas.map((capa, index) => (
         <div key={index} className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden">
           {/* Card Header */}
-          <button onClick={() => toggleExpand(index)} className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-750 transition-colors">
+          <button onClick={() => toggleExpand(index)} className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
                 <Store className="w-5 h-5 text-gray-600 dark:text-slate-400" />

@@ -183,7 +183,7 @@ const QAAMReviewChecklist: React.FC<QAAMReviewChecklistProps> = ({ userRole, onS
           {/* Card Header */}
           <button
             onClick={() => toggleExpand(index)}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-750 transition-colors"
+            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
           >
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-slate-700 flex items-center justify-center">

@@ -341,7 +341,7 @@ const QACAPADashboard: React.FC<QACAPADashboardProps> = ({ onBack }) => {
                   return (
                     <React.Fragment key={`${capa.storeId}-${capa.qaSubmissionTime}-${idx}`}>
                       <tr
-                        className={`cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-slate-750 ${isExpanded ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''}`}
+                        className={`cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-slate-700 ${isExpanded ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''}`}
                         onClick={() => setExpandedRow(isExpanded ? null : idx)}
                       >
                         {/* Store */}
