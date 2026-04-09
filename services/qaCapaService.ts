@@ -347,7 +347,7 @@ export async function submitAMReview(payload: {
   findings: QAFinding[];
 }): Promise<void> {
   if (!CAPA_ENDPOINT) {
-    console.warn('⚠️ QA CAPA endpoint not configured. Set VITE_QA_CAPA_SCRIPT_URL in .env');
+    console.warn('⚠️ QA CAPA endpoint not configured. Set VITE_QA_SCRIPT_URL in .env');
     return;
   }
 
@@ -396,7 +396,7 @@ export async function submitCAPA(payload: {
   assignedToIds: string;
 }): Promise<void> {
   if (!CAPA_ENDPOINT) {
-    console.warn('⚠️ QA CAPA endpoint not configured. Set VITE_QA_CAPA_SCRIPT_URL in .env');
+    console.warn('⚠️ QA CAPA endpoint not configured. Set VITE_QA_SCRIPT_URL in .env');
     return;
   }
 

@@ -34,6 +34,10 @@ function doPost(e) {
         return saveDraft(params);
       case 'deleteDraft':
         return deleteDraft(params);
+      case 'createAMReview':
+        return createAMReviewStandalone(params);
+      case 'createCAPA':
+        return createCAPAStandalone(params);
       case 'updateAMReview':
         return updateAMReview(params);
       case 'updateCAPA':
@@ -372,56 +376,9 @@ function autoCreateFollowUps(params, qaTimestamp) {
     'Findings JSON'
   ]);
 
-  // Resolve store managers from EMP. Master sheet (same workbook)
-  var assignedNames = '';
-  var assignedIds = '';
-  try {
-    var empSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('EMP. Master');
-    if (empSheet) {
-      var empData = empSheet.getDataRange().getValues();
-      var empHeaders = empData[0];
-
-      // Flexible column lookup — try multiple possible header names (case-insensitive)
-      var storeCodeCol = findCol(empHeaders, ['store_id', 'store id', 'store_code', 'store code', 'storecode', 'storeid']);
-      var desigCol = findCol(empHeaders, ['designation', 'desig', 'position', 'role', 'title']);
-      var nameCol = findCol(empHeaders, ['empname', 'emp name', 'employee name', 'name', 'employee_name']);
-      var idCol = findCol(empHeaders, ['employee_code', 'emp code', 'employee code', 'empcode', 'emp_code', 'emp id', 'empid']);
-
-      Logger.log('Employee columns found — store:' + storeCodeCol + ' desig:' + desigCol + ' name:' + nameCol + ' id:' + idCol);
-
-      if (storeCodeCol >= 0 && desigCol >= 0) {
-        var targetDesig = [
-          'store manager', 'shift manager', 'assistant store manager',
-          'sm', 'asm', 'shift mgr', 'store mgr', 'asst store manager',
-          'shift incharge', 'shift in charge', 'senior shift', 'sstm',
-          'café manager', 'cafe manager', 'outlet manager'
-        ];
-        var storeId = (params.storeID || '').toUpperCase().trim();
-        var names = [];
-        var ids = [];
-
-        for (var i = 1; i < empData.length; i++) {
-          var empStore = String(empData[i][storeCodeCol] || '').toUpperCase().trim();
-          var empDesig = String(empData[i][desigCol] || '').toLowerCase().trim();
-          if (empStore === storeId) {
-            var matches = targetDesig.some(function(kw) { return empDesig === kw || empDesig.indexOf(kw) >= 0; });
-            if (matches) {
-              if (nameCol >= 0) names.push(String(empData[i][nameCol] || ''));
-              if (idCol >= 0) ids.push(String(empData[i][idCol] || ''));
-            }
-          }
-        }
-
-        assignedNames = names.join(', ');
-        assignedIds = ids.join(', ');
-        Logger.log('Resolved ' + names.length + ' managers for store ' + storeId + ': ' + assignedNames);
-      }
-    } else {
-      Logger.log('EMP. Master sheet not found in employee spreadsheet');
-    }
-  } catch (empErr) {
-    Logger.log('Could not resolve store managers: ' + empErr);
-  }
+  var mgr = resolveStoreManagers(params.storeID || '');
+  var assignedNames = mgr.names;
+  var assignedIds = mgr.ids;
 
   capaSheet.appendRow([
     qaTimestamp,
@@ -443,6 +400,99 @@ function autoCreateFollowUps(params, qaTimestamp) {
     findingsJSON
   ]);
   Logger.log('CAPA created (' + findings.length + ' findings, assigned to: ' + assignedNames + ')');
+}
+
+// ===========================
+// STANDALONE CREATE (called by frontend via action=createCAPA / action=createAMReview)
+// ===========================
+
+function createAMReviewStandalone(params) {
+  var sheet = getOrCreateSheet('QA AM Review', [
+    'Timestamp', 'QA Submission Time', 'QA Auditor Name', 'QA Auditor ID',
+    'AM Name', 'AM ID', 'Store Name', 'Store ID', 'City', 'Region',
+    'QA Score %', 'Total Findings', 'Status', 'Findings JSON'
+  ]);
+  var ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+  sheet.appendRow([
+    ts, params.qaSubmissionTime || '', params.qaAuditorName || '', params.qaAuditorId || '',
+    params.amName || '', params.amId || '', params.storeName || '', params.storeId || '',
+    params.city || '', params.region || '', params.qaScore || '', params.totalFindings || '0',
+    'Open', params.findingsJSON || '[]'
+  ]);
+  Logger.log('AM Review created for store: ' + params.storeName);
+  return json({ success: true, message: 'AM Review created successfully' });
+}
+
+function createCAPAStandalone(params) {
+  var sheet = getOrCreateSheet('QA CAPA', [
+    'Timestamp', 'QA Submission Time', 'QA Auditor Name', 'QA Auditor ID',
+    'Store Name', 'Store ID', 'City', 'Region',
+    'AM Name', 'AM ID', 'Assigned To Names', 'Assigned To IDs',
+    'QA Score %', 'Total Findings', 'Status',
+    'CAPA Submitted By', 'CAPA Submitted By ID', 'CAPA Submission Time',
+    'Findings JSON'
+  ]);
+  var ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+  var assignedToNames = params.assignedToNames || '';
+  var assignedToIds = params.assignedToIds || '';
+  if (!assignedToNames && params.storeId) {
+    var mgr = resolveStoreManagers(params.storeId);
+    assignedToNames = mgr.names;
+    assignedToIds = mgr.ids;
+  }
+  sheet.appendRow([
+    ts, params.qaSubmissionTime || '', params.qaAuditorName || '', params.qaAuditorId || '',
+    params.storeName || '', params.storeId || '', params.city || '', params.region || '',
+    params.amName || '', params.amId || '', assignedToNames, assignedToIds,
+    params.qaScore || '', params.totalFindings || '0', 'Open',
+    '', '', '', params.findingsJSON || '[]'
+  ]);
+  Logger.log('CAPA created for store: ' + params.storeName + ' assigned to: ' + assignedToNames);
+  return json({ success: true, message: 'QA CAPA created successfully' });
+}
+
+// ===========================
+// STORE MANAGER RESOLUTION
+// ===========================
+
+function resolveStoreManagers(storeIdParam) {
+  var result = { names: '', ids: '' };
+  try {
+    var empSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('EMP. Master');
+    if (!empSheet) { Logger.log('EMP. Master sheet not found'); return result; }
+    var empData = empSheet.getDataRange().getValues();
+    var empHeaders = empData[0];
+    var storeCodeCol = findCol(empHeaders, ['store_id', 'store id', 'store_code', 'store code', 'storecode', 'storeid']);
+    var desigCol = findCol(empHeaders, ['designation', 'desig', 'position', 'role', 'title']);
+    var nameCol = findCol(empHeaders, ['empname', 'emp name', 'employee name', 'name', 'employee_name']);
+    var idCol = findCol(empHeaders, ['employee_code', 'emp code', 'employee code', 'empcode', 'emp_code', 'emp id', 'empid']);
+    if (storeCodeCol < 0 || desigCol < 0) return result;
+    var targetDesig = [
+      'store manager', 'shift manager', 'assistant store manager',
+      'sm', 'asm', 'shift mgr', 'store mgr', 'asst store manager',
+      'shift incharge', 'shift in charge', 'senior shift', 'sstm',
+      'café manager', 'cafe manager', 'outlet manager'
+    ];
+    var sid = (storeIdParam || '').toUpperCase().trim();
+    var names = [], ids = [];
+    for (var i = 1; i < empData.length; i++) {
+      var empStore = String(empData[i][storeCodeCol] || '').toUpperCase().trim();
+      var empDesig = String(empData[i][desigCol] || '').toLowerCase().trim();
+      if (empStore === sid) {
+        var match = targetDesig.some(function(kw) { return empDesig === kw || empDesig.indexOf(kw) >= 0; });
+        if (match) {
+          if (nameCol >= 0) names.push(String(empData[i][nameCol] || ''));
+          if (idCol >= 0) ids.push(String(empData[i][idCol] || ''));
+        }
+      }
+    }
+    result.names = names.join(', ');
+    result.ids = ids.join(', ');
+    Logger.log('Resolved ' + names.length + ' managers for store ' + sid + ': ' + result.names);
+  } catch (err) {
+    Logger.log('Could not resolve store managers: ' + err);
+  }
+  return result;
 }
 
 // ===========================
