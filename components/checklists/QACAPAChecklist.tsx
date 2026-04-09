@@ -17,6 +17,7 @@ interface QACAPAChecklistProps {
 function normalizeFindings(findings: QAFinding[]): QAFinding[] {
   return findings.map(f => ({
     ...f,
+    response: f.response === 'non-compliant' ? 'not-compliant' : f.response,
     question: f.question || QUESTION_MAP[f.questionId] || f.questionId,
     correctiveActions: f.correctiveActions?.length
       ? f.correctiveActions

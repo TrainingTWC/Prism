@@ -235,7 +235,9 @@ const QAAMReviewChecklist: React.FC<QAAMReviewChecklistProps> = ({ userRole, onS
 
               {/* Findings Table */}
               <div className="space-y-4">
-                {(editingFindings[index] || review.findings).map((finding, fIndex) => (
+                {(editingFindings[index] || review.findings).map((rawFinding, fIndex) => {
+                  const finding = { ...rawFinding, response: rawFinding.response === 'non-compliant' ? 'not-compliant' : rawFinding.response };
+                  return (
                   <div key={fIndex} className={`border rounded-lg p-4 ${
                     finding.response === 'not-compliant'
                       ? 'border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10'
@@ -315,7 +317,8 @@ const QAAMReviewChecklist: React.FC<QAAMReviewChecklistProps> = ({ userRole, onS
                       </div>
                     )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
 
               {/* Submit Button */}

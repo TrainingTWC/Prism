@@ -16,7 +16,7 @@ export interface QAFinding {
   questionId: string;
   section: string;
   question: string;
-  response: 'not-compliant' | 'partially-compliant';
+  response: 'not-compliant' | 'non-compliant' | 'partially-compliant';
   weight: number;
   remark: string;
   // AM Review fields (filled later by AM)

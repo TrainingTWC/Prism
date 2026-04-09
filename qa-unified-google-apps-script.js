@@ -328,7 +328,7 @@ function autoCreateFollowUps(params, qaTimestamp) {
           questionId: key,
           section: sec.title,
           question: questionMap[key] || key,
-          response: val,
+          response: val === 'non-compliant' ? 'not-compliant' : val,
           remark: remarksObj[key] || ''
         });
       }
