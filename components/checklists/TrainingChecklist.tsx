@@ -286,7 +286,6 @@ const ZERO_TOLERANCE_ITEMS = [
   { sectionId: 'NewJoiner', itemId: 'NJ_2', label: 'New Joiner Training (Trainees completing skill checks)' },
   { sectionId: 'NewJoiner', itemId: 'NJ_3', label: 'New Joiner Training (Training progression aligned)' },
   { sectionId: 'NewJoiner', itemId: 'NJ_5', label: 'New Joiner Training (SHLP training completed)' },
-  { sectionId: 'NewJoiner', itemId: 'NJ_6', label: 'New Joiner Training (FOSTAC-certified managers)' },
   { sectionId: 'NewJoiner', itemId: 'NJ_7', label: 'New Joiner Training (ASM/SM training completed)' },
 ];
 
