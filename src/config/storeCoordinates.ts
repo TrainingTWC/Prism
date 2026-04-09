@@ -117,7 +117,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S100': { lat: 28.400912, lng: 77.085484, name: 'AIPL Business Club' },
   'S101': { lat: 28.628075, lng: 77.374931, name: 'Sector 63, Noida' },
   'S102': { lat: 28.457792, lng: 77.07383, name: 'Fortis Hospital - Gurugram' },
-  'S112': { lat: 28.571697, lng: 77.379168, name: 'Noida Spectrum Mall' },
+  'S112': { lat: 28.573942, lng: 77.378906, name: 'Noida Spectrum Mall' },
   'S113': { lat: 28.55203, lng: 77.207921, name: 'Hauz Khaz' },
   'S120': { lat: 28.620718, lng: 77.08025, name: 'Janakpuri C Block' },
   'S121': { lat: 28.527834, lng: 77.216941, name: 'DLF Avenue Mall - Saket' },
