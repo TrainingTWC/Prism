@@ -19,7 +19,7 @@ interface TrainingAuditSubmission {
 
 // Zero tolerance items grouped by category
 const ZT_DIALIN_IDS = ['TM_5', 'TM_10'];
-const ZT_NEW_JOINER_IDS = ['NJ_1', 'NJ_2', 'NJ_3', 'NJ_5', 'NJ_6', 'NJ_7'];
+const ZT_NEW_JOINER_IDS = ['NJ_1', 'NJ_2', 'NJ_3', 'NJ_5', 'NJ_7'];
 
 const ZT_LABELS: Record<string, string> = {
   TM_5: 'Dial-in one pager available',
@@ -28,7 +28,6 @@ const ZT_LABELS: Record<string, string> = {
   NJ_2: 'Trainees completing skill checks',
   NJ_3: 'Training progression aligned with plan',
   NJ_5: 'SHLP training completed',
-  NJ_6: 'FOSTAC-certified managers (≥2)',
   NJ_7: 'ASM/SM training completed',
 };
 
