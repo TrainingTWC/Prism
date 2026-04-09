@@ -109,9 +109,7 @@ function createCAPA(params) {
   var assignedToIds = params.assignedToIds || '';
   if (!assignedToNames && params.storeId) {
     try {
-      var EMP_SPREADSHEET_ID = '1EX2PX0ryGoKR8GUWSK9roApoCSrVERYu3WP8x7YZcIk';
-      var empSS = SpreadsheetApp.openById(EMP_SPREADSHEET_ID);
-      var empSheet = empSS.getSheetByName('EMP. Master');
+      var empSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('EMP. Master');
       if (empSheet) {
         var empData = empSheet.getDataRange().getValues();
         var empHeaders = empData[0];
