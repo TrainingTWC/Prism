@@ -80,7 +80,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S159': { lat: 12.892, lng: 77.66694, name: 'The Sqaure - Raj Etternia Kudlu' },
   'S184': { lat: 12.97325, lng: 77.71073, name: 'Prestige TechnoStar' },
   'S185': { lat: 12.99483, lng: 77.53966, name: 'Basaveshwaranagar' },
-  'S189': { lat: 12.97811, lng: 77.71299, name: 'NXT Whitefield' },
+  'S189': { lat: 12.978098, lng: 77.714025, name: 'NXT Whitefield' },
   'S190': { lat: 12.92419, lng: 77.68449, name: 'EcoWorld 4AB' },
   'S191': { lat: 12.926732, lng: 77.521328, name: 'Sparsh Hospital- RR Nagar' },
   'S193': { lat: 12.97032, lng: 77.60065, name: 'Indicube St Marks Road' },
