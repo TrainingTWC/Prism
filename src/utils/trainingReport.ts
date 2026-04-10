@@ -145,7 +145,7 @@ async function loadImage(url: string): Promise<string> {
 }
 
 // Zero Tolerance item IDs — if any of these are answered "No", entire audit score = 0%
-const ZERO_TOLERANCE_IDS = ['TM_5', 'TM_10', 'NJ_1', 'NJ_2', 'NJ_3', 'NJ_4', 'NJ_5', 'NJ_7'];
+const ZERO_TOLERANCE_IDS = ['TM_5', 'TM_10', 'NJ_1', 'NJ_2', 'NJ_3', 'NJ_5', 'NJ_7'];
 
 // Compute overall total and max from submission using TRAINING_QUESTIONS
 function computeOverall(submission: any): { total: number; max: number; pct: number } {
