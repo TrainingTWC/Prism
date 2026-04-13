@@ -829,7 +829,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
           const result = await response.json();
           console.log('📨 GAS response:', result);
 
-          if (result.success) {
+          if (result.success || result.status === 'success') {
             console.log('✅ QA checklist submitted successfully');
             submitted = true;
           } else {

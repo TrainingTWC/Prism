@@ -282,11 +282,16 @@ const VendorAuditChecklist: React.FC<VendorAuditChecklistProps> = ({ userRole, o
         metaJSON: JSON.stringify(meta)
       });
 
-      await fetch(VENDOR_AUDIT_ENDPOINT, {
-        method: 'POST', mode: 'no-cors',
+      const draftResponse = await fetch(VENDOR_AUDIT_ENDPOINT, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString()
+        body: params.toString(),
+        redirect: 'follow'
       });
+      const draftResult = await draftResponse.json();
+      if (!draftResult.success && draftResult.status !== 'success') {
+        throw new Error(draftResult.message || 'Failed to save draft');
+      }
 
       const draftMetadata: DraftMetadata = {
         id: draftId, timestamp,
@@ -348,9 +353,10 @@ const VendorAuditChecklist: React.FC<VendorAuditChecklistProps> = ({ userRole, o
     try {
       const params = new URLSearchParams({ action: 'deleteVendorAuditDraft', draftId });
       await fetch(VENDOR_AUDIT_ENDPOINT, {
-        method: 'POST', mode: 'no-cors',
+        method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString()
+        body: params.toString(),
+        redirect: 'follow'
       });
       const updatedDrafts = drafts.filter(d => d.id !== draftId);
       setDrafts(updatedDrafts);
@@ -528,36 +534,60 @@ const VendorAuditChecklist: React.FC<VendorAuditChecklistProps> = ({ userRole, o
       const MAX_NETWORK_RETRIES = 2;
       let networkRetryCount = 0;
       let didSubmit = false;
+      let lastError = '';
 
-      while (!didSubmit) {
+      while (!didSubmit && networkRetryCount <= MAX_NETWORK_RETRIES) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), SUBMIT_TIMEOUT);
+
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), SUBMIT_TIMEOUT);
+          console.log(`📤 Submitting Vendor Audit (attempt ${networkRetryCount + 1})... Payload: ${(bodyString.length / 1024).toFixed(1)}KB`);
 
-          await fetch(VENDOR_AUDIT_ENDPOINT, {
+          const response = await fetch(VENDOR_AUDIT_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: bodyString,
-            mode: 'no-cors',
+            redirect: 'follow',
             signal: controller.signal
           });
 
           clearTimeout(timeoutId);
-          didSubmit = true;
+
+          const result = await response.json();
+          console.log('📨 Vendor Audit GAS response:', result);
+
+          if (result.success || result.status === 'success') {
+            console.log('✅ Vendor Audit submitted successfully');
+            didSubmit = true;
+          } else {
+            lastError = result.message || result.error || 'Unknown server error';
+            console.error('❌ GAS returned error:', lastError);
+            networkRetryCount++;
+          }
         } catch (err: any) {
+          clearTimeout(timeoutId);
+
           if (err.name === 'AbortError') {
+            console.warn('⏱️ Request timed out after 90s. Data may have been received.');
             didSubmit = true;
           } else {
             networkRetryCount++;
+            lastError = err.message || 'Network error';
+            console.error(`❌ Fetch error (attempt ${networkRetryCount}):`, lastError);
+
             if (networkRetryCount <= MAX_NETWORK_RETRIES) {
               const delayMs = networkRetryCount * 3000;
+              console.log(`⏳ Retrying in ${delayMs / 1000}s...`);
               await new Promise(resolve => setTimeout(resolve, delayMs));
-            } else {
-              alert('Failed to submit. Please check your internet connection and try again.');
-              throw new Error('Submission failed after network retries: ' + err.message);
             }
           }
         }
+      }
+
+      if (!didSubmit) {
+        alert('Failed to submit Vendor Audit: ' + lastError + '\nPlease check your internet connection and try again.');
+        setIsLoading(false);
+        return;
       }
 
       if (currentDraftId) {
