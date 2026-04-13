@@ -91,7 +91,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S217': { lat: 12.987304, lng: 77.703972, name: 'Store S217' },
   'S232': { lat: 13.011164, lng: 77.555061, name: 'Store S232' },
   'S233': { lat: 13.055249, lng: 77.763742, name: 'Store S233' },
-  'S247': { lat: 12.893844, lng: 77.595836, name: 'Bannerghatta' },
+  'S247': { lat: 12.911729, lng: 77.650215, name: 'Bannerghatta' },
 
   // ============ NORTH REGION ============
   'S024': { lat: 28.559328, lng: 77.195795, name: 'Deer Park' },
