@@ -156,25 +156,75 @@ function updateQAAudit(params) {
   var rowId = (params.rowId || '').trim();
   if (!rowId) return json({ success: false, message: 'rowId required for update' });
 
+  var tz = Session.getScriptTimeZone();
   var data = sheet.getDataRange().getValues();
   var rowIndex = -1;
   for (var i = 1; i < data.length; i++) {
-    if (String(data[i][1] || '').trim() === rowId) {   // Column B = Submission Time
+    var cellVal = data[i][1]; // Column B = Submission Time
+    // Google Sheets may auto-convert date strings to native Date objects.
+    // Format them back to dd/MM/yyyy HH:mm:ss (same as getQAData) before comparing.
+    if (cellVal instanceof Date) {
+      cellVal = Utilities.formatDate(cellVal, tz, 'dd/MM/yyyy HH:mm:ss');
+    }
+    if (String(cellVal || '').trim() === rowId) {
       rowIndex = i + 1;
       break;
     }
   }
   if (rowIndex === -1) return json({ success: false, message: 'Row not found for rowId: ' + rowId });
 
-  // Overwrite the same row with updated data
-  var headers = data[0];
-  for (var col = 0; col < headers.length; col++) {
-    var header = headers[col];
-    var paramKey = headerToParamKey(header);
-    if (paramKey && params[paramKey] !== undefined) {
-      sheet.getRange(rowIndex, col + 1).setValue(params[paramKey]);
-    }
+  // Rebuild the full row with updated data (same structure as submitQAAudit)
+  var ts = now() + ' (Updated)';
+  var row = [
+    ts,                                       // A: Timestamp (mark as updated)
+    params.submissionTime || rowId,            // B: Submission Time (preserve original)
+    params.qaName || '',                       // C: QA Auditor Name
+    params.qaId || '',                         // D: QA Auditor ID
+    params.amName || '',                       // E: AM Name
+    params.amId || '',                         // F: AM ID
+    params.storeName || '',                    // G: Store Name
+    params.storeID || '',                      // H: Store ID
+    params.city || '',                         // I: City
+    params.region || '',                       // J: Region
+    params.totalScore || 0,                    // K: Total Score
+    params.maxScore || 0,                      // L: Max Score
+    params.scorePercentage || 0,               // M: Score %
+    params.auditorSignature || '',             // N: Auditor Signature
+    params.smSignature || ''                   // O: SM Signature
+  ];
+
+  // ZeroTolerance: ZT_1..ZT_6
+  var ztIds = ['ZT_1','ZT_2','ZT_3','ZT_4','ZT_5','ZT_6'];
+  for (var q = 0; q < ztIds.length; q++) {
+    row.push(params['ZeroTolerance_' + ztIds[q]] || '');
   }
+
+  // Store: S_1..S_94
+  for (var q = 1; q <= 94; q++) {
+    row.push(params['Store_S_' + q] || '');
+  }
+
+  // QA: A_1..A_3
+  for (var q = 1; q <= 3; q++) {
+    row.push(params['A_A_' + q] || '');
+  }
+
+  // Maintenance: M_1..M_11
+  for (var q = 1; q <= 11; q++) {
+    row.push(params['Maintenance_M_' + q] || '');
+  }
+
+  // HR: HR_1..HR_2
+  for (var q = 1; q <= 2; q++) {
+    row.push(params['HR_HR_' + q] || '');
+  }
+
+  // Remarks JSON + Images JSON
+  row.push(params.questionRemarksJSON || '{}');
+  row.push(params.questionImagesJSON || '{}');
+
+  // Write the entire row at once
+  sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
 
   Logger.log('Updated QA audit row ' + rowIndex);
   return json({ success: true, message: 'QA audit updated' });
