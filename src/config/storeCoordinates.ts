@@ -42,7 +42,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S019': { lat: 12.998041, lng: 77.697321, name: 'PMC-Bangalore' },
   'S020': { lat: 13.027258, lng: 77.576516, name: 'New BEL Road' },
   'S021': { lat: 11.344696, lng: 76.801083, name: 'Bedford Coonoor' },
-  'S022': { lat: 12.92104, lng: 77.68426, name: 'Eco World Bay' },
+  'S022': { lat: 12.920553, lng: 77.684648, name: 'Eco World Bay' },
   'S023': { lat: 13.021674, lng: 77.640049, name: 'HRBR Layout' },
   'S030': { lat: 12.996098, lng: 77.613326, name: 'Frazer Town' },
   'S031': { lat: 12.971635, lng: 77.597882, name: 'Lavelle Road' },
