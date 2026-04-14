@@ -22,7 +22,8 @@ const QAAMReviewChecklist = lazy(() => import('./checklists/QAAMReviewChecklist'
 const QACAPAChecklist = lazy(() => import('./checklists/QACAPAChecklist'));
 const QACAPADashboard = lazy(() => import('./checklists/QACAPADashboard'));
 const VendorAuditChecklist = lazy(() => import('./checklists/VendorAuditChecklist'));
-import { ClipboardCheck, ShieldAlert, Factory } from 'lucide-react';
+const PreLaunchAuditChecklist = lazy(() => import('./checklists/PreLaunchAuditChecklist'));
+import { ClipboardCheck, ShieldAlert, Factory, Rocket } from 'lucide-react';
 
 interface ChecklistsAndSurveysProps {
   userRole: UserRole;
@@ -32,7 +33,7 @@ interface ChecklistsAndSurveysProps {
 type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning' | 'brew-league' | 'qa-am-review' | 'qa-capa' | 'qa-capa-dashboard';
 type BrewLeagueSubType = 'store' | 'am' | 'region' | 'dashboard';
 type BenchPlanningSubType = 'barista-sm' | 'sm-asm' | 'barista-bt';
-type QASubType = 'store-qa' | 'vendor-audit';
+type QASubType = 'store-qa' | 'vendor-audit' | 'pre-launch-audit';
 type BTSessionStep = 'readiness' | 'bt-session' | 'skill-check';
 
 const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, preSelectedChecklist }) => {
@@ -381,7 +382,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <button
               onClick={() => setQASubSection('store-qa')}
               className="group p-8 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-orange-400 dark:hover:border-orange-400 bg-white dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200"
@@ -421,6 +422,26 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
                 </span>
               </div>
             </button>
+
+            <button
+              onClick={() => setQASubSection('pre-launch-audit')}
+              className="group p-8 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-400 bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all duration-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-indigo-600 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <Rocket className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                  Pre-Launch Audit
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+                  Pre-launch readiness audit for new store openings covering safety & compliance
+                </p>
+                <span className="mt-2 text-sm text-indigo-600 dark:text-indigo-400 font-medium group-hover:text-indigo-700 dark:group-hover:text-indigo-300">
+                  Open →
+                </span>
+              </div>
+            </button>
           </div>
         </div>
       );
@@ -433,6 +454,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
       }
       if (qaSubSection === 'vendor-audit') {
         return <VendorAuditChecklist {...commonProps} />;
+      }
+      if (qaSubSection === 'pre-launch-audit') {
+        return <PreLaunchAuditChecklist {...commonProps} />;
       }
     }
 
@@ -542,7 +566,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
                   <span className="text-gray-900 dark:text-slate-100 font-medium">
                     {qaSubSection
                       ? qaSubSection === 'store-qa' ? 'Store QA'
-                        : 'Vendor Audit'
+                        : qaSubSection === 'vendor-audit' ? 'Vendor Audit'
+                        : 'Pre-Launch Audit'
                       : benchPlanningSubSection
                       ? benchPlanningSubSection === 'barista-bt' ? 'Buddy Trainer'
                         : benchPlanningSubSection === 'barista-sm' ? 'Shift Manager'

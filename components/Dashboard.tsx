@@ -12,7 +12,7 @@ import { buildFinancePDF } from '../src/utils/financeReport';
 import { Users, Clipboard, GraduationCap, BarChart3, Brain, Calendar, CheckCircle, TrendingUp, Target } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Submission, Store } from '../types';
-import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, fetchFinanceHistoricData, FinanceHistoricData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission } from '../services/dataService';
+import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, fetchFinanceHistoricData, fetchPreLaunchData, FinanceHistoricData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission, PreLaunchSubmission } from '../services/dataService';
 import { fetchSHLPData, SHLPSubmission } from '../services/shlpDataService';
 import { hapticFeedback } from '../utils/haptics';
 import { loadComprehensiveMapping } from '../utils/mappingUtils';
@@ -105,6 +105,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   const [amOperationsData, setAMOperationsData] = useState<AMOperationsSubmission[]>([]);
   const [trainingData, setTrainingData] = useState<TrainingAuditSubmission[]>([]);
   const [qaData, setQAData] = useState<QASubmission[]>([]);
+  const [preLaunchData, setPreLaunchData] = useState<PreLaunchSubmission[]>([]);
+  const [qaSubTab, setQaSubTab] = useState<'store-qa' | 'pre-launch'>('store-qa');
   const [financeData, setFinanceData] = useState<FinanceSubmission[]>([]);
   const [financeHistoricData, setFinanceHistoricData] = useState<FinanceHistoricData[]>([]);
   const [campusHiringData, setCampusHiringData] = useState<CampusHiringSubmission[]>([]);
@@ -135,6 +137,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     operations: false,
     training: false,
     qa: false,
+    preLaunch: false,
     finance: false,
     campusHiring: false,
     shlp: false
@@ -725,6 +728,19 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
             setDataLoadedFlags(prev => ({ ...prev, qa: true }));
           })
         );
+
+        // Also load Pre-Launch Audit data alongside QA
+        if (!dataLoadedFlags.preLaunch || isRefresh) {
+          loadPromises.push(
+            fetchPreLaunchData(isRefresh).then(data => {
+              setPreLaunchData(data);
+              setDataLoadedFlags(prev => ({ ...prev, preLaunch: true }));
+            }).catch(err => {
+              console.error('❌ Failed to load Pre-Launch data:', err);
+              setDataLoadedFlags(prev => ({ ...prev, preLaunch: true }));
+            })
+          );
+        }
       }
 
       // Load Finance Audit data ONLY if currently viewing Finance dashboard, consolidated view, or map view
@@ -1567,6 +1583,55 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     return filtered;
   }, [qaData, filters, userRole]);
 
+  // Filter Pre-Launch Audit data
+  const filteredPreLaunchData = useMemo(() => {
+    if (!preLaunchData) return [];
+
+    let filtered = preLaunchData.filter((submission: PreLaunchSubmission) => {
+      // Role-based access control
+      if (userRole.role === 'store') {
+        if (!canAccessStore(userRole, submission.storeId)) return false;
+      } else if (userRole.role === 'area_manager') {
+        if (!canAccessAM(userRole, (submission as any).amId)) return false;
+      } else if (userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') {
+        if (!canAccessHR(userRole, (submission as any).amId)) return false;
+      }
+
+      if (filters.region && submission.region !== filters.region) return false;
+      if (filters.store && submission.storeId !== filters.store) return false;
+
+      if (filters.month) {
+        const submissionDate = submission.submissionTime;
+        if (!submissionDate) return false;
+        let date: Date;
+        const dateStr = String(submissionDate).trim();
+        if (dateStr.includes('T')) {
+          date = new Date(dateStr);
+        } else if (dateStr.includes('/')) {
+          const datePart = dateStr.split(',')[0].trim().split(' ')[0];
+          const parts = datePart.split('/');
+          if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            date = new Date(year, month, day);
+          } else {
+            return false;
+          }
+        } else {
+          date = new Date(dateStr);
+        }
+        if (isNaN(date.getTime())) return false;
+        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (submissionMonth !== filters.month) return false;
+      }
+
+      return true;
+    });
+
+    return filtered;
+  }, [preLaunchData, filters, userRole]);
+
   const filteredFinanceData = useMemo(() => {
     if (!financeData) {
       return [];
@@ -1646,8 +1711,24 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   }, [financeData, filters, userRole]);
 
   const stats = useMemo(() => {
-    // For QA dashboard, use QA Assessment data
+    // For QA dashboard, use QA Assessment data or Pre-Launch data based on subtab
     if (dashboardType === 'qa') {
+      if (qaSubTab === 'pre-launch') {
+        if (!filteredPreLaunchData) return null;
+        const totalSubmissions = filteredPreLaunchData.length;
+        const avgScore = totalSubmissions > 0
+          ? filteredPreLaunchData.reduce((acc, s) => acc + parseFloat(s.scorePercentage || '0'), 0) / totalSubmissions
+          : 0;
+        const uniqueAuditors = new Set(filteredPreLaunchData.map(s => s.auditorId)).size;
+        const uniqueStores = new Set(filteredPreLaunchData.map(s => s.storeId)).size;
+        return {
+          totalSubmissions,
+          avgScore: Math.round(avgScore),
+          uniqueAuditors,
+          uniqueStores
+        };
+      }
+
       if (!filteredQAData) return null;
 
       const totalSubmissions = filteredQAData.length;
@@ -2294,7 +2375,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       workingDaysInMonth,
       numHRBPs
     };
-  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, filteredQAData, filteredFinanceData, filteredSHLPData, dashboardType, trendsData, trendsLoading, trainingData, filters, employeeDirectory, employeeLoading]);
+  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, filteredQAData, filteredPreLaunchData, filteredFinanceData, filteredSHLPData, dashboardType, qaSubTab, trendsData, trendsLoading, trainingData, filters, employeeDirectory, employeeLoading]);
 
   // Helper to compute the Average Score display string robustly
   const getAverageScoreDisplay = () => {
@@ -4630,7 +4711,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         (dashboardType === 'hr' && filteredSubmissions.length > 0) ||
         (dashboardType === 'operations' && filteredAMOperations.length > 0) ||
         (dashboardType === 'training' && filteredTrainingData.length > 0) ||
-        (dashboardType === 'qa' && filteredQAData.length > 0) ||
+        (dashboardType === 'qa' && (filteredQAData.length > 0 || filteredPreLaunchData.length > 0)) ||
         (dashboardType === 'finance' && filteredFinanceData.length > 0) ||
         (dashboardType === 'shlp' && filteredSHLPData.length > 0) ||
         (dashboardType === 'consolidated' && (
@@ -6544,100 +6625,312 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
               {/* QA Dashboard Content */}
               {dashboardType === 'qa' && (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    <QARegionPerformanceInfographic submissions={filteredQAData || []} />
-                    <QAAMPerformanceInfographic submissions={filteredQAData || []} />
-                    <QAAuditorPerformanceInfographic submissions={filteredQAData || []} />
+                  {/* QA Sub-tab Selector */}
+                  <div className="flex gap-2 mb-6">
+                    <button
+                      onClick={() => setQaSubTab('store-qa')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        qaSubTab === 'store-qa'
+                          ? 'bg-orange-600 text-white shadow-md'
+                          : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      Store QA ({filteredQAData.length})
+                    </button>
+                    <button
+                      onClick={() => setQaSubTab('pre-launch')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        qaSubTab === 'pre-launch'
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      Pre-Launch Audit ({filteredPreLaunchData.length})
+                    </button>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <QAScoreDistributionChart submissions={filteredQAData || []} />
-                    <QAAverageScoreChart submissions={filteredQAData || []} />
-                  </div>
-
-                  <QASectionScoresInfographic submissions={filteredQAData || []} />
-
-                  {/* QA Submissions List with Edit */}
-                  {filteredQAData && filteredQAData.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                        Recent Submissions ({filteredQAData.length > 50 ? 'Showing 50 of ' + filteredQAData.length : filteredQAData.length})
-                      </h3>
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-                          <thead>
-                            <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
-                                Date
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
-                                Store
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
-                                Auditor
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
-                                Score
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
-                                Actions
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                            {filteredQAData.slice(0, 50).map((submission, index) => (
-                              <tr key={index} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                  {submission.submissionTime ? (() => {
-                                    const date = parseSheetDate(submission.submissionTime);
-                                    if (date) {
-                                      const day = date.getDate();
-                                      const month = date.toLocaleDateString('en-US', { month: 'short' });
-                                      const year = date.getFullYear();
-                                      const suffix = day === 1 || day === 21 || day === 31 ? 'st'
-                                        : day === 2 || day === 22 ? 'nd'
-                                          : day === 3 || day === 23 ? 'rd'
-                                            : 'th';
-                                      return `${month} ${day}${suffix} ${year}`;
-                                    }
-                                    return submission.submissionTime;
-                                  })() : 'N/A'}
-                                </td>
-                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                                  <div>{submission.storeName || 'N/A'}</div>
-                                  <div className="text-xs text-gray-500 dark:text-slate-400">{submission.storeId}</div>
-                                </td>
-                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                                  <div>{submission.qaName || 'N/A'}</div>
-                                  <div className="text-xs text-gray-500 dark:text-slate-400">{submission.qaId}</div>
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${parseFloat(submission.scorePercentage || '0') >= 80
-                                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                      : parseFloat(submission.scorePercentage || '0') >= 60
-                                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                                    }`}>
-                                    {submission.scorePercentage || '0'}%
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                  <button
-                                    onClick={() => {
-                                      setQAEditSubmission(submission);
-                                      setShowQAEdit(true);
-                                    }}
-                                    className="inline-flex items-center px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium rounded-lg transition-colors"
-                                  >
-                                    ✏️ Edit
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                  {/* Store QA Content */}
+                  {qaSubTab === 'store-qa' && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <QARegionPerformanceInfographic submissions={filteredQAData || []} />
+                        <QAAMPerformanceInfographic submissions={filteredQAData || []} />
+                        <QAAuditorPerformanceInfographic submissions={filteredQAData || []} />
                       </div>
-                    </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <QAScoreDistributionChart submissions={filteredQAData || []} />
+                        <QAAverageScoreChart submissions={filteredQAData || []} />
+                      </div>
+
+                      <QASectionScoresInfographic submissions={filteredQAData || []} />
+
+                      {/* QA Submissions List with Edit */}
+                      {filteredQAData && filteredQAData.length > 0 && (
+                        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                            Recent Submissions ({filteredQAData.length > 50 ? 'Showing 50 of ' + filteredQAData.length : filteredQAData.length})
+                          </h3>
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                              <thead>
+                                <tr>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                                    Date
+                                  </th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                                    Store
+                                  </th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                                    Auditor
+                                  </th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                                    Score
+                                  </th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                                    Actions
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                                {filteredQAData.slice(0, 50).map((submission, index) => (
+                                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                      {submission.submissionTime ? (() => {
+                                        const date = parseSheetDate(submission.submissionTime);
+                                        if (date) {
+                                          const day = date.getDate();
+                                          const month = date.toLocaleDateString('en-US', { month: 'short' });
+                                          const year = date.getFullYear();
+                                          const suffix = day === 1 || day === 21 || day === 31 ? 'st'
+                                            : day === 2 || day === 22 ? 'nd'
+                                              : day === 3 || day === 23 ? 'rd'
+                                                : 'th';
+                                          return `${month} ${day}${suffix} ${year}`;
+                                        }
+                                        return submission.submissionTime;
+                                      })() : 'N/A'}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                      <div>{submission.storeName || 'N/A'}</div>
+                                      <div className="text-xs text-gray-500 dark:text-slate-400">{submission.storeId}</div>
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                      <div>{submission.qaName || 'N/A'}</div>
+                                      <div className="text-xs text-gray-500 dark:text-slate-400">{submission.qaId}</div>
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${parseFloat(submission.scorePercentage || '0') >= 80
+                                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                          : parseFloat(submission.scorePercentage || '0') >= 60
+                                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                        }`}>
+                                        {submission.scorePercentage || '0'}%
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                      <button
+                                        onClick={() => {
+                                          setQAEditSubmission(submission);
+                                          setShowQAEdit(true);
+                                        }}
+                                        className="inline-flex items-center px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium rounded-lg transition-colors"
+                                      >
+                                        ✏️ Edit
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Pre-Launch Audit Content */}
+                  {qaSubTab === 'pre-launch' && (
+                    <>
+                      {filteredPreLaunchData.length === 0 ? (
+                        <div className="bg-white dark:bg-slate-800 rounded-xl p-8 border border-gray-200 dark:border-slate-700 text-center">
+                          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                            <svg className="w-8 h-8 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                          </div>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Pre-Launch Audits Yet</h3>
+                          <p className="text-gray-600 dark:text-slate-400">Submit pre-launch audits through the Checklists & Surveys section to see data here.</p>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Region Performance */}
+                          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Region Performance</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {(() => {
+                                const regionMap = new Map<string, { total: number; scores: number[] }>();
+                                filteredPreLaunchData.forEach(s => {
+                                  const r = s.region || 'Unknown';
+                                  if (!regionMap.has(r)) regionMap.set(r, { total: 0, scores: [] });
+                                  const entry = regionMap.get(r)!;
+                                  entry.total++;
+                                  entry.scores.push(parseFloat(s.scorePercentage || '0'));
+                                });
+                                return Array.from(regionMap.entries()).sort((a, b) => b[1].total - a[1].total).map(([region, data]) => {
+                                  const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+                                  return (
+                                    <div key={region} className="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-4">
+                                      <div className="flex justify-between items-center mb-2">
+                                        <span className="font-medium text-gray-900 dark:text-white">{region}</span>
+                                        <span className="text-sm text-gray-500 dark:text-slate-400">{data.total} audits</span>
+                                      </div>
+                                      <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2.5">
+                                        <div
+                                          className={`h-2.5 rounded-full ${avg >= 80 ? 'bg-green-500' : avg >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                          style={{ width: `${Math.min(avg, 100)}%` }}
+                                        />
+                                      </div>
+                                      <div className="text-right mt-1">
+                                        <span className={`text-sm font-semibold ${avg >= 80 ? 'text-green-600 dark:text-green-400' : avg >= 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
+                                          {Math.round(avg)}%
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          </div>
+
+                          {/* Score Distribution */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Score Distribution</h3>
+                              <div className="space-y-3">
+                                {(() => {
+                                  const buckets = { 'Excellent (80-100%)': 0, 'Good (60-79%)': 0, 'Needs Improvement (<60%)': 0 };
+                                  filteredPreLaunchData.forEach(s => {
+                                    const pct = parseFloat(s.scorePercentage || '0');
+                                    if (pct >= 80) buckets['Excellent (80-100%)']++;
+                                    else if (pct >= 60) buckets['Good (60-79%)']++;
+                                    else buckets['Needs Improvement (<60%)']++;
+                                  });
+                                  const total = filteredPreLaunchData.length;
+                                  const colors = { 'Excellent (80-100%)': 'bg-green-500', 'Good (60-79%)': 'bg-yellow-500', 'Needs Improvement (<60%)': 'bg-red-500' };
+                                  return Object.entries(buckets).map(([label, count]) => (
+                                    <div key={label}>
+                                      <div className="flex justify-between text-sm mb-1">
+                                        <span className="text-gray-700 dark:text-slate-300">{label}</span>
+                                        <span className="font-medium text-gray-900 dark:text-white">{count} ({total > 0 ? Math.round((count / total) * 100) : 0}%)</span>
+                                      </div>
+                                      <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2">
+                                        <div className={`h-2 rounded-full ${colors[label as keyof typeof colors]}`} style={{ width: `${total > 0 ? (count / total) * 100 : 0}%` }} />
+                                      </div>
+                                    </div>
+                                  ));
+                                })()}
+                              </div>
+                            </div>
+
+                            {/* Auditor Performance */}
+                            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Auditor Performance</h3>
+                              <div className="space-y-3 max-h-64 overflow-y-auto">
+                                {(() => {
+                                  const auditorMap = new Map<string, { name: string; total: number; scores: number[] }>();
+                                  filteredPreLaunchData.forEach(s => {
+                                    const id = s.auditorId || 'Unknown';
+                                    if (!auditorMap.has(id)) auditorMap.set(id, { name: s.auditorName || id, total: 0, scores: [] });
+                                    const entry = auditorMap.get(id)!;
+                                    entry.total++;
+                                    entry.scores.push(parseFloat(s.scorePercentage || '0'));
+                                  });
+                                  return Array.from(auditorMap.entries()).sort((a, b) => b[1].total - a[1].total).map(([id, data]) => {
+                                    const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+                                    return (
+                                      <div key={id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                                        <div>
+                                          <span className="font-medium text-gray-900 dark:text-white text-sm">{data.name}</span>
+                                          <span className="text-xs text-gray-500 dark:text-slate-400 ml-2">({data.total} audits)</span>
+                                        </div>
+                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${avg >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : avg >= 60 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                          {Math.round(avg)}%
+                                        </span>
+                                      </div>
+                                    );
+                                  });
+                                })()}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Pre-Launch Submissions Table */}
+                          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                              Recent Pre-Launch Audits ({filteredPreLaunchData.length > 50 ? 'Showing 50 of ' + filteredPreLaunchData.length : filteredPreLaunchData.length})
+                            </h3>
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                                <thead>
+                                  <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Store</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Auditor</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">City</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Score</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                                  {filteredPreLaunchData.slice(0, 50).map((submission, index) => (
+                                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                        {submission.submissionTime ? (() => {
+                                          const date = parseSheetDate(submission.submissionTime);
+                                          if (date) {
+                                            const day = date.getDate();
+                                            const month = date.toLocaleDateString('en-US', { month: 'short' });
+                                            const year = date.getFullYear();
+                                            const suffix = day === 1 || day === 21 || day === 31 ? 'st'
+                                              : day === 2 || day === 22 ? 'nd'
+                                                : day === 3 || day === 23 ? 'rd'
+                                                  : 'th';
+                                            return `${month} ${day}${suffix} ${year}`;
+                                          }
+                                          return submission.submissionTime;
+                                        })() : 'N/A'}
+                                      </td>
+                                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                        <div>{submission.storeName || 'N/A'}</div>
+                                        <div className="text-xs text-gray-500 dark:text-slate-400">{submission.storeId}</div>
+                                      </td>
+                                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                        <div>{submission.auditorName || 'N/A'}</div>
+                                        <div className="text-xs text-gray-500 dark:text-slate-400">{submission.auditorId}</div>
+                                      </td>
+                                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                        {submission.city || 'N/A'}
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${parseFloat(submission.scorePercentage || '0') >= 80
+                                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                            : parseFloat(submission.scorePercentage || '0') >= 60
+                                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                          }`}>
+                                          {submission.scorePercentage || '0'}%
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </>
                   )}
                 </>
               )}

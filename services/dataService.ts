@@ -25,6 +25,9 @@ const FINANCE_HISTORIC_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzKy5
 // Campus Hiring endpoint - UPDATED URL
 const CAMPUS_HIRING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbPYyW_kPmdL5Fnq1AUyhgLyvYmInBj9EzQSrmdFdqO4FJe2O8_flX6rxNaZNaVhjs_Q/exec';
 
+// Pre-Launch Audit endpoint - Uses env variable
+const PRE_LAUNCH_AUDIT_ENDPOINT = import.meta.env.VITE_PRE_LAUNCH_AUDIT_SCRIPT_URL || '';
+
 // Cache for store mapping data
 let storeMappingCache: any[] | null = null;
 
@@ -1283,6 +1286,76 @@ export const fetchQAData = async (forceRefresh = false): Promise<QASubmission[]>
     ];
 
     return STATIC_QA_DATA;
+  }
+};
+
+// Interface for Pre-Launch Audit submission
+export interface PreLaunchSubmission {
+  submissionTime: string;
+  auditorName: string;
+  auditorId: string;
+  storeName: string;
+  storeId: string;
+  city: string;
+  region: string;
+  totalScore: string;
+  maxScore: string;
+  scorePercentage: string;
+  [key: string]: string;
+}
+
+// Fetch Pre-Launch Audit data
+export const fetchPreLaunchData = async (forceRefresh = false): Promise<PreLaunchSubmission[]> => {
+  if (!PRE_LAUNCH_AUDIT_ENDPOINT) {
+    console.warn('⚠️ [Pre-Launch] Endpoint not configured');
+    return [];
+  }
+
+  if (!forceRefresh) {
+    const cached = getCached<PreLaunchSubmission[]>('pre-launch');
+    if (cached) return cached;
+  }
+  try {
+    const data = await fetchWithRetry(
+      PRE_LAUNCH_AUDIT_ENDPOINT + '?action=getData',
+      'Pre-Launch'
+    );
+
+    if (!data || !Array.isArray(data)) {
+      console.warn('⚠️ [Pre-Launch] No valid data, returning empty');
+      return [];
+    }
+
+    const mappingData = await loadStoreMapping();
+    const storeIdIndex = new Map<string, any>();
+    mappingData.forEach(mapping => {
+      const sid = mapping["Store ID"] || mapping.storeId;
+      if (sid) storeIdIndex.set(sid.toString(), mapping);
+    });
+
+    const processedData = data.map((row: any) => {
+      let region = row.region || 'Unknown';
+      if (region === 'Unknown' || !region) {
+        const storeId = row.storeId || row.storeID;
+        if (storeId) {
+          let storeMapping = storeIdIndex.get(storeId.toString());
+          if (!storeMapping && !storeId.toString().startsWith('S')) {
+            const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
+            storeMapping = storeIdIndex.get(sFormattedId);
+          }
+          if (storeMapping && (storeMapping["Region"] || storeMapping.region)) {
+            region = storeMapping["Region"] || storeMapping.region;
+          }
+        }
+      }
+      return { ...row, region };
+    });
+
+    setCache('pre-launch', processedData);
+    return processedData as PreLaunchSubmission[];
+  } catch (error) {
+    console.error('❌ [Pre-Launch] Error fetching data:', error);
+    return [];
   }
 };
 
