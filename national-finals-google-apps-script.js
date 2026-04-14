@@ -1,6 +1,6 @@
 // =========================================================================
-// NATIONAL FINALS - SENSORY SHEET - GOOGLE APPS SCRIPT
-// Semi Automatic Sensory Scoresheet
+// NATIONAL FINALS - TECHNICAL / SENSORY SHEET - GOOGLE APPS SCRIPT
+// Semi Automatic Scoresheet (supports both Technical & Sensory)
 // Deploy as Web App with "Anyone" access
 // =========================================================================
 
@@ -8,7 +8,7 @@
 // CONFIGURATION
 // =========================================================================
 var CONFIG = {
-  SHEET_NAME: "National Finals - Sensory",
+  SHEET_NAME: "National Finals",
   HEADERS: [
     "Timestamp",                     // 1
     "Participant Name",              // 2
@@ -18,30 +18,22 @@ var CONFIG = {
     "Store Name",                    // 6
     "Store ID",                      // 7
     "Region",                        // 8
-    "Total Score",                   // 9
-    "Max Score",                     // 10
-    "Percentage",                    // 11
-    // Section scores
-    "Barista Introduction Score",    // 12
-    "Barista Introduction Max",      // 13
-    "Espresso Score",                // 14
-    "Espresso Max",                  // 15
-    "Milk Based Score",              // 16
-    "Milk Based Max",                // 17
-    "Signature Score",               // 18
-    "Signature Max",                 // 19
-    "Overall Score",                 // 20
-    "Overall Max",                   // 21
+    "Scoresheet Type",               // 9
+    "Total Score",                   // 10
+    "Max Score",                     // 11
+    "Percentage",                    // 12
     // Time fields
-    "Start Time",                    // 22
-    "End Time",                      // 23
-    "Time Taken",                    // 24
+    "Start Time",                    // 13
+    "End Time",                      // 14
+    "Time Taken",                    // 15
     // Metadata
-    "Submission Time",               // 25
-    "All Responses (JSON)",          // 26
-    "Section Remarks (JSON)",        // 27
-    "Comments (JSON)",               // 28
-    "Images (JSON)"                  // 29
+    "Submission Time",               // 16
+    "Section Scores (JSON)",         // 17
+    "Section Max (JSON)",            // 18
+    "All Responses (JSON)",          // 19
+    "Section Remarks (JSON)",        // 20
+    "Comments (JSON)",               // 21
+    "Images (JSON)"                  // 22
   ]
 };
 
@@ -72,26 +64,18 @@ function doPost(e) {
       params.storeName || "",                             // Store Name
       params.storeID || "",                               // Store ID
       params.region || "",                                // Region
+      params.scoresheetType || "sensory",                // Scoresheet Type
       Number(params.totalScore) || 0,                    // Total Score
       Number(params.maxScore) || 0,                      // Max Score
       Number(params.percent) || 0,                       // Percentage
-      // Section scores
-      Number(params.BaristaIntroductionScore) || 0,      // Barista Introduction Score
-      Number(params.BaristaIntroductionMax) || 0,        // Barista Introduction Max
-      Number(params.EspressoScore) || 0,                 // Espresso Score
-      Number(params.EspressoMax) || 0,                   // Espresso Max
-      Number(params.MilkBasedScore) || 0,                // Milk Based Score
-      Number(params.MilkBasedMax) || 0,                  // Milk Based Max
-      Number(params.SignatureScore) || 0,                 // Signature Score
-      Number(params.SignatureMax) || 0,                   // Signature Max
-      Number(params.OverallScore) || 0,                  // Overall Score
-      Number(params.OverallMax) || 0,                    // Overall Max
       // Time fields
       params.startTime || "",                             // Start Time
       params.endTime || "",                               // End Time
       params.timeTaken || "",                             // Time Taken
       // Metadata
       params.submissionTime || "",                        // Submission Time
+      params.sectionScores || "{}",                      // Section Scores (JSON)
+      params.sectionMax || "{}",                         // Section Max (JSON)
       params.allResponses || "{}",                       // All Responses (JSON)
       params.sectionRemarks || "{}",                     // Section Remarks (JSON)
       params.comments || "{}",                           // Comments (JSON)
@@ -101,7 +85,7 @@ function doPost(e) {
     sheet.appendRow(row);
 
     return ContentService
-      .createTextOutput(JSON.stringify({ status: "success", message: "National Finals sensory data logged successfully" }))
+      .createTextOutput(JSON.stringify({ status: "success", message: "National Finals data logged successfully" }))
       .setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
