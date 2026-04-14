@@ -936,31 +936,21 @@ const BrewLeagueNationalFinals: React.FC = () => {
           </div>
         )}
 
-        {/* Live Score Summary */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Live Score</h3>
-            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-              {total} / {max} ({pct}%)
+        {/* Live Score Summary - Compact Progress Bar */}
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg px-4 py-3">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-600 dark:text-slate-300 whitespace-nowrap">Score</span>
+            <div className="flex-1 bg-gray-200 dark:bg-slate-700 rounded-full h-3">
+              <div
+                className={`h-3 rounded-full transition-all duration-500 ${
+                  pct >= 80 ? 'bg-green-500' : pct >= 60 ? 'bg-amber-500' : pct >= 40 ? 'bg-orange-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${pct}%` }}
+              />
             </div>
-          </div>
-          <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-3">
-            <div
-              className={`h-3 rounded-full transition-all duration-500 ${
-                pct >= 80 ? 'bg-green-500' : pct >= 60 ? 'bg-amber-500' : pct >= 40 ? 'bg-orange-500' : 'bg-red-500'
-              }`}
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2">
-            {scoredSections.map(sec => (
-              <div key={sec.id} className="text-center p-2 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
-                <div className="text-xs text-gray-500 dark:text-slate-400 truncate">{sec.title}</div>
-                <div className="text-sm font-bold text-gray-900 dark:text-slate-100">
-                  {sectionScores[sec.id] || 0}/{sectionMax[sec.id] || 0}
-                </div>
-              </div>
-            ))}
+            <span className="text-sm font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">
+              {total}/{max} ({pct}%)
+            </span>
           </div>
         </div>
 
