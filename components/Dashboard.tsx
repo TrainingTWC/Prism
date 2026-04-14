@@ -12,7 +12,7 @@ import { buildFinancePDF } from '../src/utils/financeReport';
 import { Users, Clipboard, GraduationCap, BarChart3, Brain, Calendar, CheckCircle, TrendingUp, Target } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Submission, Store } from '../types';
-import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, fetchFinanceHistoricData, fetchPreLaunchData, FinanceHistoricData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission, PreLaunchSubmission } from '../services/dataService';
+import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, fetchFinanceHistoricData, fetchPreLaunchData, fetchHRAuditData, FinanceHistoricData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission, PreLaunchSubmission, HRAuditSubmission } from '../services/dataService';
 import { fetchSHLPData, SHLPSubmission } from '../services/shlpDataService';
 import { hapticFeedback } from '../utils/haptics';
 import { loadComprehensiveMapping } from '../utils/mappingUtils';
@@ -106,7 +106,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   const [trainingData, setTrainingData] = useState<TrainingAuditSubmission[]>([]);
   const [qaData, setQAData] = useState<QASubmission[]>([]);
   const [preLaunchData, setPreLaunchData] = useState<PreLaunchSubmission[]>([]);
+  const [hrAuditData, setHRAuditData] = useState<HRAuditSubmission[]>([]);
   const [qaSubTab, setQaSubTab] = useState<'store-qa' | 'pre-launch'>('store-qa');
+  const [hrSubTab, setHrSubTab] = useState<'hr-connect' | 'hr-audit'>('hr-connect');
   const [financeData, setFinanceData] = useState<FinanceSubmission[]>([]);
   const [financeHistoricData, setFinanceHistoricData] = useState<FinanceHistoricData[]>([]);
   const [campusHiringData, setCampusHiringData] = useState<CampusHiringSubmission[]>([]);
@@ -138,6 +140,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     training: false,
     qa: false,
     preLaunch: false,
+    hrAudit: false,
     finance: false,
     campusHiring: false,
     shlp: false
@@ -689,6 +692,19 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
             setDataLoadedFlags(prev => ({ ...prev, hr: true }));
           })
         );
+
+        // Also load HR Audit data alongside HR
+        if (!dataLoadedFlags.hrAudit || isRefresh) {
+          loadPromises.push(
+            fetchHRAuditData(isRefresh).then(data => {
+              setHRAuditData(data);
+              setDataLoadedFlags(prev => ({ ...prev, hrAudit: true }));
+            }).catch(err => {
+              console.error('❌ Failed to load HR Audit data:', err);
+              setDataLoadedFlags(prev => ({ ...prev, hrAudit: true }));
+            })
+          );
+        }
       }
 
       // Load AM Operations data ONLY if currently viewing Operations dashboard, consolidated view, or map view
@@ -1631,6 +1647,35 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
 
     return filtered;
   }, [preLaunchData, filters, userRole]);
+
+  // Filter HR Audit data
+  const filteredHRAuditData = useMemo(() => {
+    if (!hrAuditData) return [];
+
+    let filtered = hrAuditData.filter((submission: HRAuditSubmission) => {
+      if (filters.region && submission.region !== filters.region) return false;
+      if (filters.store) {
+        const subStoreId = submission.storeId || '';
+        if (subStoreId !== filters.store) return false;
+      }
+      if (filters.month) {
+        const dateStr = String(submission.submissionTime || '').trim();
+        let date: Date;
+        if (dateStr.includes('T')) { date = new Date(dateStr); }
+        else if (dateStr.includes('/')) {
+          const parts = dateStr.split(',')[0].trim().split(' ')[0].split('/');
+          if (parts.length === 3) { date = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10)); }
+          else return false;
+        } else { date = new Date(dateStr); }
+        if (isNaN(date.getTime())) return false;
+        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (submissionMonth !== filters.month) return false;
+      }
+      return true;
+    });
+
+    return filtered;
+  }, [hrAuditData, filters]);
 
   const filteredFinanceData = useMemo(() => {
     if (!financeData) {
@@ -4801,6 +4846,153 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
               {/* Show HR Dashboard Content */}
               {dashboardType === 'hr' && (
                 <>
+                  {/* HR Sub-tab Selector */}
+                  <div className="flex gap-2 mb-6">
+                    <button
+                      onClick={() => setHrSubTab('hr-connect')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        hrSubTab === 'hr-connect'
+                          ? 'bg-blue-600 text-white shadow-md'
+                          : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      HR Connect ({filteredSubmissions.length})
+                    </button>
+                    <button
+                      onClick={() => setHrSubTab('hr-audit')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        hrSubTab === 'hr-audit'
+                          ? 'bg-cyan-600 text-white shadow-md'
+                          : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      HR Audit ({filteredHRAuditData.length})
+                    </button>
+                  </div>
+
+                  {/* HR Audit Dashboard Content */}
+                  {hrSubTab === 'hr-audit' && (
+                    <div className="space-y-6">
+                      {filteredHRAuditData.length === 0 ? (
+                        <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-lg shadow">
+                          <p className="text-gray-500 dark:text-slate-400 text-lg">No HR Audit data available</p>
+                          <p className="text-gray-400 dark:text-slate-500 text-sm mt-2">Submit HR Audits to see analytics here</p>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Summary Cards */}
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+                              <p className="text-sm text-gray-500 dark:text-slate-400">Total Audits</p>
+                              <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredHRAuditData.length}</p>
+                            </div>
+                            <div className="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+                              <p className="text-sm text-gray-500 dark:text-slate-400">Avg Store Health</p>
+                              <p className={`text-2xl font-bold ${(() => {
+                                const avg = filteredHRAuditData.reduce((a, s) => a + parseFloat(s.storeHealth || '0'), 0) / filteredHRAuditData.length;
+                                return avg >= 80 ? 'text-green-600' : avg >= 60 ? 'text-yellow-600' : avg >= 40 ? 'text-orange-600' : 'text-red-600';
+                              })()}`}>
+                                {(filteredHRAuditData.reduce((a, s) => a + parseFloat(s.storeHealth || '0'), 0) / filteredHRAuditData.length).toFixed(1)}/100
+                              </p>
+                            </div>
+                            <div className="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+                              <p className="text-sm text-gray-500 dark:text-slate-400">Stores Assessed</p>
+                              <p className="text-2xl font-bold text-gray-900 dark:text-white">{new Set(filteredHRAuditData.map(s => s.storeId)).size}</p>
+                            </div>
+                            <div className="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+                              <p className="text-sm text-gray-500 dark:text-slate-400">Risk Alerts</p>
+                              <p className="text-2xl font-bold text-red-600">
+                                {filteredHRAuditData.filter(s => s.riskAlerts && s.riskAlerts !== '[]' && s.riskAlerts !== '').length}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Dimension Averages */}
+                          <div className="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dimension Averages</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+                              {[
+                                { key: 'attritionScore', label: 'Attrition Risk', color: 'orange' },
+                                { key: 'capabilityScore', label: 'Capability', color: 'blue' },
+                                { key: 'cultureScore', label: 'Culture', color: 'green' },
+                                { key: 'engagementScore', label: 'Engagement', color: 'yellow' },
+                                { key: 'pressureScore', label: 'Pressure', color: 'red' },
+                              ].map(dim => {
+                                const avg = filteredHRAuditData.reduce((a, s) => a + parseFloat((s as any)[dim.key] || '0'), 0) / filteredHRAuditData.length;
+                                const riskLevel = avg >= 80 ? 'Low' : avg >= 60 ? 'Medium' : avg >= 40 ? 'High' : 'Critical';
+                                return (
+                                  <div key={dim.key} className="text-center p-3 rounded-lg bg-gray-50 dark:bg-slate-700/50">
+                                    <div className="text-xs text-gray-500 dark:text-slate-400 mb-1">{dim.label}</div>
+                                    <div className={`text-2xl font-bold ${avg >= 80 ? 'text-green-600' : avg >= 60 ? 'text-yellow-600' : avg >= 40 ? 'text-orange-600' : 'text-red-600'}`}>{avg.toFixed(1)}</div>
+                                    <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 mt-2">
+                                      <div className={`h-2 rounded-full ${avg >= 80 ? 'bg-green-500' : avg >= 60 ? 'bg-yellow-500' : avg >= 40 ? 'bg-orange-500' : 'bg-red-500'}`} style={{ width: `${Math.min(avg, 100)}%` }} />
+                                    </div>
+                                    <span className={`text-[10px] mt-1 inline-block px-2 py-0.5 rounded-full font-medium ${avg >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : avg >= 60 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' : avg >= 40 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'}`}>{riskLevel}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Submissions Table */}
+                          <div className="bg-white dark:bg-slate-800 rounded-xl shadow overflow-hidden">
+                            <div className="p-4 border-b border-gray-200 dark:border-slate-700">
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">HR Audit Submissions</h3>
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-gray-50 dark:bg-slate-700">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-slate-300">Date</th>
+                                    <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-slate-300">Store</th>
+                                    <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-slate-300">Auditor</th>
+                                    <th className="px-4 py-3 text-center font-medium text-gray-600 dark:text-slate-300">Health</th>
+                                    <th className="px-4 py-3 text-center font-medium text-gray-600 dark:text-slate-300">Attrition</th>
+                                    <th className="px-4 py-3 text-center font-medium text-gray-600 dark:text-slate-300">Capability</th>
+                                    <th className="px-4 py-3 text-center font-medium text-gray-600 dark:text-slate-300">Culture</th>
+                                    <th className="px-4 py-3 text-center font-medium text-gray-600 dark:text-slate-300">Engagement</th>
+                                    <th className="px-4 py-3 text-center font-medium text-gray-600 dark:text-slate-300">Pressure</th>
+                                    <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-slate-300">Alerts</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                                  {filteredHRAuditData.slice(0, 50).map((s, i) => {
+                                    const health = parseFloat(s.storeHealth || '0');
+                                    const healthColor = health >= 80 ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30' : health >= 60 ? 'text-yellow-600 bg-yellow-100' : health >= 40 ? 'text-orange-600 bg-orange-100' : 'text-red-600 bg-red-100';
+                                    let alerts: string[] = [];
+                                    try { alerts = JSON.parse(s.riskAlerts || '[]'); } catch { if (s.riskAlerts) alerts = [s.riskAlerts]; }
+                                    return (
+                                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                                        <td className="px-4 py-3 text-gray-700 dark:text-slate-300 whitespace-nowrap">{s.submissionTime}</td>
+                                        <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">{s.storeName}</td>
+                                        <td className="px-4 py-3 text-gray-600 dark:text-slate-400">{s.auditorName}</td>
+                                        <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded-full text-xs font-bold ${healthColor}`}>{health}</span></td>
+                                        <td className="px-4 py-3 text-center text-gray-700 dark:text-slate-300">{s.attritionScore}</td>
+                                        <td className="px-4 py-3 text-center text-gray-700 dark:text-slate-300">{s.capabilityScore}</td>
+                                        <td className="px-4 py-3 text-center text-gray-700 dark:text-slate-300">{s.cultureScore}</td>
+                                        <td className="px-4 py-3 text-center text-gray-700 dark:text-slate-300">{s.engagementScore}</td>
+                                        <td className="px-4 py-3 text-center text-gray-700 dark:text-slate-300">{s.pressureScore}</td>
+                                        <td className="px-4 py-3">{alerts.length > 0 ? alerts.map((a, j) => <span key={j} className="block text-xs text-red-600 dark:text-red-400">⚠️ {a}</span>) : <span className="text-xs text-green-600">✅ None</span>}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                            {filteredHRAuditData.length > 50 && (
+                              <div className="p-3 text-center text-sm text-gray-500 dark:text-slate-400 border-t border-gray-200 dark:border-slate-700">
+                                Showing 50 of {filteredHRAuditData.length} submissions
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* HR Connect Content */}
+                  {hrSubTab === 'hr-connect' && (
+                  <>
                   {/* HR Connects Progress Card */}
                   {stats?.totalEmployees > 0 && (
                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700 rounded-2xl shadow-lg p-6 border border-blue-200 dark:border-slate-600">
@@ -5291,6 +5483,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                     areaManagers={availableAreaManagers}
                     submissions={filteredSubmissions}
                   />
+                  </>
+                  )}
                 </>
               )}
 

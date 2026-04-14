@@ -28,6 +28,9 @@ const CAMPUS_HIRING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbPYyW_
 // Pre-Launch Audit endpoint - Uses env variable
 const PRE_LAUNCH_AUDIT_ENDPOINT = import.meta.env.VITE_PRE_LAUNCH_AUDIT_SCRIPT_URL || '';
 
+// HR Audit endpoint - Uses env variable
+const HR_AUDIT_ENDPOINT = import.meta.env.VITE_HR_AUDIT_SCRIPT_URL || '';
+
 // Cache for store mapping data
 let storeMappingCache: any[] | null = null;
 
@@ -1355,6 +1358,80 @@ export const fetchPreLaunchData = async (forceRefresh = false): Promise<PreLaunc
     return processedData as PreLaunchSubmission[];
   } catch (error) {
     console.error('❌ [Pre-Launch] Error fetching data:', error);
+    return [];
+  }
+};
+
+// Interface for HR Audit submission
+export interface HRAuditSubmission {
+  submissionTime: string;
+  auditorName: string;
+  auditorId: string;
+  storeName: string;
+  storeId: string;
+  city: string;
+  region: string;
+  attritionScore: string;
+  capabilityScore: string;
+  cultureScore: string;
+  engagementScore: string;
+  pressureScore: string;
+  storeHealth: string;
+  riskAlerts: string;
+  [key: string]: string;
+}
+
+// Fetch HR Audit data
+export const fetchHRAuditData = async (forceRefresh = false): Promise<HRAuditSubmission[]> => {
+  if (!HR_AUDIT_ENDPOINT) {
+    console.warn('⚠️ [HR Audit] Endpoint not configured');
+    return [];
+  }
+
+  if (!forceRefresh) {
+    const cached = getCached<HRAuditSubmission[]>('hr-audit');
+    if (cached) return cached;
+  }
+  try {
+    const data = await fetchWithRetry(
+      HR_AUDIT_ENDPOINT + '?action=getData',
+      'HR Audit'
+    );
+
+    if (!data || !Array.isArray(data)) {
+      console.warn('⚠️ [HR Audit] No valid data, returning empty');
+      return [];
+    }
+
+    const mappingData = await loadStoreMapping();
+    const storeIdIndex = new Map<string, any>();
+    mappingData.forEach(mapping => {
+      const sid = mapping["Store ID"] || mapping.storeId;
+      if (sid) storeIdIndex.set(sid.toString(), mapping);
+    });
+
+    const processedData = data.map((row: any) => {
+      let region = row.region || 'Unknown';
+      if (region === 'Unknown' || !region) {
+        const storeId = row.storeId || row.storeID;
+        if (storeId) {
+          let storeMapping = storeIdIndex.get(storeId.toString());
+          if (!storeMapping && !storeId.toString().startsWith('S')) {
+            const sFormattedId = `S${storeId.toString().padStart(3, '0')}`;
+            storeMapping = storeIdIndex.get(sFormattedId);
+          }
+          if (storeMapping && (storeMapping["Region"] || storeMapping.region)) {
+            region = storeMapping["Region"] || storeMapping.region;
+          }
+        }
+      }
+      return { ...row, region };
+    });
+
+    setCache('hr-audit', processedData);
+    return processedData as HRAuditSubmission[];
+  } catch (error) {
+    console.error('❌ [HR Audit] Error fetching data:', error);
     return [];
   }
 };

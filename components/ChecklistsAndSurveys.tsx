@@ -23,7 +23,8 @@ const QACAPAChecklist = lazy(() => import('./checklists/QACAPAChecklist'));
 const QACAPADashboard = lazy(() => import('./checklists/QACAPADashboard'));
 const VendorAuditChecklist = lazy(() => import('./checklists/VendorAuditChecklist'));
 const PreLaunchAuditChecklist = lazy(() => import('./checklists/PreLaunchAuditChecklist'));
-import { ClipboardCheck, ShieldAlert, Factory, Rocket } from 'lucide-react';
+const HRAuditChecklist = lazy(() => import('./checklists/HRAuditChecklist'));
+import { ClipboardCheck, ShieldAlert, Factory, Rocket, HeartPulse } from 'lucide-react';
 
 interface ChecklistsAndSurveysProps {
   userRole: UserRole;
@@ -34,6 +35,7 @@ type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp
 type BrewLeagueSubType = 'store' | 'am' | 'region' | 'dashboard';
 type BenchPlanningSubType = 'barista-sm' | 'sm-asm' | 'barista-bt';
 type QASubType = 'store-qa' | 'vendor-audit' | 'pre-launch-audit';
+type HRSubType = 'hr-connect' | 'hr-audit';
 type BTSessionStep = 'readiness' | 'bt-session' | 'skill-check';
 
 const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, preSelectedChecklist }) => {
@@ -44,6 +46,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
   const [brewLeagueSubSection, setBrewLeagueSubSection] = useState<BrewLeagueSubType | null>(null);
   const [benchPlanningSubSection, setBenchPlanningSubSection] = useState<BenchPlanningSubType | null>(null);
   const [qaSubSection, setQASubSection] = useState<QASubType | null>(null);
+  const [hrSubSection, setHRSubSection] = useState<HRSubType | null>(null);
   const [btSessionStep, setBTSessionStep] = useState<BTSessionStep>('readiness');
   const [checklistStats, setChecklistStats] = useState({
     hr: { completed: 0, total: 0, score: 0 },
@@ -141,6 +144,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
     setBrewLeagueSubSection(null);
     setBenchPlanningSubSection(null);
     setQASubSection(null);
+    setHRSubSection(null);
     setBTSessionStep('readiness');
   };
 
@@ -155,6 +159,10 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
 
   const handleBackToQA = () => {
     setQASubSection(null);
+  };
+
+  const handleBackToHR = () => {
+    setHRSubSection(null);
   };
 
   const renderActiveChecklist = () => {
@@ -460,6 +468,61 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
       }
     }
 
+    // Handle HR subsections
+    if (activeChecklist === 'hr' && !hrSubSection) {
+      return (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+              <Users className="w-8 h-8 text-blue-500" />
+              HR
+            </h2>
+            <p className="text-gray-600 dark:text-slate-400 mb-6">
+              Select the HR tool to begin.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <button
+              onClick={() => setHRSubSection('hr-connect')}
+              className="group p-8 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-400 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-blue-500 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <Users className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-2">HR Connect</h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">Standard HR checklist for store compliance and people practices</p>
+                <span className="mt-2 text-sm text-blue-600 dark:text-blue-400 font-medium group-hover:text-blue-700 dark:group-hover:text-blue-300">Open →</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setHRSubSection('hr-audit')}
+              className="group p-8 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-cyan-400 dark:hover:border-cyan-400 bg-white dark:bg-slate-800 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 transition-all duration-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-cyan-600 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <HeartPulse className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-2">HR Audit</h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">Predictive Store HR Health assessment — 5 dimensions, 28 observations</p>
+                <span className="mt-2 text-sm text-cyan-600 dark:text-cyan-400 font-medium group-hover:text-cyan-700 dark:group-hover:text-cyan-300">Open →</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Render HR subsection
+    if (activeChecklist === 'hr' && hrSubSection) {
+      if (hrSubSection === 'hr-connect') {
+        return <HRChecklist {...commonProps} />;
+      }
+      if (hrSubSection === 'hr-audit') {
+        return <HRAuditChecklist {...commonProps} />;
+      }
+    }
+
     switch (activeChecklist) {
       case 'hr':
         return <HRChecklist {...commonProps} />;
@@ -513,9 +576,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
               <div className="flex items-center space-x-4">
                 {/* Back Button */}
                 <button
-                  onClick={qaSubSection ? handleBackToQA : benchPlanningSubSection ? handleBackToBenchPlanning : brewLeagueSubSection ? handleBackToBrewLeague : handleBackToOverview}
+                  onClick={hrSubSection ? handleBackToHR : qaSubSection ? handleBackToQA : benchPlanningSubSection ? handleBackToBenchPlanning : brewLeagueSubSection ? handleBackToBrewLeague : handleBackToOverview}
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                  aria-label={qaSubSection ? "Back to QA" : benchPlanningSubSection ? "Back to Bench Planning" : brewLeagueSubSection ? "Back to Brew League" : "Back to checklists overview"}
+                  aria-label={hrSubSection ? "Back to HR" : qaSubSection ? "Back to QA" : benchPlanningSubSection ? "Back to Bench Planning" : brewLeagueSubSection ? "Back to Brew League" : "Back to checklists overview"}
                 >
                   <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-slate-400" />
                 </button>
@@ -552,6 +615,17 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
                       <span className="text-gray-400 dark:text-slate-500">/</span>
                     </>
                   )}
+                  {hrSubSection && (
+                    <>
+                      <button
+                        onClick={handleBackToHR}
+                        className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
+                      >
+                        {getChecklistLabel(activeChecklist)}
+                      </button>
+                      <span className="text-gray-400 dark:text-slate-500">/</span>
+                    </>
+                  )}
                   {qaSubSection && (
                     <>
                       <button
@@ -564,7 +638,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
                     </>
                   )}
                   <span className="text-gray-900 dark:text-slate-100 font-medium">
-                    {qaSubSection
+                    {hrSubSection
+                      ? hrSubSection === 'hr-connect' ? 'HR Connect' : 'HR Audit'
+                      : qaSubSection
                       ? qaSubSection === 'store-qa' ? 'Store QA'
                         : qaSubSection === 'vendor-audit' ? 'Vendor Audit'
                         : 'Pre-Launch Audit'
