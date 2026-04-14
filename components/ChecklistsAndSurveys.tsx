@@ -18,6 +18,7 @@ const BenchPlanningBTChecklist = lazy(() => import('./checklists/BenchPlanningBT
 const BrewLeagueRegionRound = lazy(() => import('./checklists/BrewLeagueRegionRound'));
 const BrewLeagueAMRound = lazy(() => import('./checklists/BrewLeagueAMRound'));
 const BrewLeagueDashboard = lazy(() => import('./checklists/BrewLeagueDashboard'));
+const BrewLeagueNationalFinals = lazy(() => import('./checklists/BrewLeagueNationalFinals'));
 const QAAMReviewChecklist = lazy(() => import('./checklists/QAAMReviewChecklist'));
 const QACAPAChecklist = lazy(() => import('./checklists/QACAPAChecklist'));
 const QACAPADashboard = lazy(() => import('./checklists/QACAPADashboard'));
@@ -32,7 +33,7 @@ interface ChecklistsAndSurveysProps {
 }
 
 type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning' | 'brew-league' | 'qa-am-review' | 'qa-capa' | 'qa-capa-dashboard';
-type BrewLeagueSubType = 'store' | 'am' | 'region' | 'dashboard';
+type BrewLeagueSubType = 'store' | 'am' | 'region' | 'national-finals' | 'dashboard';
 type BenchPlanningSubType = 'barista-sm' | 'sm-asm' | 'barista-bt';
 type QASubType = 'store-qa' | 'vendor-audit' | 'pre-launch-audit';
 type HRSubType = 'hr-connect' | 'hr-audit';
@@ -222,6 +223,26 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
                 </span>
               </div>
             </button>
+
+            <button
+              onClick={() => setBrewLeagueSubSection('national-finals')}
+              className="group p-6 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-yellow-400 dark:hover:border-yellow-400 bg-white dark:bg-slate-800 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-all duration-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <Coffee className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                  National Finals
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400">
+                  National Finals sensory scoresheet
+                </p>
+                <span className="mt-4 text-sm text-amber-600 dark:text-amber-400 font-medium group-hover:text-amber-700 dark:group-hover:text-amber-300">
+                  Open →
+                </span>
+              </div>
+            </button>
           </div>
 
           {/* Dashboard Button */}
@@ -345,6 +366,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
       }
       if (brewLeagueSubSection === 'region') {
         return <BrewLeagueRegionRound />;
+      }
+      if (brewLeagueSubSection === 'national-finals') {
+        return <BrewLeagueNationalFinals />;
       }
       if (brewLeagueSubSection === 'am') {
         return <BrewLeagueAMRound />;
@@ -650,7 +674,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
                         : 'ASM'
                       : brewLeagueSubSection 
                         ? brewLeagueSubSection === 'store' ? 'Store Round' 
-                          : brewLeagueSubSection === 'am' ? 'AM Round' 
+                          : brewLeagueSubSection === 'am' ? 'AM Round'
+                          : brewLeagueSubSection === 'national-finals' ? 'National Finals'
                           : 'Region Round'
                         : getChecklistLabel(activeChecklist)
                     }
