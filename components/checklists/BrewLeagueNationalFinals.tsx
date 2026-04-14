@@ -451,6 +451,17 @@ const BrewLeagueNationalFinals: React.FC = () => {
     e.target.value = '';
   };
 
+  const removeImage = (secId: string, index: number) => {
+    setImgs(p => {
+      const arr = [...(p[secId] || [])];
+      arr.splice(index, 1);
+      return { ...p, [secId]: arr };
+    });
+  };
+
+  const isTimeOnlySection = (sec: ChecklistSection) =>
+    sec.items.length > 0 && sec.items.every(it => TIME_ITEM_IDS.includes(it.id));
+
   const handleCaptureTime = (key: string) => {
     const currentTime = new Date().toLocaleTimeString('en-GB', { hour12: false });
     setResp(prev => ({ ...prev, [key]: currentTime }));
@@ -690,7 +701,13 @@ const BrewLeagueNationalFinals: React.FC = () => {
         const imgW = 35, imgH = 35;
         sectionImgs.forEach((src, i) => {
           if (i && i % 4 === 0) { rowY += imgH + 8; x = 15; }
-          doc.addImage(src, 'JPEG', x, rowY, imgW, imgH);
+          try {
+            const fmt = src.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+            doc.addImage(src, fmt, x, rowY, imgW, imgH);
+          } catch {
+            doc.setFontSize(8);
+            doc.text('(image error)', x, rowY + imgH / 2);
+          }
           x += imgW + 5;
         });
         imgY = rowY + imgH + 15;
@@ -1127,33 +1144,43 @@ const BrewLeagueNationalFinals: React.FC = () => {
               />
             </div>
 
-            {/* Image Upload */}
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2 flex items-center gap-2">
-                <Camera size={16} />
-                Upload Images
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                multiple
-                onChange={e => addImages(sec, e)}
-                className="block w-full text-sm text-gray-900 dark:text-slate-100 border border-gray-300 dark:border-slate-600 rounded-md cursor-pointer bg-white dark:bg-slate-800"
-              />
-              {imgs[sec.id] && imgs[sec.id].length > 0 && (
-                <div className="mt-3 flex gap-2 flex-wrap">
-                  {imgs[sec.id].map((imgSrc, i) => (
-                    <img
-                      key={i}
-                      src={imgSrc}
-                      className="w-20 h-20 object-cover rounded-md border border-gray-300 dark:border-slate-600"
-                      alt={`${sec.title} ${i + 1}`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Image Upload – hidden for time-only sections */}
+            {!isTimeOnlySection(sec) && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                  <Camera size={16} />
+                  Upload Images
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  multiple
+                  onChange={e => addImages(sec, e)}
+                  className="block w-full text-sm text-gray-900 dark:text-slate-100 border border-gray-300 dark:border-slate-600 rounded-md cursor-pointer bg-white dark:bg-slate-800"
+                />
+                {imgs[sec.id] && imgs[sec.id].length > 0 && (
+                  <div className="mt-3 flex gap-2 flex-wrap">
+                    {imgs[sec.id].map((imgSrc, i) => (
+                      <div key={i} className="relative group">
+                        <img
+                          src={imgSrc}
+                          className="w-20 h-20 object-cover rounded-md border border-gray-300 dark:border-slate-600"
+                          alt={`${sec.title} ${i + 1}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(sec.id, i)}
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center shadow-md opacity-80 group-hover:opacity-100"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
 
