@@ -271,7 +271,8 @@ function doGet(e) {
     var params = (e && e.parameter) ? e.parameter : {};
     if (params.action === 'getData') {
       var source = params.source || 'recent'; // 'recent' = Last 90 Days, 'all' = full archive
-      return getTrainingChecklistData(source);
+      var includeImages = params.includeImages === 'true';
+      return getTrainingChecklistData(source, includeImages);
     } else if (params.action === 'getStoreInfo' && params.storeId) {
       // Provide store info to frontend for auto-population
       var storeInfo = getStoreInfo(params.storeId);
@@ -290,7 +291,7 @@ function doGet(e) {
   }
 }
 
-function getTrainingChecklistData(source) {
+function getTrainingChecklistData(source, includeImages) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = null;
@@ -439,8 +440,11 @@ function getTrainingChecklistData(source) {
       obj.auditorName = (colIndex < dataColCount) ? (row[colIndex++] || '') : '';
       obj.auditorId = (colIndex < dataColCount) ? (row[colIndex++] || '') : '';
       
-      // Read sectionImages column (skip it for performance) then Zero Tolerance columns
-      if (colIndex < dataColCount) colIndex++; // skip sectionImages
+      // Section Images column — include only when explicitly requested (for PDF generation)
+      if (includeImages) {
+        obj.sectionImages = (colIndex < dataColCount) ? (row[colIndex] || '') : '';
+      }
+      if (colIndex < dataColCount) colIndex++; // advance past sectionImages column
       obj.zeroToleranceFailed = (colIndex < dataColCount) ? (row[colIndex++] || '') : '';
       obj.zeroToleranceFailedItems = (colIndex < dataColCount) ? (row[colIndex++] || '') : '';
       

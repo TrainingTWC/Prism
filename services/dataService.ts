@@ -1040,6 +1040,30 @@ export const fetchTrainingData = async (forceRefresh = false): Promise<TrainingA
   }
 };
 
+/**
+ * Fetch sectionImages for specific training submissions (by submissionTime).
+ * Makes a separate call with includeImages=true and returns a map of submissionTime → sectionImages.
+ */
+export const fetchTrainingImages = async (submissionTimes: string[]): Promise<Record<string, string>> => {
+  try {
+    const response = await fetch(TRAINING_AUDIT_ENDPOINT + '?action=getData&includeImages=true&source=all');
+    if (!response.ok) return {};
+    const data = await response.json();
+    if (!Array.isArray(data)) return {};
+    const timeSet = new Set(submissionTimes);
+    const imageMap: Record<string, string> = {};
+    for (const row of data) {
+      if (row.sectionImages && timeSet.has(row.submissionTime)) {
+        imageMap[row.submissionTime] = row.sectionImages;
+      }
+    }
+    return imageMap;
+  } catch (error) {
+    console.error('Error fetching training images:', error);
+    return {};
+  }
+};
+
 // Interface for QA Assessment submission
 export interface QASubmission {
   submissionTime: string;

@@ -12,7 +12,7 @@ import { buildFinancePDF } from '../src/utils/financeReport';
 import { Users, Clipboard, GraduationCap, BarChart3, Brain, Calendar, CheckCircle, TrendingUp, Target } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Submission, Store } from '../types';
-import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, fetchFinanceHistoricData, fetchPreLaunchData, fetchHRAuditData, FinanceHistoricData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission, PreLaunchSubmission, HRAuditSubmission } from '../services/dataService';
+import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, fetchFinanceHistoricData, fetchPreLaunchData, fetchHRAuditData, fetchTrainingImages, FinanceHistoricData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission, PreLaunchSubmission, HRAuditSubmission } from '../services/dataService';
 import { fetchSHLPData, SHLPSubmission } from '../services/shlpDataService';
 import { hapticFeedback } from '../utils/haptics';
 import { loadComprehensiveMapping } from '../utils/mappingUtils';
@@ -2685,6 +2685,23 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         const fileName = `TrainingAudit_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+        
+        // Fetch section images for the filtered submissions (not included in normal data fetch for performance)
+        const submissionTimes = reportData.map((r: any) => r.submissionTime).filter(Boolean);
+        if (submissionTimes.length > 0) {
+          try {
+            const imageMap = await fetchTrainingImages(submissionTimes);
+            reportData = (reportData as any[]).map((r: any) => {
+              if (imageMap[r.submissionTime]) {
+                return { ...r, sectionImages: imageMap[r.submissionTime] };
+              }
+              return r;
+            });
+          } catch (err) {
+            console.warn('Could not fetch training images for PDF:', err);
+          }
+        }
+        
         const pdf = await buildTrainingPDF(reportData as any, meta, { title: 'Training Audit Report' });
         pdf.save(fileName);
         setIsGenerating(false);
