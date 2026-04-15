@@ -4,7 +4,7 @@ import { TRAINING_QUESTIONS } from '../../../constants';
 type Row = any;
 
 // Use the UPDATED Training Audit endpoint
-const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzA60rGxZOFwB108nWgZGRkIMYDWt2rKYlO9UX0sT6sjOgcUEegc_2PwbPwQkbmu_0GHA/exec';
+const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyTqNm282-OjEeReUKbjDm0_1Lmpqle03K120DuHgLS1fSmt4jYa7LSlhibva6azNI6/exec';
 
 // Helper function to check if value is NA (Not Applicable)
 function isNA(v: any): boolean {
