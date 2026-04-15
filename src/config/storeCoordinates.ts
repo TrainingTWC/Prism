@@ -223,7 +223,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S085': { lat: 17.448893, lng: 78.363095, name: 'The Platina Gachibowli' },
   'S086': { lat: 17.434227, lng: 78.386593, name: 'Inorbit Mall-Hyderabad' },
   'S108': { lat: 17.230184, lng: 78.446482, name: 'Hyderabad Airport Inside' },
-  'S123': { lat: 12.993073, lng: 80.21854, name: 'Phoenix Palladium Chennai' },
+  'S123': { lat: 12.992624, lng: 80.217588, name: 'Phoenix Palladium Chennai' },
   'S143': { lat: 13.08261, lng: 80.244, name: 'Kilpauk' },
   'S144': { lat: 13.1276, lng: 80.23009, name: 'Express Avenue Mall' },
   'S145': { lat: 12.99881, lng: 80.25137, name: 'Adyar' },
