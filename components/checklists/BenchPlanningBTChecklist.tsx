@@ -478,6 +478,9 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
         if (data.data.sessionStatus?.attended) {
           setBTSessionCompleted(true);
         }
+        if (data.data.sessionAssessmentStatus?.completed) {
+          setSessionAssessmentCompleted(true);
+        }
         if (data.data.skillCheckStatus?.completed) {
           setSkillCheckCompleted(true);
         }
@@ -657,9 +660,9 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
       id: 'bt-session' as BTStep,
       label: 'BT Session',
       icon: QrCode,
-      description: 'Candidate scans QR code to mark attendance',
+      description: 'Trainer marks attendance, candidate completes self-assessment',
       color: 'bg-emerald-500',
-      completed: btSessionCompleted
+      completed: btSessionCompleted && sessionAssessmentCompleted
     },
     {
       id: 'skill-check' as BTStep,
@@ -923,8 +926,8 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
                 As a trainer, you have access to:
               </p>
               <ul className="list-disc list-inside mt-2 text-yellow-700 dark:text-yellow-300">
-                <li>Step 2: BT Session - Mark candidate attendance</li>
-                <li>Step 3: Skill Check - Evaluate training process</li>
+                <li>Step 2: BT Session - Mark candidate attendance (candidate completes self-assessment)</li>
+                <li>Step 3: Skill Check - Evaluate training process (after self-assessment)</li>
               </ul>
               <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-3">
                 Step 1 (Readiness Checklist) is completed by the Reporting Manager.
@@ -1081,8 +1084,8 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
         );
 
       case 'bt-session':
-        const canMarkSession = userType === 'trainer' || userType === 'panelist' || userType === 'candidate';
-        const canTakeAssessment = userType === 'trainer' || userType === 'panelist';
+        const canMarkSession = userType === 'trainer' || userType === 'panelist';
+        const canTakeAssessment = userType === 'candidate';
         const totalAssessmentQuestions = SESSION_ASSESSMENT_QUESTIONS.length;
         const answeredAssessmentQuestions = Object.keys(sessionAssessmentResponses).length;
         const correctAnswers = SESSION_ASSESSMENT_QUESTIONS.filter(q => 
@@ -1099,7 +1102,17 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
                   <div className="flex items-center gap-2">
                     <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     <p className="text-sm text-blue-900 dark:text-blue-100">
-                      <strong>Trainer:</strong> Mark attendance for candidates who attended your BT training session, then complete the assessment below.
+                      <strong>Trainer:</strong> Mark attendance for candidates who attended your BT training session. The candidate will then complete their self-assessment.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {userType === 'candidate' && !btSessionCompleted && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                    <p className="text-sm text-amber-900 dark:text-amber-100">
+                      <strong>Candidate:</strong> Your trainer will mark your attendance first. Once marked, you can complete the self-assessment below.
                     </p>
                   </div>
                 </div>
@@ -1114,7 +1127,7 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
               <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400 mb-4 sm:mb-6">
                 {userType === 'trainer' || userType === 'panelist'
                   ? 'Mark attendance for the candidate who attended your training session'
-                  : 'Candidate will scan QR code provided by trainer to mark attendance for the BT session.'}
+                  : 'Your trainer will mark your attendance. Please wait for the trainer to confirm.'}
               </p>
               <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4 sm:p-6 md:p-8 text-center">
                 <div className="inline-flex items-center justify-center w-24 h-24 sm:w-32 sm:h-32 bg-white dark:bg-slate-700 rounded-lg border-2 border-emerald-300 dark:border-emerald-600 mb-3 sm:mb-4">
@@ -1128,7 +1141,7 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
                     ? 'Session attendance has been recorded successfully'
                     : userType === 'trainer' || userType === 'panelist'
                     ? 'Mark attendance for the candidate who attended your training session'
-                    : 'Scan the QR code from your trainer to mark attendance'
+                    : 'Waiting for trainer to mark your attendance'
                   }
                 </p>
                 
@@ -1144,7 +1157,7 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
                 
                 {!canMarkSession && (
                   <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-4">
-                    Only trainers and candidates can mark session attendance
+                    Only trainers can mark session attendance
                   </p>
                 )}
                 
@@ -1164,10 +1177,10 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
                     <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 shrink-0" />
                     <div>
                       <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-slate-100">
-                        BT Session Assessment
+                        Candidate Self-Assessment
                       </h2>
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400">
-                        Trainer Knowledge Check - 15 Multiple Choice Questions
+                        Self-Assessment - 15 Multiple Choice Questions
                       </p>
                     </div>
                   </div>
@@ -1194,7 +1207,7 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
                     <div className="flex items-center gap-2">
                       <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                       <p className="text-sm text-yellow-900 dark:text-yellow-100">
-                        Only trainers can complete the Session Assessment.
+                        The candidate needs to complete this self-assessment. Please ask the candidate to log in and complete Step 2.
                       </p>
                     </div>
                   </div>
@@ -1217,7 +1230,7 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
                   <>
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
                       <p className="text-sm text-blue-900 dark:text-blue-100">
-                        <strong>Instructions:</strong> Answer all 15 multiple-choice questions about buddy training principles. Passing score: 12/15 (80%)
+                        <strong>Instructions:</strong> Answer all 15 multiple-choice questions to complete your self-assessment on buddy training principles. Passing score: 12/15 (80%)
                       </p>
                     </div>
 
@@ -1460,7 +1473,7 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
               {/* Submit Button */}
               <button
                 onClick={handleSubmitSkillCheck}
-                disabled={!canFillSkillCheck || answeredSkillQuestions < totalSkillQuestions || isSubmitting || skillCheckCompleted || !btSessionCompleted}
+                disabled={!canFillSkillCheck || answeredSkillQuestions < totalSkillQuestions || isSubmitting || skillCheckCompleted || !btSessionCompleted || !sessionAssessmentCompleted}
                 className="w-full mt-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg disabled:bg-gray-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed transition-colors"
               >
                 {!canFillSkillCheck
@@ -1471,6 +1484,8 @@ const BenchPlanningBTChecklist: React.FC<BenchPlanningBTChecklistProps> = ({
                   ? '✓ Submitted Successfully'
                   : !btSessionCompleted
                   ? 'Complete BT Session First'
+                  : !sessionAssessmentCompleted
+                  ? 'Candidate Must Complete Self-Assessment First'
                   : answeredSkillQuestions === totalSkillQuestions 
                   ? `Submit Skill Check (${yesCount}/${totalSkillQuestions} Yes)`
                   : `Complete All Questions (${answeredSkillQuestions}/${totalSkillQuestions})`
