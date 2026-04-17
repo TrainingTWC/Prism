@@ -226,7 +226,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S108': { lat: 17.230184, lng: 78.446482, name: 'Hyderabad Airport Inside' },
   'S123': { lat: 12.992624, lng: 80.217588, name: 'Phoenix Palladium Chennai' },
   'S143': { lat: 13.08261, lng: 80.244, name: 'Kilpauk' },
-  'S144': { lat: 13.1276, lng: 80.23009, name: 'Express Avenue Mall' },
+  'S144': { lat: 13.058784, lng: 80.263826, name: 'Express Avenue Mall' },
   'S145': { lat: 12.99881, lng: 80.25137, name: 'Adyar' },
   'S157': { lat: 13.007906, lng: 80.204072, name: 'Kathipara Urban Square' },
   'S160': { lat: 17.4775, lng: 78.424139, name: 'Store S160' },
