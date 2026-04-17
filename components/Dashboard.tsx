@@ -5926,19 +5926,32 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
 
-                                // First, initialize ALL stores from comprehensive mapping (whether audited or not)
+                                // First, initialize stores from comprehensive mapping (respecting main filters)
                                 compStoreMapping.forEach((storeData: any) => {
                                   const storeId = storeData['Store ID'];
                                   if (!storeId) return;
 
-                                  // Use AM Name and Trainer 1 Name directly from Google Sheets store mapping
+                                  const storeRegion = storeData['Region'] || 'Unknown';
                                   const amName = storeData['AM Name'] || storeData.amName || 'Unknown';
                                   const trainerName = storeData['Trainer 1 Name'] || storeData['Trainer Name'] || storeData.trainerName || 'Unknown';
+
+                                  // Apply main dashboard filters so store list stays in sync with filteredTrainingData
+                                  if (filters.region && storeRegion !== filters.region) return;
+                                  if (filters.store && storeId !== filters.store) return;
+                                  if (filters.am) {
+                                    const mappingAmId = normalizeId(storeData['AM'] || storeData['amId'] || '');
+                                    const filterAmId = normalizeId(filters.am);
+                                    if (filterAmId && mappingAmId !== filterAmId) return;
+                                  }
+                                  if (trainerFilterId) {
+                                    const mappingTrainerId = normalizeId(storeData['Trainer 1'] || storeData['trainerId'] || '');
+                                    if (!mappingTrainerId || mappingTrainerId !== trainerFilterId) return;
+                                  }
 
                                   storeAudits.set(storeId, {
                                     storeId,
                                     storeName: storeData['Store Name'] || storeId,
-                                    region: storeData['Region'] || 'Unknown',
+                                    region: storeRegion,
                                     amName: amName,
                                     trainerName: trainerName,
                                     lastAuditDate: null,
@@ -6359,36 +6372,49 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                                 const storeMetadata = new Map(); // Store AM, Trainer info per store
                                 const today = new Date();
 
-                                // First pass: Initialize ALL stores from hrMappingData (comprehensive mapping)
+                                // First pass: Initialize stores from hrMappingData (respecting main filters)
                                 if (hrMappingData && hrMappingData.length > 0) {
                                   hrMappingData.forEach((item: any) => {
                                     const storeId = item['Store ID'] || item.storeId;
                                     const storeName = item['Store Name'] || item.locationName;
-                                    const region = item.Region || item.region;
+                                    const region = item.Region || item.region || 'Unknown';
                                     const amId = item.AM || item.areaManagerId;
                                     const amName = allAreaManagers?.find(am => am.code === amId)?.name || amId || 'Unknown';
                                     const trainerId = item['Trainer ID'] || item.trainerId;
                                     const trainerName = item.Trainer || item.trainer || trainerId || 'Unknown';
 
-                                    if (storeId) {
-                                      storeMetadata.set(storeId, {
-                                        storeName: storeName || storeId,
-                                        region: region || 'Unknown',
-                                        areaManager: amName,
-                                        trainer: trainerName
-                                      });
+                                    if (!storeId) return;
 
-                                      // Initialize store in monthly audits map
-                                      if (!storeMonthlyAudits.has(storeId)) {
-                                        storeMonthlyAudits.set(storeId, {
-                                          storeId,
-                                          storeName: storeName || storeId,
-                                          region: region || 'Unknown',
-                                          areaManager: amName,
-                                          trainer: trainerName,
-                                          monthlyData: new Map()
-                                        });
-                                      }
+                                    // Apply main dashboard filters so store list stays in sync with filteredTrainingData
+                                    if (filters.region && region !== filters.region) return;
+                                    if (filters.store && storeId !== filters.store) return;
+                                    if (filters.am) {
+                                      const mappingAmId = normalizeId(amId || '');
+                                      const filterAmId = normalizeId(filters.am);
+                                      if (filterAmId && mappingAmId !== filterAmId) return;
+                                    }
+                                    if (trainerFilterId) {
+                                      const mappingTrainerId = normalizeId(trainerId || '');
+                                      if (!mappingTrainerId || mappingTrainerId !== trainerFilterId) return;
+                                    }
+
+                                    storeMetadata.set(storeId, {
+                                      storeName: storeName || storeId,
+                                      region: region,
+                                      areaManager: amName,
+                                      trainer: trainerName
+                                    });
+
+                                    // Initialize store in monthly audits map
+                                    if (!storeMonthlyAudits.has(storeId)) {
+                                      storeMonthlyAudits.set(storeId, {
+                                        storeId,
+                                        storeName: storeName || storeId,
+                                        region: region,
+                                        areaManager: amName,
+                                        trainer: trainerName,
+                                        monthlyData: new Map()
+                                      });
                                     }
                                   });
                                 }
