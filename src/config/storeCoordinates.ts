@@ -63,7 +63,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S092': { lat: 13.041517, lng: 77.619525, name: 'Manyata Embassy NXT' },
   'S094': { lat: 12.888105, lng: 77.563196, name: 'Forum South Bangalore' },
   'S095': { lat: 12.891707, lng: 77.583905, name: 'JP Nagar 7th Phase' },
-  'S114': { lat: 13.200182, lng: 77.708414, name: 'BIAL T1 Kiosk' },
+  'S114': { lat: 13.201075, lng: 77.712901, name: 'BIAL T1 Kiosk' },
   'S115': { lat: 12.98596, lng: 77.58756, name: 'Deloitte - Bangalore' },
   'S119': { lat: 12.309722, lng: 76.644583, name: 'Devaraj Urs Rd-Mysuru' },
   'S125': { lat: 12.960235, lng: 77.531224, name: 'Vijayanagar' },
@@ -88,9 +88,9 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S201': { lat: 13.04451, lng: 80.21748, name: 'Ashok Nagar' },
   'S206': { lat: 17.435306, lng: 78.385639, name: 'Capita land ITPH' },
   'S211': { lat: 17.43053, lng: 78.37885, name: 'Sattva Knowledge Park' },
-  'S217': { lat: 12.987304, lng: 77.703972, name: 'Store S217' },
-  'S232': { lat: 13.011164, lng: 77.555061, name: 'Store S232' },
-  'S233': { lat: 13.055249, lng: 77.763742, name: 'Store S233' },
+  'S217': { lat: 12.987304, lng: 77.703972, name: 'Bagmane Capital Tech Park' },
+  'S232': { lat: 13.011164, lng: 77.555061, name: 'Orion Mall' },
+  'S233': { lat: 13.055249, lng: 77.763742, name: 'Uptown Orion Mall' },
   'S247': { lat: 12.893844, lng: 77.595836, name: 'Bannerghatta' },
 
   // ============ NORTH REGION ============
