@@ -230,6 +230,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S144': { lat: 13.058784, lng: 80.263826, name: 'Express Avenue Mall' },
   'S145': { lat: 12.99881, lng: 80.25137, name: 'Adyar' },
   'S157': { lat: 13.007906, lng: 80.204072, name: 'Kathipara Urban Square' },
+  'S201': { lat: 13.040724, lng: 80.215478, name: 'Ashok nagar' },
   'S160': { lat: 17.4775, lng: 78.424139, name: 'Store S160' },
   'S169': { lat: 17.40014, lng: 78.48694, name: 'Himayat Nagar' },
   'S175': { lat: 17.49483, lng: 78.33907, name: 'Madeenaguda' },
