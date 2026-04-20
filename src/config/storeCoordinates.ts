@@ -208,7 +208,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S170': { lat: 19.219999, lng: 72.963712, name: 'Pokhran Road' },
   'S177': { lat: 18.928138, lng: 72.821899, name: 'Nariman point' },
   'S180': { lat: 0, lng: 0, name: 'Deloitte Thane' },
-  'S186': { lat: 18.516362, lng: 73.781531, name: 'Bavdhan' },
+  'S186': { lat: 18.516612, lng: 73.781650, name: 'Bavdhan' },
   'S204': { lat: 19.194332, lng: 72.83415, name: 'Store S204' },
   'S205': { lat: 23.033104, lng: 72.557983, name: 'CG Road Navrangpura' },
   'S210': { lat: 23.008217, lng: 72.507023, name: 'Prahlad Nagar- AHM' },
@@ -281,3 +281,4 @@ export function checkGeofence(
     storeName: storeCoord.name
   };
 }
+ 
