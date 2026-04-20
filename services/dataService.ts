@@ -1046,7 +1046,10 @@ export const fetchTrainingData = async (forceRefresh = false): Promise<TrainingA
  */
 export const fetchTrainingImages = async (submissionTimes: string[]): Promise<Record<string, string>> => {
   try {
-    const response = await fetch(TRAINING_AUDIT_ENDPOINT + '?action=getData&includeImages=true&source=all');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const response = await fetch(TRAINING_AUDIT_ENDPOINT + '?action=getData&includeImages=true&source=all', { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (!response.ok) return {};
     const data = await response.json();
     if (!Array.isArray(data)) return {};
