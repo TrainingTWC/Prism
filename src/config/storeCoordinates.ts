@@ -185,7 +185,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S105': { lat: 19.06838, lng: 72.868303, name: 'Platina Mumbai' },
   'S106': { lat: 19.112847, lng: 72.865591, name: 'Bimco House-Andheri Kurla Road' },
   'S107': { lat: 19.108763, lng: 72.852058, name: 'Vilco Centre - Vile Parle' },
-  'S109': { lat: 18.52284, lng: 73.841113, name: 'FC road' },
+  'S109': { lat: 18.523580, lng: 73.841258, name: 'FC road' },
   'S110': { lat: 13.070536, lng: 77.590912, name: 'Phoenix Mall of Asia' },
   'S111': { lat: 19.011983, lng: 73.035755, name: 'CBD Belapur' },
   'S116': { lat: 0, lng: 0, name: 'Santacruz West' },
