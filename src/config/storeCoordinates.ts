@@ -133,7 +133,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S155': { lat: 27.736225, lng: 76.983116, name: 'DME 69 RHS' },
   'S164': { lat: 28.413944, lng: 77.065907, name: 'Nirvana Courtyard' },
   'S166': { lat: 28.58629, lng: 77.39905, name: 'Central Market- Sector 120' },
-  'S167': { lat: 28.50097, lng: 77.41001, name: 'Advant Noida' },
+  'S167': { lat: 28.501514, lng: 77.409572, name: 'Advant Noida' },
   'S171': { lat: 28.38712, lng: 77.35335, name: 'Omaxe World Street' },
   'S172': { lat: 28.39419, lng: 77.32825, name: 'Faridabad Sec 14' },
   'S173': { lat: 28.715782, lng: 77.132595, name: 'Rohini Sec 14' },
