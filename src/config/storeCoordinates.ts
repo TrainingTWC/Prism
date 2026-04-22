@@ -196,7 +196,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S130': { lat: 18.596267, lng: 73.797365, name: 'Pimple Saudagar Hill Crest' },
   'S132': { lat: 19.154392, lng: 72.842878, name: 'Ekta Tripolis Goregoan' },
   'S135': { lat: 19.001759, lng: 72.81434, name: 'Worli Athithi' },
-  'S136': { lat: 18.580491, lng: 73.781746, name: 'Pimple Nilakh Water Square' },
+  'S136': { lat: 18.580522, lng: 73.784505, name: 'Pimple Nilakh Water Square' },
   'S137': { lat: 19.084712, lng: 73.00755, name: 'Palm Beach Vashi' },
   'S138': { lat: 19.07907, lng: 72.831136, name: 'Damodar Villa Santacruz' },
   'S147': { lat: 18.792, lng: 73.2949, name: 'Pune Mumbai Expressway' },
