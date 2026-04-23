@@ -7,7 +7,7 @@ import { useConfig } from '../../contexts/ConfigContext';
 import { VENDOR_AUDIT_SECTIONS } from '../../config/vendorAuditQuestions';
 import ImageEditor from '../ImageEditor';
 
-const VENDOR_AUDIT_ENDPOINT = import.meta.env.VITE_VENDOR_AUDIT_SCRIPT_URL || import.meta.env.VITE_QA_SCRIPT_URL || '';
+const VENDOR_AUDIT_ENDPOINT = import.meta.env.VITE_VENDOR_AUDIT_SCRIPT_URL || '';
 
 interface SurveyResponse {
   [key: string]: string;

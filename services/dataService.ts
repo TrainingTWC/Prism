@@ -10,8 +10,8 @@ const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz2pAj_RBIwRmJf
 // AM Operations endpoint - UPDATED URL (no CORS headers needed, must match OperationsChecklist submission endpoint)
 const AM_OPS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyKzDHP-iEpJTacXk_lPl6eNCJXtg5imabCdzYPVIWrHPNMXRHUDNO9PeijCKKWalBm/exec';
 
-// Training Audit endpoint - UPDATED URL
-const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyTqNm282-OjEeReUKbjDm0_1Lmpqle03K120DuHgLS1fSmt4jYa7LSlhibva6azNI6/exec';
+// Training Audit endpoint - HARDENED v2 (LockService + idempotency + Drive images)
+const TRAINING_AUDIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwB9VbT21-LbxO56zPph60yYzXXtsCQwc7mXwXJE_NvmUNGecTwaoGUi36GAFjDAb0C/exec';
 
 // QA Assessment endpoint - Uses unified QA script from .env
 const QA_ENDPOINT = import.meta.env.VITE_QA_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbwGIDlsSGyRhR40G0zLmYpbs5C-ShrZffwnKcn3hikZPeDFtcWbeDzewT49yJQ_8YCUkA/exec';

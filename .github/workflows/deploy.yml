@@ -44,6 +44,7 @@ jobs:
           VITE_QA_SCRIPT_URL: ${{ secrets.VITE_QA_SCRIPT_URL }}
           VITE_VENDOR_AUDIT_SCRIPT_URL: ${{ secrets.VITE_VENDOR_AUDIT_SCRIPT_URL }}
           VITE_QA_CAPA_SCRIPT_URL: ${{ secrets.VITE_QA_CAPA_SCRIPT_URL }}
+          VITE_NATIONAL_FINALS_SCRIPT_URL: ${{ secrets.VITE_NATIONAL_FINALS_SCRIPT_URL }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

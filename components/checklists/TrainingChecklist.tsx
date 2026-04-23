@@ -8,8 +8,16 @@ import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 import { checkGeofence, STORE_COORDINATES, getDistanceMeters } from '../../src/config/storeCoordinates';
 import TrainingCalendar from './TrainingCalendar';
 import ImageEditor from '../ImageEditor';
+import {
+  submitTrainingAudit,
+  generateSubmissionId,
+  registerTrainingQueueListeners,
+  getPendingTrainingCount,
+} from '../../services/trainingAuditSubmit';
 
 const TRAINING_GEOFENCE_RADIUS = 50; // 50 meters for training audits
+const TRAINING_AUDIT_ENDPOINT =
+  'https://script.google.com/macros/s/AKfycbwB9VbT21-LbxO56zPph60yYzXXtsCQwc7mXwXJE_NvmUNGecTwaoGUi36GAFjDAb0C/exec';
 
 interface Store {
   name: string;
@@ -1020,6 +1028,34 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   const streamRef = useRef<MediaStream | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
+
+  // Idempotency: one submissionId per audit session, persisted so retries
+  // (network failure, tab reload, offline queue) dedupe server-side.
+  const submissionIdRef = useRef<string>(
+    (() => {
+      try {
+        const existing = localStorage.getItem('training_submission_id');
+        if (existing) return existing;
+      } catch {}
+      const id = generateSubmissionId();
+      try { localStorage.setItem('training_submission_id', id); } catch {}
+      return id;
+    })()
+  );
+
+  // Pending-queue indicator (shows the user how many failed submissions are
+  // waiting to auto-retry in the background).
+  const [pendingQueueCount, setPendingQueueCount] = useState<number>(() => {
+    try { return getPendingTrainingCount(); } catch { return 0; }
+  });
+
+  useEffect(() => {
+    registerTrainingQueueListeners();
+    const i = setInterval(() => {
+      try { setPendingQueueCount(getPendingTrainingCount()); } catch {}
+    }, 5_000);
+    return () => clearInterval(i);
+  }, []);
   const [submitted, setSubmitted] = useState(false);
   const [zeroToleranceFailed, setZeroToleranceFailed] = useState(false);
   const [zeroToleranceFailedItems, setZeroToleranceFailedItems] = useState<string[]>([]);
@@ -2001,6 +2037,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
       // Submit to Google Sheets
       const formData = new URLSearchParams({
+        submissionId: submissionIdRef.current,
         timestamp: new Date().toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
         trainerName: dashboardTrainerName,
         trainerId: dashboardTrainerId,
@@ -2062,22 +2099,36 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       // Add section images as JSON
       formData.append('sectionImages', JSON.stringify(sectionImages));
 
-      const response = await fetch('https://script.google.com/macros/s/AKfycbyTqNm282-OjEeReUKbjDm0_1Lmpqle03K120DuHgLS1fSmt4jYa7LSlhibva6azNI6/exec', {
-        method: 'POST',
-        body: formData
-      });
+      // Convert URLSearchParams → plain dict for the hardened submitter.
+      const bodyDict: Record<string, string> = {};
+      formData.forEach((v, k) => { bodyDict[k] = v; });
 
-      if (response.ok) {
+      const result = await submitTrainingAudit(TRAINING_AUDIT_ENDPOINT, bodyDict);
+
+      if (result.ok) {
         setSubmitted(true);
         hapticFeedback.success();
+        // Rotate submissionId so the next audit in this browser is a fresh row.
+        try { localStorage.removeItem('training_submission_id'); } catch {}
+        submissionIdRef.current = generateSubmissionId();
+        try { localStorage.setItem('training_submission_id', submissionIdRef.current); } catch {}
 
         // Clear the form
         localStorage.removeItem('training_resp');
         localStorage.removeItem('training_meta');
         localStorage.removeItem('training_remarks');
         localStorage.removeItem('training_section_images');
+      } else if (result.queued) {
+        // Offline or all retries failed — payload is safely queued and will
+        // auto-retry on reconnect / interval. Keep the draft intact.
+        hapticFeedback.success();
+        setSubmitted(true);
+        alert(
+          'Your submission is saved and will be sent automatically once you are back online.\n\n' +
+          'Keep the app open or return to it later — we will retry in the background.'
+        );
       } else {
-        throw new Error('Submission failed');
+        throw new Error(result.error || 'Submission failed');
       }
     } catch (error) {
       console.error('Error submitting training audit:', error);

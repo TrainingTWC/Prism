@@ -38,7 +38,39 @@ var CONFIG = {
 };
 
 // =========================================================================
-// POST REQUEST HANDLER - Log National Finals Sensory Submission
+// ROBUST PARAMETER PARSING
+// =========================================================================
+
+/**
+ * Parse POST parameters robustly.
+ * e.parameter can fail/be empty when the URL-encoded body is large.
+ * Falls back to manually parsing e.postData.contents.
+ */
+function parsePostParams(e) {
+  var params = (e && e.parameter) ? e.parameter : {};
+
+  // Check if e.parameter is empty/missing critical keys — fall back to postData
+  if (!params.participantName && !params.judgeName && !params.scoresheetType) {
+    if (e && e.postData && e.postData.contents) {
+      Logger.log('e.parameter empty — parsing from e.postData.contents (length=' + e.postData.contents.length + ')');
+      var pairs = e.postData.contents.split('&');
+      params = {};
+      for (var i = 0; i < pairs.length; i++) {
+        var kv = pairs[i].split('=');
+        if (kv.length >= 2) {
+          var key = decodeURIComponent(kv[0].replace(/\+/g, ' '));
+          var val = decodeURIComponent(kv.slice(1).join('=').replace(/\+/g, ' '));
+          params[key] = val;
+        }
+      }
+    }
+  }
+
+  return params;
+}
+
+// =========================================================================
+// POST REQUEST HANDLER - Log National Finals Submission
 // =========================================================================
 function doPost(e) {
   try {
@@ -53,7 +85,9 @@ function doPost(e) {
       sheet.setFrozenRows(1);
     }
 
-    var params = e.parameter;
+    var params = parsePostParams(e);
+
+    Logger.log('doPost: participant=' + (params.participantName || '(empty)') + ' | judge=' + (params.judgeName || '(empty)') + ' | type=' + (params.scoresheetType || '(empty)'));
 
     var row = [
       new Date().toISOString(),                          // Timestamp
