@@ -26,6 +26,7 @@ const VendorAuditChecklist = lazy(() => import('./checklists/VendorAuditChecklis
 const PreLaunchAuditChecklist = lazy(() => import('./checklists/PreLaunchAuditChecklist'));
 const HRAuditChecklist = lazy(() => import('./checklists/HRAuditChecklist'));
 const TATTrackerForm = lazy(() => import('./checklists/TATTrackerForm'));
+const ThirdRushFeedback = lazy(() => import('./checklists/thirdRush/ThirdRushFeedback'));
 import { ClipboardCheck, ShieldAlert, Factory, Rocket, HeartPulse, Clock } from 'lucide-react';
 
 interface ChecklistsAndSurveysProps {
@@ -33,7 +34,7 @@ interface ChecklistsAndSurveysProps {
   preSelectedChecklist?: string;
 }
 
-type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning' | 'brew-league' | 'qa-am-review' | 'qa-capa' | 'qa-capa-dashboard' | 'tat-tracker';
+type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning' | 'brew-league' | 'qa-am-review' | 'qa-capa' | 'qa-capa-dashboard' | 'tat-tracker' | 'third-rush';
 type BrewLeagueSubType = 'store' | 'am' | 'region' | 'national-finals' | 'dashboard';
 type BenchPlanningSubType = 'barista-sm' | 'sm-asm' | 'barista-bt';
 type QASubType = 'store-qa' | 'vendor-audit' | 'pre-launch-audit';
@@ -66,7 +67,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
     'qa-am-review': { completed: 0, total: 0, score: 0 },
     'qa-capa': { completed: 0, total: 0, score: 0 },
     'qa-capa-dashboard': { completed: 0, total: 0, score: 0 },
-    'tat-tracker': { completed: 0, total: 0, score: 0 }
+    'tat-tracker': { completed: 0, total: 0, score: 0 },
+    'third-rush': { completed: 0, total: 0, score: 0 }
   });
 
   // Get auditor info from URL parameters
@@ -98,7 +100,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
       { id: 'qa-am-review' as ChecklistType, label: 'QA AM Review', icon: ClipboardCheck, color: 'bg-rose-500' },
       { id: 'qa-capa' as ChecklistType, label: 'QA CAPA', icon: ShieldAlert, color: 'bg-amber-500' },
       { id: 'qa-capa-dashboard' as ChecklistType, label: 'CAPA Dashboard', icon: BarChart3, color: 'bg-amber-600' },
-      { id: 'tat-tracker' as ChecklistType, label: 'TAT Tracker', icon: Clock, color: 'bg-cyan-600' }
+      { id: 'tat-tracker' as ChecklistType, label: 'TAT Tracker', icon: Clock, color: 'bg-cyan-600' },
+      { id: 'third-rush' as ChecklistType, label: 'Third Rush', icon: Coffee, color: 'bg-pink-500' }
     ];
 
     // For admin or editor role with Full Access, show all checklists
@@ -113,6 +116,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
       // add 'tat-tracker' under permissions.
       if (checklist.id === 'tat-tracker') {
         return hasPermission('tat-tracker') || hasDashboardAccess('tat-tracker-dashboard');
+      }
+      if (checklist.id === 'third-rush') {
+        return hasPermission('third-rush') || hasDashboardAccess('third-rush-dashboard');
       }
       return hasPermission(checklist.id);
     });
@@ -134,7 +140,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
     { id: 'brew-league' as ChecklistType, label: 'Brew League', icon: Trophy, color: 'bg-amber-600' },
     { id: 'qa-am-review' as ChecklistType, label: 'QA AM Review', icon: ClipboardCheck, color: 'bg-rose-500' },
     { id: 'qa-capa' as ChecklistType, label: 'QA CAPA', icon: ShieldAlert, color: 'bg-amber-500' },
-    { id: 'qa-capa-dashboard' as ChecklistType, label: 'CAPA Dashboard', icon: BarChart3, color: 'bg-amber-600' }
+    { id: 'qa-capa-dashboard' as ChecklistType, label: 'CAPA Dashboard', icon: BarChart3, color: 'bg-amber-600' },
+    { id: 'third-rush' as ChecklistType, label: 'Third Rush', icon: Coffee, color: 'bg-pink-500' }
   ];
 
   const updateChecklistStats = (type: ChecklistType, stats: { completed: number; total: number; score: number }) => {
@@ -581,6 +588,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
         return <QACAPADashboard onBack={() => setActiveChecklist(null)} />;
       case 'tat-tracker':
         return <TATTrackerForm {...commonProps} />;
+      case 'third-rush':
+        return <ThirdRushFeedback {...commonProps} />;
       default:
         return <HRChecklist {...commonProps} />;
     }

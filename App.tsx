@@ -268,6 +268,7 @@ const AppContent: React.FC = () => {
       { id: 'qa-capa', label: 'QA CAPA' },
       { id: 'qa-capa-dashboard', label: 'CAPA Dashboard' },
       { id: 'tat-tracker', label: 'TAT Tracker' },
+      { id: 'third-rush', label: 'Third Rush' },
     ];
     if (isEditor || hasPermission('Full Access') || hasPermission('All Dashboards')) return allChecklists;
     return allChecklists.filter(c => {
@@ -276,6 +277,9 @@ const AppContent: React.FC = () => {
       // 'tat-tracker-dashboard' under dashboardAccess, not 'tat-tracker' under permissions).
       if (c.id === 'tat-tracker') {
         return hasPermission('tat-tracker') || hasDashboardAccess('tat-tracker-dashboard');
+      }
+      if (c.id === 'third-rush') {
+        return hasPermission('third-rush') || hasDashboardAccess('third-rush-dashboard');
       }
       // Forms & Surveys (which now hosts Third Rush Feedback) is universally
       // available to every authenticated role.
