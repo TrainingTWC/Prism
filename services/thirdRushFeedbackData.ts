@@ -7,8 +7,7 @@
 export const THIRD_RUSH_ENDPOINT =
   (typeof process !== 'undefined' && (process as any).env?.VITE_THIRD_RUSH_ENDPOINT) ||
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_THIRD_RUSH_ENDPOINT) ||
-  // TODO: replace after deploying third-rush-feedback-google-apps-script.js
-  'https://script.google.com/macros/s/REPLACE_WITH_THIRD_RUSH_DEPLOYMENT_URL/exec';
+  'https://script.google.com/macros/s/AKfycbxDdc4tKSlwzM2pnRRGn7DbAKwJxGIYCiXg5vSFB4YGoXEksZ8ufye4lZCvDhA0x3Q/exec';
 
 export type ThirdRushFormKind = 'full' | 'misc' | 'staff';
 
