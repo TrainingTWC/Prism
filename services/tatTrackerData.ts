@@ -9,7 +9,7 @@
 export const TAT_TRACKER_ENDPOINT =
   (typeof process !== 'undefined' && (process as any).env?.VITE_TAT_TRACKER_ENDPOINT) ||
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_TAT_TRACKER_ENDPOINT) ||
-  'https://script.google.com/macros/s/AKfycbw8I9VStoJkionGux6xmdO0oQE4NGE1SQByU68KNjWaSrX9n4FWJo3H4jvtTKPk8iaTPA/exec';
+  'https://script.google.com/macros/s/AKfycbwYcRDvRb9QqPtEJCkPRYOF_E2O6jfdKwQRNSU4clMpnc7TLz-yE3YzB2zJeC5I9UHllw/exec';
 
 export type VacancyTATStatus = 'On-TAT' | 'Off-TAT' | '';
 export type VacancyOpenStatus =
