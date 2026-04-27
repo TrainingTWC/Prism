@@ -41,7 +41,7 @@ type HRSubType = 'hr-connect' | 'hr-audit';
 type BTSessionStep = 'readiness' | 'bt-session' | 'skill-check';
 
 const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, preSelectedChecklist }) => {
-  const { userRole: authUserRole, hasPermission, logout } = useAuth();
+  const { userRole: authUserRole, hasPermission, hasDashboardAccess, logout } = useAuth();
   const [activeChecklist, setActiveChecklist] = useState<ChecklistType | null>(
     (preSelectedChecklist as ChecklistType) || null
   );
@@ -108,6 +108,12 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
 
     // For other roles, show only the ones they have permission for
     return allChecklists.filter(checklist => {
+      // TAT Tracker visibility falls back to its dashboard access — some role
+      // configs declare 'tat-tracker-dashboard' under dashboardAccess but never
+      // add 'tat-tracker' under permissions.
+      if (checklist.id === 'tat-tracker') {
+        return hasPermission('tat-tracker') || hasDashboardAccess('tat-tracker-dashboard');
+      }
       return hasPermission(checklist.id);
     });
   };

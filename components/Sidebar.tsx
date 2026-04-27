@@ -59,6 +59,7 @@ const CHECKLIST_COLORS: Record<string, string> = {
   'qa-am-review': 'bg-rose-500',
   'qa-capa': 'bg-amber-600',
   'qa-capa-dashboard': 'bg-amber-700',
+  'tat-tracker': 'bg-cyan-600',
 };
 
 /* ── Glass style tokens ── */

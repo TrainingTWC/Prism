@@ -269,7 +269,15 @@ const AppContent: React.FC = () => {
       { id: 'tat-tracker', label: 'TAT Tracker' },
     ];
     if (isEditor || hasPermission('Full Access') || hasPermission('All Dashboards')) return allChecklists;
-    return allChecklists.filter(c => hasPermission(c.id));
+    return allChecklists.filter(c => {
+      // TAT Tracker visibility piggybacks on its dashboard access so it stays in
+      // sync with the sidebar Dashboards list (some role configs only declare
+      // 'tat-tracker-dashboard' under dashboardAccess, not 'tat-tracker' under permissions).
+      if (c.id === 'tat-tracker') {
+        return hasPermission('tat-tracker') || hasDashboardAccess('tat-tracker-dashboard');
+      }
+      return hasPermission(c.id);
+    });
   };
 
   const availableDashboardTypes = getAvailableDashboardTypes();
