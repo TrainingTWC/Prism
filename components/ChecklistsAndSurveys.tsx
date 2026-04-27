@@ -9,7 +9,7 @@ const TrainingChecklist = lazy(() => import('./checklists/TrainingChecklist'));
 const QAChecklist = lazy(() => import('./checklists/QAChecklist'));
 const FinanceChecklist = lazy(() => import('./checklists/FinanceChecklist'));
 const CampusHiringChecklist = lazy(() => import('./checklists/CampusHiringChecklist'));
-const FormsChecklist = lazy(() => import('./checklists/FormsChecklist'));
+const FormsAndSurveysLanding = lazy(() => import('./checklists/FormsAndSurveysLanding'));
 const TrainerCalendarChecklist = lazy(() => import('./checklists/TrainerCalendarChecklist'));
 const SHLPChecklist = lazy(() => import('./checklists/SHLPChecklist'));
 const BenchPlanningChecklist = lazy(() => import('./checklists/BenchPlanningChecklist'));
@@ -570,7 +570,7 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
       case 'campus-hiring':
         return <CampusHiringChecklist {...commonProps} />;
       case 'forms':
-        return <FormsChecklist {...commonProps} />;
+        return <FormsAndSurveysLanding {...commonProps} />;
       case 'trainer-calendar':
         return <TrainerCalendarChecklist {...commonProps} />;
       case 'qa-am-review':

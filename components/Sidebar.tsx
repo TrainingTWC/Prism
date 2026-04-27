@@ -41,6 +41,8 @@ const DASHBOARD_COLORS: Record<string, string> = {
   'trainer-calendar': 'bg-violet-500',
   'bench-planning': 'bg-orange-500',
   'bench-planning-sm-asm': 'bg-amber-500',
+  'tat-tracker': 'bg-cyan-600',
+  'third-rush': 'bg-pink-500',
   'consolidated': 'bg-slate-500',
 };
 
@@ -60,6 +62,7 @@ const CHECKLIST_COLORS: Record<string, string> = {
   'qa-capa': 'bg-amber-600',
   'qa-capa-dashboard': 'bg-amber-700',
   'tat-tracker': 'bg-cyan-600',
+  'third-rush': 'bg-pink-500',
 };
 
 /* ── Glass style tokens ── */

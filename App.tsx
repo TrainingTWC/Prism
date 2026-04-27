@@ -239,6 +239,7 @@ const AppContent: React.FC = () => {
       { id: 'bench-planning', label: 'Bench Planning' },
       { id: 'bench-planning-sm-asm', label: 'Bench Planning (SM-ASM)' },
       { id: 'tat-tracker', label: 'TAT Tracker' },
+      { id: 'third-rush', label: 'Third Rush' },
       { id: 'consolidated', label: 'Consolidated' },
     ];
     if (authUserRole === 'editor') return allTypes;
@@ -275,6 +276,11 @@ const AppContent: React.FC = () => {
       // 'tat-tracker-dashboard' under dashboardAccess, not 'tat-tracker' under permissions).
       if (c.id === 'tat-tracker') {
         return hasPermission('tat-tracker') || hasDashboardAccess('tat-tracker-dashboard');
+      }
+      // Forms & Surveys (which now hosts Third Rush Feedback) is universally
+      // available to every authenticated role.
+      if (c.id === 'forms') {
+        return true;
       }
       return hasPermission(c.id);
     });

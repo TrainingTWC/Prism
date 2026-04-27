@@ -40,48 +40,48 @@ export const AUTH_CONFIG: AuthConfig = {
   roles: {
     hr: {
       password: 'HRConnect2024!',
-      permissions: ['hr', 'campus-hiring', 'bench-planning', 'tat-tracker', 'dashboard'],
-      dashboardAccess: ['hr-dashboard', 'campus-hiring-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'tat-tracker-dashboard']
+      permissions: ['hr', 'campus-hiring', 'bench-planning', 'tat-tracker', 'third-rush', 'dashboard'],
+      dashboardAccess: ['hr-dashboard', 'campus-hiring-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'tat-tracker-dashboard', 'third-rush-dashboard']
     },
     training: {
       password: 'TrainingHub2024!',
-      permissions: ['training', 'shlp', 'bench-planning', 'brew-league', 'dashboard'],
-      dashboardAccess: ['training-dashboard', 'shlp-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'trainer-calendar-dashboard']
+      permissions: ['training', 'shlp', 'bench-planning', 'brew-league', 'third-rush', 'dashboard'],
+      dashboardAccess: ['training-dashboard', 'shlp-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'trainer-calendar-dashboard', 'third-rush-dashboard']
     },
     qa: {
       password: 'QualityCheck2024!',
-      permissions: ['qa', 'qa-am-review', 'qa-capa', 'dashboard'],
-      dashboardAccess: ['qa-dashboard']
+      permissions: ['qa', 'qa-am-review', 'qa-capa', 'third-rush', 'dashboard'],
+      dashboardAccess: ['qa-dashboard', 'third-rush-dashboard']
     },
     finance: {
       password: 'FinanceSecure2024!',
-      permissions: ['finance', 'dashboard'],
-      dashboardAccess: ['finance-dashboard']
+      permissions: ['finance', 'third-rush', 'dashboard'],
+      dashboardAccess: ['finance-dashboard', 'third-rush-dashboard']
     },
     operations: {
       password: 'OpsAccess2024!',
-      permissions: ['operations', 'shlp', 'bench-planning', 'brew-league', 'qa-am-review', 'qa-capa', 'dashboard'],
-      dashboardAccess: ['operations-dashboard', 'shlp-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
+      permissions: ['operations', 'shlp', 'bench-planning', 'brew-league', 'qa-am-review', 'qa-capa', 'third-rush', 'dashboard'],
+      dashboardAccess: ['operations-dashboard', 'shlp-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'third-rush-dashboard']
     },
     store: {
       password: 'StoreAccess2025!',
-      permissions: ['shlp', 'brew-league', 'bench-planning', 'dashboard'],
-      dashboardAccess: ['shlp-dashboard']
+      permissions: ['shlp', 'brew-league', 'bench-planning', 'third-rush', 'dashboard'],
+      dashboardAccess: ['shlp-dashboard', 'third-rush-dashboard']
     }, 
     'campus-hiring': {
       password: 'CampusHire2024!',
-      permissions: ['campus-hiring'],
-      dashboardAccess: []
+      permissions: ['campus-hiring', 'third-rush'],
+      dashboardAccess: ['third-rush-dashboard']
     },
     admin: {
       password: 'AdminView2024!',
-      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'qa-am-review', 'qa-capa', 'tat-tracker', 'dashboard'],
-      dashboardAccess: ['all', 'campus-hiring-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'trainer-calendar-dashboard', 'tat-tracker-dashboard']
+      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'qa-am-review', 'qa-capa', 'tat-tracker', 'third-rush', 'dashboard'],
+      dashboardAccess: ['all', 'campus-hiring-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'trainer-calendar-dashboard', 'tat-tracker-dashboard', 'third-rush-dashboard']
     },
     editor: {
       password: 'Editornotcreator2025!',
-      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'qa-am-review', 'qa-capa', 'tat-tracker', 'dashboard'],
-      dashboardAccess: ['all', 'campus-hiring-dashboard', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'tat-tracker-dashboard']
+      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'qa-am-review', 'qa-capa', 'tat-tracker', 'third-rush', 'dashboard'],
+      dashboardAccess: ['all', 'campus-hiring-dashboard', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'tat-tracker-dashboard', 'third-rush-dashboard']
     }
   },
   

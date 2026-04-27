@@ -11,6 +11,7 @@ import { buildSHLPPDF } from '../src/utils/shlpReport';
 import { buildFinancePDF } from '../src/utils/financeReport';
 
 const TATTrackerDashboard = lazy(() => import('./tat/TATTrackerDashboard'));
+const ThirdRushDashboard = lazy(() => import('./third-rush/ThirdRushDashboard'));
 import { Users, Clipboard, GraduationCap, BarChart3, Brain, Calendar, CheckCircle, TrendingUp, Target } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Submission, Store } from '../types';
@@ -273,6 +274,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       { id: 'bench-planning', label: 'Bench Planning (Barista to SM)', access: 'bench-planning-dashboard' },
       { id: 'bench-planning-sm-asm', label: 'Bench Planning (SM to ASM)', access: 'bench-planning-sm-asm-dashboard' },
       { id: 'tat-tracker', label: 'TAT Tracker', access: 'tat-tracker-dashboard' },
+      { id: 'third-rush', label: 'Third Rush', access: 'third-rush-dashboard' },
       { id: 'map-view', label: 'Map View', access: 'editor-only' },
       { id: 'consolidated', label: 'Consolidated View', access: 'all' }
     ];
@@ -4429,6 +4431,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     return (
       <Suspense fallback={<div className="py-12 text-center text-gray-500">Loading TAT Tracker…</div>}>
         <TATTrackerDashboard userRole={authUserRole || undefined} />
+      </Suspense>
+    );
+  }
+
+  if (dashboardType === 'third-rush') {
+    return (
+      <Suspense fallback={<div className="py-12 text-center text-gray-500">Loading Third Rush Dashboard…</div>}>
+        <ThirdRushDashboard userRole={authUserRole || undefined} />
       </Suspense>
     );
   }
