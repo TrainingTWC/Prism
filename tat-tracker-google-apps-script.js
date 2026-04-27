@@ -196,14 +196,32 @@ function recomputeOpenVacancies() {
 // =============================================================================
 function repairTATData() {
   var stats = { rowsTouched: 0, hrbpNameFilled: 0, storeNameFilled: 0, regionFilled: 0,
-                hadIntimation: 0, hadOffer: 0, isClosedAfter: 0 };
+                hadIntimation: 0, hadOffer: 0, isClosedAfter: 0, headersUpgraded: 0 };
   [TAT_SHEET_ALL, TAT_SHEET_90].forEach(function (name) {
     var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
     if (!sh || sh.getLastRow() < 2) return;
-    var data = sh.getRange(2, 1, sh.getLastRow() - 1, TAT_HEADERS.length).getValues();
+
+    // 1) Read using whatever headers the sheet currently has (tolerates older layouts)
+    var headers = _sheetHeaders(sh);
+    var data = sh.getRange(2, 1, sh.getLastRow() - 1, headers.length).getValues();
+
+    // 2) Upgrade the header row to the current TAT_HEADERS layout if it differs
+    if (headers.join('|') !== TAT_HEADERS.join('|')) {
+      // Make sure the sheet has at least TAT_HEADERS.length columns
+      if (sh.getMaxColumns() < TAT_HEADERS.length) {
+        sh.insertColumnsAfter(sh.getMaxColumns(), TAT_HEADERS.length - sh.getMaxColumns());
+      }
+      sh.getRange(1, 1, 1, TAT_HEADERS.length).setValues([TAT_HEADERS]);
+      sh.getRange(1, 1, 1, TAT_HEADERS.length)
+        .setFontWeight('bold').setBackground('#1f2937').setFontColor('#ffffff');
+      stats.headersUpgraded++;
+    }
+
+    // 3) Rebuild every row using the original (old-layout) values keyed by header name
     var out = [];
     for (var i = 0; i < data.length; i++) {
-      var obj = _rowToObject(data[i]);
+      var rawByHeader = _rowAsObjByHeader(headers, data[i]);
+      var obj = _rowToObjectFromMap(rawByHeader);
 
       // Back-fill HRBP Name / Region / Store Name from Store_Mapping by Store ID
       if (obj.storeId) {
@@ -313,9 +331,12 @@ function _buildRow(p) {
 }
 
 function _rowToObject(row) {
-  var o = {};
-  for (var i = 0; i < TAT_HEADERS.length; i++) o[TAT_HEADERS[i]] = row[i];
-  // also expose camelCase for re-build
+  return _rowToObjectFromMap(_rowAsObjByHeader(TAT_HEADERS, row));
+}
+
+// Builds the camelCase param object from a header-name keyed map (works even
+// if the source row had a different / older column layout).
+function _rowToObjectFromMap(o) {
   return {
     vacancyId: o['Vacancy ID'],
     intimationDate: o['Intimation Date'],
@@ -336,18 +357,30 @@ function _rowToObject(row) {
   };
 }
 
+// Reads the sheet's actual header row -> array of header names
+function _sheetHeaders(sh) {
+  return sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (h) { return String(h || '').trim(); });
+}
+
+// Convert a sheet row (in the sheet's current column order) into a flat object keyed by header name
+function _rowAsObjByHeader(headers, row) {
+  var o = {};
+  for (var i = 0; i < headers.length; i++) o[headers[i]] = row[i];
+  return o;
+}
+
 function _readSheet(name) {
   var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
   if (!sh || sh.getLastRow() < 2) return [];
-  var values = sh.getRange(2, 1, sh.getLastRow() - 1, TAT_HEADERS.length).getValues();
+  var headers = _sheetHeaders(sh);
+  var values = sh.getRange(2, 1, sh.getLastRow() - 1, headers.length).getValues();
   var out = [];
   for (var i = 0; i < values.length; i++) {
-    var r = values[i];
     var rec = {};
-    for (var j = 0; j < TAT_HEADERS.length; j++) {
-      var v = r[j];
+    for (var j = 0; j < headers.length; j++) {
+      var v = values[i][j];
       if (v instanceof Date) v = v.toISOString();
-      rec[TAT_HEADERS[j]] = v;
+      rec[headers[j]] = v;
     }
     out.push(rec);
   }
