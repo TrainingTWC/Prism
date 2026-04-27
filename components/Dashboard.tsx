@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, lazy, Suspense } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -9,6 +9,8 @@ import { buildQAPDF } from '../src/utils/qaReport';
 import { buildHRPDF } from '../src/utils/hrReport';
 import { buildSHLPPDF } from '../src/utils/shlpReport';
 import { buildFinancePDF } from '../src/utils/financeReport';
+
+const TATTrackerDashboard = lazy(() => import('./tat/TATTrackerDashboard'));
 import { Users, Clipboard, GraduationCap, BarChart3, Brain, Calendar, CheckCircle, TrendingUp, Target } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Submission, Store } from '../types';
@@ -270,6 +272,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       { id: 'trainer-calendar', label: 'Trainer Calendar', access: 'trainer-calendar-dashboard' },
       { id: 'bench-planning', label: 'Bench Planning (Barista to SM)', access: 'bench-planning-dashboard' },
       { id: 'bench-planning-sm-asm', label: 'Bench Planning (SM to ASM)', access: 'bench-planning-sm-asm-dashboard' },
+      { id: 'tat-tracker', label: 'TAT Tracker', access: 'tat-tracker-dashboard' },
       { id: 'map-view', label: 'Map View', access: 'editor-only' },
       { id: 'consolidated', label: 'Consolidated View', access: 'all' }
     ];
@@ -4419,6 +4422,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
           Try Again
         </button>
       </div>
+    );
+  }
+
+  if (dashboardType === 'tat-tracker') {
+    return (
+      <Suspense fallback={<div className="py-12 text-center text-gray-500">Loading TAT Tracker…</div>}>
+        <TATTrackerDashboard userRole={authUserRole || undefined} />
+      </Suspense>
     );
   }
 

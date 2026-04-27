@@ -40,8 +40,8 @@ export const AUTH_CONFIG: AuthConfig = {
   roles: {
     hr: {
       password: 'HRConnect2024!',
-      permissions: ['hr', 'campus-hiring', 'bench-planning', 'dashboard'],
-      dashboardAccess: ['hr-dashboard', 'campus-hiring-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
+      permissions: ['hr', 'campus-hiring', 'bench-planning', 'tat-tracker', 'dashboard'],
+      dashboardAccess: ['hr-dashboard', 'campus-hiring-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'tat-tracker-dashboard']
     },
     training: {
       password: 'TrainingHub2024!',
@@ -75,13 +75,13 @@ export const AUTH_CONFIG: AuthConfig = {
     },
     admin: {
       password: 'AdminView2024!',
-      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'qa-am-review', 'qa-capa', 'dashboard'],
-      dashboardAccess: ['all', 'campus-hiring-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'trainer-calendar-dashboard']
+      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'qa-am-review', 'qa-capa', 'tat-tracker', 'dashboard'],
+      dashboardAccess: ['all', 'campus-hiring-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'trainer-calendar-dashboard', 'tat-tracker-dashboard']
     },
     editor: {
       password: 'Editornotcreator2025!',
-      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'qa-am-review', 'qa-capa', 'dashboard'],
-      dashboardAccess: ['all', 'campus-hiring-dashboard', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard']
+      permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'qa-am-review', 'qa-capa', 'tat-tracker', 'dashboard'],
+      dashboardAccess: ['all', 'campus-hiring-dashboard', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'tat-tracker-dashboard']
     }
   },
   

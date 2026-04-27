@@ -238,6 +238,7 @@ const AppContent: React.FC = () => {
       { id: 'trainer-calendar', label: 'Trainer Calendar' },
       { id: 'bench-planning', label: 'Bench Planning' },
       { id: 'bench-planning-sm-asm', label: 'Bench Planning (SM-ASM)' },
+      { id: 'tat-tracker', label: 'TAT Tracker' },
       { id: 'consolidated', label: 'Consolidated' },
     ];
     if (authUserRole === 'editor') return allTypes;
@@ -265,6 +266,7 @@ const AppContent: React.FC = () => {
       { id: 'qa-am-review', label: 'QA AM Review' },
       { id: 'qa-capa', label: 'QA CAPA' },
       { id: 'qa-capa-dashboard', label: 'CAPA Dashboard' },
+      { id: 'tat-tracker', label: 'TAT Tracker' },
     ];
     if (isEditor || hasPermission('Full Access') || hasPermission('All Dashboards')) return allChecklists;
     return allChecklists.filter(c => hasPermission(c.id));

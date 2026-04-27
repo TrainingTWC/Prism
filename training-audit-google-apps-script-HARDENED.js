@@ -25,6 +25,9 @@
 // ============================================================
 // CONFIG
 // ============================================================
+// HARDCODED SPREADSHEET ID — To ensure data lands in the correct sheet regardless of binding.
+var SPREADSHEET_ID = '1XgKWaMuypBW3UKOTm17vUvoz0OGY7qNUsvxVhAtpbUI';
+
 // IMPORTANT: the legacy "Training Audit" sheet is bloated with base64 image
 // cells and can no longer be opened/edited reliably. We write NEW submissions
 // to a fresh tab and leave the legacy sheet completely untouched. The reader
@@ -85,6 +88,16 @@ var IMAGE_HEADER = [
 ];
 
 // ============================================================
+// INTERNAL HELPERS
+// ============================================================
+function getSS() {
+  if (SPREADSHEET_ID) {
+    return SpreadsheetApp.openById(SPREADSHEET_ID);
+  }
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
+
+// ============================================================
 // ENTRY POINTS
 // ============================================================
 function doPost(e) {
@@ -104,7 +117,7 @@ function doPost(e) {
   }
 
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = getSS();
     var mainSheet = getOrCreateSheet(ss, MAIN_SHEET, HEADER);
     var imageSheet = getOrCreateSheet(ss, IMAGE_SHEET, IMAGE_HEADER);
 
@@ -176,6 +189,7 @@ function doPost(e) {
 function doGet(e) {
   try {
     var params = (e && e.parameter) ? e.parameter : {};
+    var ss = getSS();
     if (params.action === 'getData') {
       return getTrainingChecklistData(params.source || 'recent', params.includeImages === 'true');
     }
@@ -183,7 +197,6 @@ function doGet(e) {
       return jsonOut(getStoreInfoCached(params.storeId));
     }
     if (params.action === 'checkSubmission' && params.submissionId) {
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
       var sheet = ss.getSheetByName(MAIN_SHEET);
       var exists = sheet ? (findExistingSubmission(sheet, params.submissionId) >= 0) : false;
       return jsonOut({ exists: exists, submissionId: params.submissionId });
@@ -403,7 +416,7 @@ function getStoreMappingCached() {
 }
 
 function readStoreMappingFromSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSS();
   var sheet = ss.getSheetByName('Store_Mapping');
   if (!sheet) return {};
   var data = sheet.getDataRange().getValues();
@@ -442,7 +455,7 @@ function invalidateStoreMappingCache() {
 // ============================================================
 function getTrainingChecklistData(source, includeImages) {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = getSS();
     var cutoff = (source !== 'all')
       ? (new Date().getTime() - 90 * 24 * 3600 * 1000)
       : null;
@@ -630,7 +643,7 @@ function jsonOut(obj) {
  *  - Warms the store-mapping cache
  */
 function setupTrainingAuditHardened() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSS();
   // Create fresh, empty sheets — we never touch the bloated legacy sheet.
   getOrCreateSheet(ss, MAIN_SHEET, HEADER);
   getOrCreateSheet(ss, IMAGE_SHEET, IMAGE_HEADER);
@@ -653,7 +666,7 @@ function setupTrainingAuditHardened() {
  * verified new submissions are landing in "Training Audit v2".
  */
 function archiveLegacySheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSS();
   var legacy = ss.getSheetByName(LEGACY_SHEET);
   if (!legacy) { Logger.log('No legacy sheet found.'); return; }
   var newName = LEGACY_SHEET + ' - ARCHIVE ' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
@@ -666,7 +679,7 @@ function archiveLegacySheet() {
  * Safe to run multiple times.
  */
 function backfillSubmissionIds() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSS();
   var sheet = ss.getSheetByName(MAIN_SHEET);
   if (!sheet) return;
   var subCol = HEADER.indexOf('Submission ID') + 1;

@@ -28,7 +28,7 @@ const Login: React.FC = () => {
       // Show success message briefly before redirecting
       const roleConfig: Record<string, { permissions: string[] }> = {
         operations: { permissions: ['Operations Dashboard', 'Store Analytics', 'Performance Reports'] },
-        hr: { permissions: ['HR Dashboard', 'Employee Data', 'Training Audit', 'HR Analytics', 'Campus Hiring', 'Bench Planning'] },
+        hr: { permissions: ['HR Dashboard', 'Employee Data', 'Training Audit', 'HR Analytics', 'Campus Hiring', 'Bench Planning', 'TAT Tracker', 'tat-tracker'] },
         qa: { permissions: ['QA Dashboard', 'Quality Reports', 'Audit Checklists'] },
         training: { permissions: ['Training Dashboard', 'Learning Analytics', 'Training Reports', 'Training Audit', 'Bench Planning'] },
         finance: { permissions: ['Finance Dashboard', 'Financial Analytics', 'Budget Reports'] },
@@ -36,7 +36,7 @@ const Login: React.FC = () => {
         forms: { permissions: ['Forms & Surveys'] },
         'campus-hiring': { permissions: ['Campus Hiring Checklist', 'Candidate Management'] },
         'bench-planning': { permissions: ['Bench Planning Checklist', 'Readiness Assessment', 'Candidate Interviews'] },
-        admin: { permissions: ['All Dashboards', 'All Reports', 'View All Data', 'Campus Hiring', 'Bench Planning'] },
+        admin: { permissions: ['All Dashboards', 'All Reports', 'View All Data', 'Campus Hiring', 'Bench Planning', 'TAT Tracker', 'tat-tracker'] },
         editor: { permissions: ['Full Access', 'All Dashboards', 'All Reports', 'System Administration', 'Configuration'] }
       };
       

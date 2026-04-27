@@ -25,14 +25,15 @@ const QACAPADashboard = lazy(() => import('./checklists/QACAPADashboard'));
 const VendorAuditChecklist = lazy(() => import('./checklists/VendorAuditChecklist'));
 const PreLaunchAuditChecklist = lazy(() => import('./checklists/PreLaunchAuditChecklist'));
 const HRAuditChecklist = lazy(() => import('./checklists/HRAuditChecklist'));
-import { ClipboardCheck, ShieldAlert, Factory, Rocket, HeartPulse } from 'lucide-react';
+const TATTrackerForm = lazy(() => import('./checklists/TATTrackerForm'));
+import { ClipboardCheck, ShieldAlert, Factory, Rocket, HeartPulse, Clock } from 'lucide-react';
 
 interface ChecklistsAndSurveysProps {
   userRole: UserRole;
   preSelectedChecklist?: string;
 }
 
-type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning' | 'brew-league' | 'qa-am-review' | 'qa-capa' | 'qa-capa-dashboard';
+type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning' | 'brew-league' | 'qa-am-review' | 'qa-capa' | 'qa-capa-dashboard' | 'tat-tracker';
 type BrewLeagueSubType = 'store' | 'am' | 'region' | 'national-finals' | 'dashboard';
 type BenchPlanningSubType = 'barista-sm' | 'sm-asm' | 'barista-bt';
 type QASubType = 'store-qa' | 'vendor-audit' | 'pre-launch-audit';
@@ -64,7 +65,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
     'brew-league': { completed: 0, total: 0, score: 0 },
     'qa-am-review': { completed: 0, total: 0, score: 0 },
     'qa-capa': { completed: 0, total: 0, score: 0 },
-    'qa-capa-dashboard': { completed: 0, total: 0, score: 0 }
+    'qa-capa-dashboard': { completed: 0, total: 0, score: 0 },
+    'tat-tracker': { completed: 0, total: 0, score: 0 }
   });
 
   // Get auditor info from URL parameters
@@ -95,7 +97,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
       { id: 'brew-league' as ChecklistType, label: 'Brew League', icon: Trophy, color: 'bg-amber-600' },
       { id: 'qa-am-review' as ChecklistType, label: 'QA AM Review', icon: ClipboardCheck, color: 'bg-rose-500' },
       { id: 'qa-capa' as ChecklistType, label: 'QA CAPA', icon: ShieldAlert, color: 'bg-amber-500' },
-      { id: 'qa-capa-dashboard' as ChecklistType, label: 'CAPA Dashboard', icon: BarChart3, color: 'bg-amber-600' }
+      { id: 'qa-capa-dashboard' as ChecklistType, label: 'CAPA Dashboard', icon: BarChart3, color: 'bg-amber-600' },
+      { id: 'tat-tracker' as ChecklistType, label: 'TAT Tracker', icon: Clock, color: 'bg-cyan-600' }
     ];
 
     // For admin or editor role with Full Access, show all checklists
@@ -570,6 +573,8 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
         return <QACAPAChecklist {...commonProps} />;
       case 'qa-capa-dashboard':
         return <QACAPADashboard onBack={() => setActiveChecklist(null)} />;
+      case 'tat-tracker':
+        return <TATTrackerForm {...commonProps} />;
       default:
         return <HRChecklist {...commonProps} />;
     }

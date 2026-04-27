@@ -235,7 +235,8 @@
 
 ### Section 3: Buddy Trainer (6 questions)
 
-13. **Buddy_1:** Does the café have at least 2 certified Buddy Trainers? (2 points)
+
+13. **Buddy_1:** Does the café have at least 20% of the staff certified as Buddy Trainers? (2 points)
 14. **Buddy_2:** Have Buddy Trainers completed their Skill Check? (2 points)
 15. **Buddy_3:** Are trainees rostered with Buddy Trainers and working in the same shift? (1 point)
 16. **Buddy_4:** Have Buddy Trainers attended the BT workshop? (2 points)

@@ -349,7 +349,7 @@ export const TRAINING_QUESTIONS: Question[] = [
   ]},
 
   // Section 3: Buddy Trainer (Buddy_1 to Buddy_6)
-  { id: 'Buddy_1', title: 'Does the café have at least 2 certified Buddy Trainers?', type: 'radio', choices: [
+  { id: 'Buddy_1', title: 'Does the café have at least 20% of the staff certified as Buddy Trainers?', type: 'radio', choices: [
     {label: 'Yes', score: 2}, {label: 'No', score: 0}
   ]},
   { id: 'Buddy_2', title: 'Have Buddy Trainers completed their Skill Check?', type: 'radio', choices: [
