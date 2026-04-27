@@ -31,6 +31,7 @@ var TAT_HEADERS = [
   'Offer Letter Date', 'DOJ',
   'NSO Opening Date', 'NSO Opened with 100% Manpower',
   'Source of Hiring', 'Candidate Name', 'Candidate Designation',
+  'Referrer Name', 'Referrer E-Code',
   'MM/RM Name', 'HRBP ID', 'HRBP Name',
   'Remarks',
   // Computed
@@ -256,6 +257,8 @@ function _buildRow(p) {
     'Source of Hiring': p.sourceOfHiring || '',
     'Candidate Name': p.candidateName || '',
     'Candidate Designation': p.candidateDesignation || '',
+    'Referrer Name': p.referrerName || '',
+    'Referrer E-Code': p.referrerEmpId || '',
     'MM/RM Name': p.mmRmName || '',
     'HRBP ID': p.hrbpId || '',
     'HRBP Name': p.hrbpName || '',
@@ -285,6 +288,7 @@ function _rowToObject(row) {
     nsoOpenedWith100Manpower: o['NSO Opened with 100% Manpower'],
     sourceOfHiring: o['Source of Hiring'],
     candidateName: o['Candidate Name'], candidateDesignation: o['Candidate Designation'],
+    referrerName: o['Referrer Name'], referrerEmpId: o['Referrer E-Code'],
     mmRmName: o['MM/RM Name'], hrbpId: o['HRBP ID'], hrbpName: o['HRBP Name'],
     remarks: o['Remarks'],
     createdAt: o['Created At']

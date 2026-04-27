@@ -38,6 +38,8 @@ export interface VacancyRecord {
   sourceOfHiring: string;
   candidateName: string;
   candidateDesignation: string;
+  referrerName: string;
+  referrerEmpId: string;
   mmRmName: string;
   hrbpId: string;
   hrbpName: string;
@@ -73,6 +75,8 @@ const RAW_TO_KEY: Record<string, keyof VacancyRecord> = {
   'Source of Hiring': 'sourceOfHiring',
   'Candidate Name': 'candidateName',
   'Candidate Designation': 'candidateDesignation',
+  'Referrer Name': 'referrerName',
+  'Referrer E-Code': 'referrerEmpId',
   'MM/RM Name': 'mmRmName',
   'HRBP ID': 'hrbpId',
   'HRBP Name': 'hrbpName',
@@ -123,7 +127,7 @@ export interface HRBPScorecardRow {
 export function buildHRBPScorecard(rows: VacancyRecord[]): HRBPScorecardRow[] {
   const map = new Map<string, HRBPScorecardRow>();
   for (const r of rows) {
-    const key = (r.hrbpId || r.hrbpName || 'Unassigned').trim();
+    const key = String(r.hrbpId || r.hrbpName || 'Unassigned').trim();
     if (!map.has(key)) {
       map.set(key, {
         hrbpId: r.hrbpId || key,

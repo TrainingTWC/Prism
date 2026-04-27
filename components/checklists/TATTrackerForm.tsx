@@ -38,6 +38,7 @@ const emptyForm = (): FormState => ({
   offerLetterDate: '', doj: '',
   nsoOpeningDate: '', nsoOpenedWith100Manpower: '',
   sourceOfHiring: '', candidateName: '', candidateDesignation: '',
+  referrerName: '', referrerEmpId: '',
   mmRmName: '', hrbpId: '', hrbpName: '',
   remarks: '',
 });
@@ -331,6 +332,12 @@ const TATTrackerForm: React.FC<TATTrackerFormProps> = ({ userRole, onBackToCheck
                 <Select label="Source of Hiring" options={SOURCES} value={form.sourceOfHiring || ''} onChange={v => setForm({ ...form, sourceOfHiring: v })} />
                 <Field label="Candidate Name"    value={form.candidateName || ''}    onChange={v => setForm({ ...form, candidateName: v })} />
                 <Field label="Candidate Designation" value={form.candidateDesignation || ''} onChange={v => setForm({ ...form, candidateDesignation: v })} />
+                {form.sourceOfHiring === 'Referral' && (
+                  <>
+                    <Field label="Referrer Name"   value={form.referrerName || ''}  onChange={v => setForm({ ...form, referrerName: v })} />
+                    <Field label="Referrer Emp ID" value={form.referrerEmpId || ''} onChange={v => setForm({ ...form, referrerEmpId: v })} />
+                  </>
+                )}
               </Section>
 
               <Section title="NSO (only if Store Type = NSO)">

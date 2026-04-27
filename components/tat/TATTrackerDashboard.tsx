@@ -485,6 +485,8 @@ const RecordModal: React.FC<{ record: VacancyRecord; onClose: () => void }> = ({
     ['Source of Hiring', record.sourceOfHiring],
     ['Candidate Name', record.candidateName],
     ['Candidate Designation', record.candidateDesignation],
+    ['Referrer Name', record.referrerName],
+    ['Referrer Emp ID', record.referrerEmpId],
     ['MM/RM Name', record.mmRmName],
     ['HRBP ID', record.hrbpId],
     ['HRBP Name', record.hrbpName],
