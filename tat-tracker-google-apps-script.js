@@ -190,6 +190,47 @@ function recomputeOpenVacancies() {
   _prune90DaySheet();
 }
 
+// =============================================================================
+// REPAIR — one-shot: recompute every row + back-fill HRBP Name from Store_Mapping
+// Run from Apps Script editor when dashboard shows zeros / numeric HRBP IDs.
+// =============================================================================
+function repairTATData() {
+  var stats = { rowsTouched: 0, hrbpNameFilled: 0, storeNameFilled: 0, regionFilled: 0,
+                hadIntimation: 0, hadOffer: 0, isClosedAfter: 0 };
+  [TAT_SHEET_ALL, TAT_SHEET_90].forEach(function (name) {
+    var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+    if (!sh || sh.getLastRow() < 2) return;
+    var data = sh.getRange(2, 1, sh.getLastRow() - 1, TAT_HEADERS.length).getValues();
+    var out = [];
+    for (var i = 0; i < data.length; i++) {
+      var obj = _rowToObject(data[i]);
+
+      // Back-fill HRBP Name / Region / Store Name from Store_Mapping by Store ID
+      if (obj.storeId) {
+        var info = _getStoreInfo(obj.storeId);
+        if (info) {
+          if (!obj.hrbpName && info.hrbpName) { obj.hrbpName = info.hrbpName; stats.hrbpNameFilled++; }
+          if (!obj.hrbpId   && info.hrbpId)   { obj.hrbpId   = info.hrbpId; }
+          if (!obj.region   && info.region)   { obj.region   = info.region;   stats.regionFilled++; }
+          if (!obj.storeName && info.storeName) { obj.storeName = info.storeName; stats.storeNameFilled++; }
+          if (!obj.mmRmName && (info.mmName || info.amName)) obj.mmRmName = info.mmName || info.amName;
+        }
+      }
+
+      if (obj.intimationDate) stats.hadIntimation++;
+      if (obj.offerLetterDate) stats.hadOffer++;
+
+      var rebuilt = _buildRow(obj);
+      if (rebuilt[_headerIndex()['Is Closed']]) stats.isClosedAfter++;
+      out.push(rebuilt);
+      stats.rowsTouched++;
+    }
+    sh.getRange(2, 1, out.length, TAT_HEADERS.length).setValues(out);
+  });
+  Logger.log('repairTATData stats: ' + JSON.stringify(stats));
+  return stats;
+}
+
 function _prune90DaySheet() {
   var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TAT_SHEET_90);
   if (!sh || sh.getLastRow() < 2) return;
