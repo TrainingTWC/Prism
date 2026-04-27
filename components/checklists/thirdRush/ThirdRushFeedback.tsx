@@ -20,7 +20,11 @@ interface ThirdRushFeedbackProps {
 }
 
 interface StoreInfo { 'Store ID': string; 'Store Name': string; }
-const STORES = (compStoreMapping as StoreInfo[]).map(s => ({ id: s['Store ID'], name: s['Store Name'] }));
+// Third Rush feedback applies to only 4 pilot stores
+const THIRD_RUSH_STORE_IDS = new Set(['S001', 'S002', 'S004', 'S069']);
+const STORES = (compStoreMapping as StoreInfo[])
+  .filter(s => THIRD_RUSH_STORE_IDS.has(s['Store ID']))
+  .map(s => ({ id: s['Store ID'], name: s['Store Name'] }));
 
 function getEmpId(): string {
   try {
