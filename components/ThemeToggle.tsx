@@ -1,8 +1,7 @@
 import React from 'react';
+import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
-import lightModeSvg from '../assets/light-mode.svg';
-import darkModeSvg from '../assets/dark-mode.svg';
 
 const ThemeToggle: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -22,7 +21,7 @@ const ThemeToggle: React.FC = () => {
 
   return (
     <button
-      className="w-12 h-12 rounded-full bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 transition-all duration-200 focus:outline-none shadow-lg hover:shadow-xl flex items-center justify-center select-none"
+      className="w-9 h-9 rounded-full text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/60 transition-colors duration-200 focus:outline-none flex items-center justify-center select-none"
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
@@ -33,11 +32,9 @@ const ThemeToggle: React.FC = () => {
         userSelect: 'none'
       }}
     >
-      <img 
-        src={theme === 'dark' ? darkModeSvg : lightModeSvg} 
-        alt={theme === 'dark' ? 'Dark mode' : 'Light mode'}
-        className="w-8 h-8"
-      />
+      {theme === 'dark'
+        ? <Sun className="w-[18px] h-[18px]" strokeWidth={1.75} />
+        : <Moon className="w-[18px] h-[18px]" strokeWidth={1.75} />}
     </button>
   );
 };
