@@ -6,8 +6,29 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
 import { PRE_LAUNCH_SECTIONS } from '../../config/preLaunchQuestions';
 import ImageEditor from '../ImageEditor';
+import { compressImage, imageMapByteSize } from '../../utils/imageCompression';
 
 const PRE_LAUNCH_ENDPOINT = import.meta.env.VITE_PRE_LAUNCH_AUDIT_SCRIPT_URL || '';
+
+/** Tolerant blob parser — accepts JSON string, parsed object, or empty/null. */
+function parseBlobField<T extends object>(...candidates: unknown[]): T {
+  for (const v of candidates) {
+    if (v == null || v === '') continue;
+    if (typeof v === 'object') return v as T;
+    if (typeof v === 'string') {
+      try {
+        const parsed = JSON.parse(v);
+        if (parsed && typeof parsed === 'object') return parsed as T;
+      } catch { /* try next */ }
+    }
+  }
+  return {} as T;
+}
+
+/** Per-submission image cache key — survives sheet truncation for PDF render. */
+function preLaunchImageKey(submissionTimeOrId: string, storeId: string): string {
+  return `prelaunch_audit_images::${(submissionTimeOrId || '').trim()}::${(storeId || '').trim()}`;
+}
 
 interface SurveyResponse {
   [key: string]: string;
@@ -53,6 +74,24 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
   });
 
   const [questionImages, setQuestionImages] = useState<Record<string, string[]>>(() => {
+    if (editMode && existingSubmission) {
+      const fromBlob = parseBlobField<Record<string, string[]>>(
+        existingSubmission.questionImagesJSON,
+        existingSubmission.questionImages,
+        existingSubmission['Question Images JSON'],
+        existingSubmission['Images JSON']
+      );
+      if (Object.keys(fromBlob).length > 0) return fromBlob;
+      try {
+        const cacheKey = preLaunchImageKey(
+          existingSubmission.submissionTime || existingSubmission.timestamp || '',
+          existingSubmission.storeId || existingSubmission['Store ID'] || ''
+        );
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) return JSON.parse(cached);
+      } catch { /* ignore */ }
+      return {};
+    }
     try {
       return JSON.parse(localStorage.getItem('pre_launch_audit_images') || '{}');
     } catch (e) {
@@ -61,6 +100,22 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
   });
 
   const [questionRemarks, setQuestionRemarks] = useState<Record<string, string>>(() => {
+    if (editMode && existingSubmission) {
+      const fromBlob = parseBlobField<Record<string, string>>(
+        existingSubmission.questionRemarksJSON,
+        existingSubmission.questionRemarks,
+        existingSubmission['Question Remarks JSON'],
+        existingSubmission['Remarks JSON']
+      );
+      if (Object.keys(fromBlob).length > 0) return fromBlob;
+      const reconstructed: Record<string, string> = {};
+      Object.keys(existingSubmission).forEach((k) => {
+        if (k.endsWith('_remark') && existingSubmission[k]) {
+          reconstructed[k.slice(0, -'_remark'.length)] = String(existingSubmission[k]);
+        }
+      });
+      return reconstructed;
+    }
     try {
       return JSON.parse(localStorage.getItem('pre_launch_audit_remarks') || '{}');
     } catch (e) {
@@ -69,6 +124,12 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
   });
 
   const [signatures, setSignatures] = useState<{ auditor: string; sm: string }>(() => {
+    if (editMode && existingSubmission) {
+      return {
+        auditor: existingSubmission.auditorSignature || existingSubmission['Auditor Signature'] || '',
+        sm: existingSubmission.smSignature || existingSubmission['SM Signature'] || ''
+      };
+    }
     try {
       return JSON.parse(localStorage.getItem('pre_launch_audit_signatures') || '{"auditor":"","sm":""}');
     } catch (e) {
@@ -125,13 +186,14 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
   const smCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState<{ auditor: boolean; sm: boolean }>({ auditor: false, sm: false });
 
-  // Autofill auditor fields when user role is qa
+  // Autofill auditor fields from auth for ANY signed-in user (was previously
+  // gated to qa/admin only, which broke drafts for AMs auditing under their ID).
   useEffect(() => {
-    if ((authUserRole === 'qa' || authUserRole === 'admin') && employeeData && !meta.auditorId) {
+    if (employeeData && !meta.auditorId && employeeData.code) {
       setMeta(prev => ({
         ...prev,
-        auditorId: employeeData.code,
-        auditorName: employeeData.name
+        auditorId: prev.auditorId || employeeData.code,
+        auditorName: prev.auditorName || employeeData.name || ''
       }));
     }
   }, [authUserRole, employeeData]);
@@ -506,11 +568,41 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
         questionRemarksJSON: JSON.stringify(questionRemarks)
       };
 
+      // Cache images locally keyed by submission so the PDF render can recover
+      // them even if GAS strips/truncates the blob. Without this, oversized
+      // submissions used to silently overwrite the sheet column with `{}`.
+      const submissionRowId = params.submissionTime || '';
+      const localImageKey = preLaunchImageKey(submissionRowId, params.storeId || '');
+      try {
+        if (Object.keys(questionImages).length > 0) {
+          localStorage.setItem(localImageKey, JSON.stringify(questionImages));
+        }
+      } catch (e) {
+        console.warn('Could not cache pre-launch audit images to localStorage:', e);
+      }
+
       const imagesJSON = JSON.stringify(questionImages);
+      const hasImages = Object.keys(questionImages).length > 0;
       if (imagesJSON.length < 500000) {
         params.questionImagesJSON = imagesJSON;
+      } else if (hasImages) {
+        console.warn('⚠️ Pre-Launch images too large for single POST (' + (imagesJSON.length / 1024).toFixed(0) + 'KB). Cached locally; omitting from POST to avoid sheet overwrite.');
+        // Intentionally DO NOT set params.questionImagesJSON — preserves any
+        // existing sheet value during edit-mode updates.
       } else {
-        params.questionImagesJSON = JSON.stringify({});
+        params.questionImagesJSON = '{}';
+      }
+
+      // Edit-mode safety net: never blank-overwrite remarks the user didn't touch.
+      if (editMode && existingSubmission && Object.keys(questionRemarks).length === 0) {
+        const existingRemarks = parseBlobField<Record<string, string>>(
+          existingSubmission.questionRemarksJSON,
+          existingSubmission['Question Remarks JSON'],
+          existingSubmission['Remarks JSON']
+        );
+        if (Object.keys(existingRemarks).length > 0) {
+          params.questionRemarksJSON = JSON.stringify(existingRemarks);
+        }
       }
 
       const bodyString = new URLSearchParams(params).toString();
@@ -601,49 +693,25 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
     }
   };
 
-  // Image handling
-  const handleImageUpload = (questionId: string, files: FileList) => {
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return;
-
-          const maxDimension = 800;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height && width > maxDimension) {
-            height = (height * maxDimension) / width;
-            width = maxDimension;
-          } else if (height > maxDimension) {
-            width = (width * maxDimension) / height;
-            height = maxDimension;
+  // Image handling — uses shared compressor (1280px / 0.75 / <=500KB target)
+  // so the entire submission fits in one GAS POST without silent drops.
+  const handleImageUpload = async (questionId: string, files: FileList) => {
+    for (const file of Array.from(files)) {
+      try {
+        const compressed = await compressImage(file, { maxDimension: 1280, quality: 0.75, maxBytes: 500 * 1024 });
+        setQuestionImages(prev => {
+          const next = { ...prev, [questionId]: [...(prev[questionId] || []), compressed] };
+          const totalBytes = imageMapByteSize(next);
+          if (totalBytes > 8 * 1024 * 1024) {
+            console.warn(`⚠️ Pre-Launch images approaching limit: ${(totalBytes / 1024 / 1024).toFixed(1)} MB`);
           }
-
-          canvas.width = width;
-          canvas.height = height;
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
-
-          setQuestionImages(prev => {
-            try {
-              const newImages = { ...prev, [questionId]: [...(prev[questionId] || []), compressedBase64] };
-              if (JSON.stringify(newImages).length > 5000000) {
-                alert('Storage limit reached. Please remove some images before adding more.');
-                return prev;
-              }
-              return newImages;
-            } catch { return prev; }
-          });
-        };
-        img.src = e.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-    });
+          return next;
+        });
+      } catch (err) {
+        console.error('Failed to compress image:', err);
+        alert('Could not add this image. Try a different photo.');
+      }
+    }
   };
 
   const removeImage = (questionId: string, imageIndex: number) => {
