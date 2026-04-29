@@ -45,9 +45,21 @@ const QAEditModal: React.FC<QAEditModalProps> = ({ isOpen, onClose, submission, 
             editMode={true}
             existingSubmission={{
               ...submission,
-              // Map Google Sheets column names to camelCase keys expected by QAChecklist
-              questionImagesJSON: submission.questionImagesJSON || submission['Question Images JSON'],
-              questionRemarksJSON: submission.questionRemarksJSON || submission['Question Remarks JSON'],
+              // Pass ALL known variants through so QAChecklist's hydration can
+              // pick whichever one is non-empty. Older rows may only have the
+              // raw 'Images JSON' / 'Remarks JSON' columns; newer rows have the
+              // camelCase keys. Object values are also preserved (some upstream
+              // code paths pre-parse the JSON before reaching us).
+              questionImagesJSON:
+                submission.questionImagesJSON ||
+                submission['Question Images JSON'] ||
+                submission['Images JSON'] ||
+                '',
+              questionRemarksJSON:
+                submission.questionRemarksJSON ||
+                submission['Question Remarks JSON'] ||
+                submission['Remarks JSON'] ||
+                '',
               responses: extractResponses(submission)
             }}
           />

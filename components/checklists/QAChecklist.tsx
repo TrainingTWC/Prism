@@ -8,6 +8,35 @@ import { QA_SECTIONS } from '../../config/qaQuestions';
 import { useComprehensiveMapping, useAreaManagers, useStoreDetails } from '../../hooks/useComprehensiveMapping';
 import ImageEditor from '../ImageEditor';
 import { buildQAPDF } from '../../src/utils/qaReport';
+import { compressImage, compressImageMap, imageMapByteSize } from '../../utils/imageCompression';
+
+/**
+ * Normalize an image/remark blob coming from a sheet row.
+ * Sheets can return values as: a JSON string, an already-parsed object,
+ * an empty string, or undefined. Older code only handled the string case,
+ * which silently wiped data on edit. This is the single source of truth.
+ */
+function parseBlobField<T extends object>(...candidates: unknown[]): T {
+  for (const v of candidates) {
+    if (v == null || v === '') continue;
+    if (typeof v === 'object') return v as T;
+    if (typeof v === 'string') {
+      try {
+        const parsed = JSON.parse(v);
+        if (parsed && typeof parsed === 'object') return parsed as T;
+      } catch { /* try next candidate */ }
+    }
+  }
+  return {} as T;
+}
+
+/**
+ * Per-submission localStorage key for image cache. Keeps images recoverable
+ * for the PDF render even when GAS strips them from the sheet.
+ */
+function submissionImageKey(submissionTimeOrId: string, storeId: string): string {
+  return `qa_images::${(submissionTimeOrId || '').trim()}::${(storeId || '').trim()}`;
+}
 // Unified QA endpoint — handles QA submission, AM Follow-Up, and CAPA creation in one call
 const QA_ENDPOINT = import.meta.env.VITE_QA_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbxVpSB9TBa6UKjZlaT4wUumDNZ0xNmfH0yg6zTZkcp-SyGzyO9q1BaU1X4vuWSpoF1FgA/exec';
 
@@ -68,10 +97,24 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
   const [questionImages, setQuestionImages] = useState<Record<string, string[]>>(() => {
     if (editMode && existingSubmission) {
-      // Parse from questionImagesJSON if available
-      if (existingSubmission.questionImagesJSON) {
-        try { return JSON.parse(existingSubmission.questionImagesJSON); } catch (e) { /* fall through */ }
-      }
+      // Robust hydration: accept JSON string, parsed object, or raw sheet column.
+      // Also fall back to per-submission localStorage cache (images often dropped
+      // from the sheet payload due to GAS body-size limits).
+      const fromBlob = parseBlobField<Record<string, string[]>>(
+        existingSubmission.questionImagesJSON,
+        existingSubmission.questionImages,
+        existingSubmission['Question Images JSON'],
+        existingSubmission['Images JSON']
+      );
+      if (Object.keys(fromBlob).length > 0) return fromBlob;
+      try {
+        const cacheKey = submissionImageKey(
+          existingSubmission.submissionTime || existingSubmission.timestamp || '',
+          existingSubmission.storeId || existingSubmission['Store ID'] || ''
+        );
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) return JSON.parse(cached);
+      } catch { /* ignore */ }
       return {};
     }
     try {
@@ -83,11 +126,22 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
   const [questionRemarks, setQuestionRemarks] = useState<Record<string, string>>(() => {
     if (editMode && existingSubmission) {
-      // Parse from questionRemarksJSON if available
-      if (existingSubmission.questionRemarksJSON) {
-        try { return JSON.parse(existingSubmission.questionRemarksJSON); } catch (e) { /* fall through */ }
-      }
-      return {};
+      // Same robust hydration as images. If the JSON blob is empty, also try to
+      // reconstruct from per-question `<key>_remark` columns on the row.
+      const fromBlob = parseBlobField<Record<string, string>>(
+        existingSubmission.questionRemarksJSON,
+        existingSubmission.questionRemarks,
+        existingSubmission['Question Remarks JSON'],
+        existingSubmission['Remarks JSON']
+      );
+      if (Object.keys(fromBlob).length > 0) return fromBlob;
+      const reconstructed: Record<string, string> = {};
+      Object.keys(existingSubmission).forEach((k) => {
+        if (k.endsWith('_remark') && existingSubmission[k]) {
+          reconstructed[k.slice(0, -'_remark'.length)] = String(existingSubmission[k]);
+        }
+      });
+      return reconstructed;
     }
     try {
       return JSON.parse(localStorage.getItem('qa_remarks') || '{}');
@@ -125,8 +179,21 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     } catch (e) { }
 
     const urlParams = new URLSearchParams(window.location.search);
-    const qaId = urlParams.get('EMPID') || urlParams.get('qaId') || urlParams.get('qa_id') || (stored as any).qaId || '';
-    const qaName = urlParams.get('name') || urlParams.get('qaName') || urlParams.get('qa_name') || (stored as any).qaName || '';
+    // Resolve QA ID from URL → localStorage → window auth context.
+    // Without this, drafts can't be loaded for users who logged in via app shell
+    // (no URL params), making the entire drafts feature appear broken.
+    let authId = '';
+    let authName = '';
+    try {
+      const authRaw = localStorage.getItem('auth_user') || localStorage.getItem('user') || '';
+      if (authRaw) {
+        const a = JSON.parse(authRaw);
+        authId = a?.id || a?.empId || a?.employeeId || '';
+        authName = a?.name || a?.fullName || '';
+      }
+    } catch { /* ignore */ }
+    const qaId = urlParams.get('EMPID') || urlParams.get('qaId') || urlParams.get('qa_id') || (stored as any).qaId || authId || '';
+    const qaName = urlParams.get('name') || urlParams.get('qaName') || urlParams.get('qa_name') || (stored as any).qaName || authName || '';
 
     return {
       qaName: qaName,
@@ -185,13 +252,15 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   const smCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState<{ auditor: boolean; sm: boolean }>({ auditor: false, sm: false });
 
-  // Autofill QA fields when user role is qa
+  // Autofill QA identity from auth when missing. Used to be gated on the 'qa'
+  // role only, which broke drafts for admins / AMs auditing under their own ID.
+  // Now any authenticated user backfills qaId so drafts are discoverable.
   useEffect(() => {
-    if (authUserRole === 'qa' && employeeData && !meta.qaId) {
+    if (employeeData && !meta.qaId && employeeData.code) {
       setMeta(prev => ({
         ...prev,
-        qaId: employeeData.code,
-        qaName: employeeData.name
+        qaId: prev.qaId || employeeData.code,
+        qaName: prev.qaName || employeeData.name || ''
       }));
     }
   }, [authUserRole, employeeData]);
@@ -785,15 +854,45 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         questionRemarksJSON: JSON.stringify(questionRemarks)
       };
 
-      // Images are stored locally for PDF generation but NOT sent in the main POST
-      // (base64 image data makes the payload too large for Google Apps Script).
-      // Only send questionImagesJSON if total payload stays under 2MB.
+      // ALWAYS persist images locally keyed by submission ID so the PDF render
+      // can recover them even if GAS strips/truncates the blob. Without this,
+      // the previous code silently overwrote stored images with `{}` on every
+      // submit that exceeded the size threshold — losing every photo.
+      const submissionRowId = params.submissionTime || '';
+      const localImageKey = submissionImageKey(submissionRowId, params.storeID || '');
+      try {
+        if (Object.keys(questionImages).length > 0) {
+          localStorage.setItem(localImageKey, JSON.stringify(questionImages));
+        }
+      } catch (e) {
+        console.warn('Could not cache images to localStorage (quota?):', e);
+      }
+
+      // Try to fit images into the POST. If too large, send what we can —
+      // but NEVER send `{}` if there are real images, because that overwrites
+      // any previously-stored value on the sheet during edit-mode updates.
       const imagesJSON = JSON.stringify(questionImages);
-      if (imagesJSON.length < 500000) { // ~500KB threshold (URL-encoding bloats further)
+      const hasImages = Object.keys(questionImages).length > 0;
+      if (imagesJSON.length < 500000) {
         params.questionImagesJSON = imagesJSON;
+      } else if (hasImages) {
+        console.warn('⚠️ QA images too large for single POST (' + (imagesJSON.length / 1024).toFixed(0) + 'KB). Cached locally; omitting from POST to avoid sheet overwrite.');
+        // Intentionally DO NOT set params.questionImagesJSON — preserves any
+        // existing sheet value during edit-mode updates.
       } else {
-        console.warn('⚠️ Skipping questionImagesJSON in POST — payload too large (' + (imagesJSON.length / 1024).toFixed(0) + 'KB). Images are saved locally for PDF generation.');
-        params.questionImagesJSON = JSON.stringify({}); // empty placeholder
+        params.questionImagesJSON = '{}';
+      }
+
+      // Edit-mode safety net: never blank-overwrite remarks the user didn't touch.
+      if (editMode && existingSubmission && Object.keys(questionRemarks).length === 0) {
+        const existingRemarks = parseBlobField<Record<string, string>>(
+          existingSubmission.questionRemarksJSON,
+          existingSubmission['Question Remarks JSON'],
+          existingSubmission['Remarks JSON']
+        );
+        if (Object.keys(existingRemarks).length > 0) {
+          params.questionRemarksJSON = JSON.stringify(existingRemarks);
+        }
       }
 
       const bodyString = new URLSearchParams(params).toString();
@@ -966,63 +1065,29 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     }
   };
 
-  const handleImageUpload = (questionId: string, files: FileList) => {
-    // Process multiple files
-    Array.from(files).forEach(file => {
-      // Compress and resize image to reduce storage size
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          // Create canvas for compression
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return;
-
-          // Calculate new dimensions (max 800px width/height for faster processing)
-          const maxDimension = 800;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height && width > maxDimension) {
-            height = (height * maxDimension) / width;
-            width = maxDimension;
-          } else if (height > maxDimension) {
-            width = (width * maxDimension) / height;
-            height = maxDimension;
+  const handleImageUpload = async (questionId: string, files: FileList) => {
+    // Use shared compression util — guarantees <= 500 KB per image at 1280px max,
+    // so the entire submission fits in one GAS POST without silent drops.
+    for (const file of Array.from(files)) {
+      try {
+        const compressed = await compressImage(file, { maxDimension: 1280, quality: 0.75, maxBytes: 500 * 1024 });
+        setQuestionImages(prev => {
+          const next = {
+            ...prev,
+            [questionId]: [...(prev[questionId] || []), compressed]
+          };
+          // Soft warning if approaching browser localStorage / GAS limits.
+          const totalBytes = imageMapByteSize(next);
+          if (totalBytes > 8 * 1024 * 1024) {
+            console.warn(`⚠️ QA images approaching limit: ${(totalBytes / 1024 / 1024).toFixed(1)} MB`);
           }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          // Draw and compress image (0.6 quality for smaller size and faster upload)
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
-
-          // Update state with compressed image
-          setQuestionImages(prev => {
-            try {
-              const newImages = {
-                ...prev,
-                [questionId]: [...(prev[questionId] || []), compressedBase64]
-              };
-              // Test if it fits in localStorage
-              const testString = JSON.stringify(newImages);
-              if (testString.length > 5000000) { // ~5MB limit
-                alert('Storage limit reached. Please remove some images before adding more.');
-                return prev;
-              }
-              return newImages;
-            } catch (error) {
-              alert('Failed to add image. Storage limit may be reached.');
-              return prev;
-            }
-          });
-        };
-        img.src = e.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-    });
+          return next;
+        });
+      } catch (err) {
+        console.error('Failed to compress image:', err);
+        alert('Could not add this image. Try a different photo.');
+      }
+    }
   };
 
   const removeImage = (questionId: string, imageIndex: number) => {

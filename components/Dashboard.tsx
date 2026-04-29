@@ -2697,8 +2697,20 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
           try {
             const imageMap = await fetchTrainingImages(submissionTimes);
             reportData = (reportData as any[]).map((r: any) => {
-              if (imageMap[r.submissionTime]) {
-                return { ...r, sectionImages: imageMap[r.submissionTime] };
+              // Prefer remote images. If GAS truncated/dropped them, fall back
+              // to per-submission localStorage cache written on submit.
+              let imgs: any = imageMap[r.submissionTime];
+              if (!imgs || (typeof imgs === 'object' && Object.keys(imgs).length === 0)) {
+                try {
+                  const submissionId = r.submissionId || r.submissionTime || '';
+                  const storeId = r.storeId || r['Store ID'] || '';
+                  const cacheKey = `training_images::${String(submissionId).trim()}::${String(storeId).trim()}`;
+                  const cached = localStorage.getItem(cacheKey);
+                  if (cached) imgs = JSON.parse(cached);
+                } catch { /* ignore */ }
+              }
+              if (imgs && Object.keys(imgs).length > 0) {
+                return { ...r, sectionImages: imgs };
               }
               return r;
             });
@@ -2828,18 +2840,51 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         // Retrieve question images from the submission data (if available) or localStorage
         let questionImages: Record<string, string[]> = {};
         try {
-          // First, try to get images from the submission data (for downloaded reports)
+          // First, try to get images from the submission data (for downloaded reports).
+          // Accept any of the known field variants AND already-parsed objects.
           if (reportData.length > 0) {
             const firstRecord = reportData[0] as any;
-
-            if (firstRecord.questionImagesJSON || firstRecord['Question Images JSON']) {
-              const imagesJSON = firstRecord.questionImagesJSON || firstRecord['Question Images JSON'];
-              questionImages = JSON.parse(imagesJSON);
+            const candidates = [
+              firstRecord.questionImagesJSON,
+              firstRecord.questionImages,
+              firstRecord['Question Images JSON'],
+              firstRecord['Images JSON'],
+            ];
+            for (const v of candidates) {
+              if (!v) continue;
+              if (typeof v === 'object') { questionImages = v as Record<string, string[]>; break; }
+              if (typeof v === 'string') {
+                try {
+                  const parsed = JSON.parse(v);
+                  if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+                    questionImages = parsed;
+                    break;
+                  }
+                } catch { /* try next */ }
+              }
+            }
+            if (Object.keys(questionImages).length > 0) {
               console.log('📸 Loaded images from submission:', Object.keys(questionImages).length, 'image sets');
             }
           }
 
-          // Fallback to localStorage if no images in submission (for current session)
+          // Per-submission localStorage cache (written by QAChecklist on submit).
+          // This survives even when GAS strips/truncates the blob from the sheet.
+          if (Object.keys(questionImages).length === 0 && reportData.length > 0) {
+            const firstRecord = reportData[0] as any;
+            const submissionId = firstRecord.submissionTime || firstRecord.timestamp || firstRecord['Submission Time'] || '';
+            const storeId = firstRecord.storeId || firstRecord['Store ID'] || '';
+            const cacheKey = `qa_images::${String(submissionId).trim()}::${String(storeId).trim()}`;
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+              try {
+                questionImages = JSON.parse(cached);
+                console.log('📸 Loaded images from per-submission cache:', Object.keys(questionImages).length, 'image sets');
+              } catch { /* ignore */ }
+            }
+          }
+
+          // Final fallback: current-session draft images.
           if (Object.keys(questionImages).length === 0) {
             const storedImages = localStorage.getItem('qa_images');
             if (storedImages) {

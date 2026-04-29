@@ -8,6 +8,7 @@ import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 import { checkGeofence, STORE_COORDINATES, getDistanceMeters } from '../../src/config/storeCoordinates';
 import TrainingCalendar from './TrainingCalendar';
 import ImageEditor from '../ImageEditor';
+import { compressImage, imageMapByteSize } from '../../utils/imageCompression';
 import {
   submitTrainingAudit,
   generateSubmissionId,
@@ -1653,83 +1654,30 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     }));
   };
 
-  const handleImageUpload = (sectionId: string, file: File) => {
+  const handleImageUpload = async (sectionId: string, file: File) => {
     console.log('[ImageUpload] Starting upload for section:', sectionId, 'File:', file.name, 'Size:', file.size, 'Type:', file.type);
-
-    const reader = new FileReader();
-    reader.onerror = (error) => {
-      console.error('[ImageUpload] FileReader error:', error);
-      alert('Failed to read image file. Please try again.');
-    };
-    reader.onload = (e) => {
-      console.log('[ImageUpload] FileReader loaded successfully');
-      const result = e.target?.result as string;
-      if (!result) {
-        console.error('[ImageUpload] No result from FileReader');
-        alert('Failed to load image. Please try again.');
-        return;
-      }
-
-      console.log('[ImageUpload] Result length:', result.length);
-
-      // Compress image before storing
-      const img = new Image();
-      img.onerror = (error) => {
-        console.error('[ImageUpload] Image load error:', error);
-        alert('Failed to load image. Please try a different image.');
-      };
-      img.onload = () => {
-        console.log('[ImageUpload] Image loaded:', img.width, 'x', img.height);
-        try {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            console.error('[ImageUpload] Canvas context not available');
-            alert('Canvas not supported on this device');
-            return;
-          }
-
-          // Limit max dimensions to reduce size
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 1200;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          console.log('[ImageUpload] Resizing to:', width, 'x', height);
-          canvas.width = width;
-          canvas.height = height;
-          ctx.drawImage(img, 0, 0, width, height);
-
-          // Compress to JPEG with 0.7 quality
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          console.log('[ImageUpload] Compressed size:', compressedDataUrl.length);
-
-          setSectionImages(prev => ({
-            ...prev,
-            [sectionId]: [...(prev[sectionId] || []), compressedDataUrl]
-          }));
-          console.log('[ImageUpload] Image added to section:', sectionId);
-          hapticFeedback.select();
-        } catch (error) {
-          console.error('[ImageUpload] Error compressing image:', error);
-          alert('Failed to process image. Please try a smaller image.');
+    try {
+      // Shared compression util: 1280px max, ~500 KB per image. This keeps the
+      // serialized sectionImages JSON small enough to fit under the GAS sheet
+      // 50 KB-per-cell limit for typical audits (3-5 photos per section).
+      const compressed = await compressImage(file, { maxDimension: 1280, quality: 0.75, maxBytes: 500 * 1024 });
+      setSectionImages(prev => {
+        const next = {
+          ...prev,
+          [sectionId]: [...(prev[sectionId] || []), compressed]
+        };
+        const totalBytes = imageMapByteSize(next);
+        if (totalBytes > 6 * 1024 * 1024) {
+          console.warn(`⚠️ Training images approaching limit: ${(totalBytes / 1024 / 1024).toFixed(1)} MB`);
         }
-      };
-      img.src = result;
-    };
-    reader.readAsDataURL(file);
+        return next;
+      });
+      console.log('[ImageUpload] Image added to section:', sectionId);
+      hapticFeedback.select();
+    } catch (error) {
+      console.error('[ImageUpload] Error compressing image:', error);
+      alert('Failed to process image. Please try a smaller image.');
+    }
   };
 
   // Start camera stream when cameraTarget is set; stop it when cleared
@@ -2096,8 +2044,22 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
         }
       });
 
-      // Add section images as JSON
-      formData.append('sectionImages', JSON.stringify(sectionImages));
+      // Add section images as JSON.
+      // GAS truncates this column at ~50 KB to fit Sheets cell limits, so we
+      // ALSO cache locally per-submission. The dashboard PDF generator will
+      // fall back to this cache when the sheet column is empty/truncated.
+      const sectionImagesJSON = JSON.stringify(sectionImages);
+      formData.append('sectionImages', sectionImagesJSON);
+      try {
+        const submissionId = submissionIdRef.current || '';
+        const storeId = (formData.get('storeID') as string) || (formData.get('storeId') as string) || '';
+        if (submissionId && Object.keys(sectionImages).length > 0) {
+          const cacheKey = `training_images::${submissionId}::${storeId}`;
+          localStorage.setItem(cacheKey, sectionImagesJSON);
+        }
+      } catch (e) {
+        console.warn('Could not cache training images locally:', e);
+      }
 
       // Convert URLSearchParams → plain dict for the hardened submitter.
       const bodyDict: Record<string, string> = {};
