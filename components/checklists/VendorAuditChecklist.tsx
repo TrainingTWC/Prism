@@ -575,7 +575,7 @@ const VendorAuditChecklist: React.FC<VendorAuditChecklistProps> = ({ userRole, o
         scorePercentage: String(scorePercentage),
         auditorSignature: signatures.auditor || '',
         vendorSignature: signatures.vendor || '',
-        action: editMode ? 'update' : 'createVendorAudit',
+        action: editMode ? 'updateVendorAudit' : 'createVendorAudit',
         rowId: editMode && existingSubmission?.submissionTime ? String(existingSubmission.submissionTime) : '',
         ...Object.fromEntries(Object.entries(responses).map(([k, v]) => [k, String(v)])),
         ...Object.fromEntries(Object.entries(questionRemarks).map(([k, v]) => [`${k}_remark`, String(v)])),
