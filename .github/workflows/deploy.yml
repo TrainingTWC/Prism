@@ -42,7 +42,7 @@ jobs:
           VITE_EMPLOYEE_DIRECTORY_URL: ${{ secrets.VITE_EMPLOYEE_DIRECTORY_URL }}
           VITE_STORE_MAPPING_SCRIPT_URL: ${{ secrets.VITE_STORE_MAPPING_SCRIPT_URL }}
           VITE_QA_SCRIPT_URL: ${{ secrets.VITE_QA_SCRIPT_URL }}
-          VITE_VENDOR_AUDIT_SCRIPT_URL: ${{ secrets.VITE_VENDOR_AUDIT_SCRIPT_URL }}
+          VITE_VENDOR_AUDIT_SCRIPT_URL: https://script.google.com/macros/s/AKfycbxK4SRHyp4Rr7SX-l__-K6Xv_0Y7RxksZv6ZZLXTqN1Ox6vPc6D2Qyqv7zku2zMFUJc8g/exec
           VITE_QA_CAPA_SCRIPT_URL: ${{ secrets.VITE_QA_CAPA_SCRIPT_URL }}
           VITE_NATIONAL_FINALS_SCRIPT_URL: ${{ secrets.VITE_NATIONAL_FINALS_SCRIPT_URL }}
           VITE_CF_AUDIT_SCRIPT_URL: https://script.google.com/macros/s/AKfycbzWTWSgtJuVlQN6_jjCvK3VD43Yc8saaaSjheDgE87lm3Ot7dOe8TJ8qePHINByu_lM3g/exec
