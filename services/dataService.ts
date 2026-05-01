@@ -31,6 +31,15 @@ const PRE_LAUNCH_AUDIT_ENDPOINT = import.meta.env.VITE_PRE_LAUNCH_AUDIT_SCRIPT_U
 // HR Audit endpoint - Uses env variable
 const HR_AUDIT_ENDPOINT = import.meta.env.VITE_HR_AUDIT_SCRIPT_URL || '';
 
+// Vendor Audit endpoint
+const VENDOR_AUDIT_ENDPOINT = import.meta.env.VITE_VENDOR_AUDIT_SCRIPT_URL || '';
+
+// Vehicle Audit endpoint
+const VEHICLE_AUDIT_ENDPOINT = import.meta.env.VITE_VEHICLE_AUDIT_SCRIPT_URL || '';
+
+// CF Audit endpoint
+const CF_AUDIT_ENDPOINT = import.meta.env.VITE_CF_AUDIT_SCRIPT_URL || '';
+
 // Cache for store mapping data
 let storeMappingCache: any[] | null = null;
 
@@ -1459,6 +1468,141 @@ export const fetchHRAuditData = async (forceRefresh = false): Promise<HRAuditSub
     return processedData as HRAuditSubmission[];
   } catch (error) {
     console.error('❌ [HR Audit] Error fetching data:', error);
+    return [];
+  }
+};
+
+// ─── Vendor Audit ───────────────────────────────────────────────
+export interface VendorAuditSubmission {
+  submissionTime: string;
+  auditorName: string;
+  auditorId: string;
+  vendorName: string;
+  vendorLocation: string;
+  city: string;
+  region: string;
+  totalScore: number;
+  maxScore: number;
+  scorePercentage: number;
+  responses?: Record<string, string>;
+  questionRemarks?: Record<string, string>;
+  sectionScores?: Record<string, { score: number; maxScore: number; percentage: number }>;
+  [key: string]: any;
+}
+
+// Fetch Vendor Audit data
+export const fetchVendorAuditData = async (forceRefresh = false): Promise<VendorAuditSubmission[]> => {
+  if (!VENDOR_AUDIT_ENDPOINT) {
+    console.warn('⚠️ [Vendor Audit] Endpoint not configured');
+    return [];
+  }
+  if (!forceRefresh) {
+    const cached = getCached<VendorAuditSubmission[]>('vendor-audit');
+    if (cached) return cached;
+  }
+  try {
+    const data = await fetchWithRetry(
+      VENDOR_AUDIT_ENDPOINT + '?action=getVendorAuditData',
+      'Vendor Audit'
+    );
+    if (!data || !Array.isArray(data)) {
+      console.warn('⚠️ [Vendor Audit] No valid data, returning empty');
+      return [];
+    }
+    setCache('vendor-audit', data);
+    return data as VendorAuditSubmission[];
+  } catch (error) {
+    console.error('❌ [Vendor Audit] Error fetching data:', error);
+    return [];
+  }
+};
+
+// ─── Vehicle Audit ──────────────────────────────────────────────
+export interface VehicleAuditSubmission {
+  submissionTime: string;
+  auditorName: string;
+  auditorId: string;
+  subjectName: string;    // Vehicle Number
+  subjectId: string;      // Driver Name
+  city: string;
+  region: string;
+  totalScore: number;
+  maxScore: number;
+  scorePercentage: number;
+  responses?: Record<string, string>;
+  questionRemarks?: Record<string, string>;
+  sectionScores?: Record<string, { score: number; maxScore: number; percentage: number }>;
+  [key: string]: any;
+}
+
+// Fetch Vehicle Audit data
+export const fetchVehicleAuditData = async (forceRefresh = false): Promise<VehicleAuditSubmission[]> => {
+  if (!VEHICLE_AUDIT_ENDPOINT) {
+    console.warn('⚠️ [Vehicle Audit] Endpoint not configured');
+    return [];
+  }
+  if (!forceRefresh) {
+    const cached = getCached<VehicleAuditSubmission[]>('vehicle-audit');
+    if (cached) return cached;
+  }
+  try {
+    const data = await fetchWithRetry(
+      VEHICLE_AUDIT_ENDPOINT + '?action=getData',
+      'Vehicle Audit'
+    );
+    if (!data || !Array.isArray(data)) {
+      console.warn('⚠️ [Vehicle Audit] No valid data, returning empty');
+      return [];
+    }
+    setCache('vehicle-audit', data);
+    return data as VehicleAuditSubmission[];
+  } catch (error) {
+    console.error('❌ [Vehicle Audit] Error fetching data:', error);
+    return [];
+  }
+};
+
+// ─── CF Audit ───────────────────────────────────────────────────
+export interface CFAuditSubmission {
+  submissionTime: string;
+  auditorName: string;
+  auditorId: string;
+  subjectName: string;    // Outlet / CF Name
+  subjectId: string;      // CF Location
+  city: string;
+  region: string;
+  totalScore: number;
+  maxScore: number;
+  scorePercentage: number;
+  responses?: Record<string, string>;
+  questionRemarks?: Record<string, string>;
+  sectionScores?: Record<string, { score: number; maxScore: number; percentage: number }>;
+  [key: string]: any;
+}
+
+// Fetch CF Audit data
+export const fetchCFAuditData = async (forceRefresh = false): Promise<CFAuditSubmission[]> => {
+  if (!CF_AUDIT_ENDPOINT) {
+    console.warn('⚠️ [CF Audit] Endpoint not configured');
+    return [];
+  }
+  if (!forceRefresh) {
+    const cached = getCached<CFAuditSubmission[]>('cf-audit');
+    if (cached) return cached;
+  }
+  try {
+    const data = await fetchWithRetry(
+      CF_AUDIT_ENDPOINT + '?action=getData',
+      'CF Audit'
+    );
+    if (!data || !Array.isArray(data)) {
+      console.warn('⚠️ [CF Audit] No valid data, returning empty');
+      return [];
+    }
+    setCache('cf-audit', data);
+    return data as CFAuditSubmission[];
+  } catch (error) {
+    console.error('❌ [CF Audit] Error fetching data:', error);
     return [];
   }
 };
