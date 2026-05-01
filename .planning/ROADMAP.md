@@ -210,7 +210,7 @@
 |---|-------|--------|-------|
 | 1 | Data Service: Fetch Functions | ✅ Complete | 01-01-PLAN.md |
 | 2 | Shared Dashboard Infrastructure | Not Started | 02-01-PLAN.md |
-| 3 | Pre-Launch Audit Tab (Data + Display) | Not Started | — |
+| 3 | Pre-Launch Audit Tab (Data + Display) | Not Started | 03-01-PLAN.md |
 | 4 | Vendor Audit Tab (Data + Display) | Not Started | — |
 | 5 | Vehicle Audit Tab (Data + Display) | Not Started | — |
 | 6 | CF Audit Tab (Data + Display) | Not Started | — |
