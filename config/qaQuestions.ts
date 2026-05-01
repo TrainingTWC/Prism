@@ -6,18 +6,19 @@
  * - Zero Tolerance: Compliant/Non-Compliant (if any Non-Compliant, entire audit = 0)
  * - Other Sections: Compliant (2), Partially Compliant (1), Not Compliant (0), NA (excluded from total)
  * 
- * Total Possible Score: 206 points
+ * Total Possible Score: 498 points
  * - Zero Tolerance: 24 points (6 questions × 4 points, but binary pass/fail)
- * - Store: 155 points (94 questions, mostly 2 points each, some 1 point)
- * - Maintenance: 17 points (11 questions, mostly 2 points, some different weights)
- * - A: 6 points (3 questions × 2 points)
+ * - Store: 188 points (94 questions × 2 points)
+ * - Maintenance: 22 points (11 questions × 2 points)
+ * - A/QA: 152 points (3 general + 48 CF Audit + 25 Vehicle Audit, all × 2 points)
  * - HR: 4 points (2 questions × 2 points)
  */
 
 export interface QAQuestion {
   id: string;
-  q: string;  // Question text
-  w: number;  // Weight/points
+  q: string;          // Question text
+  w: number;          // Weight/points
+  subsection?: string; // Optional subsection label for grouping
 }
 
 export interface QASection {
@@ -148,12 +149,90 @@ export const QA_SECTIONS: QASection[] = [
   {
     id: 'A',
     title: 'QA',
-    maxScore: 6,
+    maxScore: 152,
     options: ['compliant', 'partially-compliant', 'not-compliant', 'na'],
     items: [
+      // ── General ──────────────────────────────────────────────────────────
       { id: 'A_1', q: 'Potable water used in food meets IS 10500 standards; records maintained.', w: 2 },
       { id: 'A_2', q: 'Food material tested internally or via accredited lab.', w: 2 },
-      { id: 'A_3', q: 'Induction training program and assessment for new employees completed.', w: 2 }
+      { id: 'A_3', q: 'Induction training program and assessment for new employees completed.', w: 2 },
+
+      // ── CF Audit Checklist (Food Safety) ─────────────────────────────────
+      { id: 'CF_1',  q: 'Food establishment has valid FSSAI license displayed.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_2',  q: 'No expired food products; proper date tagging in place.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_3',  q: 'No pest activity observed on premises.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_4',  q: 'Premises design allows cleaning and prevents contamination.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_5',  q: 'Internal structure made of non-toxic material.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_6',  q: 'Walls and ceilings free from damage and peeling.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_7',  q: 'Floors are non-absorbent and non-slippery.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_8',  q: 'Windows are insect-proofed.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_9',  q: 'Doors prevent pest entry.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_10', q: 'Potable water used (IS 10500 standards).', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_11', q: 'Equipment is food-grade and cleanable.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_12', q: 'Adequate refrigeration facilities available.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_13', q: 'Proper lighting with protection in food areas.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_14', q: 'Adequate ventilation maintained.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_15', q: 'Storage facility available and organised.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_16', q: 'Hygiene facilities available for staff.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_17', q: 'Food testing records available and up to date.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_18', q: 'Approved vendors and procurement records maintained.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_19', q: 'Raw material inspection conducted at receiving.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_20', q: 'Proper storage practices followed (FIFO/FEFO, temperature control).', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_21', q: 'Raw materials cleaned before preparation.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_22', q: 'Segregation of veg/non-veg and raw/cooked maintained.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_23', q: 'Equipment sanitized before and after use.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_24', q: 'Proper thawing practices followed.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_25', q: 'Cooking and reheating records maintained.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_26', q: 'Hygienic portioning practices in place.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_27', q: 'Hot holding temperature maintained (≥63°C).', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_28', q: 'Proper reheating practices followed.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_29', q: 'Oil quality monitored and recorded.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_30', q: 'Packaging material is food-grade.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_31', q: 'Cleaning schedule followed and records maintained.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_32', q: 'Preventive maintenance carried out as scheduled.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_33', q: 'Equipment calibration done and records available.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_34', q: 'Pest control program available and implemented.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_35', q: 'No signs of pest infestation found.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_36', q: 'Drain systems functional and free from blockage.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_37', q: 'Waste removed regularly and disposed of properly.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_38', q: 'Housekeeping chemicals stored properly and away from food.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_39', q: 'Medical records of all food-handling staff maintained.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_40', q: 'No sick staff handling food.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_41', q: 'Personal hygiene standards maintained by staff.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_42', q: 'Proper protective gear used by staff.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_43', q: 'Internal audits conducted as per schedule.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_44', q: 'Complaint redressal system exists and is functional.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_45', q: 'Staff trained in food safety practices.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_46', q: 'Documentation maintained and available for review.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_47', q: 'First aid kit available and stocked.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+      { id: 'CF_48', q: 'Fire safety equipment available and not expired.', w: 2, subsection: 'CF Audit Checklist (Food Safety)' },
+
+      // ── Vehicle Audit Checklist ───────────────────────────────────────────
+      { id: 'VA_1',  q: 'Vehicle has proper number plate displayed.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_2',  q: 'Driver name mentioned on the vehicle/trip sheet.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_3',  q: 'Driver holds a valid driving license.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_4',  q: 'Delivery assistant follows hygiene protocols.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_5',  q: 'No rough handling of crates during loading/unloading.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_6',  q: 'No crate damage observed during handling.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_7',  q: 'Safety seal intact on all consignments.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_8',  q: 'Digital temperature display available and functional.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_9',  q: 'Strip curtains clean and in good condition.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_10', q: 'No odour detected inside vehicle.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_11', q: 'Vehicle internal surfaces are clean.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_12', q: 'No pest signs observed inside vehicle.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_13', q: 'No openings that could expose food to contamination.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_14', q: 'No rust or shredding inside the vehicle.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_15', q: 'Refrigerated items maintained at ≤5°C.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_16', q: 'Frozen items maintained at ≤ -18°C.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_17', q: 'Food received in clean crates.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_18', q: 'Veg and non-veg items properly segregated.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_19', q: 'Food and non-food items separated.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_20', q: 'No leakage or breakage of packages observed.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_21', q: 'No hazardous items stored with food.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_22', q: 'Trip sheet available and correctly filled.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_23', q: 'Temperature logs available and up to date.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_24', q: 'Vehicle cleaning records available.', w: 2, subsection: 'Vehicle Audit Checklist' },
+      { id: 'VA_25', q: 'Pest control records for vehicle available.', w: 2, subsection: 'Vehicle Audit Checklist' }
     ]
   },
   {

@@ -24,6 +24,7 @@ const QACAPAChecklist = lazy(() => import('./checklists/QACAPAChecklist'));
 const QACAPADashboard = lazy(() => import('./checklists/QACAPADashboard'));
 const VendorAuditChecklist = lazy(() => import('./checklists/VendorAuditChecklist'));
 const PreLaunchAuditChecklist = lazy(() => import('./checklists/PreLaunchAuditChecklist'));
+const ComplianceAuditChecklist = lazy(() => import('./checklists/ComplianceAuditChecklist'));
 const HRAuditChecklist = lazy(() => import('./checklists/HRAuditChecklist'));
 const TATTrackerForm = lazy(() => import('./checklists/TATTrackerForm'));
 const ThirdRushFeedback = lazy(() => import('./checklists/thirdRush/ThirdRushFeedback'));
@@ -37,7 +38,7 @@ interface ChecklistsAndSurveysProps {
 type ChecklistType = 'hr' | 'operations' | 'training' | 'qa' | 'finance' | 'shlp' | 'campus-hiring' | 'forms' | 'trainer-calendar' | 'bench-planning' | 'brew-league' | 'qa-am-review' | 'qa-capa' | 'qa-capa-dashboard' | 'tat-tracker' | 'third-rush';
 type BrewLeagueSubType = 'store' | 'am' | 'region' | 'national-finals' | 'dashboard';
 type BenchPlanningSubType = 'barista-sm' | 'sm-asm' | 'barista-bt';
-type QASubType = 'store-qa' | 'vendor-audit' | 'pre-launch-audit';
+type QASubType = 'store-qa' | 'vendor-audit' | 'pre-launch-audit' | 'cf-audit' | 'vehicle-audit';
 type HRSubType = 'hr-connect' | 'hr-audit';
 type BTSessionStep = 'readiness' | 'bt-session' | 'skill-check';
 
@@ -490,6 +491,48 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
                 </span>
               </div>
             </button>
+
+            <button
+              onClick={() => setQASubSection('cf-audit')}
+              className="group p-8 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-green-400 dark:hover:border-green-400 bg-white dark:bg-slate-800 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-green-600 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <ShieldAlert className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                  CF Audit Checklist
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+                  FSSAI-aligned food safety compliance audit for central kitchens & fulfilment centres
+                </p>
+                <span className="mt-2 text-sm text-green-600 dark:text-green-400 font-medium group-hover:text-green-700 dark:group-hover:text-green-300">
+                  Open →
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setQASubSection('vehicle-audit')}
+              className="group p-8 rounded-xl border-2 border-gray-200 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-400 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-blue-600 text-white mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 17l-4-4m0 0l4-4m-4 4h14M3 9V7a2 2 0 012-2h9a2 2 0 012 2v2m0 0l2 5H5l2-5z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                  Vehicle Audit
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+                  Cold-chain & hygiene compliance audit for delivery vehicles
+                </p>
+                <span className="mt-2 text-sm text-blue-600 dark:text-blue-400 font-medium group-hover:text-blue-700 dark:group-hover:text-blue-300">
+                  Open →
+                </span>
+              </div>
+            </button>
           </div>
         </div>
       );
@@ -505,6 +548,12 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
       }
       if (qaSubSection === 'pre-launch-audit') {
         return <PreLaunchAuditChecklist {...commonProps} />;
+      }
+      if (qaSubSection === 'cf-audit') {
+        return <ComplianceAuditChecklist {...commonProps} auditType="cf-audit" />;
+      }
+      if (qaSubSection === 'vehicle-audit') {
+        return <ComplianceAuditChecklist {...commonProps} auditType="vehicle-audit" />;
       }
     }
 
@@ -687,7 +736,9 @@ const ChecklistsAndSurveys: React.FC<ChecklistsAndSurveysProps> = ({ userRole, p
                       : qaSubSection
                       ? qaSubSection === 'store-qa' ? 'Store QA'
                         : qaSubSection === 'vendor-audit' ? 'Vendor Audit'
-                        : 'Pre-Launch Audit'
+                        : qaSubSection === 'pre-launch-audit' ? 'Pre-Launch Audit'
+                        : qaSubSection === 'cf-audit' ? 'CF Audit Checklist'
+                        : 'Vehicle Audit'
                       : benchPlanningSubSection
                       ? benchPlanningSubSection === 'barista-bt' ? 'Buddy Trainer'
                         : benchPlanningSubSection === 'barista-sm' ? 'Shift Manager'

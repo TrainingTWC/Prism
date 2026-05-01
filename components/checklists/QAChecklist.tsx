@@ -222,6 +222,13 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   // Category-wise view state: null = show category overview, string = show that section
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
+  // Track which subsections are collapsed (for sections that use subsection grouping)
+  const [collapsedSubsections, setCollapsedSubsections] = useState<Record<string, boolean>>({});
+
+  const toggleSubsection = (key: string) => {
+    setCollapsedSubsections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   // Validation highlight state
   const [highlightedQuestion, setHighlightedQuestion] = useState<string | null>(null);
 
@@ -1319,6 +1326,149 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     }
   };
 
+  // Helper: render a single question card (used by both flat and subsection-grouped renders)
+  const renderQuestionCard = (item: any, _itemIndex: number, serialNumber: string, questionKey: string, isHighlighted: boolean, section: any, sectionOptions: string[]) => {
+    return (
+      <div
+        key={item.id}
+        id={`q_${questionKey}`}
+        className={`p-3 sm:p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-all duration-300 ${
+          isHighlighted
+            ? 'border-red-500 ring-2 ring-red-400 bg-red-50 dark:bg-red-900/20'
+            : 'border-gray-200 dark:border-slate-600'
+        }`}
+      >
+        <div className="flex items-start gap-2 sm:gap-3 mb-3">
+          <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-md text-xs font-bold flex-shrink-0">
+            {serialNumber}
+          </span>
+          <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-slate-100 leading-relaxed flex-1">
+            {item.q}
+          </p>
+        </div>
+
+        {/* Response Options */}
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3 mb-3 pl-0 sm:pl-9">
+          {sectionOptions.map(option => (
+            <label key={option} className="flex items-center gap-2 sm:gap-2 cursor-pointer p-2 sm:p-0 rounded hover:bg-gray-100 dark:hover:bg-slate-700 sm:hover:bg-transparent transition-colors min-h-[44px] sm:min-h-0">
+              <input
+                type="radio"
+                name={`${section.id}_${item.id}`}
+                value={option}
+                checked={responses[`${section.id}_${item.id}`] === option}
+                onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
+                className="w-5 h-5 sm:w-4 sm:h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500 flex-shrink-0"
+              />
+              <span className="text-sm sm:text-sm text-gray-700 dark:text-slate-300 font-medium">
+                {option === 'compliant' ? 'Compliance' :
+                  option === 'partially-compliant' ? 'Partial Compliance' :
+                    option === 'not-compliant' ? 'Non-Compliance' :
+                      option === 'non-compliant' ? 'Non-Compliance' :
+                        'N/A'}
+              </span>
+            </label>
+          ))}
+        </div>
+
+        {/* Image Upload Section */}
+        <div className="pl-0 sm:pl-9">
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                📷 Camera
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
+                    e.target.value = '';
+                  }}
+                  className="hidden"
+                />
+              </label>
+
+              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                🖼️ Gallery (Multiple)
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
+                    e.target.value = '';
+                  }}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {/* Display Uploaded Images */}
+            {questionImages[`${section.id}_${item.id}`] && questionImages[`${section.id}_${item.id}`].length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {questionImages[`${section.id}_${item.id}`].map((image, idx) => (
+                  <div key={idx} className="relative">
+                    <img
+                      src={image}
+                      alt={`Upload ${idx + 1}`}
+                      className="w-full h-48 object-cover rounded-lg border-2 border-gray-300 dark:border-slate-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEditingImage({ questionId: `${section.id}_${item.id}`, imageIndex: idx, imageData: image })}
+                      className="absolute top-2 left-2 p-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                      title="Edit image"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeImage(`${section.id}_${item.id}`, idx)}
+                      className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                      title="Remove image"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-black bg-opacity-60 text-white text-xs rounded">
+                      {idx + 1} of {questionImages[`${section.id}_${item.id}`].length}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Per-Question Remarks */}
+          <div className="mt-3">
+            <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+              💬 Comments / NC Description for {serialNumber}
+            </label>
+            <textarea
+              value={questionRemarks[`${section.id}_${item.id}`] || ''}
+              onChange={(e) => setQuestionRemarks(prev => ({ ...prev, [`${section.id}_${item.id}`]: e.target.value }))}
+              placeholder="Add comments or describe non-compliance for this point..."
+              rows={2}
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (submitted) {
     return (
       <div className="p-6">
@@ -1843,150 +1993,86 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
                   </div>
 
                   <div className="space-y-4">
-                    {section.items?.map((item, itemIndex) => {
-                      const serialNumber = `${sectionPrefix}-${itemIndex + 1}`;
-                      const questionKey = `${section.id}_${item.id}`;
-                      const isHighlighted = highlightedQuestion === questionKey;
-                      return (
-                        <div
-                          key={item.id}
-                          id={`q_${questionKey}`}
-                          className={`p-3 sm:p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-all duration-300 ${
-                            isHighlighted
-                              ? 'border-red-500 ring-2 ring-red-400 bg-red-50 dark:bg-red-900/20'
-                              : 'border-gray-200 dark:border-slate-600'
-                          }`}
-                        >
-                          <div className="flex items-start gap-2 sm:gap-3 mb-3">
-                            <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-md text-xs font-bold flex-shrink-0">
-                              {serialNumber}
-                            </span>
-                            <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-slate-100 leading-relaxed flex-1">
-                              {item.q}
-                            </p>
-                          </div>
+                    {(() => {
+                      // Check if any item in this section has a subsection label
+                      const hasSubsections = section.items.some(item => (item as any).subsection);
 
-                          {/* Response Options */}
-                          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3 mb-3 pl-0 sm:pl-9">
-                            {sectionOptions.map(option => (
-                              <label key={option} className="flex items-center gap-2 sm:gap-2 cursor-pointer p-2 sm:p-0 rounded hover:bg-gray-100 dark:hover:bg-slate-700 sm:hover:bg-transparent transition-colors min-h-[44px] sm:min-h-0">
-                                <input
-                                  type="radio"
-                                  name={`${section.id}_${item.id}`}
-                                  value={option}
-                                  checked={responses[`${section.id}_${item.id}`] === option}
-                                  onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                  className="w-5 h-5 sm:w-4 sm:h-4 text-orange-600 border-gray-300 dark:border-slate-600 focus:ring-orange-500 flex-shrink-0"
-                                />
-                                <span className="text-sm sm:text-sm text-gray-700 dark:text-slate-300 font-medium">
-                                  {option === 'compliant' ? 'Compliance' :
-                                    option === 'partially-compliant' ? 'Partial Compliance' :
-                                      option === 'not-compliant' ? 'Non-Compliance' :
-                                        option === 'non-compliant' ? 'Non-Compliance' :
-                                          'N/A'}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
+                      if (!hasSubsections) {
+                        // Original flat rendering
+                        return section.items?.map((item, itemIndex) => {
+                          const serialNumber = `${sectionPrefix}-${itemIndex + 1}`;
+                          const questionKey = `${section.id}_${item.id}`;
+                          const isHighlighted = highlightedQuestion === questionKey;
+                          return renderQuestionCard(item, itemIndex, serialNumber, questionKey, isHighlighted, section, sectionOptions);
+                        });
+                      }
 
-                          {/* Image Upload Section */}
-                          <div className="pl-0 sm:pl-9">
-                            <div className="space-y-3">
-                              <div className="flex flex-col sm:flex-row gap-2">
-                                <label className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  </svg>
-                                  📷 Camera
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    capture="environment"
-                                    onChange={(e) => {
-                                      const files = e.target.files;
-                                      if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
-                                      e.target.value = '';
-                                    }}
-                                    className="hidden"
-                                  />
-                                </label>
+                      // Subsection-grouped rendering
+                      // Group items preserving order; items without subsection go into an implicit "General" group
+                      const groups: { label: string | null; items: typeof section.items }[] = [];
+                      const generalItems = section.items.filter(i => !(i as any).subsection);
+                      if (generalItems.length > 0) groups.push({ label: null, items: generalItems });
 
-                                <label className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                  </svg>
-                                  🖼️ Gallery (Multiple)
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={(e) => {
-                                      const files = e.target.files;
-                                      if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files);
-                                      e.target.value = '';
-                                    }}
-                                    className="hidden"
-                                  />
-                                </label>
-                              </div>
+                      const subLabels = Array.from(
+                        new Set(section.items.map(i => (i as any).subsection).filter(Boolean))
+                      ) as string[];
+                      subLabels.forEach(label => {
+                        groups.push({ label, items: section.items.filter(i => (i as any).subsection === label) });
+                      });
 
-                              {/* Display Uploaded Images */}
-                              {questionImages[`${section.id}_${item.id}`] && questionImages[`${section.id}_${item.id}`].length > 0 && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                  {questionImages[`${section.id}_${item.id}`].map((image, idx) => (
-                                    <div key={idx} className="relative">
-                                      <img
-                                        src={image}
-                                        alt={`Upload ${idx + 1}`}
-                                        className="w-full h-48 object-cover rounded-lg border-2 border-gray-300 dark:border-slate-600"
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() => setEditingImage({ questionId: `${section.id}_${item.id}`, imageIndex: idx, imageData: image })}
-                                        className="absolute top-2 left-2 p-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
-                                        title="Edit image"
-                                      >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                        </svg>
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => removeImage(`${section.id}_${item.id}`, idx)}
-                                        className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
-                                        title="Remove image"
-                                      >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                      </button>
-                                      <div className="absolute bottom-2 left-2 px-2 py-1 bg-black bg-opacity-60 text-white text-xs rounded">
-                                        {idx + 1} of {questionImages[`${section.id}_${item.id}`].length}
-                                      </div>
-                                    </div>
-                                  ))}
+                      // Global item index for continuous serial numbers
+                      let globalIndex = 0;
+
+                      return groups.map(group => {
+                        const subKey = `${section.id}__${group.label ?? 'general'}`;
+                        const isCollapsed = collapsedSubsections[subKey] ?? false;
+                        const groupAnswered = group.items.filter(item => {
+                          const k = `${section.id}_${item.id}`;
+                          return responses[k] && responses[k] !== '';
+                        }).length;
+
+                        return (
+                          <div key={subKey} className="rounded-xl border border-gray-200 dark:border-slate-600 overflow-hidden">
+                            {/* Subsection header (only for named subsections) */}
+                            {group.label && (
+                              <button
+                                type="button"
+                                onClick={() => toggleSubsection(subKey)}
+                                className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors text-left"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-orange-800 dark:text-orange-300">
+                                    {group.label}
+                                  </span>
+                                  <span className="text-xs px-2 py-0.5 bg-orange-200 dark:bg-orange-800/50 text-orange-700 dark:text-orange-300 rounded-full">
+                                    {groupAnswered}/{group.items.length}
+                                  </span>
                                 </div>
-                              )}
-                            </div>
+                                <svg
+                                  className={`w-4 h-4 text-orange-600 dark:text-orange-400 transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
+                                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                            )}
 
-                            {/* Per-Question Remarks */}
-                            <div className="mt-3">
-                              <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                                💬 Comments / NC Description for {serialNumber}
-                              </label>
-                              <textarea
-                                value={questionRemarks[`${section.id}_${item.id}`] || ''}
-                                onChange={(e) => setQuestionRemarks(prev => ({ ...prev, [`${section.id}_${item.id}`]: e.target.value }))}
-                                placeholder="Add comments or describe non-compliance for this point..."
-                                rows={2}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                              />
-                            </div>
+                            {/* Items */}
+                            {!isCollapsed && (
+                              <div className={`space-y-4 ${group.label ? 'p-3 sm:p-4' : ''}`}>
+                                {group.items.map((item) => {
+                                  const idx = globalIndex++;
+                                  const serialNumber = `${sectionPrefix}-${idx + 1}`;
+                                  const questionKey = `${section.id}_${item.id}`;
+                                  const isHighlighted = highlightedQuestion === questionKey;
+                                  return renderQuestionCard(item, idx, serialNumber, questionKey, isHighlighted, section, sectionOptions);
+                                })}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      });
+                    })()}
                   </div>
 
                   {/* Section footer with navigation */}
