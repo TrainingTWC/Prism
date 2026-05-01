@@ -208,7 +208,7 @@
 
 | # | Phase | Status | Plans |
 |---|-------|--------|-------|
-| 1 | Data Service: Fetch Functions | Not Started | — |
+| 1 | Data Service: Fetch Functions | Not Started | 01-01-PLAN.md |
 | 2 | Shared Dashboard Infrastructure | Not Started | — |
 | 3 | Pre-Launch Audit Tab (Data + Display) | Not Started | — |
 | 4 | Vendor Audit Tab (Data + Display) | Not Started | — |
