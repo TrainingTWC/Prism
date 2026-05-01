@@ -45,6 +45,7 @@ jobs:
           VITE_VENDOR_AUDIT_SCRIPT_URL: https://script.google.com/macros/s/AKfycbxK4SRHyp4Rr7SX-l__-K6Xv_0Y7RxksZv6ZZLXTqN1Ox6vPc6D2Qyqv7zku2zMFUJc8g/exec
           VITE_QA_CAPA_SCRIPT_URL: ${{ secrets.VITE_QA_CAPA_SCRIPT_URL }}
           VITE_NATIONAL_FINALS_SCRIPT_URL: ${{ secrets.VITE_NATIONAL_FINALS_SCRIPT_URL }}
+          VITE_PRE_LAUNCH_AUDIT_SCRIPT_URL: https://script.google.com/macros/s/AKfycbyKAAC3TF9uUB4sxZTuFBGc_A-duWVGB8NqxOs-xp0AA_KgAuNOsavTVQU-z-tz2_qwHg/exec
           VITE_CF_AUDIT_SCRIPT_URL: https://script.google.com/macros/s/AKfycbzWTWSgtJuVlQN6_jjCvK3VD43Yc8saaaSjheDgE87lm3Ot7dOe8TJ8qePHINByu_lM3g/exec
           VITE_VEHICLE_AUDIT_SCRIPT_URL: https://script.google.com/macros/s/AKfycbwF-RLe7gqUjgRmAcO6ENL8bMDfY4LC9W1aNrzZLF0aWJyUsjE0twpNeNaJdDT2koFpYw/exec
 

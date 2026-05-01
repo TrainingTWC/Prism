@@ -269,7 +269,7 @@ function buildAuditRow(params, timestamp) {
     params.auditorName || '',               // Auditor Name
     params.auditorId || '',                 // Auditor ID
     params.storeName || '',                 // Store Name
-    params.storeID || '',                   // Store ID
+    params.storeId || '',                    // Store ID
     params.city || '',                      // City
     params.region || '',                    // Region
     params.totalScore || 0,                 // Total Score
@@ -511,7 +511,7 @@ function savePreLaunchAuditDraft(params) {
     params.auditorId || '',                 // Auditor ID
     params.auditorName || '',               // Auditor Name
     params.storeName || '',                 // Store Name
-    params.storeID || '',                   // Store ID
+    params.storeId || '',                    // Store ID
     params.city || '',                      // City
     params.timestamp || now(),              // Timestamp
     params.completionPercentage || '0',     // Completion %
