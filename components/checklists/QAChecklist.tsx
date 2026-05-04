@@ -80,7 +80,7 @@ interface QAChecklistProps {
 const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, editMode = false, existingSubmission }) => {
   const { config, loading: configLoading } = useConfig();
 
-  // Always use QA_SECTIONS from qaQuestions.ts (all 116 questions)
+  // Always use QA_SECTIONS from qaQuestions.ts
   const sections = QA_SECTIONS;
 
   const [responses, setResponses] = useState<SurveyResponse>(() => {
@@ -1322,7 +1322,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       setResponses(testResponses);
 
       // Show success message
-      alert('Entire form autofilled with test data! All 116 questions completed. You can now review and submit.');
+      alert('Entire form autofilled with test data! You can now review and submit.');
     }
   };
 
