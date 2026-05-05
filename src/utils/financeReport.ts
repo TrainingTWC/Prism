@@ -421,14 +421,14 @@ export const buildFinancePDF = async (
   });
 
   // Classification grade based on percentage
-  let classificationGrade = 'Non-Compliance';
+  let classificationGrade = 'Non-Compliant';
   let gradeColor: [number, number, number] = [239, 68, 68]; // Red
-  if (pct >= 80) {
+  if (pct >= 91) {
+    classificationGrade = 'Excellent Compliance';
+    gradeColor = [22, 163, 74]; // Green
+  } else if (pct >= 71) {
     classificationGrade = 'Satisfactory Compliance';
-    gradeColor = [16, 185, 129]; // Green
-  } else if (pct >= 60) {
-    classificationGrade = 'Partial Compliance';
-    gradeColor = [245, 158, 11]; // Amber
+    gradeColor = [249, 115, 22]; // Orange
   }
 
   // Draw three summary cards in a row

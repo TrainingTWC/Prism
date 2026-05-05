@@ -7420,11 +7420,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                                       {submission.financeName}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
-                                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${parseFloat(submission.scorePercentage) >= 80
-                                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                          : parseFloat(submission.scorePercentage) >= 60
-                                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                          parseFloat(submission.scorePercentage) >= 91
+                                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                            : parseFloat(submission.scorePercentage) >= 71
+                                              ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+                                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                                         }`}>
                                         {submission.scorePercentage}%
                                       </span>
@@ -7504,16 +7505,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                       {filteredFinanceData && filteredFinanceData.length > 0 ? (
                         <div className="space-y-4">
                           {(() => {
-                            const excellent = filteredFinanceData.filter(s => parseFloat(s.scorePercentage) >= 80).length;
-                            const good = filteredFinanceData.filter(s => parseFloat(s.scorePercentage) >= 60 && parseFloat(s.scorePercentage) < 80).length;
-                            const needsImprovement = filteredFinanceData.filter(s => parseFloat(s.scorePercentage) < 60).length;
+                            const excellent = filteredFinanceData.filter(s => parseFloat(s.scorePercentage) >= 91).length;
+                            const good = filteredFinanceData.filter(s => parseFloat(s.scorePercentage) >= 71 && parseFloat(s.scorePercentage) < 91).length;
+                            const needsImprovement = filteredFinanceData.filter(s => parseFloat(s.scorePercentage) < 71).length;
                             const total = filteredFinanceData.length;
 
                             return (
                               <>
                                 <div>
                                   <div className="flex justify-between mb-1">
-                                    <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Excellent (80%+)</span>
+                                    <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Excellent Compliance (91%+)</span>
                                     <span className="text-sm font-medium text-gray-700 dark:text-slate-300">{excellent} ({Math.round(excellent / total * 100)}%)</span>
                                   </div>
                                   <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
@@ -7522,16 +7523,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                                 </div>
                                 <div>
                                   <div className="flex justify-between mb-1">
-                                    <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Good (60-79%)</span>
+                                    <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Satisfactory Compliance (71–90%)</span>
                                     <span className="text-sm font-medium text-gray-700 dark:text-slate-300">{good} ({Math.round(good / total * 100)}%)</span>
                                   </div>
                                   <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
-                                    <div className="bg-yellow-600 h-2 rounded-full" style={{ width: `${good / total * 100}%` }}></div>
+                                    <div className="bg-orange-500 h-2 rounded-full" style={{ width: `${good / total * 100}%` }}></div>
                                   </div>
                                 </div>
                                 <div>
                                   <div className="flex justify-between mb-1">
-                                    <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Needs Improvement (&lt;60%)</span>
+                                    <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Non-Compliant (&lt;71%)</span>
                                     <span className="text-sm font-medium text-gray-700 dark:text-slate-300">{needsImprovement} ({Math.round(needsImprovement / total * 100)}%)</span>
                                   </div>
                                   <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
