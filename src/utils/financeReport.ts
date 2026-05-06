@@ -323,7 +323,7 @@ export const buildFinancePDF = async (
   console.log('📊 Sample question keys:', Object.keys(sub).filter(k => k.includes('Q')).slice(0, 10));
   console.log('📊 Full submission data:', sub);
 
-  const title = options.title || 'Finance Audit Report';
+  const title = options.title || 'Cash and Compliance Audit';
 
   // Header: Title, Store, Metadata and Logo on the right
   doc.setFontSize(20);

@@ -466,78 +466,114 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   };
 
   const handleImageUpload = (questionId: string, files: FileList) => {
-    Array.from(files).forEach(file => {
-      // Guard: only accept image files
-      if (!file.type.startsWith('image/')) return;
+    const processFiles = (geoText: string) => {
+      Array.from(files).forEach(file => {
+        // Guard: only accept image files
+        if (!file.type.startsWith('image/')) return;
 
-      const reader = new FileReader();
-      reader.onerror = () => {
-        alert('Failed to read the image file. Please try again.');
-      };
-      reader.onload = (e) => {
-        try {
-          const result = e.target?.result;
-          if (typeof result !== 'string') return;
+        const reader = new FileReader();
+        reader.onerror = () => {
+          alert('Failed to read the image file. Please try again.');
+        };
+        reader.onload = (e) => {
+          try {
+            const result = e.target?.result;
+            if (typeof result !== 'string') return;
 
-          const img = new Image();
-          img.onerror = () => {
-            alert('Failed to load the image. Please try a different photo.');
-          };
-          img.onload = () => {
-            try {
-              const canvas = document.createElement('canvas');
-              const ctx = canvas.getContext('2d');
-              if (!ctx) return;
+            const img = new Image();
+            img.onerror = () => {
+              alert('Failed to load the image. Please try a different photo.');
+            };
+            img.onload = () => {
+              try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return;
 
-              // Max 600px — safer for mobile memory, especially large camera shots
-              const maxDimension = 600;
-              let width = img.width;
-              let height = img.height;
+                // Max 600px — safer for mobile memory, especially large camera shots
+                const maxDimension = 600;
+                let width = img.width;
+                let height = img.height;
 
-              if (width > height && width > maxDimension) {
-                height = Math.round((height * maxDimension) / width);
-                width = maxDimension;
-              } else if (height > maxDimension) {
-                width = Math.round((width * maxDimension) / height);
-                height = maxDimension;
-              }
+                if (width > height && width > maxDimension) {
+                  height = Math.round((height * maxDimension) / width);
+                  width = maxDimension;
+                } else if (height > maxDimension) {
+                  width = Math.round((width * maxDimension) / height);
+                  height = maxDimension;
+                }
 
-              canvas.width = width;
-              canvas.height = height;
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
 
-              ctx.drawImage(img, 0, 0, width, height);
-              const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
+                // Watermark: timestamp + optional geotag at bottom of image
+                const now = new Date();
+                const pad = (n: number) => String(n).padStart(2, '0');
+                const timeStr = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+                const watermarkText = geoText ? `${timeStr}   ${geoText}` : timeStr;
 
-              setQuestionImages(prev => {
-                try {
-                  const newImages = {
-                    ...prev,
-                    [questionId]: [...(prev[questionId] || []), compressedBase64]
-                  };
-                  const testString = JSON.stringify(newImages);
-                  if (testString.length > 5000000) {
-                    alert('Storage limit reached. Please remove some images before adding more.');
+                const fontSize = Math.max(11, Math.round(width / 28));
+                ctx.font = `bold ${fontSize}px Arial`;
+                const padding = 6;
+                const stripH = fontSize + padding * 2;
+
+                // Semi-transparent dark strip
+                ctx.fillStyle = 'rgba(0,0,0,0.55)';
+                ctx.fillRect(0, height - stripH, width, stripH);
+
+                // White watermark text
+                ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                ctx.fillText(watermarkText, padding, height - padding - 2);
+
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
+
+                setQuestionImages(prev => {
+                  try {
+                    const newImages = {
+                      ...prev,
+                      [questionId]: [...(prev[questionId] || []), compressedBase64]
+                    };
+                    const testString = JSON.stringify(newImages);
+                    if (testString.length > 5000000) {
+                      alert('Storage limit reached. Please remove some images before adding more.');
+                      return prev;
+                    }
+                    return newImages;
+                  } catch {
+                    alert('Failed to add image. Storage limit may be reached.');
                     return prev;
                   }
-                  return newImages;
-                } catch {
-                  alert('Failed to add image. Storage limit may be reached.');
-                  return prev;
-                }
-              });
-            } catch (err) {
-              console.error('Image processing error:', err);
-              alert('Failed to process image. Please try again with a different photo.');
-            }
-          };
-          img.src = result;
-        } catch (err) {
-          console.error('FileReader result error:', err);
-          alert('Failed to read image. Please try again.');
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+                });
+              } catch (err) {
+                console.error('Image processing error:', err);
+                alert('Failed to process image. Please try again with a different photo.');
+              }
+            };
+            img.src = result;
+          } catch (err) {
+            console.error('FileReader result error:', err);
+            alert('Failed to read image. Please try again.');
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    };
+
+    // Request geolocation; proceed with timestamp-only if denied/unavailable
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude.toFixed(5);
+          const lng = position.coords.longitude.toFixed(5);
+          processFiles(`📍 ${lat}, ${lng}`);
+        },
+        () => processFiles(''),
+        { timeout: 5000, maximumAge: 60000 }
+      );
+    } else {
+      processFiles('');
+    }
   };
 
   const handleSaveEditedImage = (editedImageData: string) => {
