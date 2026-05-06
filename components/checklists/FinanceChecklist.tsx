@@ -320,17 +320,17 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       section.items.forEach(item => {
         maxScore += item.w;
         const response = responses[`${section.id}_${item.id}`];
-        if (response === 'yes') {
+        if (response === 'compliant') {
           totalScore += item.w;
         }
       });
     });
 
-    // Zero Tolerance check: if any ZT item is "no", entire score is 0
+    // Zero Tolerance check: if any ZT item is "non-compliant", entire score is 0
     const failedZTItems: string[] = [];
     ZERO_TOLERANCE_ITEMS.forEach(({ sectionId, itemId, label }) => {
       const resp = responses[`${sectionId}_${itemId}`];
-      if (resp === 'no' || resp === 'No') {
+      if (resp === 'non-compliant') {
         failedZTItems.push(label);
       }
     });
@@ -577,7 +577,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       section.items.forEach(item => {
         maxScore += item.w;
         const response = responses[`${section.id}_${item.id}`];
-        if (response === 'yes') {
+        if (response === 'compliant') {
           totalScore += item.w;
         }
       });
@@ -586,7 +586,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
     // Zero Tolerance check
     const ztFailed = ZERO_TOLERANCE_ITEMS.some(({ sectionId, itemId }) => {
       const resp = responses[`${sectionId}_${itemId}`];
-      return resp === 'no' || resp === 'No';
+      return resp === 'non-compliant';
     });
 
     const effectiveScore = ztFailed ? 0 : totalScore;
@@ -630,18 +630,18 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         section.items.forEach(item => {
           maxScore += item.w;
           const response = responses[`${section.id}_${item.id}`];
-          if (response === 'yes') {
+          if (response === 'compliant') {
             totalScore += item.w;
           }
         });
       });
 
-      // Zero Tolerance check: if any ZT item is "no", entire score is 0
+      // Zero Tolerance check: if any ZT item is "non-compliant", entire score is 0
       let ztFailed = false;
       const failedZTLabels: string[] = [];
       ZERO_TOLERANCE_ITEMS.forEach(({ sectionId, itemId, label }) => {
         const resp = responses[`${sectionId}_${itemId}`];
-        if (resp === 'no' || resp === 'No') {
+        if (resp === 'non-compliant') {
           ztFailed = true;
           failedZTLabels.push(label);
         }
@@ -1046,7 +1046,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
               <div className="space-y-3">
                 {section.items.map((item, itemIndex) => {
                   const isZT = ZERO_TOLERANCE_ITEMS.some(zt => zt.sectionId === section.id && zt.itemId === item.id);
-                  const isZTFailed = isZT && (responses[`${section.id}_${item.id}`] === 'no' || responses[`${section.id}_${item.id}`] === 'No');
+                  const isZTFailed = isZT && responses[`${section.id}_${item.id}`] === 'non-compliant';
                   return (
                   <div key={item.id} className={`p-3 sm:p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors ${isZTFailed ? 'border-red-500 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-slate-600'}`}>
                     <div className="flex items-start gap-3">
@@ -1074,7 +1074,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
                         {/* Response Options */}
                         <div className="flex gap-4">
-                          {['yes', 'no', 'na'].map(option => (
+                          {(['compliant', 'non-compliant', 'na'] as const).map(option => (
                             <label key={option} className="flex items-center space-x-2 cursor-pointer">
                               <input
                                 type="radio"
@@ -1082,9 +1082,19 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
                                 value={option}
                                 checked={responses[`${section.id}_${item.id}`] === option}
                                 onChange={(e) => handleResponse(`${section.id}_${item.id}`, e.target.value)}
-                                className="w-4 h-4 text-emerald-600 border-gray-300 dark:border-slate-600 focus:ring-emerald-500"
+                                className={`w-4 h-4 border-gray-300 dark:border-slate-600 focus:ring-emerald-500 ${
+                                  option === 'compliant' ? 'text-emerald-600' :
+                                  option === 'non-compliant' ? 'text-red-600' :
+                                  'text-gray-500'
+                                }`}
                               />
-                              <span className="text-sm text-gray-700 dark:text-slate-300 capitalize font-medium">{option}</span>
+                              <span className={`text-sm font-medium ${
+                                option === 'compliant' ? 'text-emerald-700 dark:text-emerald-400' :
+                                option === 'non-compliant' ? 'text-red-700 dark:text-red-400' :
+                                'text-gray-500 dark:text-slate-400'
+                              }`}>
+                                {option === 'na' ? 'N/A' : option.charAt(0).toUpperCase() + option.slice(1).replace('-', '-')}
+                              </span>
                             </label>
                           ))}
                         </div>
