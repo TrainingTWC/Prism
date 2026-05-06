@@ -726,7 +726,7 @@ export const buildFinancePDF = async (
       const answerText = String(rowData.answer);
       const isNonCompliant = answerText === 'Non-Compliant';
       const isCompliant = answerText === 'Compliant';
-      const questionLines = doc.splitTextToSize(rowData.question, 135);
+      const questionLines = doc.splitTextToSize(rowData.question, 118);
       const questionHeight = questionLines.length * 4;
       const rowH = Math.max(5, questionHeight);
 
@@ -746,23 +746,27 @@ export const buildFinancePDF = async (
       doc.setTextColor(isNonCompliant ? 153 : 51, isNonCompliant ? 27 : 65, isNonCompliant ? 27 : 85);
       doc.text(questionLines, 26, y + 3);
 
-      // Answer and score on the same line
+      // Answer and score on the same line — right-aligned to avoid overlap
+      // Score at far right (194), answer right-aligned just before it
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
       
-      // Color code answer
+      // Score (right edge)
+      const scoreText = `${rowData.score}/${rowData.maxScore}`;
+      doc.setTextColor(isNonCompliant ? 220 : 71, isNonCompliant ? 38 : 85, isNonCompliant ? 38 : 105);
+      doc.text(scoreText, 194, y + 3, { align: 'right' });
+
+      // Answer label — right-aligned, leaving gap before score
+      const scoreWidth = doc.getTextWidth(scoreText);
+      const answerX = 194 - scoreWidth - 4; // 4mm gap between answer and score
       if (isCompliant) {
         doc.setTextColor(34, 197, 94);
       } else if (isNonCompliant) {
-        doc.setTextColor(220, 38, 38); // Bright red for Non-Compliant
+        doc.setTextColor(220, 38, 38);
       } else {
         doc.setTextColor(107, 114, 128);
       }
-      doc.text(answerText, 165, y + 3);
-
-      // Score
-      doc.setTextColor(isNonCompliant ? 220 : 71, isNonCompliant ? 38 : 85, isNonCompliant ? 38 : 105);
-      doc.text(`${rowData.score}/${rowData.maxScore}`, 182, y + 3);
+      doc.text(answerText, answerX, y + 3, { align: 'right' });
 
       y += rowH;
 
