@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { UserRole, canAccessStore, canAccessAM } from '../../roleMapping';
 import { hapticFeedback } from '../../utils/haptics';
 import LoadingOverlay from '../LoadingOverlay';
+import ImageEditor from '../ImageEditor';
 import { useComprehensiveMapping, useAreaManagers } from '../../hooks/useComprehensiveMapping';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
@@ -184,6 +185,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [editingImage, setEditingImage] = useState<{ questionId: string; imageIndex: number; imageData: string } | null>(null);
 
   const [amSearchTerm, setAmSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
@@ -536,6 +538,18 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       };
       reader.readAsDataURL(file);
     });
+  };
+
+  const handleSaveEditedImage = (editedImageData: string) => {
+    if (!editingImage) return;
+    setQuestionImages(prev => {
+      const updated = { ...prev };
+      const images = [...(updated[editingImage.questionId] || [])];
+      images[editingImage.imageIndex] = editedImageData;
+      updated[editingImage.questionId] = images;
+      return updated;
+    });
+    setEditingImage(null);
   };
 
   const removeImage = (questionId: string, imageIndex: number) => {
@@ -1123,6 +1137,17 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
                                       alt={`Upload ${idx + 1}`}
                                       className="w-full h-48 object-cover rounded-lg border-2 border-gray-300 dark:border-slate-600"
                                     />
+                                    {/* Edit Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingImage({ questionId: `${section.id}_${item.id}`, imageIndex: idx, imageData: image })}
+                                      className="absolute top-2 left-2 p-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-full transition-colors shadow-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                      title="Edit image"
+                                    >
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                      </svg>
+                                    </button>
                                     {/* Delete Button */}
                                     <button
                                       type="button"
@@ -1317,6 +1342,15 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
           {isLoading ? 'Submitting...' : 'Review & Submit'}
         </button>
       </div>
+
+      {/* Image Editor Modal */}
+      {editingImage && (
+        <ImageEditor
+          imageBase64={editingImage.imageData}
+          onSave={handleSaveEditedImage}
+          onCancel={() => setEditingImage(null)}
+        />
+      )}
 
       {/* Pre-submission Review Modal */}
       {showReviewModal && (() => {
