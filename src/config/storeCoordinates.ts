@@ -50,7 +50,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S033': { lat: 12.926796, lng: 77.561161, name: 'Banashankari' },
   'S034': { lat: 12.969397, lng: 77.700643, name: 'Karthik Nagar - Marathahalli' },
   'S050': { lat: 13.200024, lng: 77.708487, name: 'Bangalore Airport Outside' },
-  'S051': { lat: 12.932079, lng: 77.68499, name: 'Sakra Hospital' },
+  'S051': { lat: 12.932216, lng: 77.685514, name: 'Sakra Hospital' },
   'S053': { lat: 12.95731, lng: 77.736773, name: 'Varthur' },
   'S063': { lat: 12.91371, lng: 77.605236, name: 'BTM Layout' },
   'S065': { lat: 12.95849, lng: 77.745324, name: 'Manipal Hospital' },
