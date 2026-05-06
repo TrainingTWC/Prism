@@ -483,59 +483,75 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   };
 
   const handleImageUpload = (questionId: string, files: FileList) => {
-    // Process multiple files
     Array.from(files).forEach(file => {
-      // Compress and resize image to reduce storage size
+      // Guard: only accept image files
+      if (!file.type.startsWith('image/')) return;
+
       const reader = new FileReader();
+      reader.onerror = () => {
+        alert('Failed to read the image file. Please try again.');
+      };
       reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          // Create canvas for compression
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return;
+        try {
+          const result = e.target?.result;
+          if (typeof result !== 'string') return;
 
-          // Calculate new dimensions (max 800px width/height for faster processing)
-          const maxDimension = 800;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height && width > maxDimension) {
-            height = (height * maxDimension) / width;
-            width = maxDimension;
-          } else if (height > maxDimension) {
-            width = (width * maxDimension) / height;
-            height = maxDimension;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          // Draw and compress image (0.6 quality for smaller size and faster upload)
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
-
-          // Update state with compressed image
-          setQuestionImages(prev => {
+          const img = new Image();
+          img.onerror = () => {
+            alert('Failed to load the image. Please try a different photo.');
+          };
+          img.onload = () => {
             try {
-              const newImages = {
-                ...prev,
-                [questionId]: [...(prev[questionId] || []), compressedBase64]
-              };
-              // Test if it fits in localStorage
-              const testString = JSON.stringify(newImages);
-              if (testString.length > 5000000) { // ~5MB limit
-                alert('Storage limit reached. Please remove some images before adding more.');
-                return prev;
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              if (!ctx) return;
+
+              // Max 600px — safer for mobile memory, especially large camera shots
+              const maxDimension = 600;
+              let width = img.width;
+              let height = img.height;
+
+              if (width > height && width > maxDimension) {
+                height = Math.round((height * maxDimension) / width);
+                width = maxDimension;
+              } else if (height > maxDimension) {
+                width = Math.round((width * maxDimension) / height);
+                height = maxDimension;
               }
-              return newImages;
-            } catch (error) {
-              alert('Failed to add image. Storage limit may be reached.');
-              return prev;
+
+              canvas.width = width;
+              canvas.height = height;
+
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
+
+              setQuestionImages(prev => {
+                try {
+                  const newImages = {
+                    ...prev,
+                    [questionId]: [...(prev[questionId] || []), compressedBase64]
+                  };
+                  const testString = JSON.stringify(newImages);
+                  if (testString.length > 5000000) {
+                    alert('Storage limit reached. Please remove some images before adding more.');
+                    return prev;
+                  }
+                  return newImages;
+                } catch {
+                  alert('Failed to add image. Storage limit may be reached.');
+                  return prev;
+                }
+              });
+            } catch (err) {
+              console.error('Image processing error:', err);
+              alert('Failed to process image. Please try again with a different photo.');
             }
-          });
-        };
-        img.src = e.target?.result as string;
+          };
+          img.src = result;
+        } catch (err) {
+          console.error('FileReader result error:', err);
+          alert('Failed to read image. Please try again.');
+        }
       };
       reader.readAsDataURL(file);
     });
@@ -846,9 +862,9 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
   if (submitted) {
     return (
-      <div className="p-6">
+      <div className="p-3 sm:p-6">
         <div className="max-w-2xl mx-auto text-center">
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-8">
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-5 sm:p-8">
             <div className="text-green-600 dark:text-green-400 text-6xl mb-4">✅</div>
             <h2 className="text-2xl font-bold text-green-800 dark:text-green-300 mb-2">
               Finance Assessment Submitted Successfully!
@@ -880,12 +896,12 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-2 sm:p-6 space-y-3 sm:space-y-6">
       {isLoading && <LoadingOverlay isVisible={true} />}
 
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg p-6 border border-emerald-200 dark:border-emerald-800">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
+      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg p-3 sm:p-6 border border-emerald-200 dark:border-emerald-800">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
           💰 Financial Controls Assessment
         </h1>
         <p className="text-gray-600 dark:text-slate-400">
@@ -894,8 +910,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       </div>
 
       {/* Audit Information */}
-      <div id="audit-information" className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">
+      <div id="audit-information" className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-3 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">
           Assessment Information
         </h2>
 
@@ -1015,14 +1031,14 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       </div>
 
       {/* Finance Sections */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-3 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">
           Financial Controls Assessment
         </h2>
 
         <div className="space-y-8">
           {sections.map((section, sectionIndex) => (
-            <div key={section.id} className="border-l-4 border-emerald-500 pl-4">
+            <div key={section.id} className="border-l-4 border-emerald-500 pl-3 sm:pl-4">
               <h3 className="text-lg font-semibold text-emerald-700 dark:text-emerald-300 mb-4">
                 {section.title}
               </h3>
@@ -1032,7 +1048,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
                   const isZT = ZERO_TOLERANCE_ITEMS.some(zt => zt.sectionId === section.id && zt.itemId === item.id);
                   const isZTFailed = isZT && (responses[`${section.id}_${item.id}`] === 'no' || responses[`${section.id}_${item.id}`] === 'No');
                   return (
-                  <div key={item.id} className={`p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors ${isZTFailed ? 'border-red-500 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-slate-600'}`}>
+                  <div key={item.id} className={`p-3 sm:p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors ${isZTFailed ? 'border-red-500 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-slate-600'}`}>
                     <div className="flex items-start gap-3">
                       <span className="inline-flex items-center justify-center w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
                         {itemIndex + 1}
