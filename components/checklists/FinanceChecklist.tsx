@@ -183,6 +183,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   const [amSearchTerm, setAmSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
@@ -567,7 +568,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
     return { totalScore, maxScore, scorePercentage };
   };
 
-  const handleSubmit = async () => {
+  // Validate and open the review modal instead of submitting directly
+  const handleReviewBeforeSubmit = () => {
     const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
     const answeredQuestions = Object.keys(responses).filter(key =>
       responses[key] && responses[key] !== '' && !key.includes('_remarks')
@@ -578,7 +580,35 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       return;
     }
 
-    const requiredFields = ['financeAuditorName', 'financeAuditorId', 'amName', 'amId', 'storeName', 'storeId'];
+    const requiredFields = ['financeAuditorName', 'financeAuditorId', 'amName', 'storeName', 'storeId'];
+    const missingFields = requiredFields.filter(field => !meta[field as keyof SurveyMeta]);
+
+    if (missingFields.length > 0) {
+      alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      return;
+    }
+
+    if (!signatures.auditor || !signatures.sm) {
+      alert('Please provide both Auditor and Store Manager signatures before submitting.');
+      return;
+    }
+
+    setShowReviewModal(true);
+  };
+
+  const handleSubmit = async () => {
+    setShowReviewModal(false);
+    const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
+    const answeredQuestions = Object.keys(responses).filter(key =>
+      responses[key] && responses[key] !== '' && !key.includes('_remarks')
+    ).length;
+
+    if (answeredQuestions < totalQuestions) {
+      alert(`Please answer all questions. You have answered ${answeredQuestions} out of ${totalQuestions} questions.`);
+      return;
+    }
+
+    const requiredFields = ['financeAuditorName', 'financeAuditorId', 'amName', 'storeName', 'storeId'];
     const missingFields = requiredFields.filter(field => !meta[field as keyof SurveyMeta]);
 
     if (missingFields.length > 0) {
@@ -685,9 +715,6 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         body: new URLSearchParams(params).toString()
       });
 
-      // Generate PDF after successful submission
-      await generatePDF();
-      
       setSubmitted(true);
 
     } catch (error) {
@@ -904,39 +931,43 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
             </label>
             <input
               type="text"
-              value={amSearchTerm || (meta.amId ? meta.amName.split(' ')[0] : '')}
+              value={amSearchTerm !== '' ? amSearchTerm : meta.amName}
               onChange={(e) => {
                 setAmSearchTerm(e.target.value);
+                handleMetaChange('amName', e.target.value);
+                handleMetaChange('amId', '');
                 setShowAmDropdown(true);
                 setSelectedAmIndex(-1);
               }}
-              onFocus={() => setShowAmDropdown(true)}
-              onBlur={() => setTimeout(() => setShowAmDropdown(false), 200)}
-              placeholder="Search Area Manager..."
+              onFocus={() => {
+                if (meta.amName && amSearchTerm === '') setAmSearchTerm(meta.amName);
+                setShowAmDropdown(true);
+              }}
+              onBlur={() => setTimeout(() => {
+                setShowAmDropdown(false);
+                setAmSearchTerm('');
+              }, 200)}
+              placeholder="Type or search Area Manager..."
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
             />
 
-            {showAmDropdown && (
+            {showAmDropdown && filteredAreaManagers.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                {filteredAreaManagers.length > 0 ? (
-                  filteredAreaManagers.map((am, index) => (
-                    <button
-                      key={am.id}
-                      onClick={() => {
-                        handleMetaChange('amId', am.id as string);
-                        handleMetaChange('amName', am.name as string);
-                        setAmSearchTerm('');
-                        setShowAmDropdown(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
-                        }`}
-                    >
-                      {am.name.split(' ')[0]}
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-3 py-2 text-gray-500 dark:text-slate-400">No area managers found</div>
-                )}
+                {filteredAreaManagers.map((am, index) => (
+                  <button
+                    key={am.id}
+                    onClick={() => {
+                      handleMetaChange('amId', am.id as string);
+                      handleMetaChange('amName', am.name as string);
+                      setAmSearchTerm('');
+                      setShowAmDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 ${index === selectedAmIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
+                      }`}
+                  >
+                    {am.name}
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -1279,13 +1310,107 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
           Reset Assessment
         </button>
         <button
-          onClick={handleSubmit}
+          onClick={handleReviewBeforeSubmit}
           disabled={isLoading}
           className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-lg font-medium transition-colors"
         >
-          {isLoading ? 'Submitting...' : 'Submit Assessment'}
+          {isLoading ? 'Submitting...' : 'Review & Submit'}
         </button>
       </div>
+
+      {/* Pre-submission Review Modal */}
+      {showReviewModal && (() => {
+        const { totalScore, maxScore, scorePercentage } = calculateScore();
+        let grade = 'Non-Compliant';
+        let gradeColor = 'text-red-600 dark:text-red-400';
+        if (scorePercentage >= 91) { grade = 'Excellent Compliance'; gradeColor = 'text-green-600 dark:text-green-400'; }
+        else if (scorePercentage >= 71) { grade = 'Satisfactory Compliance'; gradeColor = 'text-orange-500 dark:text-orange-400'; }
+
+        let compliantCount = 0, nonCompliantCount = 0, naCount = 0;
+        sections.forEach(section => {
+          section.items.forEach(item => {
+            const r = responses[`${section.id}_${item.id}`];
+            if (r === 'compliant') compliantCount++;
+            else if (r === 'non-compliant') nonCompliantCount++;
+            else if (r === 'na') naCount++;
+          });
+        });
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="p-5 border-b border-gray-200 dark:border-slate-700">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100">Assessment Review</h2>
+                <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Review your scores before final submission</p>
+              </div>
+
+              <div className="p-5 space-y-4">
+                {/* Overall score */}
+                <div className="flex items-center justify-between bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
+                  <div>
+                    <div className="text-sm text-gray-500 dark:text-slate-400">Overall Score</div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-slate-100">{scorePercentage}% <span className="text-base font-normal text-gray-500 dark:text-slate-400">({totalScore}/{maxScore})</span></div>
+                    <div className={`text-sm font-semibold mt-1 ${gradeColor}`}>{grade}</div>
+                  </div>
+                  <div className="text-right text-sm space-y-1">
+                    <div className="text-green-600 dark:text-green-400 font-medium">✓ Compliant: {compliantCount}</div>
+                    <div className="text-red-500 dark:text-red-400 font-medium">✗ Non-Compliant: {nonCompliantCount}</div>
+                    <div className="text-gray-500 dark:text-slate-400">— N/A: {naCount}</div>
+                  </div>
+                </div>
+
+                {/* Section breakdown */}
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold text-gray-700 dark:text-slate-300">Section Breakdown</div>
+                  {sections.map(section => {
+                    let sScore = 0, sMax = 0;
+                    section.items.forEach(item => {
+                      sMax += item.w;
+                      if (responses[`${section.id}_${item.id}`] === 'compliant') sScore += item.w;
+                    });
+                    const sPct = sMax > 0 ? Math.round((sScore / sMax) * 100) : 0;
+                    const barColor = sPct >= 91 ? 'bg-green-500' : sPct >= 71 ? 'bg-orange-400' : 'bg-red-500';
+                    return (
+                      <div key={section.id}>
+                        <div className="flex justify-between text-xs text-gray-600 dark:text-slate-400 mb-1">
+                          <span className="truncate pr-2">{section.title}</span>
+                          <span className="font-semibold shrink-0">{sScore}/{sMax} ({sPct}%)</span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2">
+                          <div className={`${barColor} h-2 rounded-full transition-all`} style={{ width: `${sPct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Store info */}
+                <div className="text-xs text-gray-500 dark:text-slate-400 border-t border-gray-200 dark:border-slate-700 pt-3 space-y-1">
+                  <div><span className="font-medium">Store:</span> {meta.storeName} ({meta.storeId})</div>
+                  <div><span className="font-medium">Auditor:</span> {meta.financeAuditorName}</div>
+                  {meta.amName && <div><span className="font-medium">AM:</span> {meta.amName}</div>}
+                </div>
+              </div>
+
+              <div className="p-5 border-t border-gray-200 dark:border-slate-700 flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowReviewModal(false)}
+                  className="px-5 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-gray-800 dark:text-slate-100 rounded-lg font-medium transition-colors"
+                >
+                  Go Back
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-lg font-medium transition-colors"
+                >
+                  {isLoading ? 'Submitting...' : 'Confirm & Submit'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

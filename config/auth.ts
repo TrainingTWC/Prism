@@ -86,7 +86,7 @@ export const AUTH_CONFIG: AuthConfig = {
   },
   
   // Session duration in milliseconds (default: 24 hours)
-  sessionDuration: 24 * 60 * 60 * 1000, // 24 hours
+  sessionDuration: 7 * 24 * 60 * 60 * 1000, // 7 days
   
   // Storage keys
   storageKeys: {

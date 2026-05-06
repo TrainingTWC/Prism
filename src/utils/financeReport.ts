@@ -222,7 +222,7 @@ function computeOverall(sub: FinanceSubmission) {
 
       if (!response) {
         // No response
-      } else if (String(response).toLowerCase() === 'yes') {
+      } else if (String(response).toLowerCase() === 'compliant') {
         total += weight;
       } else if (isNA(response)) {
         // NA doesn't affect score
@@ -268,7 +268,7 @@ function buildSections(sub: FinanceSubmission, questionImages: Record<string, st
 
       let score = 0;
       const responseStr = response ? String(response).toLowerCase() : '';
-      if (responseStr === 'yes') {
+      if (responseStr === 'compliant') {
         score = weight;
         sectionData.score += weight;
       } else if (isNA(response)) {
@@ -281,8 +281,8 @@ function buildSections(sub: FinanceSubmission, questionImages: Record<string, st
         sectionPrefix: section.prefix,
         compositeKey: `${section.prefix}_${q.id}`,
         question: q.text,
-        answer: responseStr === 'yes' ? 'Yes' : responseStr === 'no' ? 'No' : isNA(response) ? 'N/A' : '',
-        score: responseStr === 'yes' ? weight : (isNA(response) ? 'NA' : 0),
+        answer: responseStr === 'compliant' ? 'Compliant' : responseStr === 'non-compliant' ? 'Non-Compliant' : isNA(response) ? 'N/A' : '',
+        score: responseStr === 'compliant' ? weight : (isNA(response) ? 'NA' : 0),
         maxScore: weight,
         remark: remark
       });
@@ -413,7 +413,7 @@ export const buildFinancePDF = async (
       
       if (response !== undefined && response !== null && String(response).trim() !== '') {
         totalItems++;
-        if (String(response).toLowerCase() === 'yes') {
+        if (String(response).toLowerCase() === 'compliant') {
           passedItems++;
         }
       }
@@ -723,8 +723,9 @@ export const buildFinancePDF = async (
         y = 20;
       }
 
-      const answerText = String(rowData.answer).toUpperCase();
-      const isNonCompliant = answerText === 'NO';
+      const answerText = String(rowData.answer);
+      const isNonCompliant = answerText === 'Non-Compliant';
+      const isCompliant = answerText === 'Compliant';
       const questionLines = doc.splitTextToSize(rowData.question, 135);
       const questionHeight = questionLines.length * 4;
       const rowH = Math.max(5, questionHeight);
@@ -750,10 +751,10 @@ export const buildFinancePDF = async (
       doc.setFont('helvetica', 'bold');
       
       // Color code answer
-      if (answerText === 'YES') {
+      if (isCompliant) {
         doc.setTextColor(34, 197, 94);
       } else if (isNonCompliant) {
-        doc.setTextColor(220, 38, 38); // Bright red for NO
+        doc.setTextColor(220, 38, 38); // Bright red for Non-Compliant
       } else {
         doc.setTextColor(107, 114, 128);
       }
