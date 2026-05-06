@@ -689,6 +689,21 @@ export const buildFinancePDF = async (
   doc.text('Detailed Assessment', 14, y);
   y += 10;
 
+  // Pre-load natural pixel dimensions for all images so aspect ratio is preserved in PDF
+  const imageDimsCache = new Map<string, { pw: number; ph: number }>();
+  await Promise.all(
+    Object.entries(questionImages).flatMap(([key, imgs]) =>
+      (imgs as string[]).map((b64, idx) =>
+        new Promise<void>(resolve => {
+          const i = new Image();
+          i.onload = () => { imageDimsCache.set(`${key}::${idx}`, { pw: i.naturalWidth || 600, ph: i.naturalHeight || 450 }); resolve(); };
+          i.onerror = () => { imageDimsCache.set(`${key}::${idx}`, { pw: 4, ph: 3 }); resolve(); };
+          i.src = b64;
+        })
+      )
+    )
+  );
+
   // Render each section
   Object.keys(sections).forEach(secKey => {
     const sec = sections[secKey];
@@ -788,48 +803,41 @@ export const buildFinancePDF = async (
 
       // Render images for this question (try composite key first, then plain questionId)
       if (rowData.questionId) {
-        const images = questionImages[rowData.compositeKey] || questionImages[rowData.questionId];
+        const imgKey = questionImages[rowData.compositeKey] ? rowData.compositeKey : rowData.questionId;
+        const images = questionImages[imgKey];
 
         if (images && images.length > 0) {
-          if (y > 250) {
-            doc.addPage();
-            y = 20;
-          }
+          if (y > 250) { doc.addPage(); y = 20; }
 
-          const imagesPerRow = 5;
-          const imageWidth = 32;
-          const imageHeight = 24;
-          const spacing = 3;
+          const imagesPerRow = 3;
+          const maxCellW = 58;
+          const maxCellH = 70;
+          const spacing = 4;
           const startX = 14;
 
-          images.forEach((base64Image, idx) => {
-            try {
-              const col = idx % imagesPerRow;
-              const row = Math.floor(idx / imagesPerRow);
-
-              if (row > 0 && col === 0 && y + imageHeight > 270) {
-                doc.addPage();
-                y = 20;
-              }
-
-              const x = startX + col * (imageWidth + spacing);
-              const currentY = y + row * (imageHeight + spacing);
-
-              // Auto-detect image format from data URL
-              const imgFormat = base64Image.includes('image/png') ? 'PNG' : 'JPEG';
-              doc.addImage(base64Image, imgFormat, x, currentY, imageWidth, imageHeight);
-
-              doc.setDrawColor(203, 213, 225);
-              doc.setLineWidth(0.5);
-              doc.rect(x, currentY, imageWidth, imageHeight);
-
-            } catch (err) {
-              console.warn('Could not add image to PDF:', err);
-            }
-          });
-
-          const totalRows = Math.ceil(images.length / imagesPerRow);
-          y += (imageHeight + spacing) * totalRows + 2;
+          for (let rStart = 0; rStart < images.length; rStart += imagesPerRow) {
+            const rowImgs = images.slice(rStart, rStart + imagesPerRow);
+            const rowDims = rowImgs.map((b64, ci) => {
+              const { pw, ph } = imageDimsCache.get(`${imgKey}::${rStart + ci}`) || { pw: 4, ph: 3 };
+              const scale = Math.min(maxCellW / pw, maxCellH / ph);
+              return { dw: +(pw * scale).toFixed(2), dh: +(ph * scale).toFixed(2) };
+            });
+            const rowH = Math.max(...rowDims.map(d => d.dh), 10);
+            if (y + rowH > 270) { doc.addPage(); y = 20; }
+            rowImgs.forEach((b64, ci) => {
+              const x = startX + ci * (maxCellW + spacing);
+              const { dw, dh } = rowDims[ci];
+              const imgFormat = b64.includes('image/png') ? 'PNG' : 'JPEG';
+              try {
+                doc.addImage(b64, imgFormat, x, y, dw, dh);
+                doc.setDrawColor(203, 213, 225);
+                doc.setLineWidth(0.5);
+                doc.rect(x, y, dw, dh);
+              } catch (err) { console.warn('Could not add image to PDF:', err); }
+            });
+            y += rowH + spacing;
+          }
+          y += 2;
         }
       }
 
@@ -850,38 +858,35 @@ export const buildFinancePDF = async (
       doc.text('Section Images:', 18, y + 2);
       y += 6;
 
-      const imagesPerRow = 5;
-      const imageWidth = 32;
-      const imageHeight = 24;
-      const spacing = 3;
-      const startX = 14;
+      const secImagesPerRow = 3;
+      const secMaxCellW = 58;
+      const secMaxCellH = 70;
+      const secSpacing = 4;
+      const secStartX = 14;
 
-      sectionImgs.forEach((base64Image: string, idx: number) => {
-        try {
-          const col = idx % imagesPerRow;
-          const row = Math.floor(idx / imagesPerRow);
-
-          if (row > 0 && col === 0 && y + imageHeight > 270) {
-            doc.addPage();
-            y = 20;
-          }
-
-          const x = startX + col * (imageWidth + spacing);
-          const currentY = y + row * (imageHeight + spacing);
-
-          // Auto-detect image format from data URL
-          const imgFormat = base64Image.includes('image/png') ? 'PNG' : 'JPEG';
-          doc.addImage(base64Image, imgFormat, x, currentY, imageWidth, imageHeight);
-          doc.setDrawColor(203, 213, 225);
-          doc.setLineWidth(0.5);
-          doc.rect(x, currentY, imageWidth, imageHeight);
-        } catch (err) {
-          console.warn('Could not add section image to PDF:', err);
-        }
-      });
-
-      const totalRows = Math.ceil(sectionImgs.length / imagesPerRow);
-      y += (imageHeight + spacing) * totalRows + 4;
+      for (let rStart = 0; rStart < sectionImgs.length; rStart += secImagesPerRow) {
+        const rowImgs = sectionImgs.slice(rStart, rStart + secImagesPerRow);
+        const rowDims = rowImgs.map((b64: string, ci: number) => {
+          const { pw, ph } = imageDimsCache.get(`${secKey}::${rStart + ci}`) || { pw: 4, ph: 3 };
+          const scale = Math.min(secMaxCellW / pw, secMaxCellH / ph);
+          return { dw: +(pw * scale).toFixed(2), dh: +(ph * scale).toFixed(2) };
+        });
+        const rowH = Math.max(...rowDims.map((d: { dw: number; dh: number }) => d.dh), 10);
+        if (y + rowH > 270) { doc.addPage(); y = 20; }
+        rowImgs.forEach((b64: string, ci: number) => {
+          const x = secStartX + ci * (secMaxCellW + secSpacing);
+          const { dw, dh } = rowDims[ci];
+          const imgFormat = b64.includes('image/png') ? 'PNG' : 'JPEG';
+          try {
+            doc.addImage(b64, imgFormat, x, y, dw, dh);
+            doc.setDrawColor(203, 213, 225);
+            doc.setLineWidth(0.5);
+            doc.rect(x, y, dw, dh);
+          } catch (err) { console.warn('Could not add section image to PDF:', err); }
+        });
+        y += rowH + secSpacing;
+      }
+      y += 4;
     }
 
     // Display section remarks if they exist
