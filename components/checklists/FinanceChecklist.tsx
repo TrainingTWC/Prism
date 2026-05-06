@@ -114,12 +114,6 @@ const FINANCE_SECTIONS = [
   }
 ];
 
-// Zero Tolerance: If any of these items are marked "No", the entire audit score becomes 0%
-const ZERO_TOLERANCE_ITEMS = [
-  { sectionId: 'CashManagement', itemId: 'Q1', label: 'Cash Drawer Verification (no discrepancies)' },
-  { sectionId: 'Section2', itemId: 'Q7', label: 'Billing Completed for All Products Served' },
-];
-
 const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUpdate }) => {
   const { config, loading: configLoading } = useConfig();
 
@@ -189,8 +183,6 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [zeroToleranceFailed, setZeroToleranceFailed] = useState(false);
-  const [zeroToleranceFailedItems, setZeroToleranceFailedItems] = useState<string[]>([]);
 
   const [amSearchTerm, setAmSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
@@ -326,19 +318,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       });
     });
 
-    // Zero Tolerance check: if any ZT item is "non-compliant", entire score is 0
-    const failedZTItems: string[] = [];
-    ZERO_TOLERANCE_ITEMS.forEach(({ sectionId, itemId, label }) => {
-      const resp = responses[`${sectionId}_${itemId}`];
-      if (resp === 'non-compliant') {
-        failedZTItems.push(label);
-      }
-    });
-    setZeroToleranceFailed(failedZTItems.length > 0);
-    setZeroToleranceFailedItems(failedZTItems);
-
-    const effectiveScore = failedZTItems.length > 0 ? 0 : totalScore;
-    const scorePercentage = maxScore > 0 ? Math.round((effectiveScore / maxScore) * 100) : 0;
+    const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
 
     onStatsUpdate({
       completed: answeredQuestions,
@@ -583,15 +563,8 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       });
     });
 
-    // Zero Tolerance check
-    const ztFailed = ZERO_TOLERANCE_ITEMS.some(({ sectionId, itemId }) => {
-      const resp = responses[`${sectionId}_${itemId}`];
-      return resp === 'non-compliant';
-    });
-
-    const effectiveScore = ztFailed ? 0 : totalScore;
-    const scorePercentage = maxScore > 0 ? Math.round((effectiveScore / maxScore) * 100) : 0;
-    return { totalScore: effectiveScore, maxScore, scorePercentage, ztFailed };
+    const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+    return { totalScore, maxScore, scorePercentage };
   };
 
   const handleSubmit = async () => {
@@ -636,22 +609,7 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         });
       });
 
-      // Zero Tolerance check: if any ZT item is "non-compliant", entire score is 0
-      let ztFailed = false;
-      const failedZTLabels: string[] = [];
-      ZERO_TOLERANCE_ITEMS.forEach(({ sectionId, itemId, label }) => {
-        const resp = responses[`${sectionId}_${itemId}`];
-        if (resp === 'non-compliant') {
-          ztFailed = true;
-          failedZTLabels.push(label);
-        }
-      });
-
-      if (ztFailed) {
-        totalScore = 0;
-      }
-
-      const scorePercentage = ztFailed ? 0 : (maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0);
+      const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
 
       // Detect region and correct store ID from comprehensive mapping
       let detectedRegion = '';
@@ -696,8 +654,6 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
         totalScore: totalScore.toString(),
         maxScore: maxScore.toString(),
         scorePercentage: scorePercentage.toString(),
-        zeroToleranceFailed: ztFailed ? 'Yes' : 'No',
-        zeroToleranceFailedItems: failedZTLabels.join('; '),
         auditorSignature: signatures.auditor || '',
         smSignature: signatures.sm || ''
       };
@@ -1045,32 +1001,16 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
               <div className="space-y-3">
                 {section.items.map((item, itemIndex) => {
-                  const isZT = ZERO_TOLERANCE_ITEMS.some(zt => zt.sectionId === section.id && zt.itemId === item.id);
-                  const isZTFailed = isZT && responses[`${section.id}_${item.id}`] === 'non-compliant';
                   return (
-                  <div key={item.id} className={`p-3 sm:p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors ${isZTFailed ? 'border-red-500 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-slate-600'}`}>
+                  <div key={item.id} className="p-3 sm:p-4 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                     <div className="flex items-start gap-3">
                       <span className="inline-flex items-center justify-center w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 rounded-full text-xs font-medium flex-shrink-0 mt-0.5">
                         {itemIndex + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          {isZT && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs font-bold rounded-full border border-red-300 dark:border-red-700">
-                              🚨 Zero Tolerance
-                            </span>
-                          )}
-                        </div>
                         <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-relaxed mb-3">
                           {item.q}
                         </p>
-
-                        {/* ZT warning when marked No */}
-                        {isZTFailed && (
-                          <div className="mb-2 p-2 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 rounded text-xs text-red-700 dark:text-red-300 font-medium">
-                            ⚠️ Zero Tolerance failure — the entire audit score will be set to 0%
-                          </div>
-                        )}
 
                         {/* Response Options */}
                         <div className="flex gap-4">
