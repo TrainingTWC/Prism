@@ -466,8 +466,10 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
   };
 
   const handleImageUpload = (questionId: string, files: FileList) => {
+    // Snapshot into a plain array immediately — FileList becomes invalid after e.target.value='' reset
+    const fileArray = Array.from(files);
     const processFiles = (geoText: string) => {
-      Array.from(files).forEach(file => {
+      fileArray.forEach(file => {
         // Guard: only accept image files
         if (!file.type.startsWith('image/')) return;
 
