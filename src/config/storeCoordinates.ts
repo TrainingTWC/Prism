@@ -92,6 +92,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S232': { lat: 13.011164, lng: 77.555061, name: 'Orion Mall' },
   'S233': { lat: 13.055249, lng: 77.763742, name: 'Uptown Orion Mall' },
   'S247': { lat: 12.893844, lng: 77.595836, name: 'Bannerghatta' },
+  'S246': { lat: 12.907611, lng: 77.601108, name: 'Nexus Vega City' },
 
   // ============ NORTH REGION ============
   'S024': { lat: 28.559328, lng: 77.195795, name: 'Deer Park' },
