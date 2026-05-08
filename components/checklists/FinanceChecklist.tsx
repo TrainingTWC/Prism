@@ -313,8 +313,9 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
     sections.forEach(section => {
       section.items.forEach(item => {
-        maxScore += item.w;
         const response = responses[`${section.id}_${item.id}`];
+        if (response === 'na') return; // N/A excluded from max & total
+        maxScore += item.w;
         if (response === 'compliant') {
           totalScore += item.w;
         }
@@ -608,8 +609,9 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
 
     sections.forEach(section => {
       section.items.forEach(item => {
-        maxScore += item.w;
         const response = responses[`${section.id}_${item.id}`];
+        if (response === 'na') return; // N/A excluded from max & total
+        maxScore += item.w;
         if (response === 'compliant') {
           totalScore += item.w;
         }
@@ -1437,8 +1439,10 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
                   {sections.map(section => {
                     let sScore = 0, sMax = 0;
                     section.items.forEach(item => {
+                      const r = responses[`${section.id}_${item.id}`];
+                      if (r === 'na') return; // N/A excluded
                       sMax += item.w;
-                      if (responses[`${section.id}_${item.id}`] === 'compliant') sScore += item.w;
+                      if (r === 'compliant') sScore += item.w;
                     });
                     const sPct = sMax > 0 ? Math.round((sScore / sMax) * 100) : 0;
                     const barColor = sPct >= 91 ? 'bg-green-500' : sPct >= 71 ? 'bg-orange-400' : 'bg-red-500';

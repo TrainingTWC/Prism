@@ -218,14 +218,13 @@ function computeOverall(sub: FinanceSubmission) {
       const response = sub[questionKeyFull] || sub[`${section.prefix}_${q.id}`] || sub[q.id];
       const weight = q.weight;
 
+      if (isNA(response)) return; // N/A excluded from max & total
       max += weight;
 
       if (!response) {
         // No response
       } else if (String(response).toLowerCase() === 'compliant') {
         total += weight;
-      } else if (isNA(response)) {
-        // NA doesn't affect score
       }
     });
   });
@@ -264,15 +263,14 @@ function buildSections(sub: FinanceSubmission, questionImages: Record<string, st
       const remark = sub[remarkKey] || sub[prefixRemarkKey] || sub[`${q.id}_remark`] || '';
       
       const weight = q.weight;
-      sectionData.maxScore += weight;
+      const responseStr = response ? String(response).toLowerCase() : '';
+      const naFlag = isNA(response);
+      if (!naFlag) sectionData.maxScore += weight; // N/A excluded from section max
 
       let score = 0;
-      const responseStr = response ? String(response).toLowerCase() : '';
       if (responseStr === 'compliant') {
         score = weight;
         sectionData.score += weight;
-      } else if (isNA(response)) {
-        // NA doesn't affect score
       }
 
       sectionData.rows.push({
@@ -281,9 +279,10 @@ function buildSections(sub: FinanceSubmission, questionImages: Record<string, st
         sectionPrefix: section.prefix,
         compositeKey: `${section.prefix}_${q.id}`,
         question: q.text,
-        answer: responseStr === 'compliant' ? 'Compliant' : responseStr === 'non-compliant' ? 'Non-Compliant' : isNA(response) ? 'N/A' : '',
-        score: responseStr === 'compliant' ? weight : (isNA(response) ? 'NA' : 0),
+        answer: responseStr === 'compliant' ? 'Compliant' : responseStr === 'non-compliant' ? 'Non-Compliant' : naFlag ? 'N/A' : '',
+        score: responseStr === 'compliant' ? weight : (naFlag ? 'NA' : 0),
         maxScore: weight,
+        isNA: naFlag,
         remark: remark
       });
     });
@@ -401,17 +400,16 @@ export const buildFinancePDF = async (
   const max = totalFromSheet ? Number(sub.maxScore) : computed.max;
   const pct = max > 0 ? Math.round((total / max) * 100) : 0;
 
-  // Count passed items (Yes answers) - check all possible key formats
+  // Count passed items (Compliant) and total answered items - N/A excluded from total
   let passedItems = 0;
   let totalItems = 0;
   FINANCE_SECTIONS.forEach(section => {
     section.questions.forEach(q => {
-      // Try all key formats: "Q1: question text", "CashManagement_Q1", "Q1"
       const questionKeyFull = Object.keys(sub).find(k => k.startsWith(`${q.id}:`));
       const prefixKey = `${section.prefix}_${q.id}`;
       const response = questionKeyFull ? sub[questionKeyFull] : (sub[prefixKey] || sub[q.id]);
-      
-      if (response !== undefined && response !== null && String(response).trim() !== '') {
+
+      if (response !== undefined && response !== null && String(response).trim() !== '' && !isNA(response)) {
         totalItems++;
         if (String(response).toLowerCase() === 'compliant') {
           passedItems++;
@@ -767,7 +765,7 @@ export const buildFinancePDF = async (
       doc.setFont('helvetica', 'bold');
       
       // Score (right edge)
-      const scoreText = `${rowData.score}/${rowData.maxScore}`;
+      const scoreText = rowData.isNA ? 'NA' : `${rowData.score}/${rowData.maxScore}`;
       doc.setTextColor(isNonCompliant ? 220 : 71, isNonCompliant ? 38 : 85, isNonCompliant ? 38 : 105);
       doc.text(scoreText, 194, y + 3, { align: 'right' });
 
