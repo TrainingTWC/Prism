@@ -9,6 +9,7 @@ import { useComprehensiveMapping, useAreaManagers, useStoreDetails } from '../..
 import ImageEditor from '../ImageEditor';
 import { buildQAPDF } from '../../src/utils/qaReport';
 import { compressImage, compressImageMap, imageMapByteSize } from '../../utils/imageCompression';
+import { saveImages as idbSaveImages, loadImages as idbLoadImages, removeImages as idbRemoveImages } from '../../utils/imageStore';
 
 /**
  * Normalize an image/remark blob coming from a sheet row.
@@ -95,11 +96,11 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     }
   });
 
+  // Images live in IndexedDB to support up to 230 photos per audit (which would
+  // exceed the ~5–10 MB localStorage cap). Initial state is empty; hydration
+  // happens asynchronously below.
   const [questionImages, setQuestionImages] = useState<Record<string, string[]>>(() => {
     if (editMode && existingSubmission) {
-      // Robust hydration: accept JSON string, parsed object, or raw sheet column.
-      // Also fall back to per-submission localStorage cache (images often dropped
-      // from the sheet payload due to GAS body-size limits).
       const fromBlob = parseBlobField<Record<string, string[]>>(
         existingSubmission.questionImagesJSON,
         existingSubmission.questionImages,
@@ -107,22 +108,57 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         existingSubmission['Images JSON']
       );
       if (Object.keys(fromBlob).length > 0) return fromBlob;
-      try {
-        const cacheKey = submissionImageKey(
-          existingSubmission.submissionTime || existingSubmission.timestamp || '',
-          existingSubmission.storeId || existingSubmission['Store ID'] || ''
-        );
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) return JSON.parse(cached);
-      } catch { /* ignore */ }
-      return {};
     }
-    try {
-      return JSON.parse(localStorage.getItem('qa_images') || '{}');
-    } catch (e) {
-      return {};
-    }
+    return {};
   });
+  const imagesHydratedRef = useRef(false);
+
+  // Async hydrate images from IndexedDB (with localStorage migration fallback).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        let loaded: Record<string, string[]> = {};
+        if (editMode && existingSubmission) {
+          if (Object.keys(questionImages).length > 0) {
+            // Already populated from sheet blob; nothing to hydrate.
+            imagesHydratedRef.current = true;
+            return;
+          }
+          const cacheKey = submissionImageKey(
+            existingSubmission.submissionTime || existingSubmission.timestamp || '',
+            existingSubmission.storeId || existingSubmission['Store ID'] || ''
+          );
+          loaded = await idbLoadImages(cacheKey);
+        } else {
+          loaded = await idbLoadImages('qa_images');
+          // One-time migration from legacy localStorage draft.
+          if (Object.keys(loaded).length === 0) {
+            try {
+              const legacy = localStorage.getItem('qa_images');
+              if (legacy) {
+                const parsed = JSON.parse(legacy);
+                if (parsed && Object.keys(parsed).length > 0) {
+                  loaded = parsed;
+                  await idbSaveImages('qa_images', parsed);
+                }
+                localStorage.removeItem('qa_images');
+              }
+            } catch { /* ignore */ }
+          }
+        }
+        if (!cancelled && Object.keys(loaded).length > 0) {
+          setQuestionImages(loaded);
+        }
+      } catch (err) {
+        console.warn('Failed to hydrate QA images from IndexedDB:', err);
+      } finally {
+        imagesHydratedRef.current = true;
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [questionRemarks, setQuestionRemarks] = useState<Record<string, string>>(() => {
     if (editMode && existingSubmission) {
@@ -383,19 +419,17 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     localStorage.setItem('qa_meta', JSON.stringify(meta));
   }, [meta]);
 
-  // Save images to localStorage whenever they change
+  // Persist images to IndexedDB (debounced) — supports up to ~230 photos
+  // without hitting the localStorage quota.
   useEffect(() => {
-    try {
-      localStorage.setItem('qa_images', JSON.stringify(questionImages));
-    } catch (e) {
-      // Handle quota exceeded error
-      if (e instanceof DOMException && (e.code === 22 || e.name === 'QuotaExceededError')) {
-        console.error('LocalStorage quota exceeded. Too many images stored.');
-        alert('Storage limit reached. Please remove some images before adding more.');
-      } else {
-        console.error('Failed to save images:', e);
-      }
-    }
+    // Don't overwrite the IDB record with `{}` before initial hydration finishes.
+    if (!imagesHydratedRef.current) return;
+    const handle = setTimeout(() => {
+      idbSaveImages('qa_images', questionImages).catch(err => {
+        console.error('Failed to save QA images to IndexedDB:', err);
+      });
+    }, 250);
+    return () => clearTimeout(handle);
   }, [questionImages]);
 
   // Save per-question remarks to localStorage
@@ -667,6 +701,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     localStorage.removeItem('qa_images');
     localStorage.removeItem('qa_remarks');
     localStorage.removeItem('qa_signatures');
+    idbRemoveImages('qa_images').catch(() => {});
 
     // Reset all state
     setResponses({});
@@ -869,10 +904,10 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       const localImageKey = submissionImageKey(submissionRowId, params.storeID || '');
       try {
         if (Object.keys(questionImages).length > 0) {
-          localStorage.setItem(localImageKey, JSON.stringify(questionImages));
+          await idbSaveImages(localImageKey, questionImages);
         }
       } catch (e) {
-        console.warn('Could not cache images to localStorage (quota?):', e);
+        console.warn('Could not cache images to IndexedDB:', e);
       }
 
       // Try to fit images into the POST. If too large, send what we can —
@@ -988,6 +1023,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       localStorage.removeItem('qa_images');
       localStorage.removeItem('qa_remarks');
       localStorage.removeItem('qa_signatures');
+      idbRemoveImages('qa_images').catch(() => {});
 
       setSubmitted(true);
 
@@ -1073,20 +1109,23 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   };
 
   const handleImageUpload = async (questionId: string, files: FileList) => {
-    // Use shared compression util — guarantees <= 500 KB per image at 1280px max,
-    // so the entire submission fits in one GAS POST without silent drops.
-    for (const file of Array.from(files)) {
+    // Tightened budget so a full audit (≈230 photos) fits comfortably:
+    //   1024 px / quality 0.7 / 200 KB per image  →  worst-case ≈ 46 MB total.
+    // Stored in IndexedDB, well under the device cap.
+    const fileArray = Array.from(files);
+    for (const file of fileArray) {
       try {
-        const compressed = await compressImage(file, { maxDimension: 1280, quality: 0.75, maxBytes: 500 * 1024 });
+        const compressed = await compressImage(file, { maxDimension: 1024, quality: 0.7, maxBytes: 200 * 1024 });
         setQuestionImages(prev => {
           const next = {
             ...prev,
             [questionId]: [...(prev[questionId] || []), compressed]
           };
-          // Soft warning if approaching browser localStorage / GAS limits.
+          // Soft warning at 40 MB — still well within IndexedDB headroom but
+          // approaching what GAS can ingest in a single POST.
           const totalBytes = imageMapByteSize(next);
-          if (totalBytes > 8 * 1024 * 1024) {
-            console.warn(`⚠️ QA images approaching limit: ${(totalBytes / 1024 / 1024).toFixed(1)} MB`);
+          if (totalBytes > 40 * 1024 * 1024) {
+            console.warn(`⚠️ QA images approaching submit-size limit: ${(totalBytes / 1024 / 1024).toFixed(1)} MB`);
           }
           return next;
         });
@@ -1267,6 +1306,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       localStorage.removeItem('qa_meta');
       localStorage.removeItem('qa_images');
       localStorage.removeItem('qa_signatures');
+      idbRemoveImages('qa_images').catch(() => {});
     }
   };
 
