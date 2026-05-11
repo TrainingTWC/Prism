@@ -692,6 +692,84 @@ export const buildHRPDF = async (
     }
   }
 
+  // Individual Submissions Table
+  if (y > 240) {
+    doc.addPage();
+    y = 15;
+  }
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(17, 24, 39);
+  doc.text('Individual Submissions', 14, y);
+  y += 6;
+
+  const submissionRows = submissions.map((sub, idx) => {
+    // Format date
+    let dateLabel = '';
+    const rawDate = (sub as any).submissionTime || (sub as any).date || '';
+    if (rawDate) {
+      try {
+        const parsed = new Date(rawDate);
+        if (!isNaN(parsed.getTime())) {
+          const dd = String(parsed.getDate()).padStart(2, '0');
+          const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+          const yyyy = parsed.getFullYear();
+          dateLabel = `${dd}/${mm}/${yyyy}`;
+        } else {
+          // Handle DD/MM/YYYY format
+          const parts = String(rawDate).trim().split(' ')[0].split('/');
+          if (parts.length === 3) dateLabel = `${parts[0]}/${parts[1]}/${parts[2]}`;
+          else dateLabel = String(rawDate).substring(0, 10);
+        }
+      } catch {
+        dateLabel = String(rawDate).substring(0, 10);
+      }
+    }
+
+    const overall = computeOverall(sub);
+    const score = overall.max > 0 ? ((overall.total / overall.max) * 5).toFixed(1) : '0.0';
+
+    return [
+      (idx + 1).toString(),
+      (sub as any).empName || (sub as any).employeeName || '-',
+      (sub as any).storeName || (sub as any).store_name || '-',
+      (sub as any).hrName || '-',
+      dateLabel || '-',
+      `${score}/5`
+    ];
+  });
+
+  if (submissionRows.length > 0) {
+    autoTable(doc, {
+      startY: y,
+      head: [['#', 'Employee', 'Store', 'HR', 'Date', 'Score']],
+      body: submissionRows,
+      theme: 'striped',
+      headStyles: {
+        fillColor: [99, 102, 241],
+        textColor: 255,
+        fontStyle: 'bold',
+        fontSize: 9
+      },
+      bodyStyles: {
+        fontSize: 8,
+        textColor: [31, 41, 55]
+      },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 45 },
+        2: { cellWidth: 40 },
+        3: { cellWidth: 35 },
+        4: { cellWidth: 28, halign: 'center' },
+        5: { cellWidth: 20, halign: 'center' }
+      },
+      margin: { left: 14, right: 14 }
+    });
+
+    y = (doc as any).lastAutoTable.finalY + 10;
+  }
+
   // Add page numbers to all pages
   const pageCount = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
