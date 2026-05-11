@@ -770,6 +770,145 @@ export const buildHRPDF = async (
     y = (doc as any).lastAutoTable.finalY + 10;
   }
 
+  // ─── Detailed Per-Submission Responses ────────────────────────────────────
+  doc.addPage();
+  y = 15;
+
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(17, 24, 39);
+  doc.text('Detailed Submission Responses', 14, y);
+  y += 8;
+
+  // Helper: format a raw date string to DD/MM/YYYY
+  function fmtDate(raw: string): string {
+    if (!raw) return '-';
+    try {
+      // ISO or standard parseable
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) {
+        return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+      }
+      // DD/MM/YYYY already
+      const parts = raw.trim().split(' ')[0].split('/');
+      if (parts.length === 3) return `${parts[0]}/${parts[1]}/${parts[2]}`;
+    } catch { /* fall through */ }
+    return raw.substring(0, 10);
+  }
+
+  submissions.forEach((sub, idx) => {
+    // Submission header card
+    const empName  = (sub as any).empName  || (sub as any).employeeName || 'Unknown Employee';
+    const storeName = (sub as any).storeName || '-';
+    const hrName   = (sub as any).hrName   || '-';
+    const amName   = (sub as any).amName   || '-';
+    const region   = (sub as any).region   || '-';
+    const dateStr  = fmtDate((sub as any).submissionTime || (sub as any).date || '');
+    const overall  = computeOverall(sub);
+    const score    = overall.max > 0 ? ((overall.total / overall.max) * 5).toFixed(1) : '0.0';
+    const pct      = overall.pct;
+
+    // Page break before each submission (after the first)
+    if (idx > 0 || y > 200) {
+      doc.addPage();
+      y = 15;
+    }
+
+    // Coloured header band
+    doc.setFillColor(99, 102, 241);
+    doc.roundedRect(14, y, 182, 10, 2, 2, 'F');
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.text(`#${idx + 1}  ${empName}`, 18, y + 7);
+    doc.text(`${score}/5`, 182, y + 7, { align: 'right' });
+    y += 13;
+
+    // Sub-header info line
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(75, 85, 99);
+    const infoLine = [
+      `Store: ${storeName}`,
+      `HR: ${hrName}`,
+      `AM: ${amName}`,
+      `Region: ${region}`,
+      `Date: ${dateStr}`
+    ].join('   |   ');
+    doc.text(infoLine, 14, y);
+    y += 5;
+
+    // Thin score bar
+    const barW = 182;
+    const barH = 4;
+    doc.setFillColor(229, 231, 235);
+    doc.roundedRect(14, y, barW, barH, 1, 1, 'F');
+    const fillW = Math.max(0, Math.round((pct / 100) * barW));
+    let fc = pct >= 80 ? [34, 197, 94] : pct >= 60 ? [251, 191, 36] : [239, 68, 68];
+    doc.setFillColor(fc[0], fc[1], fc[2]);
+    if (fillW > 0) doc.roundedRect(14, y, fillW, barH, 1, 1, 'F');
+    y += 8;
+
+    // Question / Answer table
+    const qRows: any[] = [];
+    QUESTIONS.forEach(q => {
+      const ans = (sub as any)[q.id];
+      if (ans === undefined || ans === null || ans === '') return;
+      const remarks = (sub as any)[`${q.id}_remarks`] || '';
+
+      // Score for this question
+      let scoreText = '-';
+      if (q.choices && q.choices.length) {
+        const found = q.choices.find((c: any) => String(c.label).toLowerCase() === String(ans).toLowerCase());
+        if (found) {
+          const maxC = Math.max(...q.choices.map((c: any) => Number(c.score) || 0));
+          scoreText = `${found.score}/${maxC}`;
+        }
+      } else if (q.type === 'radio') {
+        const low = String(ans).toLowerCase();
+        scoreText = (low === 'yes' || low === 'y' || low === 'true') ? '1/1' : '0/1';
+      }
+
+      qRows.push([
+        q.title,
+        String(ans),
+        scoreText,
+        remarks || '-'
+      ]);
+    });
+
+    if (qRows.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        head: [['Question', 'Answer', 'Score', 'Remarks']],
+        body: qRows,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [243, 244, 246],
+          textColor: [17, 24, 39],
+          fontStyle: 'bold',
+          fontSize: 8,
+          lineColor: [209, 213, 219],
+          lineWidth: 0.3
+        },
+        bodyStyles: {
+          fontSize: 8,
+          textColor: [31, 41, 55],
+          lineColor: [229, 231, 235],
+          lineWidth: 0.2
+        },
+        columnStyles: {
+          0: { cellWidth: 85 },
+          1: { cellWidth: 42 },
+          2: { cellWidth: 18, halign: 'center' },
+          3: { cellWidth: 37 }
+        },
+        margin: { left: 14, right: 14 }
+      });
+      y = (doc as any).lastAutoTable.finalY + 6;
+    }
+  });
+
   // Add page numbers to all pages
   const pageCount = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
