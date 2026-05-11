@@ -220,8 +220,15 @@ function updateQAAudit(params) {
   }
 
   // Remarks JSON + Images JSON
-  row.push(params.questionRemarksJSON || '{}');
-  row.push(params.questionImagesJSON || '{}');
+  // For updates: preserve existing values when the client omitted them (e.g. images
+  // were too large to POST). Never overwrite a non-empty sheet cell with '{}'.
+  var existingRow = data[rowIndex - 1]; // data is 0-based, rowIndex is 1-based sheet row
+  var existingRemarks = existingRow ? String(existingRow[row.length]     || '{}') : '{}';
+  var existingImages  = existingRow ? String(existingRow[row.length + 1] || '{}') : '{}';
+  var newRemarks = (params.questionRemarksJSON && params.questionRemarksJSON !== '{}') ? params.questionRemarksJSON : existingRemarks;
+  var newImages  = (params.questionImagesJSON  && params.questionImagesJSON  !== '{}') ? params.questionImagesJSON  : existingImages;
+  row.push(newRemarks);
+  row.push(newImages);
 
   // Write the entire row at once
   sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
@@ -834,7 +841,9 @@ function saveDraft(params) {
 
 function getDrafts(params) {
   var qaId = (params.qaId || '').toUpperCase().trim();
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('QA Drafts');
+  // Support both 'QA Drafts' (unified script) and 'QA_Drafts' (legacy drafts script)
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('QA Drafts') || ss.getSheetByName('QA_Drafts');
   if (!sheet) return json({ success: true, drafts: [] });
 
   var data = sheet.getDataRange().getValues();
@@ -862,7 +871,8 @@ function getDrafts(params) {
 
 function loadDraft(params) {
   var draftId = params.draftId || '';
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('QA Drafts');
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('QA Drafts') || ss.getSheetByName('QA_Drafts');
   if (!sheet) return json({ success: false, message: 'No drafts sheet' });
 
   var data = sheet.getDataRange().getValues();

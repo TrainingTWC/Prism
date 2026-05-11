@@ -319,7 +319,9 @@ const VendorAuditChecklist: React.FC<VendorAuditChecklistProps> = ({ userRole, o
     if (!meta.auditorId || !meta.auditorName) { alert('Please fill in auditor details before saving draft.'); return; }
 
     const draftId = currentDraftId || `va_draft_${Date.now()}`;
-    const timestamp = new Date().toLocaleString('en-GB', { hour12: false });
+    const _now = new Date();
+    const _pad = (n: number) => String(n).padStart(2, '0');
+    const timestamp = `${_pad(_now.getDate())}/${_pad(_now.getMonth() + 1)}/${_now.getFullYear()} ${_pad(_now.getHours())}:${_pad(_now.getMinutes())}:${_pad(_now.getSeconds())}`;
     const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
     const answeredQuestions = Object.keys(responses).filter(key => responses[key] && responses[key] !== '' && !key.includes('_remarks')).length;
     const completionPercentage = Math.round((answeredQuestions / totalQuestions) * 100);
@@ -562,7 +564,7 @@ const VendorAuditChecklist: React.FC<VendorAuditChecklistProps> = ({ userRole, o
       const params: Record<string, string> = {
         submissionTime: editMode && existingSubmission?.submissionTime
           ? existingSubmission.submissionTime
-          : new Date().toLocaleString('en-GB', { hour12: false }),
+          : (() => { const d = new Date(); const p = (n: number) => String(n).padStart(2, '0'); return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; })(),
         auditType: 'vendor-audit',
         auditorName: meta.auditorName || '',
         auditorId: meta.auditorId || '',

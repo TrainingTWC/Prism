@@ -4,7 +4,8 @@ import { hapticFeedback } from '../../utils/haptics';
 import LoadingOverlay from '../LoadingOverlay';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../contexts/ConfigContext';
-import { QA_SECTIONS } from '../../config/qaQuestions';
+import { CF_AUDIT_SECTIONS } from '../../config/cfAuditQuestions';
+import { VEHICLE_AUDIT_SECTIONS } from '../../config/vehicleAuditQuestions';
 import ImageEditor from '../ImageEditor';
 import { compressImage, imageMapByteSize } from '../../utils/imageCompression';
 
@@ -84,9 +85,8 @@ const ComplianceAuditChecklist: React.FC<ComplianceAuditChecklistProps> = ({
   const { user } = useAuth();
   const { config } = useConfig();
 
-  // Pull questions that belong to this audit type from the QA_SECTIONS 'A' section
-  const qaSection = QA_SECTIONS.find(s => s.id === 'A')!;
-  const items = qaSection.items.filter((i: any) => i.subsection === cfg.subsection);
+  const auditSections = auditType === 'cf-audit' ? CF_AUDIT_SECTIONS : VEHICLE_AUDIT_SECTIONS;
+  const items = auditSections.flatMap(s => s.items);
   const options = ['compliant', 'partially-compliant', 'not-compliant', 'na'];
 
   // ── State ────────────────────────────────────────────────────────────────

@@ -38,6 +38,18 @@ function parseBlobField<T extends object>(...candidates: unknown[]): T {
 function submissionImageKey(submissionTimeOrId: string, storeId: string): string {
   return `qa_images::${(submissionTimeOrId || '').trim()}::${(storeId || '').trim()}`;
 }
+
+/**
+ * Return current timestamp as "DD/MM/YYYY HH:mm:ss" — no comma, no locale
+ * ambiguity. This matches the format produced by GAS Utilities.formatDate with
+ * 'dd/MM/yyyy HH:mm:ss', so Google Sheets stores it as plain text and
+ * parseSheetDate in Dashboard.tsx can read it unambiguously.
+ */
+function formatSubmissionTimestamp(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
 // Unified QA endpoint — handles QA submission, AM Follow-Up, and CAPA creation in one call
 const QA_ENDPOINT = import.meta.env.VITE_QA_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbxVpSB9TBa6UKjZlaT4wUumDNZ0xNmfH0yg6zTZkcp-SyGzyO9q1BaU1X4vuWSpoF1FgA/exec';
 
@@ -126,7 +138,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
             return;
           }
           const cacheKey = submissionImageKey(
-            existingSubmission.submissionTime || existingSubmission.timestamp || '',
+            (existingSubmission.submissionTime || existingSubmission.timestamp || '').replace(',', ''),
             existingSubmission.storeId || existingSubmission['Store ID'] || ''
           );
           loaded = await idbLoadImages(cacheKey);
@@ -365,10 +377,20 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
       const data = await response.json();
 
-      if (data.success && data.drafts) {
+      // Normalise the various response shapes the GAS backend may return:
+      //   • { success: true, drafts: [...] }         ← current unified script
+      //   • { message: 'QA Unified API is active.' } ← GAS not yet deployed with getDrafts
+      //   • []                                        ← old legacy script returning plain array
+      if (Array.isArray(data)) {
+        setDrafts(data);
+      } else if (data.success && Array.isArray(data.drafts)) {
         setDrafts(data.drafts);
+      } else if (data.drafts === undefined && data.message) {
+        console.warn('⚠️ GAS returned a non-draft response:', data.message,
+          '— make sure the unified script is deployed and getDrafts action is handled.');
+        setDrafts([]);
       } else {
-        console.warn('⚠️ No drafts found or error:', data.message || data);
+        console.warn('⚠️ Unexpected getDrafts response shape:', JSON.stringify(data).slice(0, 200));
         setDrafts([]);
       }
     } catch (error) {
@@ -537,7 +559,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
     }
 
     const draftId = currentDraftId || `draft_${Date.now()}`;
-    const timestamp = new Date().toLocaleString('en-GB', { hour12: false });
+    const timestamp = formatSubmissionTimestamp();
 
     // Calculate completion percentage
     const totalQuestions = sections.reduce((sum, section) => sum + section.items.length, 0);
@@ -867,7 +889,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       const params: Record<string, string> = {
         submissionTime: editMode && existingSubmission?.submissionTime
           ? existingSubmission.submissionTime
-          : new Date().toLocaleString('en-GB', { hour12: false }),
+          : formatSubmissionTimestamp(),
         qaName: meta.qaName || '',
         qaId: meta.qaId || '',
         amName: meta.amName || '',
@@ -900,7 +922,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       // can recover them even if GAS strips/truncates the blob. Without this,
       // the previous code silently overwrote stored images with `{}` on every
       // submit that exceeded the size threshold — losing every photo.
-      const submissionRowId = params.submissionTime || '';
+      const submissionRowId = (params.submissionTime || '').replace(',', '');
       const localImageKey = submissionImageKey(submissionRowId, params.storeID || '');
       try {
         if (Object.keys(questionImages).length > 0) {
@@ -1052,7 +1074,7 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
       // Build a submission object from current React state
       const submission: Record<string, any> = {
-        submissionTime: new Date().toLocaleString('en-GB', { hour12: false }),
+        submissionTime: formatSubmissionTimestamp(),
         qaName: meta.qaName,
         qaId: meta.qaId,
         amName: meta.amName,
