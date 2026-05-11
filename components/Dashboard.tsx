@@ -2932,6 +2932,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
           meta.date = firstRecord.submissionTime || firstRecord.date || firstRecord.Date || firstRecord['Submission Time'] || '';
         }
 
+        // Pass date range filter so the PDF header shows the applied range
+        if (filters.dateFrom) meta.dateFrom = filters.dateFrom;
+        if (filters.dateTo) meta.dateTo = filters.dateTo;
+
         const fileName = `HR_Survey_${meta.storeName || meta.storeId || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
         const pdf = await buildHRPDF(reportData as any, meta, { title: 'HR Employee Survey' });
         pdf.save(fileName);

@@ -257,13 +257,28 @@ export const buildHRPDF = async (
 
   // Metadata row: Date/Time | HR Person | Store ID
   const metaY = y + 8;
-  const dateStr = formatDate(metadata.date || first.submissionTime || first.date || '');
   const hrPerson = metadata.hrPersonName || first.hrName || '';
   const sid = metadata.storeId || first.storeID || '';
   const metaLine = [] as string[];
-  if (dateStr) metaLine.push(`${dateStr}`);
+
+  // Prefer date range filter over individual submission date
+  if (metadata.dateFrom || metadata.dateTo) {
+    if (metadata.dateFrom && metadata.dateTo) {
+      metaLine.push(`Date Range: ${metadata.dateFrom} – ${metadata.dateTo}`);
+    } else if (metadata.dateFrom) {
+      metaLine.push(`From: ${metadata.dateFrom}`);
+    } else {
+      metaLine.push(`Until: ${metadata.dateTo}`);
+    }
+  } else {
+    const dateStr = formatDate(metadata.date || first.submissionTime || first.date || '');
+    if (dateStr) metaLine.push(`${dateStr}`);
+  }
+
   if (hrPerson) metaLine.push(`HR: ${hrPerson}`);
   if (sid) metaLine.push(`Store: ${sid}`);
+  const recordCount = submissions.length;
+  if (recordCount > 1) metaLine.push(`${recordCount} records`);
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
