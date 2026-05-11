@@ -156,7 +156,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     trainer: '',
     hrPerson: '', // Separate filter for HR personnel
     health: '',
-    month: '', // Month filter for HR dashboard (YYYY-MM format)
+    dateFrom: '', // Date range start (YYYY-MM-DD)
+    dateTo: '',   // Date range end (YYYY-MM-DD)
     employee: '' // Employee filter for SHLP dashboard
   });
 
@@ -994,57 +995,22 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       filtered = filtered.filter(submission => normalizeId(submission.hrId) === hrPersonFilterId);
     }
 
-    // Filter by month (for all dashboards)
-    if (filters.month) {
-      console.log('📅 Month filter active:', filters.month);
-      let matchCount = 0;
-      let totalProcessed = 0;
-      
+    // Filter by date range
+    if (filters.dateFrom || filters.dateTo) {
       filtered = filtered.filter(submission => {
         const submissionDate = submission.submissionTime || submission.timestamp || (submission as any).submittedAt;
-        totalProcessed++;
-        
-        if (!submissionDate) {
-          console.warn(`❌ No date found for submission ${totalProcessed}`);
-          return false;
-        }
-
+        if (!submissionDate) return false;
         try {
-          // Use the existing parseSheetDate helper for consistent date parsing
           const date = parseSheetDate(String(submissionDate));
-          
-          if (!date || isNaN(date.getTime())) {
-            console.warn(`❌ Invalid date parsed from: "${submissionDate}"`);
-            return false;
-          }
-
-          // Create month string in YYYY-MM format (pad month with zero)
-          const month = date.getMonth() + 1; // getMonth() returns 0-11, so add 1
-          const submissionMonth = `${date.getFullYear()}-${month.toString().padStart(2, '0')}`;
-          
-          // Debug first 5 entries
-          if (totalProcessed <= 5) {
-            console.log(`🔍 Submission ${totalProcessed}:`, {
-              rawDate: submissionDate,
-              parsedDate: date.toISOString(),
-              submissionMonth,
-              filterMonth: filters.month,
-              matches: submissionMonth === filters.month
-            });
-          }
-          
-          // Compare with filter month
-          const matches = submissionMonth === filters.month;
-          if (matches) matchCount++;
-          
-          return matches;
-        } catch (error) {
-          console.warn('❌ Error parsing date for month filter:', submissionDate, error);
+          if (!date || isNaN(date.getTime())) return false;
+          const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+          if (filters.dateFrom && d < new Date(filters.dateFrom)) return false;
+          if (filters.dateTo && d > new Date(filters.dateTo)) return false;
+          return true;
+        } catch {
           return false;
         }
       });
-      
-      console.log(`✅ Month filter results: ${matchCount} matches out of ${totalProcessed} submissions`);
     }
 
     return filtered;
@@ -1198,16 +1164,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         return false;
       }
 
-      // Filter by month
-      if (filters.month) {
+      // Filter by date range
+      if (filters.dateFrom || filters.dateTo) {
         const submissionDate = submission['Submission Time'];
         if (!submissionDate) return false;
         try {
           const date = parseSheetDate(String(submissionDate));
           if (!date || isNaN(date.getTime())) return false;
-          const month = date.getMonth() + 1;
-          const submissionMonth = `${date.getFullYear()}-${month.toString().padStart(2, '0')}`;
-          if (submissionMonth !== filters.month) return false;
+          const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+          if (filters.dateFrom && d < new Date(filters.dateFrom)) return false;
+          if (filters.dateTo && d > new Date(filters.dateTo)) return false;
         } catch {
           return false;
         }
@@ -1275,8 +1241,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
       }
 
-      // Apply month filter
-      if (filters.month) {
+      // Apply date range filter
+      if (filters.dateFrom || filters.dateTo) {
         const submissionDate = submission.submissionTime || (submission as any).timestamp || (submission as any).submittedAt;
         if (!submissionDate) return false;
 
@@ -1300,9 +1266,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         if (isNaN(date.getTime())) return false;
-
-        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        if (submissionMonth !== filters.month) return false;
+        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        if (filters.dateFrom && d < new Date(filters.dateFrom)) return false;
+        if (filters.dateTo && d > new Date(filters.dateTo)) return false;
       }
 
       return true;
@@ -1363,8 +1329,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         if (filters.health === 'Perfect Shot' && (ztFailed || pct < 86)) return false;
       }
 
-      // Apply month filter
-      if (filters.month) {
+      // Apply date range filter
+      if (filters.dateFrom || filters.dateTo) {
         const submissionDate = submission.submissionTime || (submission as any).timestamp || (submission as any).submittedAt;
         if (!submissionDate) return false;
 
@@ -1388,9 +1354,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         if (isNaN(date.getTime())) return false;
-
-        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        if (submissionMonth !== filters.month) return false;
+        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        if (filters.dateFrom && d < new Date(filters.dateFrom)) return false;
+        if (filters.dateTo && d > new Date(filters.dateTo)) return false;
       }
 
       return true;
@@ -1489,8 +1455,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         if (filters.health === 'Perfect Shot' && (ztFailed || pct < 86)) return false;
       }
 
-      // Apply month filter
-      if (filters.month) {
+      // Apply date range filter
+      if (filters.dateFrom || filters.dateTo) {
         const submissionDate = submission.submissionTime || (submission as any).timestamp || (submission as any).submittedAt;
         if (!submissionDate) return false;
 
@@ -1514,9 +1480,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         if (isNaN(date.getTime())) return false;
-
-        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        if (submissionMonth !== filters.month) return false;
+        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        if (filters.dateFrom && d < new Date(filters.dateFrom)) return false;
+        if (filters.dateTo && d > new Date(filters.dateTo)) return false;
       }
 
       return true;
@@ -1568,8 +1534,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         return false;
       }
 
-      // Apply month filter
-      if (filters.month) {
+      // Apply date range filter
+      if (filters.dateFrom || filters.dateTo) {
         const submissionDate = submission.submissionTime || (submission as any).timestamp || (submission as any).submittedAt;
         if (!submissionDate) return false;
 
@@ -1593,9 +1559,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         if (isNaN(date.getTime())) return false;
-
-        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        if (submissionMonth !== filters.month) return false;
+        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        if (filters.dateFrom && d < new Date(filters.dateFrom)) return false;
+        if (filters.dateTo && d > new Date(filters.dateTo)) return false;
       }
 
       return true;
@@ -1621,7 +1587,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       if (filters.region && submission.region !== filters.region) return false;
       if (filters.store && submission.storeId !== filters.store) return false;
 
-      if (filters.month) {
+      if (filters.dateFrom || filters.dateTo) {
         const submissionDate = submission.submissionTime;
         if (!submissionDate) return false;
         let date: Date;
@@ -1643,8 +1609,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
           date = new Date(dateStr);
         }
         if (isNaN(date.getTime())) return false;
-        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        if (submissionMonth !== filters.month) return false;
+        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        if (filters.dateFrom && d < new Date(filters.dateFrom)) return false;
+        if (filters.dateTo && d > new Date(filters.dateTo)) return false;
       }
 
       return true;
@@ -1663,8 +1630,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         const subStoreId = submission.storeId || '';
         if (subStoreId !== filters.store) return false;
       }
-      if (filters.month) {
+      if (filters.dateFrom || filters.dateTo) {
         const dateStr = String(submission.submissionTime || '').trim();
+        if (!dateStr) return false;
         let date: Date;
         if (dateStr.includes('T')) { date = new Date(dateStr); }
         else if (dateStr.includes('/')) {
@@ -1673,8 +1641,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
           else return false;
         } else { date = new Date(dateStr); }
         if (isNaN(date.getTime())) return false;
-        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        if (submissionMonth !== filters.month) return false;
+        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        if (filters.dateFrom && d < new Date(filters.dateFrom)) return false;
+        if (filters.dateTo && d > new Date(filters.dateTo)) return false;
       }
       return true;
     });
@@ -1724,8 +1693,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         return false;
       }
 
-      // Apply month filter
-      if (filters.month) {
+      // Apply date range filter
+      if (filters.dateFrom || filters.dateTo) {
         const submissionDate = submission.submissionTime || (submission as any).timestamp || (submission as any).submittedAt;
         if (!submissionDate) return false;
 
@@ -1749,9 +1718,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         if (isNaN(date.getTime())) return false;
-
-        const submissionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        if (submissionMonth !== filters.month) return false;
+        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        if (filters.dateFrom && d < new Date(filters.dateFrom)) return false;
+        if (filters.dateTo && d > new Date(filters.dateTo)) return false;
       }
 
       return true;
@@ -1842,7 +1811,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     // For Training dashboard, prefer filtered Training Audit records when any filter is applied
     if (dashboardType === 'training') {
       // If a filter is active, use the deduped, filtered training data so the header cards change
-      const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health || filters.month);
+      const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health || filters.dateFrom || filters.dateTo);
 
       if (hasFilters) {
         // If a specific store filter is applied, we must count ALL submissions for that store
@@ -2450,7 +2419,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
 
     // Training dashboard special handling - show as 1-5 scale
     if (dashboardType === 'training') {
-      const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health || filters.month);
+      const hasFilters = Boolean(filters.region || filters.store || filters.am || filters.trainer || filters.health || filters.dateFrom || filters.dateTo);
       if (hasFilters) {
         if (!stats) return '—';
         const latestScore = (((stats as any).latestScore / 100) * 5).toFixed(1);
@@ -2505,7 +2474,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   };
 
   const resetFilters = () => {
-    setFilters({ region: '', store: '', am: '', trainer: '', hrPerson: '', health: '', month: '', employee: '' });
+    setFilters({ region: '', store: '', am: '', trainer: '', hrPerson: '', health: '', dateFrom: '', dateTo: '', employee: '' });
   };
 
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -5139,13 +5108,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Connect Targets</h3>
                             <p className="text-sm text-gray-500 dark:text-slate-400">
                               3 connects per HRBP per day • {(stats as any).numHRBPs} active HRBP{(stats as any).numHRBPs !== 1 ? 's' : ''}
-                              {filters.month && (
+                              {(filters.dateFrom || filters.dateTo) && (
                                 <span className="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs font-medium">
-                                  {(() => {
-                                    const [year, month] = filters.month.split('-');
-                                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                                    return `${monthNames[parseInt(month) - 1]} ${year}`;
-                                  })()}
+                                  {filters.dateFrom && filters.dateTo ? `${filters.dateFrom} – ${filters.dateTo}` : filters.dateFrom ? `From ${filters.dateFrom}` : `Until ${filters.dateTo}`}
                                 </span>
                               )}
                               {/* Active filters display */}
@@ -5335,13 +5300,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                           <h3 className="text-lg font-bold text-gray-900 dark:text-white">HRBP Leaderboard</h3>
                           <p className="text-sm text-gray-500 dark:text-slate-400">
                             9 HRBPs
-                            {filters.month && (
+                            {(filters.dateFrom || filters.dateTo) && (
                               <span className="ml-2 px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded text-xs font-medium">
-                                {(() => {
-                                  const [year, month] = filters.month.split('-');
-                                  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                                  return `${monthNames[parseInt(month) - 1]} ${year}`;
-                                })()}
+                                {filters.dateFrom && filters.dateTo ? `${filters.dateFrom} – ${filters.dateTo}` : filters.dateFrom ? `From ${filters.dateFrom}` : `Until ${filters.dateTo}`}
                               </span>
                             )}
                           </p>

@@ -20,9 +20,10 @@ interface DashboardFiltersProps {
     employee?: string; // Employee filter for SHLP dashboard
     // store health filter - '', 'Needs Attention', 'Brewing', 'Perfect Shot'
     health?: string;
-    month?: string; // Month filter (YYYY-MM format)
+    dateFrom?: string; // Date range start (YYYY-MM-DD)
+    dateTo?: string;   // Date range end (YYYY-MM-DD)
   };
-  onFilterChange: (filterName: 'region' | 'store' | 'am' | 'trainer' | 'hrPerson' | 'health' | 'month' | 'employee', value: string) => void;
+  onFilterChange: (filterName: 'region' | 'store' | 'am' | 'trainer' | 'hrPerson' | 'health' | 'dateFrom' | 'dateTo' | 'employee', value: string) => void;
   onReset: () => void;
   onDownload?: () => void;
   onDownloadExcel?: () => void;
@@ -374,18 +375,32 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             />
           )}
 
-          {/* Month Filter - Only show on HR dashboard */}
+          {/* Date Range Filter - Only show on HR dashboard */}
           {dashboardType === 'hr' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                Month
+                Date Range
               </label>
-              <input
-                type="month"
-                value={filters.month || ''}
-                onChange={(e) => onFilterChange('month', e.target.value)}
-                className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
-              />
+              <div className="flex flex-col gap-2">
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1">From</label>
+                  <input
+                    type="date"
+                    value={filters.dateFrom || ''}
+                    onChange={(e) => onFilterChange('dateFrom', e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1">To</label>
+                  <input
+                    type="date"
+                    value={filters.dateTo || ''}
+                    onChange={(e) => onFilterChange('dateTo', e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-sm"
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -498,18 +513,32 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             </div>
           )}
 
-          {/* Month Filter - Only show on HR dashboard */}
+          {/* Date Range Filter - Only show on HR dashboard */}
           {dashboardType === 'hr' && (
             <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                Month
+                Date Range
               </label>
-              <input
-                type="month"
-                value={filters.month || ''}
-                onChange={(e) => onFilterChange('month', e.target.value)}
-                className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
-              />
+              <div className="flex flex-col gap-2">
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1">From</label>
+                  <input
+                    type="date"
+                    value={filters.dateFrom || ''}
+                    onChange={(e) => onFilterChange('dateFrom', e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1">To</label>
+                  <input
+                    type="date"
+                    value={filters.dateTo || ''}
+                    onChange={(e) => onFilterChange('dateTo', e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-sm"
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>
