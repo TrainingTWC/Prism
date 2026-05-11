@@ -170,7 +170,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S059': { lat: 18.539143, lng: 73.900086, name: 'Koregoan Park' },
   'S060': { lat: 18.502634, lng: 73.821628, name: 'Kothrud' },
   'S061': { lat: 19.105757, lng: 72.826001, name: 'Juhu' },
-  'S074': { lat: 18.56125, lng: 73.916996, name: 'Phoenix Market City - Pune' },
+  'S074': { lat: 18.562795, lng: 73.916770, name: 'Phoenix Market City - Pune' },
   'S075': { lat: 19.160831, lng: 72.945388, name: 'Runwal Greens Mulund' },
   'S076': { lat: 19.232144, lng: 72.852688, name: 'Emerald Borivali' },
   'S077': { lat: 18.955419, lng: 72.813707, name: 'Sea Castle, Marine Lines' },
