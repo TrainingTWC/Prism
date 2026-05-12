@@ -158,6 +158,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S243': { lat: 28.504051, lng: 77.010770, name: 'Embassy India Bulls' },
   'S228': { lat: 28.592830, lng: 77.040851, name: 'Dwarka Sec 12' },
   'S248': { lat: 28.628589, lng: 77.211388, name: 'Shivaji Stadium Metro Station' },
+  'S222': { lat: 27.157987, lng: 78.057308, name: 'Agra Store' },
 
   // ============ WEST REGION ============
   'S043': { lat: 18.963486, lng: 72.807933, name: 'Kemps Corner' },
