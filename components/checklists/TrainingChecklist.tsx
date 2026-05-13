@@ -836,75 +836,12 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
   );
 
   // 3. Stores filtered by selected Trainer (primary filter) or Area Manager
-  const filteredStores = uniqueStores.filter(store => {
-    // First apply search filter
-    const matchesSearch = storeSearchTerm === '' ||
-      (store.name as string).toLowerCase().includes(storeSearchTerm.toLowerCase()) ||
-      (store.id as string).toLowerCase().includes(storeSearchTerm.toLowerCase());
-
-    // If trainer is selected, filter stores by trainer (primary filter)
-    if (meta.trainerId) {
-      try {
-        const trainerIdNorm = normalizeId(meta.trainerId);
-        const storesForTrainer = Array.from(
-          new Set(
-            allStores
-              .filter((r: any) => {
-                // Check Trainer 1 (primary), Trainer 2, Trainer 3 using exact Google Sheet column names
-                const trainer1 = normalizeId(r['Trainer 1 ID'] || r['Trainer 1'] || r.Trainer || r['Trainer'] || r['Trainer ID'] || r.trainerId || r.trainer_id);
-                const trainer2 = normalizeId(r['Trainer 2 ID'] || r['Trainer 2'] || '');
-                const trainer3 = normalizeId(r['Trainer 3 ID'] || r['Trainer 3'] || '');
-                return trainer1 === trainerIdNorm || trainer2 === trainerIdNorm || trainer3 === trainerIdNorm;
-              })
-              .map((r: any) => ({
-                name: r['Store Name'] || r.storeName || r.name,
-                id: normalizeId(r['Store ID'] || r.storeId || r.StoreID || r.store_id)
-              }))
-              .filter((s: any) => s.name && s.id)
-              .map((s: any) => `${s.id}::${s.name}`)
-          )
-        ).map((key: string) => {
-          const [id, name] = key.split('::');
-          return { id, name };
-        });
-
-        const storeUnderTrainer = storesForTrainer.some((s: any) => normalizeId(s.id) === normalizeId(store.id));
-        return matchesSearch && storeUnderTrainer;
-      } catch (e) {
-        return matchesSearch;
-      }
-    }
-
-    // If no trainer but AM is selected, filter by AM
-    if (meta.amId) {
-      try {
-        const amIdNorm = normalizeId(meta.amId);
-        const storesForAM = Array.from(
-          new Set(
-            allStores
-              .filter((r: any) => normalizeId(r.AM || r['AM'] || r['AM ID'] || r['Area Manager ID'] || r.amId || r.areaManagerId) === amIdNorm)
-              .map((r: any) => ({
-                name: r['Store Name'] || r.storeName || r.name,
-                id: normalizeId(r['Store ID'] || r.storeId || r.StoreID || r.store_id)
-              }))
-              .filter((s: any) => s.name && s.id)
-              .map((s: any) => `${s.id}::${s.name}`)
-          )
-        ).map((key: string) => {
-          const [id, name] = key.split('::');
-          return { id, name };
-        });
-
-        const storeUnderAM = storesForAM.some((s: any) => normalizeId(s.id) === normalizeId(store.id));
-        return matchesSearch && storeUnderAM;
-      } catch (e) {
-        return matchesSearch;
-      }
-    }
-
-    // If neither trainer nor AM is selected, show all stores that match search
-    return matchesSearch;
-  });
+  // Show all stores matching the search term (geofencing and cascading trainer/AM filter removed)
+  const filteredStores = uniqueStores.filter(store =>
+    storeSearchTerm === '' ||
+    (store.name as string).toLowerCase().includes(storeSearchTerm.toLowerCase()) ||
+    (store.id as string).toLowerCase().includes(storeSearchTerm.toLowerCase())
+  );
 
   // Auto-fill function with cascading filters (same as HR Checklist)
   const autoFillFields = (field: string, value: string) => {
