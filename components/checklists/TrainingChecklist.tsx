@@ -5,7 +5,7 @@ import { hapticFeedback } from '../../utils/haptics';
 import { useConfig } from '../../contexts/ConfigContext';
 import { useComprehensiveMapping } from '../../hooks/useComprehensiveMapping';
 import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
-import { checkGeofence, STORE_COORDINATES, getDistanceMeters } from '../../src/config/storeCoordinates';
+import { STORE_COORDINATES, getDistanceMeters } from '../../src/config/storeCoordinates';
 import TrainingCalendar from './TrainingCalendar';
 import ImageEditor from '../ImageEditor';
 import { compressImage, imageMapByteSize } from '../../utils/imageCompression';
@@ -16,7 +16,7 @@ import {
   getPendingTrainingCount,
 } from '../../services/trainingAuditSubmit';
 
-const TRAINING_GEOFENCE_RADIUS = 50; // 50 meters for training audits
+
 const TRAINING_AUDIT_ENDPOINT =
   'https://script.google.com/macros/s/AKfycbwB9VbT21-LbxO56zPph60yYzXXtsCQwc7mXwXJE_NvmUNGecTwaoGUi36GAFjDAb0C/exec';
 
@@ -454,15 +454,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
           error: null,
           loading: false
         });
-        // Re-run geofence check if a store is already selected
-        if (meta.storeId) {
-          const result = checkGeofence(meta.storeId, newLat, newLng, TRAINING_GEOFENCE_RADIUS);
-          setGeofenceResult(result);
-          if (result && !result.allowed) {
-            setMeta(prev => ({ ...prev, storeId: '', storeName: '' }));
-            setGeofenceResult(null);
-          }
-        }
+
       },
       (error) => {
         let errorMessage = 'Unable to retrieve location';
@@ -495,23 +487,10 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
     captureGeolocation();
   }, []);
 
-  // Filter stores: only show those within 50m geofence radius
+  // Return all stores (geofencing disabled)
   const availableStores = React.useMemo(() => {
-    if (geoLocation.latitude === null || geoLocation.longitude === null) {
-      return []; // No GPS — show no stores until location is captured
-    }
-    return allStores.filter((store: any) => {
-      const storeId = (store['Store ID'] || store.storeId || store.StoreID || store.store_id || '').toString().trim();
-      const coord = STORE_COORDINATES[storeId];
-      if (!coord) return false;
-      if (coord.lat === 0 && coord.lng === 0) return false;
-      const distance = getDistanceMeters(
-        geoLocation.latitude!, geoLocation.longitude!,
-        coord.lat, coord.lng
-      );
-      return distance <= TRAINING_GEOFENCE_RADIUS;
-    });
-  }, [allStores, geoLocation.latitude, geoLocation.longitude]);
+    return allStores;
+  }, [allStores]);
 
   // Add state for dropdown handling
   const [amSearchTerm, setAmSearchTerm] = useState('');
@@ -1883,12 +1862,6 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
       return;
     }
 
-    // Require GPS location
-    if (!geoLocation.latitude || !geoLocation.longitude) {
-      alert('Location data is required. Please enable GPS and refresh your location before submitting.');
-      return;
-    }
-
     // Check if all required meta fields are filled
     const missingFields: string[] = [];
     if (!meta.storeName || !meta.storeId) missingFields.push('Store Location');
@@ -2489,25 +2462,15 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
 
               <div className="md:col-span-2" data-tour="store-select">
                 <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                  Store Location <span className="text-xs font-normal text-gray-500">(within {TRAINING_GEOFENCE_RADIUS}m)</span>
+                  Store Location
                 </label>
                 {mappingLoading ? (
                   <div className="w-full p-3 bg-gray-100 dark:bg-slate-700 rounded-md animate-pulse text-sm">
                     Loading stores...
                   </div>
-                ) : geoLocation.loading ? (
-                  <div className="w-full p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md text-blue-700 dark:text-blue-300 text-sm">
-                    📍 Waiting for GPS location to load nearby stores...
-                  </div>
-                ) : geoLocation.error ? (
-                  <div className="w-full p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
-                    ⚠️ Enable location access to see available stores.
-                    <button type="button" onClick={captureGeolocation} className="ml-2 underline font-medium">Retry</button>
-                  </div>
                 ) : availableStores.length === 0 ? (
                   <div className="w-full p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md text-amber-700 dark:text-amber-300 text-sm">
-                    No stores found within {TRAINING_GEOFENCE_RADIUS}m. Move closer to a store location.
-                    <button type="button" onClick={captureGeolocation} className="ml-2 underline font-medium">Refresh GPS</button>
+                    No stores found. Please check your connection.
                   </div>
                 ) : (
                   <div className="relative">
@@ -2537,11 +2500,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
                                 autoFillFields('store', store.id as string);
                                 setStoreSearchTerm('');
                                 setShowStoreDropdown(false);
-                                // Geofence check
-                                if (geoLocation.latitude !== null && geoLocation.longitude !== null) {
-                                  const result = checkGeofence(store.id as string, geoLocation.latitude, geoLocation.longitude, TRAINING_GEOFENCE_RADIUS);
-                                  setGeofenceResult(result);
-                                }
+
                               }}
                               className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm break-words ${index === selectedStoreIndex ? 'bg-gray-100 dark:bg-slate-700' : ''
                                 }`}
@@ -2619,7 +2578,6 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
             <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-slate-100 mb-3 flex items-center gap-2">
               <MapPin className="w-5 h-5 text-emerald-600" />
               Location Verification
-              <span className="text-xs font-normal text-gray-500 dark:text-slate-400">({TRAINING_GEOFENCE_RADIUS}m radius)</span>
             </h2>
 
             {geoLocation.loading ? (
@@ -2685,26 +2643,7 @@ const TrainingChecklist: React.FC<TrainingChecklistProps> = ({ onStatsUpdate }) 
               </div>
             )}
 
-            {/* Geofence Status */}
-            {meta.storeId && !geoLocation.loading && !geoLocation.error && geofenceResult && (
-              <div className="mt-3">
-                {geofenceResult.allowed ? (
-                  <div className="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                    <MapPin className="w-4 h-4 text-emerald-600" />
-                    <span className="text-emerald-700 dark:text-emerald-300 text-sm">
-                      ✅ Within geofence — {geofenceResult.distance}m from {geofenceResult.storeName}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                    <AlertTriangle className="w-4 h-4 text-red-500" />
-                    <span className="text-red-700 dark:text-red-300 text-sm">
-                      ❌ Outside geofence — {geofenceResult.distance}m from {geofenceResult.storeName} (must be within {TRAINING_GEOFENCE_RADIUS}m)
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
+
           </div>
 
           {/* Training sections - Full Width */}
