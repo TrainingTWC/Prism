@@ -193,7 +193,7 @@ export const STORE_COORDINATES: Record<string, StoreCoordinate> = {
   'S111': { lat: 19.011983, lng: 73.035755, name: 'CBD Belapur' },
   'S116': { lat: 0, lng: 0, name: 'Santacruz West' },
   'S117': { lat: 19.107863, lng: 72.882543, name: 'Marol Andheri East' },
-  'S118': { lat: 19.064217, lng: 73.005138, name: 'Inorbit Mall-Vashi' },
+  'S118': { lat: 19.065621, lng: 73.000742, name: 'Inorbit Mall-Vashi' },
   'S127': { lat: 19.010567, lng: 73.011978, name: 'Seawoods Navi Mumbai' },
   'S128': { lat: 18.484655, lng: 73.887181, name: 'Bibwewadi' },
   'S130': { lat: 18.596267, lng: 73.797365, name: 'Pimple Saudagar Hill Crest' },
