@@ -697,10 +697,12 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
 
   // Image handling — uses shared compressor (1280px / 0.75 / <=500KB target)
   // so the entire submission fits in one GAS POST without silent drops.
-  const handleImageUpload = async (questionId: string, files: FileList) => {
-    for (const file of Array.from(files)) {
+  const handleImageUpload = async (questionId: string, objectUrls: string[]) => {
+    for (const objectUrl of objectUrls) {
       try {
-        const compressed = await compressImage(file, { maxDimension: 1280, quality: 0.75, maxBytes: 500 * 1024 });
+        const compressed = await compressImage(objectUrl, { maxDimension: 1280, quality: 0.75, maxBytes: 500 * 1024 });
+        // Revoke the object URL after compression to free memory
+        if (objectUrl.startsWith('blob:')) URL.revokeObjectURL(objectUrl);
         setQuestionImages(prev => {
           const next = { ...prev, [questionId]: [...(prev[questionId] || []), compressed] };
           const totalBytes = imageMapByteSize(next);
@@ -710,6 +712,7 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
           return next;
         });
       } catch (err) {
+        if (objectUrl.startsWith('blob:')) URL.revokeObjectURL(objectUrl);
         console.error('Failed to compress image:', err);
         alert('Could not add this image. Try a different photo.');
       }
@@ -1200,14 +1203,14 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                                   </svg>
                                   📷 Camera
-                                  <input type="file" accept="image/*" capture="environment" onChange={(e) => { const files = e.target.files; if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files); e.target.value = ''; }} className="hidden" />
+                                  <input type="file" accept="image/*" capture="environment" onChange={(e) => { const fileList = e.target.files; if (!fileList || fileList.length === 0) return; const urls = Array.from(fileList).map(f => URL.createObjectURL(f)); e.target.value = ''; handleImageUpload(`${section.id}_${item.id}`, urls); }} className="hidden" />
                                 </label>
                                 <label className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-lg cursor-pointer text-sm font-medium transition-colors min-h-[48px] sm:min-h-0">
                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                   </svg>
                                   🖼️ Gallery (Multiple)
-                                  <input type="file" accept="image/*" multiple onChange={(e) => { const files = e.target.files; if (files && files.length > 0) handleImageUpload(`${section.id}_${item.id}`, files); e.target.value = ''; }} className="hidden" />
+                                  <input type="file" accept="image/*" multiple onChange={(e) => { const fileList = e.target.files; if (!fileList || fileList.length === 0) return; const urls = Array.from(fileList).map(f => URL.createObjectURL(f)); e.target.value = ''; handleImageUpload(`${section.id}_${item.id}`, urls); }} className="hidden" />
                                 </label>
                               </div>
 
