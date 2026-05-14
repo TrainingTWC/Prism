@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { buildTrainingPDF } from '../src/utils/trainingReport';
 import buildOperationsPDF from '@/src/utils/operationsReport';
 import { buildQAPDF } from '../src/utils/qaReport';
+import buildPreLaunchPDF from '../src/utils/preLaunchReport';
 import { buildHRPDF } from '../src/utils/hrReport';
 import { buildSHLPPDF } from '../src/utils/shlpReport';
 import { buildFinancePDF } from '../src/utils/financeReport';
@@ -338,6 +339,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   const [qaEditSubmission, setQAEditSubmission] = useState<QASubmission | null>(null);
   const [showPreLaunchEdit, setShowPreLaunchEdit] = useState(false);
   const [preLaunchEditSubmission, setPreLaunchEditSubmission] = useState<PreLaunchSubmission | null>(null);
+  const [isGeneratingPreLaunchPDF, setIsGeneratingPreLaunchPDF] = useState(false);
 
   // HR detail modal state
   const [showHRDetail, setShowHRDetail] = useState(false);
@@ -7279,15 +7281,58 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                                         </span>
                                       </td>
                                       <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                        <button
-                                          onClick={() => {
-                                            setPreLaunchEditSubmission(submission);
-                                            setShowPreLaunchEdit(true);
-                                          }}
-                                          className="inline-flex items-center px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium rounded-lg transition-colors"
-                                        >
-                                          ✏️ Edit
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                          <button
+                                            onClick={() => {
+                                              setPreLaunchEditSubmission(submission);
+                                              setShowPreLaunchEdit(true);
+                                            }}
+                                            className="inline-flex items-center px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium rounded-lg transition-colors"
+                                          >
+                                            ✏️ Edit
+                                          </button>
+                                          <button
+                                            disabled={isGeneratingPreLaunchPDF}
+                                            onClick={async () => {
+                                              setIsGeneratingPreLaunchPDF(true);
+                                              try {
+                                                // Load images: try submission blob fields first
+                                                let questionImages: Record<string, string[]> = {};
+                                                const candidates = [
+                                                  (submission as any).questionImagesJSON,
+                                                  (submission as any)['Images JSON'],
+                                                  (submission as any)['Question Images JSON'],
+                                                ];
+                                                for (const v of candidates) {
+                                                  if (!v) continue;
+                                                  try {
+                                                    const parsed = typeof v === 'object' ? v : JSON.parse(v);
+                                                    if (parsed && Object.keys(parsed).length > 0) { questionImages = parsed; break; }
+                                                  } catch { /* try next */ }
+                                                }
+                                                // Fallback: per-submission localStorage cache
+                                                if (Object.keys(questionImages).length === 0) {
+                                                  const submissionId = String((submission as any).submissionTime || (submission as any)['Submission Time'] || '').trim();
+                                                  const storeId = String((submission as any).storeId || (submission as any)['Store ID'] || '').trim();
+                                                  const cached = localStorage.getItem(`prelaunch_audit_images::${submissionId}::${storeId}`);
+                                                  if (cached) { try { questionImages = JSON.parse(cached); } catch { /* ignore */ } }
+                                                }
+                                                const storeName = (submission as any).storeName || (submission as any)['Store Name'] || 'Store';
+                                                const dateStr = new Date().toISOString().split('T')[0];
+                                                const pdf = await buildPreLaunchPDF(submission, { title: 'Pre-Launch Audit Report' }, questionImages);
+                                                pdf.save(`PreLaunch_${storeName}_${dateStr}.pdf`);
+                                              } catch (err) {
+                                                console.error('Pre-Launch PDF error:', err);
+                                                alert('Failed to generate PDF. See console for details.');
+                                              } finally {
+                                                setIsGeneratingPreLaunchPDF(false);
+                                              }
+                                            }}
+                                            className="inline-flex items-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-colors"
+                                          >
+                                            {isGeneratingPreLaunchPDF ? '⏳' : '📥'} PDF
+                                          </button>
+                                        </div>
                                       </td>
                                     </tr>
                                   ))}
