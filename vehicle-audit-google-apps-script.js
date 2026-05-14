@@ -296,9 +296,24 @@ function getVehicleAuditData(params) {
   if (!sheet) return jsonResp([]);
 
   var lastRow = sheet.getLastRow();
+  if (lastRow < 1) return jsonResp([]);
+
+  var data = sheet.getDataRange().getValues();
+
+  // Auto-fix missing header row
+  var expectedHeaders = vehicleAuditHeaders();
+  if (String(data[0][0]).trim() !== 'Timestamp') {
+    sheet.insertRowBefore(1);
+    sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders]);
+    sheet.getRange(1, 1, 1, expectedHeaders.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    Logger.log('⚠️ Vehicle Audits header row was missing — inserted automatically');
+    data = sheet.getDataRange().getValues();
+    lastRow = sheet.getLastRow();
+  }
+
   if (lastRow <= 1) return jsonResp([]);
 
-  var data    = sheet.getDataRange().getValues();
   var headers = data[0];
   var tz      = Session.getScriptTimeZone();
   var records = [];

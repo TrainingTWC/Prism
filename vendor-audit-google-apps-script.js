@@ -1094,9 +1094,24 @@ function getVendorAuditData(params) {
   if (!sheet) return json([]);
 
   var lastRow = sheet.getLastRow();
-  if (lastRow <= 1) return json([]);
+  if (lastRow < 1) return json([]);
 
   var data = sheet.getDataRange().getValues();
+
+  // Auto-fix missing header row
+  var expectedHeaders = vendorAuditHeaders();
+  if (String(data[0][0]).trim() !== 'Timestamp') {
+    sheet.insertRowBefore(1);
+    sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders]);
+    sheet.getRange(1, 1, 1, expectedHeaders.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    Logger.log('⚠️ Vendor Audits header row was missing — inserted automatically');
+    data = sheet.getDataRange().getValues();
+    lastRow = sheet.getLastRow();
+  }
+
+  if (lastRow <= 1) return json([]);
+
   var headers = data[0];
   var submissions = [];
 

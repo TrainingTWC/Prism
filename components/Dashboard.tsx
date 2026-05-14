@@ -16,7 +16,7 @@ const ThirdRushDashboard = lazy(() => import('./third-rush/ThirdRushDashboard'))
 import { Users, Clipboard, GraduationCap, BarChart3, Brain, Calendar, CheckCircle, TrendingUp, Target } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Submission, Store } from '../types';
-import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, fetchFinanceHistoricData, fetchPreLaunchData, fetchHRAuditData, fetchTrainingImages, FinanceHistoricData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission, PreLaunchSubmission, HRAuditSubmission } from '../services/dataService';
+import { fetchSubmissions, fetchAMOperationsData, fetchTrainingData, fetchQAData, fetchFinanceData, fetchCampusHiringData, fetchFinanceHistoricData, fetchPreLaunchData, fetchHRAuditData, fetchTrainingImages, fetchVendorAuditData, fetchVehicleAuditData, fetchCFAuditData, FinanceHistoricData, AMOperationsSubmission, TrainingAuditSubmission, QASubmission, FinanceSubmission, CampusHiringSubmission, PreLaunchSubmission, HRAuditSubmission, VendorAuditSubmission, VehicleAuditSubmission, CFAuditSubmission } from '../services/dataService';
 import { fetchSHLPData, SHLPSubmission } from '../services/shlpDataService';
 import { hapticFeedback } from '../utils/haptics';
 import { loadComprehensiveMapping } from '../utils/mappingUtils';
@@ -112,6 +112,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   const [qaData, setQAData] = useState<QASubmission[]>([]);
   const [preLaunchData, setPreLaunchData] = useState<PreLaunchSubmission[]>([]);
   const [hrAuditData, setHRAuditData] = useState<HRAuditSubmission[]>([]);
+  const [vendorAuditData, setVendorAuditData] = useState<VendorAuditSubmission[]>([]);
+  const [vehicleAuditData, setVehicleAuditData] = useState<VehicleAuditSubmission[]>([]);
+  const [cfAuditData, setCFAuditData] = useState<CFAuditSubmission[]>([]);
   const [qaSubTab, setQaSubTab] = useState<'store-qa' | 'pre-launch'>('store-qa');
   const [preLaunchFilters, setPreLaunchFilters] = useState({ region: '', store: '', auditor: '', dateFrom: '', dateTo: '' });
   const [hrSubTab, setHrSubTab] = useState<'hr-connect' | 'hr-audit'>('hr-connect');
@@ -149,7 +152,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     hrAudit: false,
     finance: false,
     campusHiring: false,
-    shlp: false
+    shlp: false,
+    vendorAudit: false,
+    vehicleAudit: false,
+    cfAudit: false
   });
 
   const [filters, setFilters] = useState({
@@ -279,6 +285,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       { id: 'bench-planning-sm-asm', label: 'Bench Planning (SM to ASM)', access: 'bench-planning-sm-asm-dashboard' },
       { id: 'tat-tracker', label: 'TAT Tracker', access: 'tat-tracker-dashboard' },
       { id: 'third-rush', label: 'Third Rush', access: 'third-rush-dashboard' },
+      { id: 'vendor-audit', label: 'Vendor Audit', access: 'qa-dashboard' },
+      { id: 'vehicle-audit', label: 'Vehicle Audit', access: 'qa-dashboard' },
+      { id: 'cf-audit', label: 'CF Audit', access: 'qa-dashboard' },
       { id: 'map-view', label: 'Map View', access: 'editor-only' },
       { id: 'consolidated', label: 'Consolidated View', access: 'all' }
     ];
@@ -642,6 +651,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         finance: dataLoadedFlags.finance,
         'campus-hiring': dataLoadedFlags.campusHiring,
         shlp: dataLoadedFlags.shlp,
+        'vendor-audit': dataLoadedFlags.vendorAudit,
+        'vehicle-audit': dataLoadedFlags.vehicleAudit,
+        'cf-audit': dataLoadedFlags.cfAudit,
         'trainer-calendar': true,       // calendar has no separate fetch
         'bench-planning': true,         // bench planning has no separate fetch
         'bench-planning-sm-asm': true,  // bench planning sm/asm has no separate fetch
@@ -814,6 +826,45 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
           }).catch(err => {
             console.error('❌ Failed to load SHLP data:', err);
             setDataLoadedFlags(prev => ({ ...prev, shlp: true }));
+          })
+        );
+      }
+
+      // Load Vendor Audit data
+      if ((targetDashboard === 'vendor-audit') && (!dataLoadedFlags.vendorAudit || isRefresh)) {
+        loadPromises.push(
+          fetchVendorAuditData(isRefresh).then(data => {
+            setVendorAuditData(data);
+            setDataLoadedFlags(prev => ({ ...prev, vendorAudit: true }));
+          }).catch(err => {
+            console.error('❌ Failed to load Vendor Audit data:', err);
+            setDataLoadedFlags(prev => ({ ...prev, vendorAudit: true }));
+          })
+        );
+      }
+
+      // Load Vehicle Audit data
+      if ((targetDashboard === 'vehicle-audit') && (!dataLoadedFlags.vehicleAudit || isRefresh)) {
+        loadPromises.push(
+          fetchVehicleAuditData(isRefresh).then(data => {
+            setVehicleAuditData(data);
+            setDataLoadedFlags(prev => ({ ...prev, vehicleAudit: true }));
+          }).catch(err => {
+            console.error('❌ Failed to load Vehicle Audit data:', err);
+            setDataLoadedFlags(prev => ({ ...prev, vehicleAudit: true }));
+          })
+        );
+      }
+
+      // Load CF Audit data
+      if ((targetDashboard === 'cf-audit') && (!dataLoadedFlags.cfAudit || isRefresh)) {
+        loadPromises.push(
+          fetchCFAuditData(isRefresh).then(data => {
+            setCFAuditData(data);
+            setDataLoadedFlags(prev => ({ ...prev, cfAudit: true }));
+          }).catch(err => {
+            console.error('❌ Failed to load CF Audit data:', err);
+            setDataLoadedFlags(prev => ({ ...prev, cfAudit: true }));
           })
         );
       }
@@ -1743,6 +1794,75 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     return filtered;
   }, [financeData, filters, userRole]);
 
+  const filteredVendorAuditData = useMemo(() => {
+    if (!vendorAuditData) return [];
+    return vendorAuditData.filter((s: VendorAuditSubmission) => {
+      if (filters.region && s.region !== filters.region) return false;
+      if (filters.am && normalizeId(s.auditorId) !== normalizeId(filters.am)) return false;
+      if (filters.dateFrom || filters.dateTo) {
+        const dateStr = String(s.submissionTime || '').trim();
+        if (!dateStr) return false;
+        let date: Date;
+        if (dateStr.includes('/')) {
+          const parts = dateStr.split(',')[0].trim().split(' ')[0].split('/');
+          if (parts.length === 3) date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          else return false;
+        } else { date = new Date(dateStr); }
+        if (isNaN(date.getTime())) return false;
+        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        if (filters.dateFrom && d < new Date(filters.dateFrom)) return false;
+        if (filters.dateTo && d > new Date(filters.dateTo)) return false;
+      }
+      return true;
+    });
+  }, [vendorAuditData, filters]);
+
+  const filteredVehicleAuditData = useMemo(() => {
+    if (!vehicleAuditData) return [];
+    return vehicleAuditData.filter((s: VehicleAuditSubmission) => {
+      if (filters.region && s.region !== filters.region) return false;
+      if (filters.am && normalizeId(s.auditorId) !== normalizeId(filters.am)) return false;
+      if (filters.dateFrom || filters.dateTo) {
+        const dateStr = String(s.submissionTime || '').trim();
+        if (!dateStr) return false;
+        let date: Date;
+        if (dateStr.includes('/')) {
+          const parts = dateStr.split(',')[0].trim().split(' ')[0].split('/');
+          if (parts.length === 3) date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          else return false;
+        } else { date = new Date(dateStr); }
+        if (isNaN(date.getTime())) return false;
+        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        if (filters.dateFrom && d < new Date(filters.dateFrom)) return false;
+        if (filters.dateTo && d > new Date(filters.dateTo)) return false;
+      }
+      return true;
+    });
+  }, [vehicleAuditData, filters]);
+
+  const filteredCFAuditData = useMemo(() => {
+    if (!cfAuditData) return [];
+    return cfAuditData.filter((s: CFAuditSubmission) => {
+      if (filters.region && s.region !== filters.region) return false;
+      if (filters.am && normalizeId(s.auditorId) !== normalizeId(filters.am)) return false;
+      if (filters.dateFrom || filters.dateTo) {
+        const dateStr = String(s.submissionTime || '').trim();
+        if (!dateStr) return false;
+        let date: Date;
+        if (dateStr.includes('/')) {
+          const parts = dateStr.split(',')[0].trim().split(' ')[0].split('/');
+          if (parts.length === 3) date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          else return false;
+        } else { date = new Date(dateStr); }
+        if (isNaN(date.getTime())) return false;
+        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        if (filters.dateFrom && d < new Date(filters.dateFrom)) return false;
+        if (filters.dateTo && d > new Date(filters.dateTo)) return false;
+      }
+      return true;
+    });
+  }, [cfAuditData, filters]);
+
   const stats = useMemo(() => {
     // For QA dashboard, use QA Assessment data or Pre-Launch data based on subtab
     if (dashboardType === 'qa') {
@@ -1796,6 +1916,39 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         uniqueAuditors,
         uniqueStores
       };
+    }
+
+    // For Vendor Audit dashboard
+    if (dashboardType === 'vendor-audit') {
+      const totalSubmissions = filteredVendorAuditData.length;
+      const avgScore = totalSubmissions > 0
+        ? filteredVendorAuditData.reduce((acc, s) => acc + Number(s.scorePercentage || 0), 0) / totalSubmissions
+        : 0;
+      const uniqueAuditors = new Set(filteredVendorAuditData.map(s => s.auditorId)).size;
+      const uniqueVendors = new Set(filteredVendorAuditData.map(s => s.vendorName)).size;
+      return { totalSubmissions, avgScore: Math.round(avgScore), uniqueAuditors, uniqueVendors };
+    }
+
+    // For Vehicle Audit dashboard
+    if (dashboardType === 'vehicle-audit') {
+      const totalSubmissions = filteredVehicleAuditData.length;
+      const avgScore = totalSubmissions > 0
+        ? filteredVehicleAuditData.reduce((acc, s) => acc + Number(s.scorePercentage || 0), 0) / totalSubmissions
+        : 0;
+      const uniqueAuditors = new Set(filteredVehicleAuditData.map(s => s.auditorId)).size;
+      const uniqueVehicles = new Set(filteredVehicleAuditData.map(s => s.subjectName)).size;
+      return { totalSubmissions, avgScore: Math.round(avgScore), uniqueAuditors, uniqueVehicles };
+    }
+
+    // For CF Audit dashboard
+    if (dashboardType === 'cf-audit') {
+      const totalSubmissions = filteredCFAuditData.length;
+      const avgScore = totalSubmissions > 0
+        ? filteredCFAuditData.reduce((acc, s) => acc + Number(s.scorePercentage || 0), 0) / totalSubmissions
+        : 0;
+      const uniqueAuditors = new Set(filteredCFAuditData.map(s => s.auditorId)).size;
+      const uniqueCFs = new Set(filteredCFAuditData.map(s => s.subjectName)).size;
+      return { totalSubmissions, avgScore: Math.round(avgScore), uniqueAuditors, uniqueCFs };
     }
 
     // For SHLP dashboard, use SHLP Certification data
@@ -2408,7 +2561,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       workingDaysInMonth,
       numHRBPs
     };
-  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, filteredQAData, filteredPreLaunchData, filteredFinanceData, filteredSHLPData, dashboardType, qaSubTab, trendsData, trendsLoading, trainingData, filters, employeeDirectory, employeeLoading]);
+  }, [filteredSubmissions, filteredAMOperations, filteredTrainingData, filteredQAData, filteredPreLaunchData, filteredFinanceData, filteredSHLPData, filteredVendorAuditData, filteredVehicleAuditData, filteredCFAuditData, dashboardType, qaSubTab, trendsData, trendsLoading, trainingData, filters, employeeDirectory, employeeLoading]);
 
   // Helper to compute the Average Score display string robustly
   const getAverageScoreDisplay = () => {
@@ -4439,7 +4592,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         </div>
 
         <div className="text-center text-sm text-gray-500 dark:text-slate-400 mt-4">
-          Loading {dashboardType === 'training' ? 'training' : dashboardType === 'operations' ? 'operations' : dashboardType === 'qa' ? 'QA' : dashboardType === 'hr' ? 'HR' : dashboardType === 'shlp' ? 'SHLP' : dashboardType === 'campus-hiring' ? 'Campus Hiring' : dashboardType === 'bench-planning' || dashboardType === 'bench-planning-sm-asm' ? 'Bench Planning' : ''} dashboard data...
+          Loading {dashboardType === 'training' ? 'training' : dashboardType === 'operations' ? 'operations' : dashboardType === 'qa' ? 'QA' : dashboardType === 'hr' ? 'HR' : dashboardType === 'shlp' ? 'SHLP' : dashboardType === 'campus-hiring' ? 'Campus Hiring' : dashboardType === 'bench-planning' || dashboardType === 'bench-planning-sm-asm' ? 'Bench Planning' : dashboardType === 'vendor-audit' ? 'Vendor Audit' : dashboardType === 'vehicle-audit' ? 'Vehicle Audit' : dashboardType === 'cf-audit' ? 'CF Audit' : ''} dashboard data...
         </div>
       </div>
     );
@@ -4703,6 +4856,21 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                     </svg>
                   );
+                  case 'vendor-audit': return (
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  );
+                  case 'vehicle-audit': return (
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 17a2 2 0 100-4 2 2 0 000 4zm8 0a2 2 0 100-4 2 2 0 000 4zM5 17H3v-4l2-5h12l2 5v4h-2M5 17h10" />
+                    </svg>
+                  );
+                  case 'cf-audit': return (
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                  );
                   default: return <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />;
                 }
               };
@@ -4720,6 +4888,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                   case 'bench-planning': return dashboardType === 'bench-planning' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'bench-planning-sm-asm': return dashboardType === 'bench-planning-sm-asm' ? 'bg-amber-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'map-view': return dashboardType === 'map-view' ? 'bg-cyan-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'vendor-audit': return dashboardType === 'vendor-audit' ? 'bg-teal-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'vehicle-audit': return dashboardType === 'vehicle-audit' ? 'bg-sky-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
+                  case 'cf-audit': return dashboardType === 'cf-audit' ? 'bg-rose-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   case 'consolidated': return dashboardType === 'consolidated' ? 'bg-slate-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                   default: return 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600';
                 }
@@ -4749,6 +4920,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
             {dashboardType === 'trainer-calendar' && 'View and manage trainer schedules and calendar events'}
             {dashboardType === 'bench-planning' && 'View Bench Planning progress for Barista to SM promotion track'}
             {dashboardType === 'bench-planning-sm-asm' && 'View Bench Planning progress for SM to ASM promotion track'}
+            {dashboardType === 'vendor-audit' && 'View insights from Vendor Food Safety Audit results'}
+            {dashboardType === 'vehicle-audit' && 'View insights from Vehicle Audit Checklist results'}
+            {dashboardType === 'cf-audit' && 'View insights from Central Facility (CF) Audit results'}
             {dashboardType === 'map-view' && 'Interactive map of all stores with colour-graded performance scores'}
             {dashboardType === 'consolidated' && 'View combined insights from all authorized checklist types'}
           </p>
@@ -8003,6 +8177,273 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                 </>
               )}
 
+              {/* Vendor Audit Dashboard Content */}
+              {dashboardType === 'vendor-audit' && (
+                <>
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
+                      <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider">Total Audits</p>
+                      <p className="text-3xl font-bold text-teal-600 dark:text-teal-400 mt-1">{filteredVendorAuditData.length}</p>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
+                      <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider">Avg Score</p>
+                      <p className={`text-3xl font-bold mt-1 ${
+                        filteredVendorAuditData.length === 0 ? 'text-gray-400' :
+                        (filteredVendorAuditData.reduce((a, s) => a + Number(s.scorePercentage || 0), 0) / filteredVendorAuditData.length) >= 80 ? 'text-green-600 dark:text-green-400' :
+                        (filteredVendorAuditData.reduce((a, s) => a + Number(s.scorePercentage || 0), 0) / filteredVendorAuditData.length) >= 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {filteredVendorAuditData.length > 0 ? Math.round(filteredVendorAuditData.reduce((a, s) => a + Number(s.scorePercentage || 0), 0) / filteredVendorAuditData.length) : 0}%
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
+                      <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider">Pass Rate (≥80%)</p>
+                      <p className="text-3xl font-bold text-teal-600 dark:text-teal-400 mt-1">
+                        {filteredVendorAuditData.length > 0
+                          ? Math.round((filteredVendorAuditData.filter(s => Number(s.scorePercentage || 0) >= 80).length / filteredVendorAuditData.length) * 100)
+                          : 0}%
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
+                      <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider">Unique Auditors</p>
+                      <p className="text-3xl font-bold text-teal-600 dark:text-teal-400 mt-1">
+                        {new Set(filteredVendorAuditData.map(s => s.auditorId)).size}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Recent Audits Table */}
+                  <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                      Recent Vendor Audits ({filteredVendorAuditData.length})
+                    </h3>
+                    {filteredVendorAuditData.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                          <thead>
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Vendor</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Location</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Auditor</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">City</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Region</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Score</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                            {filteredVendorAuditData.slice().sort((a, b) => {
+                              const da = new Date(String(a.submissionTime || ''));
+                              const db = new Date(String(b.submissionTime || ''));
+                              return db.getTime() - da.getTime();
+                            }).slice(0, 50).map((s, idx) => {
+                              const pct = Number(s.scorePercentage || 0);
+                              return (
+                                <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300 whitespace-nowrap">{s.submissionTime}</td>
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{s.vendorName}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-slate-400">{s.vendorLocation}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">{s.auditorName}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-slate-400">{s.city}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-slate-400">{s.region}</td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                      pct >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                      : pct >= 60 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                    }`}>{pct}%</span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 dark:text-slate-400 text-center py-8">No vendor audit data available.</p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Vehicle Audit Dashboard Content */}
+              {dashboardType === 'vehicle-audit' && (
+                <>
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
+                      <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider">Total Audits</p>
+                      <p className="text-3xl font-bold text-sky-600 dark:text-sky-400 mt-1">{filteredVehicleAuditData.length}</p>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
+                      <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider">Avg Score</p>
+                      <p className={`text-3xl font-bold mt-1 ${
+                        filteredVehicleAuditData.length === 0 ? 'text-gray-400' :
+                        (filteredVehicleAuditData.reduce((a, s) => a + Number(s.scorePercentage || 0), 0) / filteredVehicleAuditData.length) >= 80 ? 'text-green-600 dark:text-green-400' :
+                        (filteredVehicleAuditData.reduce((a, s) => a + Number(s.scorePercentage || 0), 0) / filteredVehicleAuditData.length) >= 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {filteredVehicleAuditData.length > 0 ? Math.round(filteredVehicleAuditData.reduce((a, s) => a + Number(s.scorePercentage || 0), 0) / filteredVehicleAuditData.length) : 0}%
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
+                      <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider">Pass Rate (≥80%)</p>
+                      <p className="text-3xl font-bold text-sky-600 dark:text-sky-400 mt-1">
+                        {filteredVehicleAuditData.length > 0
+                          ? Math.round((filteredVehicleAuditData.filter(s => Number(s.scorePercentage || 0) >= 80).length / filteredVehicleAuditData.length) * 100)
+                          : 0}%
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
+                      <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider">Unique Auditors</p>
+                      <p className="text-3xl font-bold text-sky-600 dark:text-sky-400 mt-1">
+                        {new Set(filteredVehicleAuditData.map(s => s.auditorId)).size}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Recent Audits Table */}
+                  <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                      Recent Vehicle Audits ({filteredVehicleAuditData.length})
+                    </h3>
+                    {filteredVehicleAuditData.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                          <thead>
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Vehicle No.</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Driver</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Auditor</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">City</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Region</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Score</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                            {filteredVehicleAuditData.slice().sort((a, b) => {
+                              const da = new Date(String(a.submissionTime || ''));
+                              const db = new Date(String(b.submissionTime || ''));
+                              return db.getTime() - da.getTime();
+                            }).slice(0, 50).map((s, idx) => {
+                              const pct = Number(s.scorePercentage || 0);
+                              return (
+                                <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300 whitespace-nowrap">{s.submissionTime}</td>
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{s.subjectName}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-slate-400">{s.subjectId}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">{s.auditorName}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-slate-400">{s.city}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-slate-400">{s.region}</td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                      pct >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                      : pct >= 60 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                    }`}>{pct}%</span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 dark:text-slate-400 text-center py-8">No vehicle audit data available.</p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* CF Audit Dashboard Content */}
+              {dashboardType === 'cf-audit' && (
+                <>
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
+                      <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider">Total Audits</p>
+                      <p className="text-3xl font-bold text-rose-600 dark:text-rose-400 mt-1">{filteredCFAuditData.length}</p>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
+                      <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider">Avg Score</p>
+                      <p className={`text-3xl font-bold mt-1 ${
+                        filteredCFAuditData.length === 0 ? 'text-gray-400' :
+                        (filteredCFAuditData.reduce((a, s) => a + Number(s.scorePercentage || 0), 0) / filteredCFAuditData.length) >= 80 ? 'text-green-600 dark:text-green-400' :
+                        (filteredCFAuditData.reduce((a, s) => a + Number(s.scorePercentage || 0), 0) / filteredCFAuditData.length) >= 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {filteredCFAuditData.length > 0 ? Math.round(filteredCFAuditData.reduce((a, s) => a + Number(s.scorePercentage || 0), 0) / filteredCFAuditData.length) : 0}%
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
+                      <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider">Pass Rate (≥80%)</p>
+                      <p className="text-3xl font-bold text-rose-600 dark:text-rose-400 mt-1">
+                        {filteredCFAuditData.length > 0
+                          ? Math.round((filteredCFAuditData.filter(s => Number(s.scorePercentage || 0) >= 80).length / filteredCFAuditData.length) * 100)
+                          : 0}%
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
+                      <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider">Unique Auditors</p>
+                      <p className="text-3xl font-bold text-rose-600 dark:text-rose-400 mt-1">
+                        {new Set(filteredCFAuditData.map(s => s.auditorId)).size}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Recent Audits Table */}
+                  <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                      Recent CF Audits ({filteredCFAuditData.length})
+                    </h3>
+                    {filteredCFAuditData.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                          <thead>
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">CF / Outlet</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Location</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Auditor</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">City</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Region</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Score</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                            {filteredCFAuditData.slice().sort((a, b) => {
+                              const da = new Date(String(a.submissionTime || ''));
+                              const db = new Date(String(b.submissionTime || ''));
+                              return db.getTime() - da.getTime();
+                            }).slice(0, 50).map((s, idx) => {
+                              const pct = Number(s.scorePercentage || 0);
+                              return (
+                                <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300 whitespace-nowrap">{s.submissionTime}</td>
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{s.subjectName}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-slate-400">{s.subjectId}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">{s.auditorName}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-slate-400">{s.city}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-slate-400">{s.region}</td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                      pct >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                      : pct >= 60 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                    }`}>{pct}%</span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 dark:text-slate-400 text-center py-8">No CF audit data available.</p>
+                    )}
+                  </div>
+                </>
+              )}
+
             </>
           )}
 
@@ -8039,7 +8480,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                       ? 'No QA checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
                       : dashboardType === 'finance'
                         ? 'No Finance Audit checklists found. Submit checklists through the Checklists & Surveys section to see data here.'
-                        : 'Try adjusting your filters to find data.'
+                        : dashboardType === 'vendor-audit'
+                          ? 'No Vendor Audit submissions found. Ensure the Vendor Audit script is deployed and the endpoint is configured.'
+                          : dashboardType === 'vehicle-audit'
+                            ? 'No Vehicle Audit submissions found. Ensure the Vehicle Audit script is deployed and the endpoint is configured.'
+                            : dashboardType === 'cf-audit'
+                              ? 'No CF Audit submissions found. Ensure the CF Audit script is deployed and the endpoint is configured.'
+                              : 'Try adjusting your filters to find data.'
                 }
               </p>
             </>
