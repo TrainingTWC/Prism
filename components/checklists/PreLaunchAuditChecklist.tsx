@@ -474,7 +474,7 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (forceCreate = false) => {
     const requiredFields: (keyof SurveyMeta)[] = ['auditorName', 'auditorId', 'storeName'];
     const missingFields = requiredFields.filter(field => !meta[field]);
 
@@ -546,10 +546,11 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
 
       const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100 * 100) / 100 : 0;
 
+      const isCreate = forceCreate || !editMode;
       const params: Record<string, string> = {
-        submissionTime: editMode && existingSubmission?.submissionTime
-          ? existingSubmission.submissionTime
-          : (() => { const d = new Date(); const p = (n: number) => String(n).padStart(2, '0'); return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; })(),
+        submissionTime: isCreate
+          ? (() => { const d = new Date(); const p = (n: number) => String(n).padStart(2, '0'); return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; })()
+          : (existingSubmission?.submissionTime || ''),
         auditType: 'pre-launch-audit',
         auditorName: meta.auditorName || '',
         auditorId: meta.auditorId || '',
@@ -562,8 +563,8 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
         scorePercentage: String(scorePercentage),
         auditorSignature: signatures.auditor || '',
         smSignature: signatures.sm || '',
-        action: editMode ? 'update' : 'createPreLaunchAudit',
-        rowId: editMode && existingSubmission?.submissionTime ? String(existingSubmission.submissionTime) : '',
+        action: isCreate ? 'createPreLaunchAudit' : 'update',
+        rowId: !isCreate && existingSubmission?.submissionTime ? String(existingSubmission.submissionTime) : '',
         ...Object.fromEntries(Object.entries(responses).map(([k, v]) => [k, String(v)])),
         ...Object.fromEntries(Object.entries(questionRemarks).map(([k, v]) => [`${k}_remark`, String(v)])),
         ...Object.fromEntries(Object.entries(questionImages).map(([k, v]) => [`${k}_imageCount`, String(v.length)])),
@@ -587,10 +588,14 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
       const hasImages = Object.keys(questionImages).length > 0;
       if (imagesJSON.length < 500000) {
         params.questionImagesJSON = imagesJSON;
-      } else if (hasImages) {
+      } else if (hasImages && !isCreate) {
+        // Edit-mode update only: omit images to preserve existing sheet value.
         console.warn('⚠️ Pre-Launch images too large for single POST (' + (imagesJSON.length / 1024).toFixed(0) + 'KB). Cached locally; omitting from POST to avoid sheet overwrite.');
-        // Intentionally DO NOT set params.questionImagesJSON — preserves any
-        // existing sheet value during edit-mode updates.
+      } else if (hasImages && isCreate) {
+        // New submission from draft — always include images even if large.
+        // Split into chunks if necessary is future work; for now include and warn.
+        console.warn('⚠️ Pre-Launch images large (' + (imagesJSON.length / 1024).toFixed(0) + 'KB) but including in new submission from draft.');
+        params.questionImagesJSON = imagesJSON;
       } else {
         params.questionImagesJSON = '{}';
       }
@@ -695,8 +700,8 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
 
       setSubmitted(true);
 
-      if (editMode) {
-        alert(editMode ? 'Pre-Launch Audit updated successfully!' : 'Pre-Launch Audit submitted successfully!');
+      if (editMode || forceCreate) {
+        alert(isCreate ? 'Pre-Launch Audit submitted successfully!' : 'Pre-Launch Audit updated successfully!');
         setTimeout(() => { window.location.reload(); }, 500);
       }
     } catch (error) {
@@ -1344,10 +1349,18 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
             🧪 Autofill Test Data
           </button>
         </div>
-        <button onClick={handleSubmit} disabled={isLoading}
-          className="px-4 sm:px-6 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-indigo-400 text-white rounded-lg font-medium transition-colors order-1 sm:order-2 min-h-[52px] text-base sm:text-base">
-          {isLoading ? (editMode ? 'Updating...' : 'Submitting...') : (editMode ? '🔄 Update Audit' : '📤 Submit Pre-Launch Audit')}
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 order-1 sm:order-2">
+          {editMode && currentDraftId && (
+            <button onClick={() => handleSubmit(true)} disabled={isLoading}
+              className="px-4 sm:px-6 py-3 bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:bg-green-400 text-white rounded-lg font-medium transition-colors min-h-[52px] text-base">
+              {isLoading ? 'Submitting...' : '📤 Submit Draft'}
+            </button>
+          )}
+          <button onClick={() => handleSubmit()} disabled={isLoading}
+            className="px-4 sm:px-6 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-indigo-400 text-white rounded-lg font-medium transition-colors min-h-[52px] text-base sm:text-base">
+            {isLoading ? (editMode && !currentDraftId ? 'Updating...' : 'Submitting...') : (editMode ? '🔄 Update Audit' : '📤 Submit Pre-Launch Audit')}
+          </button>
+        </div>
       </div>
 
       {/* Image Editor Modal */}
