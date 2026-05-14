@@ -670,6 +670,18 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
       }
 
       if (currentDraftId) {
+        // Delete the draft from the backend sheet so it no longer appears in the drafts list
+        try {
+          const deleteParams = new URLSearchParams({ action: 'deletePreLaunchAuditDraft', draftId: currentDraftId });
+          await fetch(PRE_LAUNCH_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: deleteParams.toString(),
+            redirect: 'follow'
+          });
+        } catch (e) {
+          console.warn('Could not delete draft from backend after submission:', e);
+        }
         const updatedDrafts = drafts.filter(d => d.id !== currentDraftId);
         setDrafts(updatedDrafts);
         setCurrentDraftId(null);
