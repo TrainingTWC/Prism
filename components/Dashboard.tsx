@@ -76,6 +76,7 @@ import QASectionScoresInfographic from './QASectionScoresInfographic';
 import QAAMPerformanceInfographic from './QAAMPerformanceInfographic';
 import QAAverageScoreChart from './QAAverageScoreChart';
 import QAEditModal from './QAEditModal';
+import PreLaunchEditModal from './PreLaunchEditModal';
 import CampusHiringStats from './CampusHiringStats';
 import TrainerCalendarDashboard from './TrainerCalendarDashboard';
 import BenchPlanningDashboard from './BenchPlanningDashboard';
@@ -335,6 +336,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   // QA Edit modal state
   const [showQAEdit, setShowQAEdit] = useState(false);
   const [qaEditSubmission, setQAEditSubmission] = useState<QASubmission | null>(null);
+  const [showPreLaunchEdit, setShowPreLaunchEdit] = useState(false);
+  const [preLaunchEditSubmission, setPreLaunchEditSubmission] = useState<PreLaunchSubmission | null>(null);
 
   // HR detail modal state
   const [showHRDetail, setShowHRDetail] = useState(false);
@@ -7232,6 +7235,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Auditor</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">City</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Score</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
@@ -7273,6 +7277,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                                           }`}>
                                           {submission.scorePercentage || '0'}%
                                         </span>
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                        <button
+                                          onClick={() => {
+                                            setPreLaunchEditSubmission(submission);
+                                            setShowPreLaunchEdit(true);
+                                          }}
+                                          className="inline-flex items-center px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium rounded-lg transition-colors"
+                                        >
+                                          ✏️ Edit
+                                        </button>
                                       </td>
                                     </tr>
                                   ))}
@@ -8044,6 +8059,20 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
             loadData();
           }}
           submission={qaEditSubmission}
+          userRole={userRole}
+        />
+      )}
+
+      {/* Pre-Launch Edit Modal */}
+      {preLaunchEditSubmission && (
+        <PreLaunchEditModal
+          isOpen={showPreLaunchEdit}
+          onClose={() => {
+            setShowPreLaunchEdit(false);
+            setPreLaunchEditSubmission(null);
+            loadData();
+          }}
+          submission={preLaunchEditSubmission}
           userRole={userRole}
         />
       )}
