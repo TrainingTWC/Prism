@@ -571,32 +571,15 @@ const PreLaunchAuditChecklist: React.FC<PreLaunchAuditChecklistProps> = ({ userR
         questionRemarksJSON: JSON.stringify(questionRemarks)
       };
 
-      // Cache images locally keyed by submission so the PDF render can recover
-      // them even if GAS strips/truncates the blob. Without this, oversized
-      // submissions used to silently overwrite the sheet column with `{}`.
-      const submissionRowId = params.submissionTime || '';
-      const localImageKey = preLaunchImageKey(submissionRowId, params.storeId || '');
-      try {
-        if (Object.keys(questionImages).length > 0) {
-          localStorage.setItem(localImageKey, JSON.stringify(questionImages));
-        }
-      } catch (e) {
-        console.warn('Could not cache pre-launch audit images to localStorage:', e);
-      }
-
+      // Always send images as base64 — GAS will upload them to Google Drive
+      // and store the public URLs in the sheet, bypassing the 50KB cell limit.
       const imagesJSON = JSON.stringify(questionImages);
       const hasImages = Object.keys(questionImages).length > 0;
       if (hasImages) {
-        // Always include images — GAS web apps accept multi-MB POST bodies.
-        // Omitting them was the reason images never appeared in the sheet.
-        if (imagesJSON.length >= 500000) {
-          console.warn('⚠️ Large image payload (' + (imagesJSON.length / 1024).toFixed(0) + 'KB) — sending to GAS.');
-        }
         params.questionImagesJSON = imagesJSON;
       } else if (!isCreate) {
         // No images in current state on an update — leave unset so GAS preserves
-        // whatever images are already stored in the sheet.
-        console.log('No images in current state; preserving existing sheet images.');
+        // whatever Drive URLs are already stored in the sheet.
       } else {
         params.questionImagesJSON = '{}';
       }

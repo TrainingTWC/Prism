@@ -218,10 +218,94 @@ function preLaunchAuditHeaders() {
 // CREATE PRE-LAUNCH AUDIT (NEW SUBMISSION)
 // ===========================
 
+// ===========================
+// GOOGLE DRIVE IMAGE STORAGE
+// Images are saved to Drive to avoid the ~50KB Google Sheets cell limit.
+// Base64 data URLs are replaced with public Drive view URLs.
+// ===========================
+
+var DRIVE_FOLDER_NAME = 'PreLaunchAuditImages';
+
+function getDriveFolder() {
+  var folders = DriveApp.getFoldersByName(DRIVE_FOLDER_NAME);
+  if (folders.hasNext()) return folders.next();
+  return DriveApp.createFolder(DRIVE_FOLDER_NAME);
+}
+
+function persistImagesToDrive(questionImagesJSON, storeId, submissionRef) {
+  if (!questionImagesJSON || questionImagesJSON === '{}') return questionImagesJSON || '{}';
+
+  var images;
+  try { images = JSON.parse(questionImagesJSON); } catch (e) { return '{}'; }
+
+  // Check if any images are base64 (need uploading)
+  var hasBase64 = false;
+  for (var qk in images) {
+    var arr = images[qk];
+    if (!Array.isArray(arr)) continue;
+    for (var ai = 0; ai < arr.length; ai++) {
+      if (typeof arr[ai] === 'string' && arr[ai].indexOf('data:') === 0) { hasBase64 = true; break; }
+    }
+    if (hasBase64) break;
+  }
+  if (!hasBase64) return questionImagesJSON; // All already Drive URLs
+
+  var folder = getDriveFolder();
+  var safeStore = String(storeId || 'store').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 20);
+  var safeRef   = String(submissionRef || now()).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 20);
+  var result = {};
+
+  for (var questionId in images) {
+    var qImgs = images[questionId];
+    if (!Array.isArray(qImgs)) continue;
+    result[questionId] = [];
+    for (var j = 0; j < qImgs.length; j++) {
+      var img = qImgs[j];
+      if (typeof img === 'string' && img.indexOf('data:') === 0) {
+        try {
+          var url = uploadBase64ToDrive(img, folder, safeStore + '_' + safeRef + '_' + questionId + '_' + j);
+          result[questionId].push(url);
+          Logger.log('Uploaded image to Drive: ' + url);
+        } catch (e) {
+          Logger.log('Drive upload failed for ' + questionId + '[' + j + ']: ' + e);
+          // Skip unuploadable images rather than crash the whole submission
+        }
+      } else {
+        result[questionId].push(img); // Already a Drive URL, keep it
+      }
+    }
+  }
+
+  return JSON.stringify(result);
+}
+
+function uploadBase64ToDrive(dataUrl, folder, filename) {
+  var matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!matches) throw new Error('Invalid data URL');
+  var mimeType = matches[1];
+  var ext = (mimeType.split('/')[1] || 'jpg').split('+')[0];
+  var decoded = Utilities.base64Decode(matches[2]);
+  var blob = Utilities.newBlob(decoded, mimeType, filename + '.' + ext);
+  var file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return 'https://drive.google.com/uc?export=view&id=' + file.getId();
+}
+
+// ===========================
+// CREATE PRE-LAUNCH AUDIT (NEW SUBMISSION)
+// ===========================
+
 function createPreLaunchAudit(params) {
   var headers = preLaunchAuditHeaders();
   var sheet = getOrCreateSheet('Pre-Launch Audits', headers);
   var ts = now();
+
+  // Upload any base64 images to Google Drive before writing to sheet
+  params.questionImagesJSON = persistImagesToDrive(
+    params.questionImagesJSON,
+    params.storeId || params.storeName,
+    params.submissionTime || ts
+  );
 
   var row = buildAuditRow(params, ts);
   sheet.appendRow(row);
@@ -261,7 +345,7 @@ function updatePreLaunchAudit(params) {
 
   if (rowIndex === -1) return jsonResponse({ success: false, message: 'Row not found for rowId: ' + rowId });
 
-  // Preserve existing Images JSON if client omitted it (e.g. images were too large to POST)
+  // Preserve existing Images JSON if client omitted it
   if (!params.questionImagesJSON) {
     var existingRow = data[rowIndex - 1];
     var headers = preLaunchAuditHeaders();
@@ -271,7 +355,13 @@ function updatePreLaunchAudit(params) {
     }
   }
 
-  // Rebuild the full row with updated data (preserve original timestamp)
+  // Upload any new base64 images to Google Drive before writing to sheet
+  params.questionImagesJSON = persistImagesToDrive(
+    params.questionImagesJSON,
+    params.storeId || params.storeName,
+    rowId
+  );
+
   var updatedRow = buildAuditRow(params, String(data[rowIndex - 1][0]));
   sheet.getRange(rowIndex, 1, 1, updatedRow.length).setValues([updatedRow]);
 
