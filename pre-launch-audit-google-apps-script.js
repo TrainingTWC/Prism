@@ -156,6 +156,17 @@ function getOrCreateSheet(name, headers) {
       sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
       sheet.setFrozenRows(1);
     }
+  } else if (headers && headers.length > 0) {
+    // Sheet exists — check if the first row is actually a header row.
+    // If not (e.g. sheet was created manually without headers), insert one.
+    var firstCell = sheet.getLastRow() > 0 ? String(sheet.getRange(1, 1).getValue()).trim() : '';
+    if (firstCell !== headers[0]) {
+      sheet.insertRowBefore(1);
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+      sheet.setFrozenRows(1);
+      Logger.log('Inserted missing header row into sheet: ' + name);
+    }
   }
   return sheet;
 }
@@ -357,9 +368,27 @@ function getPreLaunchAuditData(params) {
   if (!sheet) return jsonResponse([]);
 
   var lastRow = sheet.getLastRow();
-  if (lastRow <= 1) return jsonResponse([]);
+  if (lastRow === 0) return jsonResponse([]);
 
   var data = sheet.getDataRange().getValues();
+
+  // ── Auto-fix missing headers ──────────────────────────────────────────────
+  // If the first cell is NOT 'Timestamp', the sheet was created without a
+  // header row. Insert one now so all future reads work correctly.
+  var expectedHeaders = preLaunchAuditHeaders();
+  if (String(data[0][0]).trim() !== 'Timestamp') {
+    sheet.insertRowBefore(1);
+    sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders]);
+    sheet.getRange(1, 1, 1, expectedHeaders.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    Logger.log('⚠️ Header row was missing — inserted automatically');
+    // Re-read with headers now in place
+    data = sheet.getDataRange().getValues();
+    lastRow = sheet.getLastRow();
+  }
+
+  if (lastRow <= 1) return jsonResponse([]);
+
   var headers = data[0];
   var tz = Session.getScriptTimeZone();
   var submissions = [];

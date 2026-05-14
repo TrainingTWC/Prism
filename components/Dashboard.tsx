@@ -752,17 +752,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
           })
         );
 
-        // Also load Pre-Launch Audit data alongside QA
+        // Load Pre-Launch Audit data independently (does NOT block QA tab render)
         if (!dataLoadedFlags.preLaunch || isRefresh) {
-          loadPromises.push(
-            fetchPreLaunchData(isRefresh).then(data => {
-              setPreLaunchData(data);
-              setDataLoadedFlags(prev => ({ ...prev, preLaunch: true }));
-            }).catch(err => {
-              console.error('❌ Failed to load Pre-Launch data:', err);
-              setDataLoadedFlags(prev => ({ ...prev, preLaunch: true }));
-            })
-          );
+          fetchPreLaunchData(isRefresh).then(data => {
+            setPreLaunchData(data);
+            setDataLoadedFlags(prev => ({ ...prev, preLaunch: true }));
+          }).catch(err => {
+            console.error('❌ Failed to load Pre-Launch data:', err);
+            setDataLoadedFlags(prev => ({ ...prev, preLaunch: true }));
+          });
+          // Intentionally NOT added to loadPromises — loads in background
         }
       }
 

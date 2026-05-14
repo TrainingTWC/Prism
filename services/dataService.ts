@@ -1357,7 +1357,8 @@ export const fetchPreLaunchData = async (forceRefresh = false): Promise<PreLaunc
   try {
     const data = await fetchWithRetry(
       PRE_LAUNCH_AUDIT_ENDPOINT + '?action=getData',
-      'Pre-Launch'
+      'Pre-Launch',
+      { maxRetries: 2, timeoutMs: 45000 }
     );
 
     if (!data || !Array.isArray(data)) {
