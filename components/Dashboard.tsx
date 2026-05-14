@@ -111,6 +111,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   const [preLaunchData, setPreLaunchData] = useState<PreLaunchSubmission[]>([]);
   const [hrAuditData, setHRAuditData] = useState<HRAuditSubmission[]>([]);
   const [qaSubTab, setQaSubTab] = useState<'store-qa' | 'pre-launch'>('store-qa');
+  const [preLaunchFilters, setPreLaunchFilters] = useState({ region: '', store: '', auditor: '', dateFrom: '', dateTo: '' });
   const [hrSubTab, setHrSubTab] = useState<'hr-connect' | 'hr-audit'>('hr-connect');
   const [financeData, setFinanceData] = useState<FinanceSubmission[]>([]);
   const [financeHistoricData, setFinanceHistoricData] = useState<FinanceHistoricData[]>([]);
@@ -1570,11 +1571,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     return filtered;
   }, [qaData, filters, userRole]);
 
-  // Filter Pre-Launch Audit data
+  // Filter Pre-Launch Audit data — uses its own preLaunchFilters (independent of global filters)
   const filteredPreLaunchData = useMemo(() => {
     if (!preLaunchData) return [];
 
-    let filtered = preLaunchData.filter((submission: PreLaunchSubmission) => {
+    return preLaunchData.filter((submission: PreLaunchSubmission) => {
       // Role-based access control
       if (userRole.role === 'store') {
         if (!canAccessStore(userRole, submission.storeId)) return false;
@@ -1584,10 +1585,21 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         if (!canAccessHR(userRole, (submission as any).amId)) return false;
       }
 
-      if (filters.region && submission.region !== filters.region) return false;
-      if (filters.store && submission.storeId !== filters.store) return false;
+      if (preLaunchFilters.region && submission.region !== preLaunchFilters.region) return false;
+      if (preLaunchFilters.store) {
+        const storeSearch = preLaunchFilters.store.toLowerCase();
+        const matchStore = (submission.storeName || '').toLowerCase().includes(storeSearch) ||
+          (submission.storeId || '').toLowerCase().includes(storeSearch);
+        if (!matchStore) return false;
+      }
+      if (preLaunchFilters.auditor) {
+        const audSearch = preLaunchFilters.auditor.toLowerCase();
+        const matchAud = (submission.auditorName || '').toLowerCase().includes(audSearch) ||
+          (submission.auditorId || '').toLowerCase().includes(audSearch);
+        if (!matchAud) return false;
+      }
 
-      if (filters.dateFrom || filters.dateTo) {
+      if (preLaunchFilters.dateFrom || preLaunchFilters.dateTo) {
         const submissionDate = submission.submissionTime;
         if (!submissionDate) return false;
         let date: Date;
@@ -1610,15 +1622,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
         if (isNaN(date.getTime())) return false;
         const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        if (filters.dateFrom && d < new Date(filters.dateFrom)) return false;
-        if (filters.dateTo && d > new Date(filters.dateTo)) return false;
+        if (preLaunchFilters.dateFrom && d < new Date(preLaunchFilters.dateFrom)) return false;
+        if (preLaunchFilters.dateTo && d > new Date(preLaunchFilters.dateTo)) return false;
       }
 
       return true;
     });
-
-    return filtered;
-  }, [preLaunchData, filters, userRole]);
+  }, [preLaunchData, preLaunchFilters, userRole]);
 
   // Filter HR Audit data
   const filteredHRAuditData = useMemo(() => {
@@ -7021,7 +7031,72 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                   {/* Pre-Launch Audit Content */}
                   {qaSubTab === 'pre-launch' && (
                     <>
-                      {filteredPreLaunchData.length === 0 ? (
+                      {/* Pre-Launch Independent Filters */}
+                      <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
+                        <div className="flex flex-wrap gap-3 items-end">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 uppercase tracking-wide">Region</label>
+                            <select
+                              value={preLaunchFilters.region}
+                              onChange={e => setPreLaunchFilters(f => ({ ...f, region: e.target.value }))}
+                              className="px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[140px]"
+                            >
+                              <option value="">All Regions</option>
+                              {[...new Set(preLaunchData.map(s => s.region).filter(Boolean))].sort().map(r => (
+                                <option key={r} value={r}>{r}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 uppercase tracking-wide">Store</label>
+                            <input
+                              type="text"
+                              placeholder="Search store..."
+                              value={preLaunchFilters.store}
+                              onChange={e => setPreLaunchFilters(f => ({ ...f, store: e.target.value }))}
+                              className="px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[160px]"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 uppercase tracking-wide">Auditor</label>
+                            <input
+                              type="text"
+                              placeholder="Search auditor..."
+                              value={preLaunchFilters.auditor}
+                              onChange={e => setPreLaunchFilters(f => ({ ...f, auditor: e.target.value }))}
+                              className="px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[160px]"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 uppercase tracking-wide">Date From</label>
+                            <input
+                              type="date"
+                              value={preLaunchFilters.dateFrom}
+                              onChange={e => setPreLaunchFilters(f => ({ ...f, dateFrom: e.target.value }))}
+                              className="px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[140px]"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 uppercase tracking-wide">Date To</label>
+                            <input
+                              type="date"
+                              value={preLaunchFilters.dateTo}
+                              onChange={e => setPreLaunchFilters(f => ({ ...f, dateTo: e.target.value }))}
+                              className="px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[140px]"
+                            />
+                          </div>
+                          {(preLaunchFilters.region || preLaunchFilters.store || preLaunchFilters.auditor || preLaunchFilters.dateFrom || preLaunchFilters.dateTo) && (
+                            <button
+                              onClick={() => setPreLaunchFilters({ region: '', store: '', auditor: '', dateFrom: '', dateTo: '' })}
+                              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors self-end"
+                            >
+                              Reset Filters
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {preLaunchData.length === 0 ? (
                         <div className="bg-white dark:bg-slate-800 rounded-xl p-8 border border-gray-200 dark:border-slate-700 text-center">
                           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
                             <svg className="w-8 h-8 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -7030,6 +7105,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                           </div>
                           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Pre-Launch Audits Yet</h3>
                           <p className="text-gray-600 dark:text-slate-400">Submit pre-launch audits through the Checklists & Surveys section to see data here.</p>
+                        </div>
+                      ) : filteredPreLaunchData.length === 0 ? (
+                        <div className="bg-white dark:bg-slate-800 rounded-xl p-8 border border-gray-200 dark:border-slate-700 text-center">
+                          <p className="text-gray-500 dark:text-slate-400 text-sm">No audits match the selected filters.</p>
+                          <button
+                            onClick={() => setPreLaunchFilters({ region: '', store: '', auditor: '', dateFrom: '', dateTo: '' })}
+                            className="mt-3 text-indigo-600 dark:text-indigo-400 text-sm hover:underline"
+                          >
+                            Clear filters
+                          </button>
                         </div>
                       ) : (
                         <>
