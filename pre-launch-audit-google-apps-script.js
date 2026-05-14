@@ -261,6 +261,16 @@ function updatePreLaunchAudit(params) {
 
   if (rowIndex === -1) return jsonResponse({ success: false, message: 'Row not found for rowId: ' + rowId });
 
+  // Preserve existing Images JSON if client omitted it (e.g. images were too large to POST)
+  if (!params.questionImagesJSON) {
+    var existingRow = data[rowIndex - 1];
+    var headers = preLaunchAuditHeaders();
+    var imagesColIndex = headers.indexOf('Images JSON');
+    if (imagesColIndex >= 0 && existingRow[imagesColIndex] !== undefined && existingRow[imagesColIndex] !== '') {
+      params.questionImagesJSON = String(existingRow[imagesColIndex]);
+    }
+  }
+
   // Rebuild the full row with updated data (preserve original timestamp)
   var updatedRow = buildAuditRow(params, String(data[rowIndex - 1][0]));
   sheet.getRange(rowIndex, 1, 1, updatedRow.length).setValues([updatedRow]);
