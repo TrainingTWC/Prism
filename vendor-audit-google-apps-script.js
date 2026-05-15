@@ -1086,11 +1086,16 @@ function createVendorAudit(params) {
   var ts = now();
 
   // Upload any base64 images to Google Drive before writing to sheet
-  params.questionImagesJSON = persistVAImagesToDrive(
-    params.questionImagesJSON,
-    params.vendorName || params.vendorId,
-    params.submissionTime || ts
-  );
+  try {
+    params.questionImagesJSON = persistVAImagesToDrive(
+      params.questionImagesJSON,
+      params.vendorName || params.vendorId,
+      params.submissionTime || ts
+    );
+  } catch (e) {
+    Logger.log('Drive image upload failed (create), saving without images: ' + e);
+    params.questionImagesJSON = '{}';
+  }
 
   var row = buildVendorAuditRow(params, ts);
   sheet.appendRow(row);
@@ -1139,11 +1144,15 @@ function updateVendorAudit(params) {
   }
 
   // Upload any new base64 images to Google Drive before writing to sheet
-  params.questionImagesJSON = persistVAImagesToDrive(
-    params.questionImagesJSON,
-    params.vendorName || params.vendorId,
-    rowId
-  );
+  try {
+    params.questionImagesJSON = persistVAImagesToDrive(
+      params.questionImagesJSON,
+      params.vendorName || params.vendorId,
+      rowId
+    );
+  } catch (e) {
+    Logger.log('Drive image upload failed (update), keeping existing images: ' + e);
+  }
 
   var updatedRow = buildVendorAuditRow(params, String(data[rowIndex - 1][0]));
   sheet.getRange(rowIndex, 1, 1, updatedRow.length).setValues([updatedRow]);
