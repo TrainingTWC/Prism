@@ -1114,7 +1114,13 @@ function updateVendorAudit(params) {
   var rowIndex = -1;
 
   for (var i = 1; i < data.length; i++) {
-    if (String(data[i][1] || '').trim() === rowId) {
+    // Google Sheets auto-converts ISO datetime strings to Date objects;
+    // normalise to ISO before comparing with the rowId string.
+    var cellVal = data[i][1];
+    var cellStr = (cellVal instanceof Date)
+      ? cellVal.toISOString()
+      : String(cellVal || '');
+    if (cellStr.trim() === rowId) {
       rowIndex = i + 1;
       break;
     }
