@@ -1004,6 +1004,79 @@ function vendorAuditHeaders() {
 }
 
 // ===========================
+// GOOGLE DRIVE IMAGE STORAGE
+// Images are saved to Drive to avoid the ~50KB Google Sheets cell limit.
+// Base64 data URLs are replaced with public Drive view URLs.
+// ===========================
+
+var VA_DRIVE_FOLDER_NAME = 'VendorAuditImages';
+
+function getVADriveFolder() {
+  var folders = DriveApp.getFoldersByName(VA_DRIVE_FOLDER_NAME);
+  if (folders.hasNext()) return folders.next();
+  return DriveApp.createFolder(VA_DRIVE_FOLDER_NAME);
+}
+
+function persistVAImagesToDrive(questionImagesJSON, vendorId, submissionRef) {
+  if (!questionImagesJSON || questionImagesJSON === '{}') return questionImagesJSON || '{}';
+
+  var images;
+  try { images = JSON.parse(questionImagesJSON); } catch (e) { return '{}'; }
+
+  // Check if any images are base64 (need uploading)
+  var hasBase64 = false;
+  for (var qk in images) {
+    var arr = images[qk];
+    if (!Array.isArray(arr)) continue;
+    for (var ai = 0; ai < arr.length; ai++) {
+      if (typeof arr[ai] === 'string' && arr[ai].indexOf('data:') === 0) { hasBase64 = true; break; }
+    }
+    if (hasBase64) break;
+  }
+  if (!hasBase64) return questionImagesJSON; // All already Drive URLs
+
+  var folder = getVADriveFolder();
+  var safeVendor = String(vendorId || 'vendor').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 20);
+  var safeRef    = String(submissionRef || now()).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 20);
+  var result = {};
+
+  for (var questionId in images) {
+    var qImgs = images[questionId];
+    if (!Array.isArray(qImgs)) continue;
+    result[questionId] = [];
+    for (var j = 0; j < qImgs.length; j++) {
+      var img = qImgs[j];
+      if (typeof img === 'string' && img.indexOf('data:') === 0) {
+        try {
+          var url = uploadBase64ToVADrive(img, folder, safeVendor + '_' + safeRef + '_' + questionId + '_' + j);
+          result[questionId].push(url);
+          Logger.log('Uploaded VA image to Drive: ' + url);
+        } catch (e) {
+          Logger.log('Drive upload failed for ' + questionId + '[' + j + ']: ' + e);
+          // Skip unuploadable images rather than crash the whole submission
+        }
+      } else {
+        result[questionId].push(img); // Already a Drive URL, keep it
+      }
+    }
+  }
+
+  return JSON.stringify(result);
+}
+
+function uploadBase64ToVADrive(dataUrl, folder, filename) {
+  var matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!matches) throw new Error('Invalid data URL');
+  var mimeType = matches[1];
+  var ext = (mimeType.split('/')[1] || 'jpg').split('+')[0];
+  var decoded = Utilities.base64Decode(matches[2]);
+  var blob = Utilities.newBlob(decoded, mimeType, filename + '.' + ext);
+  var file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return 'https://drive.google.com/uc?export=view&id=' + file.getId();
+}
+
+// ===========================
 // CREATE VENDOR AUDIT
 // ===========================
 
@@ -1011,6 +1084,13 @@ function createVendorAudit(params) {
   var headers = vendorAuditHeaders();
   var sheet = getOrCreateSheet('Vendor Audits', headers);
   var ts = now();
+
+  // Upload any base64 images to Google Drive before writing to sheet
+  params.questionImagesJSON = persistVAImagesToDrive(
+    params.questionImagesJSON,
+    params.vendorName || params.vendorId,
+    params.submissionTime || ts
+  );
 
   var row = buildVendorAuditRow(params, ts);
   sheet.appendRow(row);
@@ -1041,6 +1121,23 @@ function updateVendorAudit(params) {
   }
 
   if (rowIndex === -1) return json({ success: false, message: 'Row not found for rowId: ' + rowId });
+
+  // Preserve existing Images JSON if client omitted it
+  if (!params.questionImagesJSON) {
+    var existingRow = data[rowIndex - 1];
+    var headers = vendorAuditHeaders();
+    var imgColIdx = headers.indexOf('Images JSON');
+    if (imgColIdx >= 0 && existingRow[imgColIdx]) {
+      params.questionImagesJSON = String(existingRow[imgColIdx]);
+    }
+  }
+
+  // Upload any new base64 images to Google Drive before writing to sheet
+  params.questionImagesJSON = persistVAImagesToDrive(
+    params.questionImagesJSON,
+    params.vendorName || params.vendorId,
+    rowId
+  );
 
   var updatedRow = buildVendorAuditRow(params, String(data[rowIndex - 1][0]));
   sheet.getRange(rowIndex, 1, 1, updatedRow.length).setValues([updatedRow]);
