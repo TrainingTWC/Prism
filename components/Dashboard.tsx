@@ -7,6 +7,7 @@ import { buildTrainingPDF } from '../src/utils/trainingReport';
 import buildOperationsPDF from '@/src/utils/operationsReport';
 import { buildQAPDF } from '../src/utils/qaReport';
 import buildPreLaunchPDF from '../src/utils/preLaunchReport';
+import { buildVendorAuditPDF } from '../src/utils/vendorAuditReport';
 import { buildHRPDF } from '../src/utils/hrReport';
 import { buildSHLPPDF } from '../src/utils/shlpReport';
 import { buildFinancePDF } from '../src/utils/financeReport';
@@ -78,6 +79,7 @@ import QAAMPerformanceInfographic from './QAAMPerformanceInfographic';
 import QAAverageScoreChart from './QAAverageScoreChart';
 import QAEditModal from './QAEditModal';
 import PreLaunchEditModal from './PreLaunchEditModal';
+import VendorAuditEditModal from './VendorAuditEditModal';
 import CampusHiringStats from './CampusHiringStats';
 import TrainerCalendarDashboard from './TrainerCalendarDashboard';
 import BenchPlanningDashboard from './BenchPlanningDashboard';
@@ -351,6 +353,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   const [showPreLaunchEdit, setShowPreLaunchEdit] = useState(false);
   const [preLaunchEditSubmission, setPreLaunchEditSubmission] = useState<PreLaunchSubmission | null>(null);
   const [isGeneratingPreLaunchPDF, setIsGeneratingPreLaunchPDF] = useState(false);
+  const [showVendorAuditEdit, setShowVendorAuditEdit] = useState(false);
+  const [vendorAuditEditSubmission, setVendorAuditEditSubmission] = useState<VendorAuditSubmission | null>(null);
 
   // HR detail modal state
   const [showHRDetail, setShowHRDetail] = useState(false);
@@ -2751,53 +2755,24 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
           setIsGenerating(false);
           return;
         }
-        // Build PDF inline and return early
-        const doc = new jsPDF({ orientation: 'landscape' });
-        const totalAudits = filteredVendorAuditData.length;
-        const avgPct = totalAudits > 0
-          ? (filteredVendorAuditData.reduce((a, s) => a + Number(s.scorePercentage || 0), 0) / totalAudits).toFixed(1)
-          : '0.0';
-        const passing = filteredVendorAuditData.filter(s => Number(s.scorePercentage || 0) >= 80).length;
-        const passRate = totalAudits > 0 ? Math.round((passing / totalAudits) * 100) : 0;
-
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Vendor Food Safety Audit Report', 14, 16);
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Generated: ${new Date().toLocaleDateString('en-GB')}  |  Total Audits: ${totalAudits}  |  Avg Score: ${avgPct}%  |  Pass Rate (≥80%): ${passRate}%`, 14, 24);
-        if (filters.region) doc.text(`Region: ${filters.region}`, 14, 30);
-        if (filters.vendorName) doc.text(`Vendor: ${filters.vendorName}`, filters.region ? 80 : 14, 30);
-        if (filters.city) doc.text(`City: ${filters.city}`, 14, 36);
-
-        const startY = (filters.region || filters.vendorName || filters.city) ? 42 : 30;
-
-        autoTable(doc, {
-          head: [['Date', 'Vendor', 'Location', 'City', 'Region', 'Auditor', 'Score', '%']],
-          body: filteredVendorAuditData
-            .slice()
-            .sort((a, b) => new Date(String(b.submissionTime || '')).getTime() - new Date(String(a.submissionTime || '')).getTime())
-            .map(s => [
-              s.submissionTime || '',
-              s.vendorName || '',
-              s.vendorLocation || '',
-              s.city || '',
-              s.region || '',
-              s.auditorName || '',
-              `${s.totalScore || 0}/${s.maxScore || 0}`,
-              `${Number(s.scorePercentage || 0).toFixed(1)}%`,
-            ]),
-          startY,
-          styles: { fontSize: 9, cellPadding: 3 },
-          headStyles: { fillColor: [13, 148, 136], textColor: 255, fontStyle: 'bold' },
-          alternateRowStyles: { fillColor: [240, 253, 252] },
-          columnStyles: { 7: { halign: 'center' } },
-        });
-
-        const fileName = `VendorAudit_${filters.region || 'All'}_${new Date().toISOString().split('T')[0]}.pdf`;
-        doc.save(fileName);
-        hapticFeedback.ultraStrong();
-        showNotificationMessage('Vendor Audit PDF generated!', 'success');
+        try {
+          const doc = await buildVendorAuditPDF(
+            filteredVendorAuditData as any[],
+            {
+              vendorName: filters.vendorName || '',
+              region: filters.region || '',
+              city: filters.city || '',
+            },
+            { title: 'Vendor Food Safety Audit Report' }
+          );
+          const fileName = `VendorAudit_${filters.region || 'All'}_${new Date().toISOString().split('T')[0]}.pdf`;
+          doc.save(fileName);
+          hapticFeedback.ultraStrong();
+          showNotificationMessage('Vendor Audit PDF generated!', 'success');
+        } catch (err) {
+          console.error('Vendor audit PDF error:', err);
+          showNotificationMessage('Failed to generate PDF', 'error');
+        }
         setIsGenerating(false);
         return;
       } else { // consolidated
@@ -8316,6 +8291,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">City</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Region</th>
                               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Score</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
@@ -8339,6 +8315,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                                       : pct >= 60 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                                       : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                                     }`}>{pct}%</span>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <button
+                                      onClick={() => {
+                                        setVendorAuditEditSubmission(s);
+                                        setShowVendorAuditEdit(true);
+                                      }}
+                                      className="inline-flex items-center px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium rounded-lg transition-colors"
+                                    >
+                                      ✏️ Edit
+                                    </button>
                                   </td>
                                 </tr>
                               );
@@ -8652,6 +8639,20 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
             loadData();
           }}
           submission={preLaunchEditSubmission}
+          userRole={userRole}
+        />
+      )}
+
+      {/* Vendor Audit Edit Modal */}
+      {vendorAuditEditSubmission && (
+        <VendorAuditEditModal
+          isOpen={showVendorAuditEdit}
+          onClose={() => {
+            setShowVendorAuditEdit(false);
+            setVendorAuditEditSubmission(null);
+            loadData();
+          }}
+          submission={vendorAuditEditSubmission}
           userRole={userRole}
         />
       )}
