@@ -324,8 +324,8 @@ const TECHNICAL_SECTIONS: ChecklistSection[] = [
 ];
 
 const LOG_ENDPOINTS = [
-  import.meta.env.VITE_NATIONAL_FINALS_SCRIPT_URL || ''
-].filter(Boolean);
+  'https://script.google.com/macros/s/AKfycbyR1bcJ1vMAbUUEMpwTWGFa1GAWgHNgBCpyKQfSm8Tm1Qp1EJq-tjoIwj_zhQVIiqsQ/exec'
+];
 
 const TIME_ITEM_IDS = ['DialInStartTime', 'DialInEndTime', 'EspressoStartTime', 'EspressoEndTime', 'MilkStartTime', 'MilkEndTime'];
 

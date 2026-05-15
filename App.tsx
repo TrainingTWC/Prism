@@ -240,6 +240,9 @@ const AppContent: React.FC = () => {
       { id: 'bench-planning-sm-asm', label: 'Bench Planning (SM-ASM)' },
       { id: 'tat-tracker', label: 'TAT Tracker' },
       { id: 'third-rush', label: 'Third Rush' },
+      { id: 'vendor-audit', label: 'Vendor Audit' },
+      { id: 'vehicle-audit', label: 'Vehicle Audit' },
+      { id: 'cf-audit', label: 'CF Audit' },
       { id: 'consolidated', label: 'Consolidated' },
     ];
     if (authUserRole === 'editor') return allTypes;

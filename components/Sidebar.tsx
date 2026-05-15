@@ -43,6 +43,9 @@ const DASHBOARD_COLORS: Record<string, string> = {
   'bench-planning-sm-asm': 'bg-amber-500',
   'tat-tracker': 'bg-cyan-600',
   'third-rush': 'bg-pink-500',
+  'vendor-audit': 'bg-teal-600',
+  'vehicle-audit': 'bg-sky-600',
+  'cf-audit': 'bg-rose-600',
   'consolidated': 'bg-slate-500',
 };
 

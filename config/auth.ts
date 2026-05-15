@@ -51,7 +51,7 @@ export const AUTH_CONFIG: AuthConfig = {
     qa: {
       password: 'QualityCheck2024!',
       permissions: ['qa', 'qa-am-review', 'qa-capa', 'third-rush', 'dashboard'],
-      dashboardAccess: ['qa-dashboard', 'third-rush-dashboard']
+      dashboardAccess: ['qa-dashboard', 'third-rush-dashboard', 'vendor-audit-dashboard', 'vehicle-audit-dashboard', 'cf-audit-dashboard']
     },
     finance: {
       password: 'FinanceSecure2024!',
@@ -81,7 +81,7 @@ export const AUTH_CONFIG: AuthConfig = {
     editor: {
       password: 'Editornotcreator2025!',
       permissions: ['admin', 'operations', 'hr', 'qa', 'training', 'finance', 'shlp', 'campus-hiring', 'bench-planning', 'brew-league', 'qa-am-review', 'qa-capa', 'tat-tracker', 'third-rush', 'dashboard'],
-      dashboardAccess: ['all', 'campus-hiring-dashboard', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'tat-tracker-dashboard', 'third-rush-dashboard']
+      dashboardAccess: ['all', 'campus-hiring-dashboard', 'trainer-calendar-dashboard', 'bench-planning-dashboard', 'bench-planning-sm-asm-dashboard', 'tat-tracker-dashboard', 'third-rush-dashboard', 'vendor-audit-dashboard', 'vehicle-audit-dashboard', 'cf-audit-dashboard']
     }
   },
   
