@@ -167,7 +167,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     health: '',
     dateFrom: '', // Date range start (YYYY-MM-DD)
     dateTo: '',   // Date range end (YYYY-MM-DD)
-    employee: '' // Employee filter for SHLP dashboard
+    employee: '', // Employee filter for SHLP dashboard
+    vendorName: '', // Vendor name filter for Vendor Audit dashboard
+    city: ''        // City filter for Vendor Audit dashboard
   });
 
   // Leaderboard view toggle state
@@ -1010,6 +1012,27 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     return REGIONS;
   }, [userRole]);
 
+  // Vendor Audit specific filter options derived from the raw data
+  const availableVendorAuditors = useMemo(() => {
+    if (!vendorAuditData) return [];
+    const seen = new Set<string>();
+    return vendorAuditData
+      .filter(s => s.auditorName && s.auditorId)
+      .filter(s => { if (seen.has(s.auditorId)) return false; seen.add(s.auditorId); return true; })
+      .sort((a, b) => a.auditorName.localeCompare(b.auditorName))
+      .map(s => ({ id: s.auditorId, name: s.auditorName }));
+  }, [vendorAuditData]);
+
+  const availableVendorNames = useMemo(() => {
+    if (!vendorAuditData) return [];
+    return [...new Set(vendorAuditData.map(s => s.vendorName).filter(Boolean))].sort() as string[];
+  }, [vendorAuditData]);
+
+  const availableVendorCities = useMemo(() => {
+    if (!vendorAuditData) return [];
+    return [...new Set(vendorAuditData.map(s => s.city).filter(Boolean))].sort() as string[];
+  }, [vendorAuditData]);
+
   const filteredData = useMemo(() => {
     if (!submissions) return null;
 
@@ -1799,6 +1822,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     return vendorAuditData.filter((s: VendorAuditSubmission) => {
       if (filters.region && s.region !== filters.region) return false;
       if (filters.am && normalizeId(s.auditorId) !== normalizeId(filters.am)) return false;
+      if (filters.vendorName && s.vendorName !== filters.vendorName) return false;
+      if (filters.city && s.city !== filters.city) return false;
       if (filters.dateFrom || filters.dateTo) {
         const dateStr = String(s.submissionTime || '').trim();
         if (!dateStr) return false;
@@ -2641,7 +2666,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   };
 
   const resetFilters = () => {
-    setFilters({ region: '', store: '', am: '', trainer: '', hrPerson: '', health: '', dateFrom: '', dateTo: '', employee: '' });
+    setFilters({ region: '', store: '', am: '', trainer: '', hrPerson: '', health: '', dateFrom: '', dateTo: '', employee: '', vendorName: '', city: '' });
   };
 
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -2719,6 +2744,62 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
         reportData = filteredFinanceData;
         dataType = 'Finance Audit Assessment';
+      } else if (dashboardType === 'vendor-audit') {
+        if (!filteredVendorAuditData || filteredVendorAuditData.length === 0) {
+          alert('No Vendor Audit data available to generate report');
+          hapticFeedback.error();
+          setIsGenerating(false);
+          return;
+        }
+        // Build PDF inline and return early
+        const doc = new jsPDF({ orientation: 'landscape' });
+        const totalAudits = filteredVendorAuditData.length;
+        const avgPct = totalAudits > 0
+          ? (filteredVendorAuditData.reduce((a, s) => a + Number(s.scorePercentage || 0), 0) / totalAudits).toFixed(1)
+          : '0.0';
+        const passing = filteredVendorAuditData.filter(s => Number(s.scorePercentage || 0) >= 80).length;
+        const passRate = totalAudits > 0 ? Math.round((passing / totalAudits) * 100) : 0;
+
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Vendor Food Safety Audit Report', 14, 16);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Generated: ${new Date().toLocaleDateString('en-GB')}  |  Total Audits: ${totalAudits}  |  Avg Score: ${avgPct}%  |  Pass Rate (≥80%): ${passRate}%`, 14, 24);
+        if (filters.region) doc.text(`Region: ${filters.region}`, 14, 30);
+        if (filters.vendorName) doc.text(`Vendor: ${filters.vendorName}`, filters.region ? 80 : 14, 30);
+        if (filters.city) doc.text(`City: ${filters.city}`, 14, 36);
+
+        const startY = (filters.region || filters.vendorName || filters.city) ? 42 : 30;
+
+        autoTable(doc, {
+          head: [['Date', 'Vendor', 'Location', 'City', 'Region', 'Auditor', 'Score', '%']],
+          body: filteredVendorAuditData
+            .slice()
+            .sort((a, b) => new Date(String(b.submissionTime || '')).getTime() - new Date(String(a.submissionTime || '')).getTime())
+            .map(s => [
+              s.submissionTime || '',
+              s.vendorName || '',
+              s.vendorLocation || '',
+              s.city || '',
+              s.region || '',
+              s.auditorName || '',
+              `${s.totalScore || 0}/${s.maxScore || 0}`,
+              `${Number(s.scorePercentage || 0).toFixed(1)}%`,
+            ]),
+          startY,
+          styles: { fontSize: 9, cellPadding: 3 },
+          headStyles: { fillColor: [13, 148, 136], textColor: 255, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [240, 253, 252] },
+          columnStyles: { 7: { halign: 'center' } },
+        });
+
+        const fileName = `VendorAudit_${filters.region || 'All'}_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+        hapticFeedback.ultraStrong();
+        showNotificationMessage('Vendor Audit PDF generated!', 'success');
+        setIsGenerating(false);
+        return;
       } else { // consolidated
         if ((!filteredSubmissions || filteredSubmissions.length === 0) &&
           (!filteredAMOperations || filteredAMOperations.length === 0) &&
@@ -4935,13 +5016,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
             <DashboardFilters
               regions={availableRegions}
               stores={availableStores}
-              areaManagers={availableAreaManagers}
+              areaManagers={dashboardType === 'vendor-audit' ? availableVendorAuditors : availableAreaManagers}
               // Pass HR personnel for HR filter
               hrPersonnel={allHRPersonnel && allHRPersonnel.length > 0 ? allHRPersonnel : availableHRPersonnel}
               // Pass trainers for Trainer filter
               trainers={allTrainers && allTrainers.length > 0 ? allTrainers : undefined}
               // Pass employee directory for SHLP employee filter
               employeeDirectory={employeeDirectory}
+              // Vendor Audit specific filter options
+              vendorNames={availableVendorNames}
+              cities={availableVendorCities}
               filters={filters}
               onFilterChange={handleFilterChange}
               onReset={resetFilters}

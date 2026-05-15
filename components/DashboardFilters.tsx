@@ -11,6 +11,8 @@ interface DashboardFiltersProps {
   hrPersonnel: HRPerson[];
   trainers?: { id: string; name: string }[];
   employeeDirectory?: any; // Employee directory for SHLP employee filter
+  vendorNames?: string[]; // Vendor names for Vendor Audit filter
+  cities?: string[]; // Cities for Vendor Audit filter
   filters: {
     region: string;
     store: string;
@@ -22,8 +24,10 @@ interface DashboardFiltersProps {
     health?: string;
     dateFrom?: string; // Date range start (YYYY-MM-DD)
     dateTo?: string;   // Date range end (YYYY-MM-DD)
+    vendorName?: string; // Vendor name filter for Vendor Audit
+    city?: string;       // City filter for Vendor Audit
   };
-  onFilterChange: (filterName: 'region' | 'store' | 'am' | 'trainer' | 'hrPerson' | 'health' | 'dateFrom' | 'dateTo' | 'employee', value: string) => void;
+  onFilterChange: (filterName: 'region' | 'store' | 'am' | 'trainer' | 'hrPerson' | 'health' | 'dateFrom' | 'dateTo' | 'employee' | 'vendorName' | 'city', value: string) => void;
   onReset: () => void;
   onDownload?: () => void;
   onDownloadExcel?: () => void;
@@ -237,6 +241,8 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   hrPersonnel,
   trainers,
   employeeDirectory,
+  vendorNames = [],
+  cities = [],
   filters,
   onFilterChange,
   onReset,
@@ -298,44 +304,71 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             options={regions.map(r => ({ value: r, label: r }))}
           />
 
-          {/* Store Health - semantic filter */}
-          <FilterSelect
-            label="Store Health"
-            value={filters.health || ''}
-            onChange={(e) => onFilterChange('health', e.target.value)}
-            placeholder="All Health"
-            options={[
-              { value: '', label: 'All Health' },
-              { value: 'Needs Attention', label: 'Needs Attention' },
-              { value: 'Brewing', label: 'Brewing' },
-              { value: 'Perfect Shot', label: 'Perfect Shot' }
-            ]}
-          />
+          {/* Store Health - hidden for audit dashboards */}
+          {dashboardType !== 'vendor-audit' && dashboardType !== 'vehicle-audit' && dashboardType !== 'cf-audit' && (
+            <FilterSelect
+              label="Store Health"
+              value={filters.health || ''}
+              onChange={(e) => onFilterChange('health', e.target.value)}
+              placeholder="All Health"
+              options={[
+                { value: '', label: 'All Health' },
+                { value: 'Needs Attention', label: 'Needs Attention' },
+                { value: 'Brewing', label: 'Brewing' },
+                { value: 'Perfect Shot', label: 'Perfect Shot' }
+              ]}
+            />
+          )}
 
           <SearchableFilter
-            label="Area Manager"
+            label={dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit' ? 'Auditor' : 'Area Manager'}
             value={filters.am}
             onChange={(value) => onFilterChange('am', value)}
-            placeholder={filters.trainer ? "All AMs under selected Trainer" : "All AMs"}
+            placeholder={filters.trainer ? "All AMs under selected Trainer" : (dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit' ? "All Auditors" : "All AMs")}
             options={areaManagers.map(am => ({ value: am.id, label: am.name, id: am.id }))}
             disabled={areaManagers.length === 0}
           />
 
-          <SearchableFilter
-            label="Store"
-            value={filters.store}
-            onChange={(value) => onFilterChange('store', value)}
-            placeholder={
-              filters.am ? "All stores under selected AM" :
-              filters.trainer ? "All stores under selected Trainer" :
-              "All Stores"
-            }
-            options={stores.map(s => ({ value: s.id, label: s.name, id: s.id }))}
-            disabled={stores.length === 0}
-          />
+          {/* Store filter - hidden for audit dashboards */}
+          {dashboardType !== 'vendor-audit' && dashboardType !== 'vehicle-audit' && dashboardType !== 'cf-audit' && (
+            <SearchableFilter
+              label="Store"
+              value={filters.store}
+              onChange={(value) => onFilterChange('store', value)}
+              placeholder={
+                filters.am ? "All stores under selected AM" :
+                filters.trainer ? "All stores under selected Trainer" :
+                "All Stores"
+              }
+              options={stores.map(s => ({ value: s.id, label: s.name, id: s.id }))}
+              disabled={stores.length === 0}
+            />
+          )}
 
-          {/* Trainer Filter - Only show on non-HR dashboards */}
-          {dashboardType !== 'hr' && effectiveTrainers.length > 0 && (
+          {/* Vendor Name filter - Only show for vendor-audit */}
+          {dashboardType === 'vendor-audit' && vendorNames.length > 0 && (
+            <SearchableFilter
+              label="Vendor Name"
+              value={filters.vendorName || ''}
+              onChange={(value) => onFilterChange('vendorName', value)}
+              placeholder="All Vendors"
+              options={vendorNames.map(v => ({ value: v, label: v }))}
+            />
+          )}
+
+          {/* City filter - Only show for vendor-audit */}
+          {dashboardType === 'vendor-audit' && cities.length > 0 && (
+            <SearchableFilter
+              label="City"
+              value={filters.city || ''}
+              onChange={(value) => onFilterChange('city', value)}
+              placeholder="All Cities"
+              options={cities.map(c => ({ value: c, label: c }))}
+            />
+          )}
+
+          {/* Trainer Filter - Only show on non-HR, non-audit dashboards */}
+          {dashboardType !== 'hr' && dashboardType !== 'vendor-audit' && dashboardType !== 'vehicle-audit' && dashboardType !== 'cf-audit' && effectiveTrainers.length > 0 && (
             <SearchableFilter
               label="Trainer"
               value={filters.trainer}
@@ -375,8 +408,8 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             />
           )}
 
-          {/* Date Range Filter - Only show on HR dashboard */}
-          {dashboardType === 'hr' && (
+          {/* Date Range Filter - Show on HR and audit dashboards */}
+          {(dashboardType === 'hr' || dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit') && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                 Date Range
@@ -424,52 +457,82 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             />
           </div>
           
-          {/* Store Health */}
-          <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
-            <FilterSelect
-              label="Store Health"
-              value={filters.health || ''}
-              onChange={(e) => onFilterChange('health', e.target.value)}
-              placeholder="All Health"
-              options={[
-                { value: '', label: 'All Health' },
-                { value: 'Needs Attention', label: 'Needs Attention' },
-                { value: 'Brewing', label: 'Brewing' },
-                { value: 'Perfect Shot', label: 'Perfect Shot' }
-              ]}
-            />
-          </div>
+          {/* Store Health - hidden for audit dashboards */}
+          {dashboardType !== 'vendor-audit' && dashboardType !== 'vehicle-audit' && dashboardType !== 'cf-audit' && (
+            <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+              <FilterSelect
+                label="Store Health"
+                value={filters.health || ''}
+                onChange={(e) => onFilterChange('health', e.target.value)}
+                placeholder="All Health"
+                options={[
+                  { value: '', label: 'All Health' },
+                  { value: 'Needs Attention', label: 'Needs Attention' },
+                  { value: 'Brewing', label: 'Brewing' },
+                  { value: 'Perfect Shot', label: 'Perfect Shot' }
+                ]}
+              />
+            </div>
+          )}
           
-          {/* Area Manager - Searchable (filtered by Trainer) */}
+          {/* Area Manager / Auditor - Searchable */}
           <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
             <SearchableFilter
-              label="Area Manager"
+              label={dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit' ? 'Auditor' : 'Area Manager'}
               value={filters.am}
               onChange={(value) => onFilterChange('am', value)}
-              placeholder={filters.trainer ? "All AMs under selected Trainer" : "All AMs"}
+              placeholder={filters.trainer ? "All AMs under selected Trainer" : (dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit' ? "All Auditors" : "All AMs")}
               options={areaManagers.map(am => ({ value: am.id, label: am.name, id: am.id }))}
               disabled={areaManagers.length === 0}
             />
           </div>
           
-          {/* Store - Searchable (filtered by AM or Trainer) */}
-          <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
-            <SearchableFilter
-              label="Store"
-              value={filters.store}
-              onChange={(value) => onFilterChange('store', value)}
-              placeholder={
-                filters.am ? "All stores under selected AM" :
-                filters.trainer ? "All stores under selected Trainer" :
-                "All Stores"
-              }
-              options={stores.map(s => ({ value: s.id, label: s.name, id: s.id }))}
-              disabled={stores.length === 0}
-            />
-          </div>
+          {/* Store - hidden for audit dashboards */}
+          {dashboardType !== 'vendor-audit' && dashboardType !== 'vehicle-audit' && dashboardType !== 'cf-audit' && (
+            <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+              <SearchableFilter
+                label="Store"
+                value={filters.store}
+                onChange={(value) => onFilterChange('store', value)}
+                placeholder={
+                  filters.am ? "All stores under selected AM" :
+                  filters.trainer ? "All stores under selected Trainer" :
+                  "All Stores"
+                }
+                options={stores.map(s => ({ value: s.id, label: s.name, id: s.id }))}
+                disabled={stores.length === 0}
+              />
+            </div>
+          )}
+
+          {/* Vendor Name - Only show for vendor-audit */}
+          {dashboardType === 'vendor-audit' && vendorNames.length > 0 && (
+            <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+              <SearchableFilter
+                label="Vendor Name"
+                value={filters.vendorName || ''}
+                onChange={(value) => onFilterChange('vendorName', value)}
+                placeholder="All Vendors"
+                options={vendorNames.map(v => ({ value: v, label: v }))}
+              />
+            </div>
+          )}
+
+          {/* City - Only show for vendor-audit */}
+          {dashboardType === 'vendor-audit' && cities.length > 0 && (
+            <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+              <SearchableFilter
+                label="City"
+                value={filters.city || ''}
+                onChange={(value) => onFilterChange('city', value)}
+                placeholder="All Cities"
+                options={cities.map(c => ({ value: c, label: c }))}
+              />
+            </div>
+          )}
           
-          {/* Trainer Filter - Only show on non-HR dashboards */}
-          {dashboardType !== 'hr' && effectiveTrainers.length > 0 && (
+          {/* Trainer Filter - Only show on non-HR, non-audit dashboards */}
+          {dashboardType !== 'hr' && dashboardType !== 'vendor-audit' && dashboardType !== 'vehicle-audit' && dashboardType !== 'cf-audit' && effectiveTrainers.length > 0 && (
             <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
               <SearchableFilter
                 label="Trainer"
@@ -513,8 +576,8 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             </div>
           )}
 
-          {/* Date Range Filter - Only show on HR dashboard */}
-          {dashboardType === 'hr' && (
+          {/* Date Range Filter - Show on HR and audit dashboards */}
+          {(dashboardType === 'hr' || dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit') && (
             <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                 Date Range
