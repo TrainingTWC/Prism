@@ -5003,6 +5003,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         (dashboardType === 'qa' && (filteredQAData.length > 0 || filteredPreLaunchData.length > 0)) ||
         (dashboardType === 'finance' && filteredFinanceData.length > 0) ||
         (dashboardType === 'shlp' && filteredSHLPData.length > 0) ||
+        (dashboardType === 'vendor-audit' && filteredVendorAuditData.length > 0) ||
+        (dashboardType === 'vehicle-audit' && filteredVehicleAuditData.length > 0) ||
+        (dashboardType === 'cf-audit' && filteredCFAuditData.length > 0) ||
         (dashboardType === 'consolidated' && (
           consolidatedHRData.length > 0 ||
           consolidatedOperationsData.length > 0 ||
