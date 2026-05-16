@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { compressImage } from '../utils/imageCompression';
 
 interface ImageEditorProps {
   imageBase64: string;
@@ -359,7 +360,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
     saveToHistory();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     console.log('[ImageEditor] Save button clicked');
     const canvas = canvasRef.current;
     if (!canvas) {
@@ -373,8 +374,15 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageBase64, onSave, onCancel
     try {
       const editedImage = canvas.toDataURL('image/jpeg', 0.9);
       console.log('[ImageEditor] Generated data URL, length:', editedImage.length);
+      const compressedImage = await compressImage(editedImage, {
+        maxDimension: 1280,
+        quality: 0.75,
+        maxBytes: 500 * 1024,
+        mimeType: 'image/jpeg'
+      });
+      console.log('[ImageEditor] Compressed data URL length:', compressedImage.length);
       console.log('[ImageEditor] Calling onSave callback');
-      onSave(editedImage);
+      onSave(compressedImage);
     } catch (error) {
       console.error('[ImageEditor] Error generating data URL:', error);
       alert('Failed to save image. Please try again.');
