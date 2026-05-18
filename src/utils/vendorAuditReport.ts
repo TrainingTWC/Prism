@@ -118,7 +118,7 @@ function computeOverall(submission: any): { total: number; max: number; pct: num
   let total = 0, max = 0, zeroToleranceFailed = false;
   VENDOR_AUDIT_SECTIONS.forEach(section => {
     section.items.forEach(item => {
-      const qId = item.id.split('_').slice(1).join('_');
+      const qId = item.id;
       const ans = resolveSubmissionValue(submission, section.id, qId);
       if (isNA(ans)) return;
       const response = String(ans || '').toLowerCase().trim();
@@ -256,7 +256,7 @@ export const buildVendorAuditPDF = async (
 
   VENDOR_AUDIT_SECTIONS.forEach(section => {
     section.items.forEach(item => {
-      const qId = item.id.split('_').slice(1).join('_');
+      const qId = item.id;
       const ans = resolveSubmissionValue(sub, section.id, qId);
       const response = String(ans || '').toLowerCase().trim();
       let numeric = 0, display = response || '-';
