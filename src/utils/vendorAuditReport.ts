@@ -399,12 +399,17 @@ export const buildVendorAuditPDF = async (
       // Per-question remark
       if (rowData.remark && rowData.remark.trim()) {
         if (y > 265) { doc.addPage(); y = 20; }
-        doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(107, 114, 128);
-        doc.text('💬 Comment:', 18, y + 4);
-        doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81);
-        const remarkLines = doc.splitTextToSize(rowData.remark, 160);
-        doc.text(remarkLines, 40, y + 4);
-        y += (remarkLines.length * 4) + 3;
+        const lineHeight = 4.5;
+        const remarkLines = doc.splitTextToSize(rowData.remark, 162);
+        const boxH = 6 + (remarkLines.length * lineHeight) + 4;
+        doc.setFillColor(249, 250, 251);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(14, y, 180, boxH, 2, 2, 'FD');
+        doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(107, 114, 128);
+        doc.text('Remarks:', 18, y + 5);
+        doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81);
+        doc.text(remarkLines, 18, y + 5 + lineHeight);
+        y += boxH + 2;
       }
 
       // Images for this question
