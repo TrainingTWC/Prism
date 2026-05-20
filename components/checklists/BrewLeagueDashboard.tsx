@@ -4,6 +4,7 @@ import { Trophy, TrendingUp, Users, Award, MapPin, Coffee, Target, BarChart3, Ca
 // Google Sheets endpoints for fetching Brew League data
 const BREW_LEAGUE_REGION_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxPX8CZZfgfp7h1uXmzhnMxwGce-OmkCnnvFqrOQVywR0ec1p-Fwl1ekaK8bj9Rn5U5cQ/exec';
 const BREW_LEAGUE_AM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwVN9hWkzScxgOGCJfNqXEh6EOIpBHHckWi9nYULWuRc7wAuxs7po9BmSF2vYkpmvFQ6g/exec';
+const BREW_LEAGUE_NATIONAL_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyR1bcJ1vMAbUUEMpwTWGFa1GAWgHNgBCpyKQfSm8Tm1Qp1EJq-tjoIwj_zhQVIiqsQ/exec';
 
 interface BrewLeagueSubmission {
   timestamp: string;
@@ -22,7 +23,7 @@ interface BrewLeagueSubmission {
   percentage: number;
   submissionTime?: string;
   sections: Record<string, number>;
-  roundType?: 'region' | 'am'; // NEW: Track which round this is from
+  roundType?: 'region' | 'am' | 'national'; // Track which round this is from
 }
 
 const BrewLeagueDashboard: React.FC = () => {
@@ -41,31 +42,21 @@ const BrewLeagueDashboard: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        console.log('Fetching Brew League data from both endpoints...');
+        console.log('Fetching Brew League data from all endpoints...');
         
-        // Fetch both Region and AM Round data in parallel
-        const [regionResponse, amResponse] = await Promise.all([
-          fetch(BREW_LEAGUE_REGION_ENDPOINT, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' },
-            redirect: 'follow',
-          }).catch(err => {
-            console.error('Region Round fetch failed:', err);
-            return null;
-          }),
-          fetch(BREW_LEAGUE_AM_ENDPOINT, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' },
-            redirect: 'follow',
-          }).catch(err => {
-            console.error('AM Round fetch failed:', err);
-            return null;
-          })
+        const fetchOpts = { method: 'GET', headers: { 'Accept': 'application/json' }, redirect: 'follow' as RequestRedirect };
+
+        // Fetch Region, AM Round, and National Finals data in parallel
+        const [regionResponse, amResponse, nationalResponse] = await Promise.all([
+          fetch(BREW_LEAGUE_REGION_ENDPOINT, fetchOpts).catch(err => { console.error('Region Round fetch failed:', err); return null; }),
+          fetch(BREW_LEAGUE_AM_ENDPOINT, fetchOpts).catch(err => { console.error('AM Round fetch failed:', err); return null; }),
+          fetch(BREW_LEAGUE_NATIONAL_ENDPOINT, fetchOpts).catch(err => { console.error('National Finals fetch failed:', err); return null; })
         ]);
         
         let allSubmissions: BrewLeagueSubmission[] = [];
         let regionCount = 0;
         let amCount = 0;
+        let nationalCount = 0;
         
         // Process Region Round data
         if (regionResponse && regionResponse.ok) {
@@ -172,8 +163,50 @@ const BrewLeagueDashboard: React.FC = () => {
         } else {
           console.warn('⚠️ AM Round endpoint failed or not ok');
         }
+
+        // Process National Finals data
+        if (nationalResponse && nationalResponse.ok) {
+          const nationalData = await nationalResponse.json();
+          console.log('✅ Received National Finals data:', nationalData);
+          const nationalArray = Array.isArray(nationalData) ? nationalData : (nationalData.data || []);
+          if (Array.isArray(nationalArray) && nationalArray.length > 0) {
+            const mappedNational: BrewLeagueSubmission[] = nationalArray.map((row: any) => {
+              let timestamp = row['Timestamp'] || row.timestamp || '';
+              if (timestamp instanceof Date) timestamp = timestamp.toISOString();
+              else if (typeof timestamp === 'number') {
+                const excelEpoch = new Date(1899, 11, 30);
+                timestamp = new Date(excelEpoch.getTime() + timestamp * 86400000).toISOString();
+              }
+              return {
+                timestamp,
+                participantName: row['Participant Name'] || row.participantName || '',
+                participantEmpID: row['Participant Emp ID'] || row['Participant Emp. ID'] || row.participantEmpID || '',
+                judgeName: row['Judge Name'] || row.judgeName || '',
+                judgeID: row['Judge Emp ID'] || row['Judge ID'] || row.judgeID || '',
+                scoresheetType: (row['Scoresheet Type'] || row.scoresheetType || 'technical').toLowerCase() as 'technical' | 'sensory',
+                machineType: (row['Machine Type'] || row.machineType || 'manual').toLowerCase() as 'manual' | 'automatic',
+                storeName: row['Store Name'] || row.storeName || '',
+                storeID: row['Store ID'] || row.storeID || '',
+                region: row['Region'] || row.region || '',
+                totalScore: Number(row['Total Score'] || row.totalScore || 0),
+                maxScore: Number(row['Max Score'] || row.maxScore || 0),
+                percentage: Number(row['Percentage'] || row.percentage || 0),
+                submissionTime: row['Submission Time'] || row.submissionTime || '',
+                roundType: 'national' as const,
+                sections: {}
+              };
+            });
+            allSubmissions = [...allSubmissions, ...mappedNational];
+            nationalCount = mappedNational.length;
+            console.log(`✅ Loaded ${nationalCount} National Finals submissions`);
+          } else {
+            console.warn('⚠️ National Finals data is empty or invalid format');
+          }
+        } else {
+          console.warn('⚠️ National Finals endpoint failed or not ok');
+        }
         
-        console.log(`📊 Total submissions loaded: ${allSubmissions.length} (Region: ${regionCount}, AM: ${amCount})`);
+        console.log(`📊 Total submissions loaded: ${allSubmissions.length} (Region: ${regionCount}, AM: ${amCount}, National: ${nationalCount})`);
         
         if (allSubmissions.length === 0) {
           setError('No submissions found. Please ensure data is logged in the Google Sheets.');
@@ -289,6 +322,7 @@ const BrewLeagueDashboard: React.FC = () => {
                 <option value="all">All Rounds</option>
                 <option value="region">Region Round</option>
                 <option value="am">AM Round</option>
+                <option value="national">National Finals</option>
               </select>
             </div>
             <div>
@@ -475,7 +509,7 @@ const BrewLeagueDashboard: React.FC = () => {
                     <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-slate-400">
                       <span className="flex items-center gap-1">
                         <Trophy size={12} />
-                        {sub.roundType === 'am' ? 'AM Round' : 'Region Round'}
+                        {sub.roundType === 'national' ? 'National Finals' : sub.roundType === 'am' ? 'AM Round' : 'Region Round'}
                       </span>
                       {sub.roundType === 'am' && sub.areaManager && (
                         <span className="flex items-center gap-1">
