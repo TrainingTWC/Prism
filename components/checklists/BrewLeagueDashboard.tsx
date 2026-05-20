@@ -60,11 +60,13 @@ const BrewLeagueDashboard: React.FC = () => {
         
         // Process Region Round data
         if (regionResponse && regionResponse.ok) {
-          const regionData = await regionResponse.json();
+          let regionData: any;
+          try { regionData = await regionResponse.json(); } catch (e) { console.error('Region Round JSON parse failed:', e); regionData = null; }
+          if (!regionData) { console.warn('⚠️ Region Round response is not valid JSON'); }
           console.log('✅ Received Region Round data:', regionData);
           
           // Handle both array and {data: array} response formats
-          const regionArray = Array.isArray(regionData) ? regionData : (regionData.data || []);
+          if (regionData) { const regionArray = Array.isArray(regionData) ? regionData : (regionData.data || []);
           
           if (Array.isArray(regionArray) && regionArray.length > 0) {
             const mappedRegion: BrewLeagueSubmission[] = regionArray.map((row: any) => {
@@ -103,17 +105,20 @@ const BrewLeagueDashboard: React.FC = () => {
           } else {
             console.warn('⚠️ Region Round data is empty or invalid format');
           }
+          }
         } else {
           console.warn('⚠️ Region Round endpoint failed or not ok');
         }
         
         // Process AM Round data
         if (amResponse && amResponse.ok) {
-          const amData = await amResponse.json();
+          let amData: any;
+          try { amData = await amResponse.json(); } catch (e) { console.error('AM Round JSON parse failed:', e); amData = null; }
+          if (!amData) { console.warn('⚠️ AM Round response is not valid JSON'); }
           console.log('✅ Received AM Round data:', amData);
           
           // Handle both array and {data: array} response formats
-          const amArray = Array.isArray(amData) ? amData : (amData.data || []);
+          if (amData) { const amArray = Array.isArray(amData) ? amData : (amData.data || []);
           
           if (Array.isArray(amArray) && amArray.length > 0) {
             const mappedAM: BrewLeagueSubmission[] = amArray.map((row: any) => {
@@ -160,14 +165,18 @@ const BrewLeagueDashboard: React.FC = () => {
           } else {
             console.warn('⚠️ AM Round data is empty or invalid format');
           }
+          }
         } else {
           console.warn('⚠️ AM Round endpoint failed or not ok');
         }
 
         // Process National Finals data
         if (nationalResponse && nationalResponse.ok) {
-          const nationalData = await nationalResponse.json();
+          let nationalData: any;
+          try { nationalData = await nationalResponse.json(); } catch (e) { console.error('National Finals JSON parse failed:', e); nationalData = null; }
           console.log('✅ Received National Finals data:', nationalData);
+          if (!nationalData) { console.warn('⚠️ National Finals response is not valid JSON — the Apps Script may need a doGet() handler'); }
+          if (nationalData) {
           const nationalArray = Array.isArray(nationalData) ? nationalData : (nationalData.data || []);
           if (Array.isArray(nationalArray) && nationalArray.length > 0) {
             const mappedNational: BrewLeagueSubmission[] = nationalArray.map((row: any) => {
@@ -190,7 +199,7 @@ const BrewLeagueDashboard: React.FC = () => {
                 region: row['Region'] || row.region || '',
                 totalScore: Number(row['Total Score'] || row.totalScore || 0),
                 maxScore: Number(row['Max Score'] || row.maxScore || 0),
-                percentage: Number(row['Percentage'] || row.percentage || 0),
+                percentage: Number(row['Percentage'] || row['Percent'] || row.percentage || row.percent || 0),
                 submissionTime: row['Submission Time'] || row.submissionTime || '',
                 roundType: 'national' as const,
                 sections: {}
@@ -202,6 +211,7 @@ const BrewLeagueDashboard: React.FC = () => {
           } else {
             console.warn('⚠️ National Finals data is empty or invalid format');
           }
+          } // end if (nationalData)
         } else {
           console.warn('⚠️ National Finals endpoint failed or not ok');
         }
