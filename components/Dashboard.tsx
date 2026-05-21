@@ -3355,7 +3355,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
 
           // Fallback to localStorage if no images in submission
           if (Object.keys(questionImages).length === 0) {
-            const storedImages = localStorage.getItem('finance_images');
+            const storedImages = localStorage.getItem('finance_images_persist') || localStorage.getItem('finance_images');
             if (storedImages) {
               questionImages = JSON.parse(storedImages);
               console.log('📸 Loaded Finance images from localStorage:', Object.keys(questionImages).length, 'image sets');

@@ -770,6 +770,10 @@ const FinanceChecklist: React.FC<FinanceChecklistProps> = ({ userRole, onStatsUp
       });
 
       setSubmitted(true);
+      // Persist images under a key not cleared by resetSurvey, so dashboard PDF can load them
+      try {
+        localStorage.setItem('finance_images_persist', JSON.stringify(questionImages));
+      } catch (_e) { /* ignore quota errors */ }
 
     } catch (error) {
       console.error('Error submitting Finance survey:', error);

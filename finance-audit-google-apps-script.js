@@ -68,38 +68,39 @@ function doPost(e) {
     const imageFolder = getOrCreateImageFolder();
     const imageUrls = {};
     
-    // Check for base64 images in postData
-    if (params.images) {
-      Logger.log('🖼️ Processing ' + Object.keys(params.images).length + ' images');
-      
-      for (const questionId in params.images) {
-        try {
-          const imageData = params.images[questionId];
-          
-          if (imageData && imageData.startsWith('data:image')) {
-            // Extract base64 data
-            const base64Data = imageData.split(',')[1];
-            const mimeType = imageData.split(',')[0].split(':')[1].split(';')[0];
-            const extension = mimeType.split('/')[1];
-            
-            // Create blob from base64
-            const blob = Utilities.newBlob(
-              Utilities.base64Decode(base64Data),
-              mimeType,
-              questionId + '_' + timestamp.getTime() + '.' + extension
-            );
-            
-            // Save to Drive
-            const file = imageFolder.createFile(blob);
-            file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-            
-            // Store the URL
-            imageUrls[questionId] = file.getUrl();
-            Logger.log('✅ Saved image for ' + questionId);
+    // Check for base64 images in postData (sent as questionImagesJSON from frontend)
+    if (params.questionImagesJSON) {
+      try {
+        const parsedImages = JSON.parse(params.questionImagesJSON);
+        const compositeKeys = Object.keys(parsedImages);
+        Logger.log('🖼️ Processing images for ' + compositeKeys.length + ' questions');
+
+        for (const compositeKey of compositeKeys) {
+          try {
+            const imgs = parsedImages[compositeKey];
+            if (imgs && imgs.length > 0 && imgs[0] && imgs[0].startsWith('data:image')) {
+              const imageData = imgs[0];
+              const base64Data = imageData.split(',')[1];
+              const mimeType = imageData.split(',')[0].split(':')[1].split(';')[0];
+              const extension = mimeType.split('/')[1] || 'jpg';
+
+              const blob = Utilities.newBlob(
+                Utilities.base64Decode(base64Data),
+                mimeType,
+                compositeKey + '_' + timestamp.getTime() + '.' + extension
+              );
+
+              const file = imageFolder.createFile(blob);
+              file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+              imageUrls[compositeKey] = file.getUrl();
+              Logger.log('✅ Saved image for ' + compositeKey);
+            }
+          } catch (imgError) {
+            Logger.log('⚠️ Error processing image for ' + compositeKey + ': ' + imgError.toString());
           }
-        } catch (imgError) {
-          Logger.log('⚠️ Error processing image for ' + questionId + ': ' + imgError.toString());
         }
+      } catch (parseError) {
+        Logger.log('⚠️ Error parsing questionImagesJSON: ' + parseError.toString());
       }
     }
     

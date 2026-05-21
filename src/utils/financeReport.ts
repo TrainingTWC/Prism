@@ -393,12 +393,11 @@ export const buildFinancePDF = async (
   if (metaLine.length) doc.text(metaLine.join('   |   '), 14, metaY);
   y = metaY + 12;
 
-  // Overall performance summary
+  // Overall performance summary - always recompute from responses for accuracy
   const computed = computeOverall(sub);
-  const totalFromSheet = (sub.totalScore !== undefined && sub.maxScore !== undefined);
-  let total = totalFromSheet ? Number(sub.totalScore) : computed.total;
-  const max = totalFromSheet ? Number(sub.maxScore) : computed.max;
-  const pct = max > 0 ? Math.round((total / max) * 100) : 0;
+  const total = computed.total;
+  const max = computed.max;
+  const pct = computed.pct;
 
   // Count passed items (Compliant) and total answered items - N/A excluded from total
   let passedItems = 0;
@@ -794,9 +793,14 @@ export const buildFinancePDF = async (
         doc.setFont('helvetica', 'bolditalic');
         doc.setTextColor(isNonCompliant ? 153 : 71, isNonCompliant ? 27 : 85, isNonCompliant ? 27 : 105);
         const remarkLines = doc.splitTextToSize(`Remark: ${rowData.remark}`, 165);
-        doc.text(remarkLines, 26, y + 2);
-
-        y += (remarkLines.length * 3) + 3;
+        const remarkLineH = (doc.getFontSize() * 1.15) / (doc.internal as any).scaleFactor;
+        let ry = y + 2;
+        for (const line of remarkLines) {
+          if (ry > 275) { doc.addPage(); ry = 22; }
+          doc.text(line, 26, ry);
+          ry += remarkLineH;
+        }
+        y = ry + 2;
       }
 
       // Render images for this question (try composite key first, then plain questionId)
