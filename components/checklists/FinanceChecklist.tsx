@@ -10,7 +10,7 @@ import { buildFinancePDF } from '@/src/utils/financeReport';
 import { fetchFinanceHistoricData, FinanceHistoricData } from '../../services/dataService';
 
 // Google Sheets endpoint for Finance Audit (QA Pattern)
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzfP0OjIe2-XQut_0DgOFpkAvqkMi0RU6U3HLtDGBpNXeVTnLjHUtzNhlZtonXhy1H0/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzSE0xcDOCpJ5R9ZReH-y7DoT0zbeXWKsIHBo_uIPWiOcxjfDjTmhGsh1Vt-gDw6ncH/exec';
 
 interface SurveyResponse {
   [key: string]: string;
