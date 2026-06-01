@@ -67,7 +67,7 @@ export const AREA_MANAGERS: AreaManager[] = [
       // Monica (H2165) removed - she is an HRBP, not an Area Manager
 ];
 
-export const REGIONS = ['North', 'South', 'West'];
+export const REGIONS = ['North', 'South', 'Rest of South', 'West'];
 
 // Use the mapped stores from the HR mapping data
 export const STORES: Store[] = MAPPED_STORES;

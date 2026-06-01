@@ -161,11 +161,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   });
 
   const [filters, setFilters] = useState({
-    region: '',
-    store: '',
-    am: '',
-    trainer: '',
-    hrPerson: '', // Separate filter for HR personnel
+    region: [] as string[],
+    store: [] as string[],
+    am: [] as string[],
+    trainer: [] as string[],
+    hrPerson: [] as string[], // Separate filter for HR personnel
     health: '',
     dateFrom: '', // Date range start (YYYY-MM-DD)
     dateTo: '',   // Date range end (YYYY-MM-DD)
@@ -229,10 +229,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   };
   const [connectTargetsModalType, setConnectTargetsModalType] = useState<'week' | 'month' | 'region' | 'store' | 'am' | 'daily'>('week');
 
-  // Normalized trainer filter id for robust comparisons (handle h3595 vs H3595 etc.)
+  // Normalized trainer filter ids for robust comparisons (handle h3595 vs H3595 etc.)
   const normalizeId = (v: any) => (v === undefined || v === null) ? '' : String(v).toUpperCase();
-  const trainerFilterId = normalizeId(filters.trainer);
-  const hrPersonFilterId = normalizeId(filters.hrPerson);
+  const trainerFilterIds = filters.trainer.map(normalizeId);
+  const hrPersonFilterIds = filters.hrPerson.map(normalizeId);
+
+  // Multi-select filter helpers: empty array = show all
+  const matchesFilter = (arr: string[], value: string): boolean => arr.length === 0 || arr.includes(value);
+  const matchesFilterNorm = (arr: string[], value: string): boolean => arr.length === 0 || arr.some(f => normalizeId(f) === normalizeId(value));
 
   // Helper function to get employee name from ID
   const getEmployeeName = (employeeId: string): string => {
@@ -921,40 +925,40 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     let stores = allStores;
 
     // Filter by region first
-    if (filters.region) {
-      stores = stores.filter(s => s.region === filters.region);
+    if (filters.region.length > 0) {
+      stores = stores.filter(s => matchesFilter(filters.region, s.region));
     }
 
     // Filter by user role permissions
     stores = stores.filter(store => canAccessStore(userRole, store.id));
 
     // If Area Manager is selected, filter stores based on AM mapping
-    if (filters.am) {
+    if (filters.am.length > 0) {
       console.log('Filtering Stores for Area Manager:', filters.am);
 
       // For Training dashboard, use comprehensive mapping; for others, use HR mapping
       if (compStoreMapping && compStoreMapping.length > 0) {
         const amStoreIds = compStoreMapping
-          .filter((mapping: any) => mapping.AM === filters.am || mapping.am === filters.am)
+          .filter((mapping: any) => matchesFilterNorm(filters.am, mapping.AM || mapping.am || ''))
           .map((mapping: any) => mapping['Store ID'] || mapping.storeId || mapping.StoreID || mapping.store_id);
 
         stores = stores.filter(store => amStoreIds.includes(store.id));
       } else if (hrMappingData.length > 0) {
         // Get stores that belong to this Area Manager from HR mapping
         const amStoreIds = hrMappingData
-          .filter((mapping: any) => mapping.areaManagerId === filters.am)
+          .filter((mapping: any) => matchesFilterNorm(filters.am, mapping.areaManagerId || ''))
           .map((mapping: any) => mapping.storeId);
 
         stores = stores.filter(store => amStoreIds.includes(store.id));
       }
     }
     // If Trainer is selected but no AM, show stores under that Trainer using comprehensive mapping
-    else if (trainerFilterId && compStoreMapping && compStoreMapping.length > 0) {
+    else if (trainerFilterIds.length > 0 && compStoreMapping && compStoreMapping.length > 0) {
       const trainerStoreIds = compStoreMapping
         .filter((m: any) => {
           // Handle comma-separated trainer IDs
           const trainers = (m.Trainer || '').split(',').map((id: string) => normalizeId(id.trim()));
-          return trainers.includes(trainerFilterId);
+          return trainers.some((t: string) => trainerFilterIds.includes(t));
         })
         .map((m: any) => (m['Store ID'] || m.storeId || m.StoreID || m.store_id));
       const uniqueIds = new Set(trainerStoreIds.filter(Boolean));
@@ -973,21 +977,21 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     );
 
     // If HR is selected, filter AMs based on HR mapping
-    if (trainerFilterId) {
+    if (trainerFilterIds.length > 0) {
       // If comp mapping available, use it to find AM IDs
       if (compStoreMapping && compStoreMapping.length > 0) {
         const amIds = new Set<string>();
         compStoreMapping.forEach((m: any) => {
           // Handle comma-separated trainer IDs
           const trainers = (m.Trainer || '').split(',').map((id: string) => normalizeId(id.trim()));
-          if (trainers.includes(trainerFilterId)) {
+          if (trainers.some((t: string) => trainerFilterIds.includes(t))) {
             const am = m.AM || m.am || m.areaManager || m.AMId || m.amId;
             if (am) amIds.add(String(am));
           }
         });
         if (amIds.size > 0) {
           areaManagers = areaManagers.filter(am => amIds.has(am.id));
-          console.log(`Found ${areaManagers.length} Area Managers for Trainer ${trainerFilterId}:`, areaManagers);
+          console.log(`Found ${areaManagers.length} Area Managers for Trainers [${trainerFilterIds.join(', ')}]:`, areaManagers);
         }
       }
     }
@@ -1013,8 +1017,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     if (userRole.region) {
       return [userRole.region];
     }
+    if (compStoreMapping && compStoreMapping.length > 0) {
+      const regions = [...new Set(
+        compStoreMapping.map((r: any) => r.Region || r.region).filter(Boolean)
+      )].sort() as string[];
+      if (regions.length > 0) return regions;
+    }
     return REGIONS;
-  }, [userRole]);
+  }, [userRole, compStoreMapping]);
 
   // Vendor Audit specific filter options derived from the raw data
   const availableVendorAuditors = useMemo(() => {
@@ -1050,32 +1060,31 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     }
 
     // Filter by region
-    if (filters.region) {
+    if (filters.region.length > 0) {
       filtered = filtered.filter(submission => {
         const store = allStores.find(s => s.id === submission.storeID);
-        return store && store.region === filters.region;
+        return store && matchesFilter(filters.region, store.region);
       });
     }
 
     // Filter by store
-    if (filters.store) {
-      filtered = filtered.filter(submission => submission.storeID === filters.store);
+    if (filters.store.length > 0) {
+      filtered = filtered.filter(submission => matchesFilter(filters.store, submission.storeID));
     }
 
     // Filter by area manager (case-insensitive)
-    if (filters.am) {
-      const filterAmId = normalizeId(filters.am);
-      filtered = filtered.filter(submission => normalizeId(submission.amId) === filterAmId || normalizeId((submission as any).am) === filterAmId);
+    if (filters.am.length > 0) {
+      filtered = filtered.filter(submission => matchesFilterNorm(filters.am, submission.amId) || matchesFilterNorm(filters.am, (submission as any).am));
     }
 
     // Filter by trainer (for Training/Operations/QA dashboards)
-    if (trainerFilterId) {
-      filtered = filtered.filter(submission => normalizeId(submission.hrId) === trainerFilterId || normalizeId((submission as any).trainerId) === trainerFilterId || normalizeId((submission as any).trainer) === trainerFilterId);
+    if (trainerFilterIds.length > 0) {
+      filtered = filtered.filter(submission => trainerFilterIds.includes(normalizeId(submission.hrId)) || trainerFilterIds.includes(normalizeId((submission as any).trainerId)) || trainerFilterIds.includes(normalizeId((submission as any).trainer)));
     }
 
     // Filter by HR person (for HR dashboard)
-    if (hrPersonFilterId) {
-      filtered = filtered.filter(submission => normalizeId(submission.hrId) === hrPersonFilterId);
+    if (hrPersonFilterIds.length > 0) {
+      filtered = filtered.filter(submission => hrPersonFilterIds.includes(normalizeId(submission.hrId)));
     }
 
     // Filter by date range
@@ -1097,7 +1106,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     }
 
     return filtered;
-  }, [submissions, filters, userRole, allStores, trainerFilterId, hrPersonFilterId, dashboardType]);
+  }, [submissions, filters, userRole, allStores, trainerFilterIds, hrPersonFilterIds, dashboardType]);
 
   const filteredSubmissions = filteredData || [];
 
@@ -1227,23 +1236,23 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
       }
 
-      if (filters.region) {
+      if (filters.region.length > 0) {
         // Filter by region based on store mapping
         const storeData = compStoreMapping?.find((s: any) => s['Store ID'] === submission.Store);
-        if (storeData && storeData.region !== filters.region) {
+        if (storeData && !matchesFilter(filters.region, storeData.region)) {
           return false;
         }
       }
 
-      if (filters.store && submission.Store !== filters.store) {
+      if (filters.store.length > 0 && !matchesFilter(filters.store, submission.Store)) {
         return false;
       }
 
-      if (filters.am && normalizeId(submission['Area Manager']) !== normalizeId(filters.am)) {
+      if (filters.am.length > 0 && !matchesFilterNorm(filters.am, submission['Area Manager'])) {
         return false;
       }
 
-      if (filters.trainer && submission.Trainer !== filters.trainer) {
+      if (filters.trainer.length > 0 && !matchesFilter(filters.trainer, submission.Trainer)) {
         return false;
       }
 
@@ -1296,29 +1305,24 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       }
 
       // Apply filters
-      if (filters.region && submission.region !== filters.region) {
+      if (filters.region.length > 0 && !matchesFilter(filters.region, submission.region)) {
         return false;
       }
 
-      if (filters.store && normalizeId(submission.storeId) !== normalizeId(filters.store)) {
+      if (filters.store.length > 0 && !matchesFilterNorm(filters.store, submission.storeId)) {
         return false;
       }
 
-      if (filters.am) {
-        const filterAmId = normalizeId(filters.am);
-        const submissionAmId = normalizeId(submission.amId);
-        // Also check the 'am' field from store mapping (may contain AM ID)
-        const submissionAm = normalizeId((submission as any).am);
-        if (submissionAmId !== filterAmId && submissionAm !== filterAmId) {
+      if (filters.am.length > 0) {
+        if (!matchesFilterNorm(filters.am, submission.amId) && !matchesFilterNorm(filters.am, (submission as any).am)) {
           return false;
         }
       }
 
-      if (filters.trainer) {
-        const filterTrainerId = normalizeId(filters.trainer);
-        const matchesHrId = normalizeId(submission.hrId) === filterTrainerId;
-        const matchesTrainerId = normalizeId(submission.trainerId) === filterTrainerId;
-        const matchesTrainer = normalizeId((submission as any).trainer) === filterTrainerId;
+      if (trainerFilterIds.length > 0) {
+        const matchesHrId = trainerFilterIds.includes(normalizeId(submission.hrId));
+        const matchesTrainerId = trainerFilterIds.includes(normalizeId(submission.trainerId));
+        const matchesTrainer = trainerFilterIds.includes(normalizeId((submission as any).trainer));
         if (!matchesHrId && !matchesTrainerId && !matchesTrainer) {
           return false;
         }
@@ -1382,25 +1386,24 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       }
 
       // Apply filters
-      if (filters.region && submission.region !== filters.region) {
+      if (filters.region.length > 0 && !matchesFilter(filters.region, submission.region)) {
         return false;
       }
 
-      if (filters.store && submission.storeId !== filters.store) {
+      if (filters.store.length > 0 && !matchesFilter(filters.store, submission.storeId)) {
         return false;
       }
 
-      if (filters.am) {
-        const filterAmId = normalizeId(filters.am);
-        if (normalizeId(submission.amId) !== filterAmId && normalizeId((submission as any).am) !== filterAmId) {
+      if (filters.am.length > 0) {
+        if (!matchesFilterNorm(filters.am, submission.amId) && !matchesFilterNorm(filters.am, (submission as any).am)) {
           return false;
         }
       }
 
       // For training, trainer filter maps to trainer field
-      if (trainerFilterId) {
+      if (trainerFilterIds.length > 0) {
         const sTrainer = normalizeId((submission as any).trainerId) || normalizeId((submission as any).trainer) || normalizeId(submission.hrId);
-        if (!sTrainer || sTrainer !== trainerFilterId) return false;
+        if (!sTrainer || !trainerFilterIds.includes(sTrainer)) return false;
       }
 
       // Apply store health semantic filter if provided
@@ -1510,24 +1513,23 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       }
 
       // Apply filters
-      if (filters.region && submission.region !== filters.region) {
+      if (filters.region.length > 0 && !matchesFilter(filters.region, submission.region)) {
         return false;
       }
 
-      if (filters.store && submission.storeId !== filters.store) {
+      if (filters.store.length > 0 && !matchesFilter(filters.store, submission.storeId)) {
         return false;
       }
 
-      if (filters.am) {
-        const filterAmId = normalizeId(filters.am);
-        if (normalizeId(submission.amId) !== filterAmId && normalizeId((submission as any).am) !== filterAmId) {
+      if (filters.am.length > 0) {
+        if (!matchesFilterNorm(filters.am, submission.amId) && !matchesFilterNorm(filters.am, (submission as any).am)) {
           return false;
         }
       }
 
-      if (trainerFilterId) {
+      if (trainerFilterIds.length > 0) {
         const sTrainer = normalizeId((submission as any).trainerId) || normalizeId((submission as any).trainer) || normalizeId(submission.hrId);
-        if (!sTrainer || sTrainer !== trainerFilterId) return false;
+        if (!sTrainer || !trainerFilterIds.includes(sTrainer)) return false;
       }
 
       if (filters.health) {
@@ -1572,7 +1574,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     });
 
     return filtered;
-  }, [trainingData, filters, userRole, trainerFilterId]);
+  }, [trainingData, filters, userRole, trainerFilterIds]);
 
   // Filter QA Assessment data
   const filteredQAData = useMemo(() => {
@@ -1597,23 +1599,22 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       }
 
       // Apply filters
-      if (filters.region && submission.region !== filters.region) {
+      if (filters.region.length > 0 && !matchesFilter(filters.region, submission.region)) {
         return false;
       }
 
-      if (filters.store && submission.storeId !== filters.store) {
+      if (filters.store.length > 0 && !matchesFilter(filters.store, submission.storeId)) {
         return false;
       }
 
-      if (filters.am) {
-        const filterAmId = normalizeId(filters.am);
-        if (normalizeId(submission.amId) !== filterAmId && normalizeId((submission as any).am) !== filterAmId) {
+      if (filters.am.length > 0) {
+        if (!matchesFilterNorm(filters.am, submission.amId) && !matchesFilterNorm(filters.am, (submission as any).am)) {
           return false;
         }
       }
 
       // For QA, hr filter can map to qaId
-      if (filters.trainer && submission.qaId !== filters.trainer) {
+      if (filters.trainer.length > 0 && !matchesFilter(filters.trainer, submission.qaId)) {
         return false;
       }
 
@@ -1717,11 +1718,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     if (!hrAuditData) return [];
 
     let filtered = hrAuditData.filter((submission: HRAuditSubmission) => {
-      if (filters.region && submission.region !== filters.region) return false;
-      if (filters.store) {
-        const subStoreId = submission.storeId || '';
-        if (subStoreId !== filters.store) return false;
-      }
+      if (filters.region.length > 0 && !matchesFilter(filters.region, submission.region)) return false;
+      if (filters.store.length > 0 && !matchesFilter(filters.store, submission.storeId || '')) return false;
       if (filters.dateFrom || filters.dateTo) {
         const dateStr = String(submission.submissionTime || '').trim();
         if (!dateStr) return false;
@@ -1765,23 +1763,22 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       }
 
       // Apply filters
-      if (filters.region && submission.region !== filters.region) {
+      if (filters.region.length > 0 && !matchesFilter(filters.region, submission.region)) {
         return false;
       }
 
-      if (filters.store && submission.storeId !== filters.store) {
+      if (filters.store.length > 0 && !matchesFilter(filters.store, submission.storeId)) {
         return false;
       }
 
-      if (filters.am) {
-        const filterAmId = normalizeId(filters.am);
-        if (normalizeId(submission.amId) !== filterAmId && normalizeId((submission as any).am) !== filterAmId) {
+      if (filters.am.length > 0) {
+        if (!matchesFilterNorm(filters.am, submission.amId) && !matchesFilterNorm(filters.am, (submission as any).am)) {
           return false;
         }
       }
 
       // For Finance, hr filter can map to financeId
-      if (filters.trainer && submission.financeId !== filters.trainer) {
+      if (filters.trainer.length > 0 && !matchesFilter(filters.trainer, submission.financeId)) {
         return false;
       }
 
@@ -2022,12 +2019,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
             if ((userRole.role === 'hrbp' || userRole.role === 'regional_hr' || userRole.role === 'hr_head') && !canAccessHR(userRole, submission.amId)) return false;
 
             // Apply filters (same semantics as filteredTrainingData but WITHOUT deduplication)
-            if (filters.region && submission.region !== filters.region) return false;
-            if (filters.store && (submission.storeId !== filters.store && submission.storeID !== filters.store && submission.store_id !== filters.store)) return false;
-            if (filters.am && normalizeId(submission.amId) !== normalizeId(filters.am) && normalizeId((submission as any).am) !== normalizeId(filters.am)) return false;
-            if (trainerFilterId) {
+            if (filters.region.length > 0 && !matchesFilter(filters.region, submission.region)) return false;
+            if (filters.store.length > 0 && !matchesFilter(filters.store, submission.storeId || submission.storeID || (submission as any).store_id || '')) return false;
+            if (filters.am.length > 0 && !matchesFilterNorm(filters.am, submission.amId) && !matchesFilterNorm(filters.am, (submission as any).am)) return false;
+            if (trainerFilterIds.length > 0) {
               const sTrainer = normalizeId((submission as any).trainerId) || normalizeId((submission as any).trainer) || normalizeId(submission.hrId);
-              if (!sTrainer || sTrainer !== trainerFilterId) return false;
+              if (!sTrainer || !trainerFilterIds.includes(sTrainer)) return false;
             }
 
             if (filters.health) {
@@ -2653,24 +2650,24 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
     return stats?.avgScore != null ? `${stats.avgScore}%` : '—';
   };
 
+  const MULTI_SELECT_FIELDS = ['region', 'am', 'hrPerson', 'store', 'trainer'] as const;
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
-    const newFilters = { ...filters, [filterName]: value };
-
-    // Cascading reset logic for hierarchical filters
-    if (filterName === 'region') {
-      newFilters.store = ''; // Reset store when region changes
-    } else if (filterName === 'trainer') {
-      newFilters.am = '';    // Reset AM when HR changes
-      newFilters.store = ''; // Reset store when HR changes
-    } else if (filterName === 'am') {
-      newFilters.store = ''; // Reset store when AM changes
+    const isMulti = (MULTI_SELECT_FIELDS as readonly string[]).includes(filterName);
+    if (isMulti) {
+      const currentArr = (filters[filterName] as string[]);
+      const nextArr = !value
+        ? []
+        : currentArr.includes(value)
+          ? currentArr.filter(v => v !== value)
+          : [...currentArr, value];
+      setFilters(prev => ({ ...prev, [filterName]: nextArr }));
+    } else {
+      setFilters(prev => ({ ...prev, [filterName]: value }));
     }
-
-    setFilters(newFilters);
   };
 
   const resetFilters = () => {
-    setFilters({ region: '', store: '', am: '', trainer: '', hrPerson: '', health: '', dateFrom: '', dateTo: '', employee: '', vendorName: '', city: '' });
+    setFilters({ region: [], store: [], am: [], trainer: [], hrPerson: [], health: '', dateFrom: '', dateTo: '', employee: '', vendorName: '', city: '' });
   };
 
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -6217,16 +6214,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                                   const trainerName = storeData['Trainer 1 Name'] || storeData['Trainer Name'] || storeData.trainerName || 'Unknown';
 
                                   // Apply main dashboard filters so store list stays in sync with filteredTrainingData
-                                  if (filters.region && storeRegion !== filters.region) return;
-                                  if (filters.store && storeId !== filters.store) return;
-                                  if (filters.am) {
-                                    const mappingAmId = normalizeId(storeData['AM'] || storeData['amId'] || '');
-                                    const filterAmId = normalizeId(filters.am);
-                                    if (filterAmId && mappingAmId !== filterAmId) return;
-                                  }
-                                  if (trainerFilterId) {
+                                  if (filters.region.length > 0 && !matchesFilter(filters.region, storeRegion)) return;
+                                  if (filters.store.length > 0 && !matchesFilter(filters.store, storeId)) return;
+                                  if (filters.am.length > 0 && !matchesFilterNorm(filters.am, storeData['AM'] || storeData['amId'] || '')) return;
+                                  if (trainerFilterIds.length > 0) {
                                     const mappingTrainerId = normalizeId(storeData['Trainer 1'] || storeData['trainerId'] || '');
-                                    if (!mappingTrainerId || mappingTrainerId !== trainerFilterId) return;
+                                    if (!mappingTrainerId || !trainerFilterIds.includes(mappingTrainerId)) return;
                                   }
 
                                   storeAudits.set(storeId, {
@@ -6667,16 +6660,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                                     if (!storeId) return;
 
                                     // Apply main dashboard filters so store list stays in sync with filteredTrainingData
-                                    if (filters.region && region !== filters.region) return;
-                                    if (filters.store && storeId !== filters.store) return;
-                                    if (filters.am) {
-                                      const mappingAmId = normalizeId(amId || '');
-                                      const filterAmId = normalizeId(filters.am);
-                                      if (filterAmId && mappingAmId !== filterAmId) return;
-                                    }
-                                    if (trainerFilterId) {
+                                    if (filters.region.length > 0 && !matchesFilter(filters.region, region)) return;
+                                    if (filters.store.length > 0 && !matchesFilter(filters.store, storeId)) return;
+                                    if (filters.am.length > 0 && !matchesFilterNorm(filters.am, amId || '')) return;
+                                    if (trainerFilterIds.length > 0) {
                                       const mappingTrainerId = normalizeId(trainerId || '');
-                                      if (!mappingTrainerId || mappingTrainerId !== trainerFilterId) return;
+                                      if (!mappingTrainerId || !trainerFilterIds.includes(mappingTrainerId)) return;
                                     }
 
                                     storeMetadata.set(storeId, {

@@ -14,11 +14,11 @@ interface DashboardFiltersProps {
   vendorNames?: string[]; // Vendor names for Vendor Audit filter
   cities?: string[]; // Cities for Vendor Audit filter
   filters: {
-    region: string;
-    store: string;
-    am: string;
-    trainer: string;
-    hrPerson: string; // Separate filter for HR personnel
+    region: string[];
+    store: string[];
+    am: string[];
+    trainer: string[];
+    hrPerson: string[]; // Separate filter for HR personnel
     employee?: string; // Employee filter for SHLP dashboard
     // store health filter - '', 'Needs Attention', 'Brewing', 'Perfect Shot'
     health?: string;
@@ -208,7 +208,7 @@ const SearchableFilter: React.FC<{
   );
 };
 
-// Legacy FilterSelect for non-searchable dropdowns (like Region)
+// Legacy FilterSelect for non-searchable dropdowns (like Store Health)
 const FilterSelect: React.FC<{
   label: string;
   value: string;
@@ -233,6 +233,137 @@ const FilterSelect: React.FC<{
     </select>
   </div>
 );
+
+// Multi-select filter with checkbox dropdown and chip display
+const MultiSelectFilter: React.FC<{
+  label: string;
+  values: string[];
+  onChange: (value: string) => void; // '' = clear all, otherwise toggle
+  options: { value: string; label: string; id?: string }[];
+  placeholder: string;
+  disabled?: boolean;
+}> = ({ label, values, onChange, options, placeholder, disabled = false }) => {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  const filteredOptions = useMemo(() => {
+    if (!searchTerm) return options;
+    return options.filter(opt =>
+      opt.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      opt.value.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (opt.id && opt.id.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  }, [options, searchTerm]);
+
+  React.useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+        setSearchTerm('');
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  return (
+    <div ref={ref}>
+      <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-slate-400 mb-1">
+        {label}
+        {values.length > 0 && (
+          <span className="text-xs text-sky-600 dark:text-sky-400 ml-1">({values.length} selected)</span>
+        )}
+      </label>
+      <div className="relative">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => !disabled && setShowDropdown(v => !v)}
+          className={`w-full min-h-[42px] text-left px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-sky-500 focus:border-sky-500 ${
+            disabled
+              ? 'bg-gray-100 dark:bg-slate-600 cursor-not-allowed opacity-50'
+              : 'bg-white dark:bg-slate-700 cursor-pointer'
+          }`}
+        >
+          {values.length === 0 ? (
+            <span className="text-gray-400 dark:text-slate-400">{placeholder}</span>
+          ) : (
+            <div className="flex flex-wrap gap-1 pr-6">
+              {values.map(v => {
+                const opt = options.find(o => o.value === v);
+                return (
+                  <span
+                    key={v}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-sky-100 dark:bg-sky-900 text-sky-700 dark:text-sky-300 rounded text-xs"
+                  >
+                    {opt ? opt.label : v}
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Remove ${opt ? opt.label : v}`}
+                      className="cursor-pointer hover:text-sky-900 dark:hover:text-sky-100 font-bold"
+                      onMouseDown={(e) => { e.stopPropagation(); onChange(v); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onChange(v); } }}
+                    >
+                      ×
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">▾</span>
+        </button>
+
+        {showDropdown && !disabled && (
+          <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg max-h-64 overflow-y-auto">
+            <div className="p-2 border-b border-gray-100 dark:border-slate-600 sticky top-0 bg-white dark:bg-slate-700 z-10">
+              <input
+                type="text"
+                autoFocus
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              />
+            </div>
+            <div
+              className="p-3 cursor-pointer border-b border-gray-100 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600"
+              onMouseDown={() => { onChange(''); setSearchTerm(''); setShowDropdown(false); }}
+            >
+              <span className="text-sm text-gray-500 dark:text-slate-400 font-medium">{placeholder}</span>
+            </div>
+            {filteredOptions.length === 0 ? (
+              <div className="p-3 text-sm text-gray-400 dark:text-slate-500">No matching options</div>
+            ) : (
+              filteredOptions.map(option => {
+                const isSelected = values.includes(option.value);
+                return (
+                  <div
+                    key={option.value}
+                    className={`p-3 cursor-pointer border-b border-gray-100 dark:border-slate-600 last:border-b-0 flex items-center gap-2 ${
+                      isSelected ? 'bg-sky-50 dark:bg-sky-900/30' : 'hover:bg-gray-50 dark:hover:bg-slate-600'
+                    }`}
+                    onMouseDown={() => onChange(option.value)}
+                  >
+                    <input type="checkbox" readOnly checked={isSelected} className="accent-sky-500 shrink-0" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-slate-100">{option.label}</div>
+                      {option.id && option.id !== option.value && (
+                        <div className="text-xs text-gray-500 dark:text-slate-400">{option.id}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   regions,
@@ -296,10 +427,10 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
 
         <div className="space-y-4">
           {/* Stacked filters for mobile */}
-          <FilterSelect
+          <MultiSelectFilter
             label="Region"
-            value={filters.region}
-            onChange={(e) => onFilterChange('region', e.target.value)}
+            values={filters.region}
+            onChange={(value) => onFilterChange('region', value)}
             placeholder="All Regions"
             options={regions.map(r => ({ value: r, label: r }))}
           />
@@ -320,24 +451,24 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             />
           )}
 
-          <SearchableFilter
+          <MultiSelectFilter
             label={dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit' ? 'Auditor' : 'Area Manager'}
-            value={filters.am}
+            values={filters.am}
             onChange={(value) => onFilterChange('am', value)}
-            placeholder={filters.trainer ? "All AMs under selected Trainer" : (dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit' ? "All Auditors" : "All AMs")}
+            placeholder={filters.trainer.length > 0 ? "All AMs under selected Trainer" : (dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit' ? "All Auditors" : "All AMs")}
             options={areaManagers.map(am => ({ value: am.id, label: am.name, id: am.id }))}
             disabled={areaManagers.length === 0}
           />
 
           {/* Store filter - hidden for audit dashboards */}
           {dashboardType !== 'vendor-audit' && dashboardType !== 'vehicle-audit' && dashboardType !== 'cf-audit' && (
-            <SearchableFilter
+            <MultiSelectFilter
               label="Store"
-              value={filters.store}
+              values={filters.store}
               onChange={(value) => onFilterChange('store', value)}
               placeholder={
-                filters.am ? "All stores under selected AM" :
-                filters.trainer ? "All stores under selected Trainer" :
+                filters.am.length > 0 ? "All stores under selected AM" :
+                filters.trainer.length > 0 ? "All stores under selected Trainer" :
                 "All Stores"
               }
               options={stores.map(s => ({ value: s.id, label: s.name, id: s.id }))}
@@ -369,9 +500,9 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
 
           {/* Trainer Filter - Only show on non-HR, non-audit dashboards */}
           {dashboardType !== 'hr' && dashboardType !== 'vendor-audit' && dashboardType !== 'vehicle-audit' && dashboardType !== 'cf-audit' && effectiveTrainers.length > 0 && (
-            <SearchableFilter
+            <MultiSelectFilter
               label="Trainer"
-              value={filters.trainer}
+              values={filters.trainer}
               onChange={(value) => onFilterChange('trainer', value)}
               placeholder="All Trainers"
               options={effectiveTrainers.map(t => ({ value: t.id, label: t.name, id: t.id }))}
@@ -398,9 +529,9 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
 
           {/* HR Filter - Only show on HR dashboard */}
           {dashboardType === 'hr' && effectiveHRPersonnel.length > 0 && (
-            <SearchableFilter
+            <MultiSelectFilter
               label="HR"
-              value={filters.hrPerson}
+              values={filters.hrPerson}
               onChange={(value) => onFilterChange('hrPerson', value)}
               placeholder="All HRs"
               options={effectiveHRPersonnel.map(h => ({ value: h.id, label: h.name, id: h.id }))}
@@ -446,12 +577,12 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
       {/* Desktop/tablet inline filters */}
       <div className="hidden md:block">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 items-end">
-          {/* Region - Keep as simple select since usually limited options */}
+          {/* Region */}
           <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
-            <FilterSelect
+            <MultiSelectFilter
               label="Region"
-              value={filters.region}
-              onChange={(e) => onFilterChange('region', e.target.value)}
+              values={filters.region}
+              onChange={(value) => onFilterChange('region', value)}
               placeholder="All Regions"
               options={regions.map(r => ({ value: r, label: r }))}
             />
@@ -475,13 +606,13 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             </div>
           )}
           
-          {/* Area Manager / Auditor - Searchable */}
+          {/* Area Manager / Auditor */}
           <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
-            <SearchableFilter
+            <MultiSelectFilter
               label={dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit' ? 'Auditor' : 'Area Manager'}
-              value={filters.am}
+              values={filters.am}
               onChange={(value) => onFilterChange('am', value)}
-              placeholder={filters.trainer ? "All AMs under selected Trainer" : (dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit' ? "All Auditors" : "All AMs")}
+              placeholder={filters.trainer.length > 0 ? "All AMs under selected Trainer" : (dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit' ? "All Auditors" : "All AMs")}
               options={areaManagers.map(am => ({ value: am.id, label: am.name, id: am.id }))}
               disabled={areaManagers.length === 0}
             />
@@ -490,13 +621,13 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
           {/* Store - hidden for audit dashboards */}
           {dashboardType !== 'vendor-audit' && dashboardType !== 'vehicle-audit' && dashboardType !== 'cf-audit' && (
             <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
-              <SearchableFilter
+              <MultiSelectFilter
                 label="Store"
-                value={filters.store}
+                values={filters.store}
                 onChange={(value) => onFilterChange('store', value)}
                 placeholder={
-                  filters.am ? "All stores under selected AM" :
-                  filters.trainer ? "All stores under selected Trainer" :
+                  filters.am.length > 0 ? "All stores under selected AM" :
+                  filters.trainer.length > 0 ? "All stores under selected Trainer" :
                   "All Stores"
                 }
                 options={stores.map(s => ({ value: s.id, label: s.name, id: s.id }))}
@@ -534,9 +665,9 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
           {/* Trainer Filter - Only show on non-HR, non-audit dashboards */}
           {dashboardType !== 'hr' && dashboardType !== 'vendor-audit' && dashboardType !== 'vehicle-audit' && dashboardType !== 'cf-audit' && effectiveTrainers.length > 0 && (
             <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
-              <SearchableFilter
+              <MultiSelectFilter
                 label="Trainer"
-                value={filters.trainer}
+                values={filters.trainer}
                 onChange={(value) => onFilterChange('trainer', value)}
                 placeholder="All Trainers"
                 options={effectiveTrainers.map(t => ({ value: t.id, label: t.name, id: t.id }))}
@@ -565,9 +696,9 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
           {/* HR Filter - Only show on HR dashboard */}
           {dashboardType === 'hr' && effectiveHRPersonnel.length > 0 && (
             <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
-              <SearchableFilter
+              <MultiSelectFilter
                 label="HR"
-                value={filters.hrPerson}
+                values={filters.hrPerson}
                 onChange={(value) => onFilterChange('hrPerson', value)}
                 placeholder="All HRs"
                 options={effectiveHRPersonnel.map(h => ({ value: h.id, label: h.name, id: h.id }))}
