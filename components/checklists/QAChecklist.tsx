@@ -90,6 +90,28 @@ interface QAChecklistProps {
   existingSubmission?: any;
 }
 
+const EMPTY_SIGNATURES = { auditor: '', sm: '' };
+
+function buildMetaFromSubmission(existingSubmission?: any): SurveyMeta {
+  return {
+    qaName: existingSubmission?.qaName || '',
+    qaId: existingSubmission?.qaId || '',
+    amName: existingSubmission?.amName || '',
+    amId: existingSubmission?.amId || '',
+    storeName: existingSubmission?.storeName || '',
+    storeId: existingSubmission?.storeId || '',
+    city: existingSubmission?.city || '',
+    region: existingSubmission?.region || ''
+  };
+}
+
+function buildSignatureState(existingSubmission?: any): { auditor: string; sm: string } {
+  return {
+    auditor: existingSubmission?.auditorSignature || existingSubmission?.['Auditor Signature'] || '',
+    sm: existingSubmission?.smSignature || existingSubmission?.['SM Signature'] || ''
+  };
+}
+
 const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, editMode = false, existingSubmission }) => {
   const { config, loading: configLoading } = useConfig();
 
@@ -199,26 +221,20 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   });
 
   const [signatures, setSignatures] = useState<{ auditor: string; sm: string }>(() => {
+    if (editMode && existingSubmission) {
+      return buildSignatureState(existingSubmission);
+    }
     try {
-      return JSON.parse(localStorage.getItem('qa_signatures') || '{"auditor":"","sm":""}');
+      return JSON.parse(localStorage.getItem('qa_signatures') || JSON.stringify(EMPTY_SIGNATURES));
     } catch (e) {
-      return { auditor: '', sm: '' };
+      return EMPTY_SIGNATURES;
     }
   });
 
   const [meta, setMeta] = useState<SurveyMeta>(() => {
     // If in edit mode, populate from existing submission
     if (editMode && existingSubmission) {
-      return {
-        qaName: existingSubmission.qaName || '',
-        qaId: existingSubmission.qaId || '',
-        amName: existingSubmission.amName || '',
-        amId: existingSubmission.amId || '',
-        storeName: existingSubmission.storeName || '',
-        storeId: existingSubmission.storeId || '',
-        city: existingSubmission.city || '',
-        region: existingSubmission.region || ''
-      };
+      return buildMetaFromSubmission(existingSubmission);
     }
 
     let stored = {};
@@ -279,6 +295,74 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
   // Validation highlight state
   const [highlightedQuestion, setHighlightedQuestion] = useState<string | null>(null);
+
+  const resetFormState = (metaOverride?: Partial<SurveyMeta>) => {
+    setResponses({});
+    setMeta({
+      qaName: metaOverride?.qaName || '',
+      qaId: metaOverride?.qaId || '',
+      amName: metaOverride?.amName || '',
+      amId: metaOverride?.amId || '',
+      storeName: metaOverride?.storeName || '',
+      storeId: metaOverride?.storeId || '',
+      city: metaOverride?.city || '',
+      region: metaOverride?.region || ''
+    });
+    setQuestionImages({});
+    setQuestionRemarks({});
+    setSignatures(EMPTY_SIGNATURES);
+    setCurrentDraftId(null);
+    setShowDraftList(false);
+    setDrafts([]);
+    setEditingImage(null);
+    setActiveSection(null);
+    setCollapsedSubsections({});
+    setHighlightedQuestion(null);
+    setSubmitted(false);
+    localStorage.removeItem('qa_resp');
+    localStorage.removeItem('qa_meta');
+    localStorage.removeItem('qa_images');
+    localStorage.removeItem('qa_remarks');
+    localStorage.removeItem('qa_signatures');
+    idbRemoveImages('qa_images').catch(() => {});
+  };
+
+  useEffect(() => {
+    if (!editMode || !existingSubmission) return;
+
+    setResponses(existingSubmission.responses || {});
+    setMeta(buildMetaFromSubmission(existingSubmission));
+
+    const initialImages = parseBlobField<Record<string, string[]>>(
+      existingSubmission.questionImagesJSON,
+      existingSubmission.questionImages,
+      existingSubmission['Question Images JSON'],
+      existingSubmission['Images JSON']
+    );
+    setQuestionImages(initialImages);
+
+    const initialRemarks = parseBlobField<Record<string, string>>(
+      existingSubmission.questionRemarksJSON,
+      existingSubmission.questionRemarks,
+      existingSubmission['Question Remarks JSON'],
+      existingSubmission['Remarks JSON']
+    );
+    if (Object.keys(initialRemarks).length > 0) {
+      setQuestionRemarks(initialRemarks);
+    } else {
+      const reconstructed: Record<string, string> = {};
+      Object.keys(existingSubmission).forEach((k) => {
+        if (k.endsWith('_remark') && existingSubmission[k]) {
+          reconstructed[k.slice(0, -'_remark'.length)] = String(existingSubmission[k]);
+        }
+      });
+      setQuestionRemarks(reconstructed);
+    }
+
+    setSignatures(buildSignatureState(existingSubmission));
+    setCurrentDraftId(null);
+    setSubmitted(false);
+  }, [editMode, existingSubmission]);
 
   // Load comprehensive mapping data
   const { mapping: comprehensiveMapping, loading: mappingLoading } = useComprehensiveMapping();
@@ -395,7 +479,9 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       }
     } catch (error) {
       console.error('❌ Could not load drafts from Google Sheets:', error);
-      console.error('Error details:', error.message, error.stack);
+      if (error instanceof Error) {
+        console.error('Error details:', error.message, error.stack);
+      }
       setDrafts([]);
     } finally {
       setDraftsLoading(false);
@@ -717,33 +803,62 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
   const startNewChecklist = () => {
     if (!confirm('Start a new checklist? Current progress will be cleared unless you save it as a draft first.')) return;
 
-    // Clear current checklist data from localStorage
-    localStorage.removeItem('qa_resp');
-    localStorage.removeItem('qa_meta');
-    localStorage.removeItem('qa_images');
-    localStorage.removeItem('qa_remarks');
-    localStorage.removeItem('qa_signatures');
-    idbRemoveImages('qa_images').catch(() => {});
-
-    // Reset all state
-    setResponses({});
-    setMeta({
-      qaName: '',
-      qaId: '',
-      amName: '',
-      amId: '',
-      storeName: '',
-      storeId: '',
-      city: '',
-      region: ''
+    resetFormState({
+      qaName: meta.qaName,
+      qaId: meta.qaId
     });
-    setQuestionImages({});
-    setQuestionRemarks({});
-    setSignatures({ auditor: '', sm: '' });
-    setCurrentDraftId(null);
-    setSubmitted(false);
+    loadDraftsFromSheet();
 
     hapticFeedback.success();
+  };
+
+  const uploadImagesInChunks = async (imagesJSON: string, uploadId: string) => {
+    const CHUNK_SIZE = 40000;
+    const MAX_RETRIES = 2;
+    const totalChunks = Math.ceil(imagesJSON.length / CHUNK_SIZE);
+
+    for (let i = 0; i < totalChunks; i++) {
+      const chunkData = imagesJSON.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+      let uploaded = false;
+      let lastError = 'Unknown error';
+
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          const chunkParams = new URLSearchParams({
+            action: 'uploadImageChunk',
+            uploadId,
+            chunkIndex: String(i),
+            totalChunks: String(totalChunks),
+            chunkData
+          });
+
+          const res = await fetch(QA_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: chunkParams.toString(),
+            redirect: 'follow'
+          });
+          const result = await res.json();
+
+          if (result.success) {
+            uploaded = true;
+            break;
+          }
+
+          lastError = result.message || result.error || 'Chunk upload failed';
+        } catch (err: any) {
+          lastError = err?.message || 'Network error during chunk upload';
+        }
+
+        if (attempt < MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+        }
+      }
+
+      if (!uploaded) {
+        throw new Error(`Image chunk ${i + 1}/${totalChunks} failed: ${lastError}`);
+      }
+    }
   };
 
   const handleSubmit = async () => {
@@ -940,9 +1055,10 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
       if (imagesJSON.length < 500000) {
         params.questionImagesJSON = imagesJSON;
       } else if (hasImages) {
-        console.warn('⚠️ QA images too large for single POST (' + (imagesJSON.length / 1024).toFixed(0) + 'KB). Cached locally; omitting from POST to avoid sheet overwrite.');
-        // Intentionally DO NOT set params.questionImagesJSON — preserves any
-        // existing sheet value during edit-mode updates.
+        const uploadId = `qaimg_${params.action}_${params.rowId || params.submissionTime}_${params.storeID}_${Date.now()}`;
+        console.warn('⚠️ QA images too large for single POST (' + (imagesJSON.length / 1024).toFixed(0) + 'KB). Uploading in chunks with uploadId=' + uploadId);
+        await uploadImagesInChunks(imagesJSON, uploadId);
+        params.imagesUploadId = uploadId;
       } else {
         params.questionImagesJSON = '{}';
       }
@@ -1312,23 +1428,11 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
 
   const resetSurvey = () => {
     if (confirm('Are you sure you want to reset the survey? All responses will be lost.')) {
-      setResponses({});
-      setMeta({
-        qaName: '',
-        qaId: '',
-        amName: '',
-        amId: '',
-        storeName: '',
-        storeId: ''
+      resetFormState({
+        qaName: meta.qaName,
+        qaId: meta.qaId
       });
-      setQuestionImages({});
-      setSignatures({ auditor: '', sm: '' });
-      setSubmitted(false);
-      localStorage.removeItem('qa_resp');
-      localStorage.removeItem('qa_meta');
-      localStorage.removeItem('qa_images');
-      localStorage.removeItem('qa_signatures');
-      idbRemoveImages('qa_images').catch(() => {});
+      loadDraftsFromSheet();
     }
   };
 
@@ -1341,7 +1445,9 @@ const QAChecklist: React.FC<QAChecklistProps> = ({ userRole, onStatsUpdate, edit
         amName: 'Rajesh Kumar',
         amId: 'AM005',
         storeName: 'Defence Colony',
-        storeId: 'S027'
+        storeId: 'S027',
+        city: 'Delhi',
+        region: 'North'
       });
 
       // Generate realistic test responses for ALL sections

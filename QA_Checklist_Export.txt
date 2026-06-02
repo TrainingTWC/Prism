@@ -1,0 +1,117 @@
+Section Title	Question Text	Question Type	Required	Weight	Options
+Zero Tolerance	No expired food products in the café, and all food products are marked with clear date tags (MRD).	COMPLIANT_NONCOMPLIANT	Yes	4	Compliant | Non-Compliant
+Zero Tolerance	The product shall comply with the secondary shelf life for critical products like chicken, paneer, sauces, chilled, frozen, and composite products.	COMPLIANT_NONCOMPLIANT	Yes	4	Compliant | Non-Compliant
+Zero Tolerance	All food products should be stored according to the appropriate storage conditions (Frozen, Chilled, and Ambient).	COMPLIANT_NONCOMPLIANT	Yes	4	Compliant | Non-Compliant
+Zero Tolerance	RO/Mineral water TDS must be between 50 to 150 ±10 ppm that is being used for processing inside the café. If the TDS is not within the acceptable range, the water must not be used for processing.	COMPLIANT_NONCOMPLIANT	Yes	4	Compliant | Non-Compliant
+Zero Tolerance	Temperature sensitive food items shall not be transferred to the other store in the uncontrolled medium.	COMPLIANT_NONCOMPLIANT	Yes	4	Compliant | Non-Compliant
+Zero Tolerance	No live pest activity, including but not limited to rodents, rats, cockroaches, and spiders, was seen inside the café.	COMPLIANT_NONCOMPLIANT	Yes	4	Compliant | Non-Compliant
+Store	No junk material, wastage, unused & dump materials found in or around the store.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	The action plans for previous audit non-conformities (NCs) were shared on time in approved CAPA format, and all audit gaps have been closed.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Dishwasher and sink area checked for cleanliness, odor, leakage, etc.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Glass doors, cupboards, shelves and area behind equipment are clean and undamaged.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Area below shelves and machinery is clean and free of dust or waste.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Customer tables and chairs are in good condition and free of stains or damage.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Customer area organized and clean without dust/stains.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Food & packaging material not stored on the floor.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Food-contact materials and containers are clean, non-toxic, and corrosion-free.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Segregated materials (knives, cutting boards) are color-coded as veg/non-veg and clean.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Glasses clean and arranged upside down in clean racks.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Equipment cleaned per SOP at close of business.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Chiller/freezer temperatures maintained as per standards (Chiller 1–5°C, Freezer –18°C).	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Merrychef inner body checked for food particles, rust, and filter cleanliness.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Microwaves, grillers, coffee makers, and food warmers are operational and clean.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Coffee machine and grinder are operational, clean, and in good condition.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Shakers and funnels are clean and without food accumulation.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Portafilter is clean and in good condition.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Small wares (scoops, knives, spatulas, tongs) are clean and undamaged.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	UTF Holder, jackets, pouches & filling nozzle stored off the floor, no dust accumulation.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Paper cups, straws, syrups, tissues, and sauces neatly placed and available.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Freezer, FDU, and chillers are clean.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Ice cube box/machine/scooper are clean and dry; transfer in/out done in controlled condition.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Mixer, blender, BPR, and jars cleaned, washed, and stored inverted.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Housekeeping materials hung separately away from food prep area.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Floor mat cleaned adequately.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Bar mat cleaned adequately.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Carry bag clean and in good condition.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	RO machine, tank, and pipelines are clean and in working order.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Food and non-food materials stored separately.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	FDU temperature verified and within 0–5°C.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	In-process food items held in clean containers with visible MRD tags per SOP.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Veg/non-veg & raw/cooked product segregation maintained during storage and handling.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Expired/rejected/dumped items labeled "Do Not Use" or "Expired" and kept separate.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	No carton boxes in production area except milk boxes.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	No objectionable items in store (broken tools, unused equipment, etc.).	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Food waste and other waste removed daily to avoid accumulation.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Partner well-groomed (cap, T-shirt, apron, badge, trousers).	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Personal hygiene of staff maintained (hair, nails, shaving, no infections/jewelry).	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Handwashing procedures followed, sanitizer used.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Visitors follow basic safety measures before entering food area.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Personal belongings arranged separately from food/packaging.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Gloves used during food handling and changed after every use.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	First aid kit available with non-expired medicines.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	No unauthorized visitors.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	New recipes and shelf-life charts available and followed.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	FMCG/Impulse range clean, FSSAI-compliant, FEFO maintained.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Proper segregation of raw/cooked, veg/non-veg food.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	All ingredients/products received from approved vendors.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Two beverages cross-verified with BRM.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Weight, appearance, and filling of two products verified with FRM/food tag.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	No products repackaged or sealed with insulation tapes, rubber bands, or staples.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Measuring tools available, clean, and used for food prep/filling.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Packaging/wrapping material in contact with food is clean and food-grade.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Espresso sensory aspects (taste, crema, texture, temperature) evaluated.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	No pest infestation observed; evidence of effective pest control available.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	MSDS available for all pest control chemicals.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Pest control layout available and traps/fly catchers placed as per layout.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Approved chemicals labeled and stored away from food area.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Dilution charts readily available.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	MSDS reports for all cleaning chemicals available.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Spray guns labeled and available.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Dustbins kept closed, clean, and segregated (wet, dry, surgical).	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Waste not kept in BOH; disposed hygienically.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Washroom clean and checklist maintained.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Magic box inside BOH clean and in good condition.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Cleaning of utensils and equipment done per schedule.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	No water stagnation in food zones.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Staff aware of fire extinguisher usage.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Team adheres to SOPs, recipes, hygiene, grooming, pest control, etc.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Receiving temperatures noted using probe and recorded in app.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Food transport vehicles clean, maintained, and temperature-checked.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Temperature monitoring records updated in Terotam app.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Measuring/monitoring devices calibrated periodically.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Food handlers trained to handle food safely; training records available.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Personal hygiene verification record updated.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Documentation and records available and retained for at least one year.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Pest control job card/record updated.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Raw materials used on FIFO and FEFO basis.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Color-coded microfiber cloths used as per area.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Frozen products thawed per SOP.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Glue pads and rodent boxes inspected and replaced as needed.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Smallware cleaned every 3 hours.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Food dial-in checklist updated.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	FSSAI & FSDB displayed visibly and valid.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Person in charge holds valid FOSTAC certification.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Drainages cleaned per SOP and properly covered.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Veg/non-veg segregation and cleanliness of moulds maintained.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Wet floor signs used as needed.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Step stools/ladders used safely and maintained.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Food Display Unit arranged neatly with tags, allergens, calorie info, and logos.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Reusable condiments stored properly in clean containers.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	All signages (handwash, push/pull, etc.) in place.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Store	Digital/static menu boards functional and updated.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+QA	Potable water used in food meets IS 10500 standards; records maintained.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+QA	Food material tested internally or via accredited lab.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+QA	Induction training program and assessment for new employees completed.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Maintenance	Windows opening to external environment kept closed and fitted with insect mesh.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Maintenance	No wall, floor, door, or ceiling damage.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Maintenance	No unsecured electrical wires.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Maintenance	Lighting above food/packaging areas covered and clean.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Maintenance	Fire extinguishers in working condition and not expired.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Maintenance	No pest entry points (wall holes, drains, ceiling gaps, etc.).	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Maintenance	Pest-o-flash placed properly (max height 6 ft, away from food areas).	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Maintenance	Equipment (RO, Coffee Machine, Freezer etc.) Maintenance file checked.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Maintenance	RO water service records available.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Maintenance	Plumbing and fixtures maintained.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+Maintenance	Freezer, FDU, and chillers in good working condition.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+HR	Medical records for all staff including housekeeping available.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA
+HR	Annual medical exams and vaccinations done as per schedule.	COMPLIANCE_SCALE	Yes	2	Compliant | Partially Compliant | Not Compliant | NA

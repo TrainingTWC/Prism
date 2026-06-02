@@ -30,6 +30,8 @@ function doPost(e) {
         return submitQAAudit(params);
       case 'update':
         return updateQAAudit(params);
+      case 'uploadImageChunk':
+        return uploadImageChunk(params);
       case 'saveDraft':
         return saveDraft(params);
       case 'deleteDraft':
@@ -85,6 +87,7 @@ function doGet(e) {
 function submitQAAudit(params) {
   var sheet = getOrCreateSheet('QA', qaHeaders());
   var ts = now();
+  var resolvedImagesJSON = resolveQuestionImagesJSON(params);
 
   // Build the main QA row
   var row = [
@@ -134,7 +137,7 @@ function submitQAAudit(params) {
 
   // Remarks JSON + Images JSON
   row.push(params.questionRemarksJSON || '{}');
-  row.push(params.questionImagesJSON || '{}');
+  row.push(resolvedImagesJSON || '{}');
 
   sheet.appendRow(row);
   Logger.log('QA audit saved for ' + params.storeName);
@@ -152,6 +155,7 @@ function submitQAAudit(params) {
 function updateQAAudit(params) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('QA');
   if (!sheet) return json({ success: false, message: 'QA sheet not found' });
+  var resolvedIncomingImages = resolveQuestionImagesJSON(params);
 
   var rowId = (params.rowId || '').trim();
   if (!rowId) return json({ success: false, message: 'rowId required for update' });
@@ -226,7 +230,7 @@ function updateQAAudit(params) {
   var existingRemarks = existingRow ? String(existingRow[row.length]     || '{}') : '{}';
   var existingImages  = existingRow ? String(existingRow[row.length + 1] || '{}') : '{}';
   var newRemarks = (params.questionRemarksJSON && params.questionRemarksJSON !== '{}') ? params.questionRemarksJSON : existingRemarks;
-  var newImages  = (params.questionImagesJSON  && params.questionImagesJSON  !== '{}') ? params.questionImagesJSON  : existingImages;
+  var newImages  = resolvedIncomingImages ? resolvedIncomingImages : existingImages;
   row.push(newRemarks);
   row.push(newImages);
 
@@ -915,6 +919,122 @@ function deleteDraft(params) {
   }
 
   return json({ success: true });
+}
+
+// ===========================
+// CHUNKED IMAGE UPLOAD
+// ===========================
+
+function imageChunkHeaders() {
+  return ['Upload ID', 'Chunk Index', 'Total Chunks', 'Chunk Data', 'Updated At'];
+}
+
+function uploadImageChunk(params) {
+  var uploadId = String(params.uploadId || '').trim();
+  var chunkIndex = Number(params.chunkIndex);
+  var totalChunks = Number(params.totalChunks);
+  var chunkData = String(params.chunkData || '');
+
+  if (!uploadId) return json({ success: false, message: 'uploadId is required' });
+  if (isNaN(chunkIndex) || chunkIndex < 0) return json({ success: false, message: 'chunkIndex is invalid' });
+  if (isNaN(totalChunks) || totalChunks <= 0) return json({ success: false, message: 'totalChunks is invalid' });
+
+  var sheet = getOrCreateSheet('QA Image Chunks', imageChunkHeaders());
+  var data = sheet.getDataRange().getValues();
+
+  // Idempotency for retries: replace existing chunk row when same uploadId + index.
+  for (var i = data.length - 1; i >= 1; i--) {
+    var rowUploadId = String(data[i][0] || '');
+    var rowChunkIndex = Number(data[i][1]);
+    if (rowUploadId === uploadId && rowChunkIndex === chunkIndex) {
+      sheet.deleteRow(i + 1);
+      break;
+    }
+  }
+
+  // Prevent Sheets from interpreting chunk text as formulas when it starts
+  // with characters like '=', '+', '-', or '@'.
+  var safeChunkData = chunkData;
+  if (/^[=+\-@]/.test(safeChunkData)) {
+    safeChunkData = "'" + safeChunkData;
+  }
+
+  sheet.appendRow([uploadId, chunkIndex, totalChunks, safeChunkData, now()]);
+  return json({ success: true, uploadId: uploadId, chunkIndex: chunkIndex });
+}
+
+function resolveQuestionImagesJSON(params) {
+  var direct = String(params.questionImagesJSON || '');
+  if (direct && direct !== '{}') return direct;
+
+  var uploadId = String(params.imagesUploadId || '').trim();
+  if (!uploadId) return '';
+
+  var assembled = assembleImageChunks(uploadId);
+  if (!assembled) {
+    throw new Error('Image chunk upload incomplete for uploadId: ' + uploadId);
+  }
+
+  clearImageChunks(uploadId);
+  return assembled;
+}
+
+function assembleImageChunks(uploadId) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('QA Image Chunks');
+  if (!sheet) return '';
+
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return '';
+
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0] || '') === uploadId) {
+      rows.push(data[i]);
+    }
+  }
+  if (rows.length === 0) return '';
+
+  rows.sort(function(a, b) { return Number(a[1]) - Number(b[1]); });
+
+  var expectedChunks = Number(rows[0][2]);
+  if (isNaN(expectedChunks) || expectedChunks <= 0) {
+    throw new Error('Invalid chunk metadata for uploadId: ' + uploadId);
+  }
+  if (rows.length !== expectedChunks) {
+    throw new Error('Missing chunk(s) for uploadId: ' + uploadId + '. expected=' + expectedChunks + ', got=' + rows.length);
+  }
+
+  var chunkMap = {};
+  for (var j = 0; j < rows.length; j++) {
+    var chunkValue = String(rows[j][3] || '');
+    // Undo protective quote added at write time for formula-like values.
+    if (/^'[=+\-@]/.test(chunkValue)) {
+      chunkValue = chunkValue.substring(1);
+    }
+    chunkMap[Number(rows[j][1])] = chunkValue;
+  }
+
+  var assembled = '';
+  for (var k = 0; k < expectedChunks; k++) {
+    if (chunkMap[k] === undefined) {
+      throw new Error('Missing chunk index ' + k + ' for uploadId: ' + uploadId);
+    }
+    assembled += chunkMap[k];
+  }
+
+  return assembled;
+}
+
+function clearImageChunks(uploadId) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('QA Image Chunks');
+  if (!sheet) return;
+
+  var data = sheet.getDataRange().getValues();
+  for (var i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][0] || '') === uploadId) {
+      sheet.deleteRow(i + 1);
+    }
+  }
 }
 
 // ===========================
