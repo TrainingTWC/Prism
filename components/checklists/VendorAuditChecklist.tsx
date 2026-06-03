@@ -486,6 +486,11 @@ const VendorAuditChecklist: React.FC<VendorAuditChecklistProps> = ({ userRole, o
   };
 
   const handleSubmit = async () => {
+    if (!VENDOR_AUDIT_ENDPOINT) {
+      alert('Vendor Audit endpoint is not configured. Please set VITE_VENDOR_AUDIT_SCRIPT_URL and refresh.');
+      return;
+    }
+
     const requiredFields: (keyof SurveyMeta)[] = ['auditorName', 'auditorId', 'vendorName'];
     const missingFields = requiredFields.filter(field => !meta[field]);
 

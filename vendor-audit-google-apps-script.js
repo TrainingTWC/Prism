@@ -1117,15 +1117,29 @@ function updateVendorAudit(params) {
 
   var data = sheet.getDataRange().getValues();
   var rowIndex = -1;
+  var targetEpoch = parseVendorSubmissionEpoch(rowId);
 
   for (var i = 1; i < data.length; i++) {
-    // Google Sheets auto-converts ISO datetime strings to Date objects;
-    // normalise to ISO before comparing with the rowId string.
     var cellVal = data[i][1];
-    var cellStr = (cellVal instanceof Date)
-      ? cellVal.toISOString()
-      : String(cellVal || '');
-    if (cellStr.trim() === rowId) {
+    var isMatch = false;
+
+    if (cellVal instanceof Date && targetEpoch !== null) {
+      var cellEpoch = cellVal.getTime();
+      // Allow 1-second tolerance for serialization/rounding differences.
+      isMatch = Math.abs(cellEpoch - targetEpoch) <= 1000;
+    } else {
+      var cellStr = String(cellVal || '').trim();
+      if (cellStr === rowId) {
+        isMatch = true;
+      } else {
+        var cellParsedEpoch = parseVendorSubmissionEpoch(cellStr);
+        if (cellParsedEpoch !== null && targetEpoch !== null) {
+          isMatch = Math.abs(cellParsedEpoch - targetEpoch) <= 1000;
+        }
+      }
+    }
+
+    if (isMatch) {
       rowIndex = i + 1;
       break;
     }
@@ -1159,6 +1173,33 @@ function updateVendorAudit(params) {
 
   Logger.log('Updated vendor audit row ' + rowIndex + ' for vendor: ' + (params.vendorName || 'Unknown'));
   return json({ success: true, message: 'Vendor audit updated successfully' });
+}
+
+function parseVendorSubmissionEpoch(value) {
+  if (value === null || value === undefined) return null;
+  if (value instanceof Date) return value.getTime();
+
+  var str = String(value || '').trim();
+  if (!str) return null;
+
+  // ISO / native parsable formats.
+  var direct = new Date(str);
+  if (!isNaN(direct.getTime())) return direct.getTime();
+
+  // dd/MM/yyyy HH:mm:ss
+  var m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+  if (m) {
+    var day = Number(m[1]);
+    var month = Number(m[2]) - 1;
+    var year = Number(m[3]);
+    var hh = Number(m[4] || 0);
+    var mm = Number(m[5] || 0);
+    var ss = Number(m[6] || 0);
+    var dt = new Date(year, month, day, hh, mm, ss);
+    return isNaN(dt.getTime()) ? null : dt.getTime();
+  }
+
+  return null;
 }
 
 // ===========================
