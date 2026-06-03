@@ -539,8 +539,8 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             />
           )}
 
-          {/* Date Range Filter - Show on HR and audit dashboards */}
-          {(dashboardType === 'hr' || dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit') && (
+          {/* Date Range Filter - Show on HR, Training, and audit dashboards */}
+          {(dashboardType === 'hr' || dashboardType === 'training' || dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit') && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                 Date Range
@@ -707,8 +707,8 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             </div>
           )}
 
-          {/* Date Range Filter - Show on HR and audit dashboards */}
-          {(dashboardType === 'hr' || dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit') && (
+          {/* Date Range Filter - Show on HR, Training, and audit dashboards */}
+          {(dashboardType === 'hr' || dashboardType === 'training' || dashboardType === 'vendor-audit' || dashboardType === 'vehicle-audit' || dashboardType === 'cf-audit') && (
             <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                 Date Range

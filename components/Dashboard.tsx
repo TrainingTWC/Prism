@@ -4439,23 +4439,22 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         return;
       }
 
-      // Get the list of stores to include based on filters
-      let storesToInclude = availableStores;
-
-      // Apply filter logic to determine which stores to show
-      if (filters.region) {
-        storesToInclude = allStores.filter(s => s.region === filters.region);
-      } else if (filters.store) {
-        storesToInclude = allStores.filter(s => s.id === filters.store);
-      } else if (filters.am) {
-        storesToInclude = allStores.filter(s => s.amId === filters.am);
-      }
+      // Keep store scope aligned with currently visible Training dashboard filters.
+      const storesToInclude = availableStores;
 
       if (storesToInclude.length === 0) {
         alert('No stores available to export');
         hapticFeedback.error();
         return;
       }
+
+      // If no explicit date filter is set, export a rolling last-3-months window.
+      const now = new Date();
+      const hasDateFilter = Boolean(filters.dateFrom || filters.dateTo);
+      const defaultFrom = new Date(now.getFullYear(), now.getMonth() - 2, 1, 0, 0, 0, 0);
+      const defaultTo = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      const rangeFrom = filters.dateFrom ? new Date(`${filters.dateFrom}T00:00:00`) : defaultFrom;
+      const rangeTo = filters.dateTo ? new Date(`${filters.dateTo}T23:59:59.999`) : defaultTo;
 
       // Group audit data by store to get the latest audit per store
       const storeHealthMap = new Map<string, {
@@ -4469,11 +4468,22 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         healthStatus: string;
       }>();
 
+      // Use raw filtered data so we can correctly evaluate latest audit per store within the range.
+      const sourceTrainingData = (rawFilteredTrainingData && rawFilteredTrainingData.length > 0)
+        ? rawFilteredTrainingData
+        : (trainingData || []);
+
       // Process training audit data
-      if (filteredTrainingData && filteredTrainingData.length > 0) {
-        filteredTrainingData.forEach(submission => {
+      if (sourceTrainingData && sourceTrainingData.length > 0) {
+        sourceTrainingData.forEach(submission => {
           const storeId = submission.storeId;
-          const submissionDate = new Date(submission.submissionTime);
+          const parsedDate = parseSheetDate(String(submission.submissionTime || (submission as any).timestamp || (submission as any).submittedAt || ''));
+          if (!parsedDate || isNaN(parsedDate.getTime())) return;
+          const submissionDate = parsedDate;
+
+          // Apply export date window (explicit filter or default rolling last 3 months).
+          if (submissionDate < rangeFrom || submissionDate > rangeTo) return;
+
           const percentage = parseFloat(submission.percentageScore || '0');
           const ztFailed = String((submission as any).zeroToleranceFailed || '').toLowerCase() === 'yes';
 
@@ -4598,7 +4608,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         filenamePart = filters.trainer;
       }
 
-      const fileName = `Store_Health_Card_${filenamePart}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const datePart = hasDateFilter
+        ? `${filters.dateFrom || 'start'}_to_${filters.dateTo || 'today'}`
+        : 'Last_3_Months';
+      const fileName = `Store_Health_Card_${filenamePart}_${datePart}_${new Date().toISOString().split('T')[0]}.xlsx`;
 
       // Download file
       XLSX.writeFile(workbook, fileName);
