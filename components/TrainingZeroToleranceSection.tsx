@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Download, Search } from 'lucide-react';
 
 interface TrainingAuditSubmission {
   submissionTime: string;
@@ -54,6 +54,61 @@ const TrainingZeroToleranceSection: React.FC<Props> = ({ submissions }) => {
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'Dial-in' | 'New Joiner' | 'Both'>('all');
   const [questionFilter, setQuestionFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'store' | 'percentage'>('date');
+
+  const downloadFilteredReport = () => {
+    if (filteredStores.length === 0) return;
+
+    const headers = [
+      'Store',
+      'Store ID',
+      'Region',
+      'AM',
+      'Trainer',
+      'ZT Category',
+      'Failed Points',
+      'Last Audit',
+      'Audit %',
+      'Actual Score (Without ZT)'
+    ];
+
+    const rows = filteredStores.map((store) => ([
+      store.storeName,
+      store.storeId,
+      store.region,
+      store.amName,
+      store.trainerName,
+      store.failedCategory,
+      store.failedItems.map(item => item.label).join(' | '),
+      formatDate(store.lastAuditDate),
+      '0%',
+      `${store.actualPercentage}%`
+    ]));
+
+    const toCsvCell = (value: unknown) => {
+      const text = String(value ?? '');
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+
+    const csv = [
+      headers.map(toCsvCell).join(','),
+      ...rows.map(row => row.map(toCsvCell).join(','))
+    ].join('\n');
+
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    const datePart = new Date().toISOString().split('T')[0];
+    const categoryPart = categoryFilter === 'all' ? 'All' : categoryFilter.replace(/\s+/g, '_');
+    const ztPointPart = questionFilter === 'all' ? 'All' : (ZT_LABELS[questionFilter] || questionFilter).replace(/\s+/g, '_');
+
+    a.href = url;
+    a.download = `Training_Zero_Tolerance_${categoryPart}_${ztPointPart}_${datePart}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const ztStores = useMemo(() => {
     // Check ALL submissions for ZT failures (not just latest per store)
@@ -304,6 +359,18 @@ const TrainingZeroToleranceSection: React.FC<Props> = ({ submissions }) => {
                 <option value="store">Sort: Store Name</option>
                 <option value="percentage">Sort: Lowest Score</option>
               </select>
+            </div>
+            {/* Download filtered table */}
+            <div className="w-full sm:w-auto sm:ml-auto">
+              <button
+                onClick={downloadFilteredReport}
+                disabled={filteredStores.length === 0}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white"
+                title="Download current Zero Tolerance table"
+              >
+                <Download className="w-4 h-4" />
+                Download CSV
+              </button>
             </div>
           </div>
 
