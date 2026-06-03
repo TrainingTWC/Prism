@@ -4523,6 +4523,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
 
         if (auditData) {
           // Store has audit data
+          const scoreWithoutZT = parseFloat(auditData.percentageScoreWithoutZeroTolerance || auditData.percentageScore || '0') || 0;
           return {
             'Store Name': auditData.storeName,
             'Store ID': auditData.storeId,
@@ -4530,7 +4531,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
             'Trainer Name': auditData.trainerName,
             'Health Status': auditData.healthStatus,
             'Last Audit Month': auditData.lastAuditMonth,
-            'Audit Percentage': `${Math.round(auditData.auditPercentage)}%`
+            'Audit Percentage': `${Math.round(auditData.auditPercentage)}%`,
+            'Score Without Zero Tolerance': `${Math.round(scoreWithoutZT)}%`
           };
         } else {
           // Store has no audit data
@@ -4541,7 +4543,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
             'Trainer Name': 'N/A',
             'Health Status': 'Not Audited',
             'Last Audit Month': 'N/A',
-            'Audit Percentage': 'N/A'
+            'Audit Percentage': 'N/A',
+            'Score Without Zero Tolerance': 'N/A'
           };
         }
       })
@@ -4582,7 +4585,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       }
 
       // Auto-size columns
-      const headers = ['Store Name', 'Store ID', 'Area Manager', 'Trainer Name', 'Health Status', 'Last Audit Month', 'Audit Percentage'];
+      const headers = ['Store Name', 'Store ID', 'Area Manager', 'Trainer Name', 'Health Status', 'Last Audit Month', 'Audit Percentage', 'Score Without Zero Tolerance'];
       worksheet['!cols'] = headers.map((header, i) => {
         let maxWidth = header.length;
         for (let R = range.s.r + 1; R <= range.e.r; ++R) {

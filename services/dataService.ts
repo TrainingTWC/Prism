@@ -841,6 +841,7 @@ export interface TrainingAuditSubmission {
   totalScore: string;
   maxScore: string;
   percentageScore: string;
+  percentageScoreWithoutZeroTolerance?: string;
   // TSA Scores (derived from TSA_TSA_1, TSA_TSA_2, TSA_TSA_3)
   tsaFoodScore?: string;
   tsaCoffeeScore?: string;
@@ -875,7 +876,7 @@ function resolveSubmissionValue(submission: any, qId: string): any {
 
 // Recalculate scores from individual question responses
 // This fixes incorrect stored scores due to previous calculation bugs
-function recalculateTrainingScore(submission: any): { totalScore: string; maxScore: string; percentageScore: string } {
+function recalculateTrainingScore(submission: any): { totalScore: string; maxScore: string; percentageScore: string; percentageScoreWithoutZeroTolerance: string } {
   let total = 0;
   let max = 0;
 
@@ -930,6 +931,7 @@ function recalculateTrainingScore(submission: any): { totalScore: string; maxSco
   }
 
   let pct = max > 0 ? Math.round((total / max) * 100) : 0;
+  const pctWithoutZeroTolerance = pct;
 
   // Zero Tolerance: if any ZT item is answered "no", entire score becomes 0
   const ZT_ITEM_IDS = ['TM_5', 'TM_10', 'NJ_1', 'NJ_2', 'NJ_3', 'NJ_5', 'NJ_7'];
@@ -945,7 +947,8 @@ function recalculateTrainingScore(submission: any): { totalScore: string; maxSco
   return {
     totalScore: total.toString(),
     maxScore: max.toString(),
-    percentageScore: pct.toString()
+    percentageScore: pct.toString(),
+    percentageScoreWithoutZeroTolerance: pctWithoutZeroTolerance.toString()
   };
 }
 
@@ -1035,7 +1038,8 @@ export const fetchTrainingData = async (forceRefresh = false): Promise<TrainingA
         ...rowWithTSA,
         totalScore: recalculated.totalScore,
         maxScore: recalculated.maxScore,
-        percentageScore: recalculated.percentageScore
+        percentageScore: recalculated.percentageScore,
+        percentageScoreWithoutZeroTolerance: recalculated.percentageScoreWithoutZeroTolerance
       };
     });
 
