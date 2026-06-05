@@ -15,6 +15,47 @@
 const SHEET_NAME = 'Finance Audit';
 const DRIVE_FOLDER_NAME = 'Finance Audit Images';
 
+/**
+ * Robustly parse POST parameters.
+ * Supports both JSON bodies and URL-encoded bodies, including large payloads
+ * where e.parameter can be incomplete/empty.
+ */
+function parsePostParams(e) {
+  const fallbackParams = (e && e.parameter) ? e.parameter : {};
+  const raw = (e && e.postData && e.postData.contents) ? String(e.postData.contents || '') : '';
+
+  if (!raw) return fallbackParams;
+
+  // JSON body
+  if (raw.trim().charAt(0) === '{') {
+    try {
+      return JSON.parse(raw);
+    } catch (jsonErr) {
+      Logger.log('⚠️ JSON parse error, falling back to URL-encoded parser: ' + jsonErr.toString());
+    }
+  }
+
+  // URL-encoded body: prefer e.parameter, but repair by manual parsing when critical fields are missing
+  const hasCriticalFields = !!(
+    fallbackParams.financeAuditorName ||
+    fallbackParams.storeName ||
+    fallbackParams.questionRemarksJSON ||
+    fallbackParams.questionImagesJSON
+  );
+  if (hasCriticalFields) return fallbackParams;
+
+  const parsed = {};
+  const pairs = raw.split('&');
+  for (let i = 0; i < pairs.length; i++) {
+    const kv = pairs[i].split('=');
+    if (kv.length < 2) continue;
+    const key = decodeURIComponent(kv[0].replace(/\+/g, ' '));
+    const value = decodeURIComponent(kv.slice(1).join('=').replace(/\+/g, ' '));
+    parsed[key] = value;
+  }
+  return parsed;
+}
+
 // Get or create the Google Drive folder for storing images
 function getOrCreateImageFolder() {
   const folders = DriveApp.getFoldersByName(DRIVE_FOLDER_NAME);
@@ -48,17 +89,8 @@ function doPost(e) {
       }
     }
     
-    // Parse the incoming JSON data
-    let postData = {};
-    try {
-      postData = JSON.parse(e.postData.contents);
-      Logger.log('📥 Received JSON data with keys: ' + Object.keys(postData).length);
-    } catch (parseError) {
-      Logger.log('⚠️ JSON parse error: ' + parseError.toString());
-      postData = e.parameter || {};
-    }
-    
-    const params = postData;
+    const params = parsePostParams(e);
+    Logger.log('📥 Parsed payload keys: ' + Object.keys(params).length);
     
     // Get current timestamp
     const timestamp = new Date();
@@ -78,22 +110,41 @@ function doPost(e) {
         for (const compositeKey of compositeKeys) {
           try {
             const imgs = parsedImages[compositeKey];
-            if (imgs && imgs.length > 0 && imgs[0] && imgs[0].startsWith('data:image')) {
-              const imageData = imgs[0];
-              const base64Data = imageData.split(',')[1];
-              const mimeType = imageData.split(',')[0].split(':')[1].split(';')[0];
-              const extension = mimeType.split('/')[1] || 'jpg';
+            if (imgs && Array.isArray(imgs) && imgs.length > 0) {
+              const urls = [];
+              for (let imgIdx = 0; imgIdx < imgs.length; imgIdx++) {
+                const imageData = imgs[imgIdx];
+                if (!imageData || typeof imageData !== 'string') continue;
 
-              const blob = Utilities.newBlob(
-                Utilities.base64Decode(base64Data),
-                mimeType,
-                compositeKey + '_' + timestamp.getTime() + '.' + extension
-              );
+                // Already a URL from previous persistence path
+                if (imageData.indexOf('http://') === 0 || imageData.indexOf('https://') === 0) {
+                  urls.push(imageData);
+                  continue;
+                }
 
-              const file = imageFolder.createFile(blob);
-              file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-              imageUrls[compositeKey] = file.getUrl();
-              Logger.log('✅ Saved image for ' + compositeKey);
+                // New base64 image
+                if (imageData.indexOf('data:image') === 0) {
+                  const base64Data = imageData.split(',')[1];
+                  const mimeType = imageData.split(',')[0].split(':')[1].split(';')[0];
+                  const extension = mimeType.split('/')[1] || 'jpg';
+
+                  const blob = Utilities.newBlob(
+                    Utilities.base64Decode(base64Data),
+                    mimeType,
+                    compositeKey + '_' + timestamp.getTime() + '_' + imgIdx + '.' + extension
+                  );
+
+                  const file = imageFolder.createFile(blob);
+                  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+                  urls.push(file.getUrl());
+                }
+              }
+
+              if (urls.length > 0) {
+                // Preserve all images by storing newline-delimited URLs in the per-question image column.
+                imageUrls[compositeKey] = urls.join('\n');
+                Logger.log('✅ Saved ' + urls.length + ' image(s) for ' + compositeKey);
+              }
             }
           } catch (imgError) {
             Logger.log('⚠️ Error processing image for ' + compositeKey + ': ' + imgError.toString());

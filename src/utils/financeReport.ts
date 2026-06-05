@@ -18,6 +18,73 @@ function formatDate(dateStr: string): string {
   } catch { return dateStr; }
 }
 
+function safeDecodeURIComponent(text: string): string {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text;
+  }
+}
+
+function decodeHtmlEntities(text: string): string {
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  } catch {
+    return text;
+  }
+}
+
+function normalizeRemark(raw: any): string {
+  if (raw === undefined || raw === null) return '';
+  let text = String(raw);
+  if (!text.trim()) return '';
+
+  // Decode percent-encoded payloads and HTML entities when remarks pass through URL-encoding.
+  text = safeDecodeURIComponent(safeDecodeURIComponent(text));
+  text = decodeHtmlEntities(text);
+
+  // Repair corrupted streams like "&r&e&m&a&r&k" seen in malformed URL parsing.
+  const compact = text.replace(/\s+/g, '');
+  if (/^(&[A-Za-z0-9#._-]+){6,}$/.test(compact)) {
+    text = text.replace(/&(?=[A-Za-z0-9#._-])/g, '');
+  }
+
+  return text.replace(/\s{2,}/g, ' ').trim();
+}
+
+function parseImageUrlList(raw: any): string[] {
+  if (!raw) return [];
+
+  if (Array.isArray(raw)) {
+    return raw
+      .map(v => String(v || '').trim())
+      .filter(v => !!v);
+  }
+
+  const asString = String(raw || '').trim();
+  if (!asString) return [];
+
+  if (asString.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(asString);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map(v => String(v || '').trim())
+          .filter(v => !!v);
+      }
+    } catch {
+      // Fall through to delimiter parsing.
+    }
+  }
+
+  return asString
+    .split(/\r?\n|,/)
+    .map(v => v.trim())
+    .filter(v => !!v);
+}
+
 interface FinanceSubmission {
   [key: string]: any;
 }
@@ -260,7 +327,7 @@ function buildSections(sub: FinanceSubmission, questionImages: Record<string, st
       
       const remarkKey = `${q.id} Remarks`;
       const prefixRemarkKey = `${prefixKey}_remark`;
-      const remark = sub[remarkKey] || sub[prefixRemarkKey] || sub[`${q.id}_remark`] || '';
+      const remark = normalizeRemark(sub[remarkKey] || sub[prefixRemarkKey] || sub[`${q.id}_remark`] || '');
       
       const weight = q.weight;
       const responseStr = response ? String(response).toLowerCase() : '';
@@ -291,7 +358,7 @@ function buildSections(sub: FinanceSubmission, questionImages: Record<string, st
     const remarksKey = `${section.title.split(':')[0]} Remarks`;
     const prefixRemarksKey = `${section.prefix}_remarks`;
     if (sub[remarksKey] || sub[prefixRemarksKey]) {
-      sectionData.remarks = sub[remarksKey] || sub[prefixRemarksKey];
+      sectionData.remarks = normalizeRemark(sub[remarksKey] || sub[prefixRemarksKey]);
     }
 
     sections[section.id] = sectionData;
@@ -488,24 +555,28 @@ export const buildFinancePDF = async (
       for (const q of section.questions) {
         const imageUrlKey = `${q.id} Image URL`;
         const imageUrl = sub[imageUrlKey];
-        if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim()) {
+        const urlCandidates = parseImageUrlList(imageUrl);
+        if (urlCandidates.length > 0) {
           const compositeKey = `${section.prefix}_${q.id}`;
-          imageLoadPromises.push(
-            (async () => {
-              try {
-                // Convert Google Drive URL to direct link if needed
-                let directUrl = imageUrl;
-                const driveMatch = imageUrl.match(/\/file\/d\/([^\/]+)/);
-                if (driveMatch) {
-                  directUrl = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+          urlCandidates.forEach((candidateUrl) => {
+            imageLoadPromises.push(
+              (async () => {
+                try {
+                  // Convert Google Drive URL to direct link if needed
+                  let directUrl = candidateUrl;
+                  const driveMatch = candidateUrl.match(/\/file\/d\/([^\/]+)/);
+                  if (driveMatch) {
+                    directUrl = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+                  }
+                  const base64 = await loadImage(directUrl);
+                  if (!loadedImages[compositeKey]) loadedImages[compositeKey] = [];
+                  loadedImages[compositeKey].push(base64);
+                } catch (err) {
+                  // Image load failed (CORS, timeout, etc.), skip silently
                 }
-                const base64 = await loadImage(directUrl);
-                loadedImages[compositeKey] = [base64];
-              } catch (err) {
-                // Image load failed (CORS, timeout, etc.), skip silently
-              }
-            })()
-          );
+              })()
+            );
+          });
         }
       }
     }
@@ -893,7 +964,7 @@ export const buildFinancePDF = async (
 
     // Display section remarks if they exist
     // sec.remarks is set by buildSections() which handles both "Section 1 Remarks" (sheet) and "CashManagement_remarks" (checklist) formats
-    const sectionRemarks = sec.remarks || sub[`${secKey}_remarks`];
+    const sectionRemarks = normalizeRemark(sec.remarks || sub[`${secKey}_remarks`]);
     if (sectionRemarks && sectionRemarks.trim()) {
       const remarksLines = doc.splitTextToSize(sectionRemarks, 170);
       const remarksHeight = Math.max(18, (remarksLines.length * 5) + 12);
