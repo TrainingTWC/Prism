@@ -2690,6 +2690,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       // Strong haptic feedback when starting PDF generation
       hapticFeedback.confirm();
 
+      const pickFilter = (v: any): string => {
+        if (Array.isArray(v)) return String(v[0] || '').trim();
+        return String(v || '').trim();
+      };
+      const selectedStore = pickFilter(filters.store);
+      const selectedRegion = pickFilter(filters.region);
+      const selectedAM = pickFilter(filters.am);
+      const selectedTrainer = pickFilter(filters.trainer);
+      const selectedHRPerson = pickFilter(filters.hrPerson);
+
       // Check if we have data based on dashboard type
       let reportData = [];
       let dataType = 'HR Survey';
@@ -2757,12 +2767,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
             filteredVendorAuditData as any[],
             {
               vendorName: filters.vendorName || '',
-              region: filters.region || '',
+              region: selectedRegion || '',
               city: filters.city || '',
             },
             { title: 'Vendor Food Safety Audit Report' }
           );
-          const fileName = `VendorAudit_${filters.region || 'All'}_${new Date().toISOString().split('T')[0]}.pdf`;
+          const fileName = `VendorAudit_${selectedRegion || 'All'}_${new Date().toISOString().split('T')[0]}.pdf`;
           doc.save(fileName);
           hapticFeedback.ultraStrong();
           showNotificationMessage('Vendor Audit PDF generated!', 'success');
@@ -2807,10 +2817,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         // This ensures region/AM/trainer/store filters correctly label the report
 
         // Store filter
-        if (filters.store) {
-          const s = allStores.find(s => s.id === filters.store);
-          meta.storeName = s?.name || filters.store;
-          meta.storeId = filters.store;
+        if (selectedStore) {
+          const s = allStores.find(s => s.id === selectedStore);
+          meta.storeName = s?.name || selectedStore;
+          meta.storeId = selectedStore;
         } else if (reportData.length > 0 && reportData.length === 1) {
           // Single submission with no store filter: use first record store
           const firstRecord = reportData[0] as any;
@@ -2818,9 +2828,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
           meta.storeId = firstRecord.storeId || firstRecord.storeID || '';
           // Capture MOD from single record if present
           if (firstRecord.mod) meta.mod = firstRecord.mod;
-        } else if (filters.region) {
+        } else if (selectedRegion) {
           // Region filter: show region as primary identifier
-          meta.storeName = `${filters.region} Region`;
+          meta.storeName = `${selectedRegion} Region`;
           meta.storeId = '';
         } else if (reportData.length > 0) {
           // Multiple records, no filter: use "All Stores" or aggregate
@@ -2829,10 +2839,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         // Trainer filter (HR field in training context)
-        if (filters.trainer) {
-          const t = allHRPersonnel.find(h => h.id === filters.trainer) || AREA_MANAGERS.find(a => a.id === filters.trainer);
-          meta.trainerName = t?.name || filters.trainer;
-          meta.trainerId = filters.trainer;
+        if (selectedTrainer) {
+          const t = allHRPersonnel.find(h => h.id === selectedTrainer) || AREA_MANAGERS.find(a => a.id === selectedTrainer);
+          meta.trainerName = t?.name || selectedTrainer;
+          meta.trainerId = selectedTrainer;
         } else if (reportData.length > 0 && reportData.length === 1) {
           const firstRecord = reportData[0] as any;
           meta.trainerName = firstRecord.trainerName || firstRecord.trainer_name || '';
@@ -2849,9 +2859,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         // AM filter
-        if (filters.am) {
-          const am = AREA_MANAGERS.find(a => a.id === filters.am);
-          meta.amName = am?.name || filters.am;
+        if (selectedAM) {
+          const am = AREA_MANAGERS.find(a => a.id === selectedAM);
+          meta.amName = am?.name || selectedAM;
         } else if (reportData.length > 0 && reportData.length === 1) {
           const firstRecord = reportData[0] as any;
           meta.amName = firstRecord.amName || firstRecord.am_name || '';
@@ -2918,27 +2928,27 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       // AM Operations dashboard: use the operations-specific PDF builder (same look & feel as training)
       if (dashboardType === 'operations') {
         const meta: any = {};
-        if (filters.store) {
-          const s = allStores.find(s => s.id === filters.store);
-          meta.storeName = s?.name || filters.store;
-          meta.storeId = filters.store;
+        if (selectedStore) {
+          const s = allStores.find(s => s.id === selectedStore);
+          meta.storeName = s?.name || selectedStore;
+          meta.storeId = selectedStore;
         } else if (reportData.length > 0 && reportData.length === 1) {
           const firstRecord = reportData[0] as any;
           meta.storeName = firstRecord.storeName || firstRecord.store_name || '';
           meta.storeId = firstRecord.storeId || firstRecord.storeID || '';
           if (firstRecord.mod) meta.mod = firstRecord.mod;
-        } else if (filters.region) {
-          meta.storeName = `${filters.region} Region`;
+        } else if (selectedRegion) {
+          meta.storeName = `${selectedRegion} Region`;
           meta.storeId = '';
         } else if (reportData.length > 0) {
           meta.storeName = 'All Stores (Filtered)';
           meta.storeId = '';
         }
 
-        if (filters.trainer) {
-          const t = allHRPersonnel.find(h => h.id === filters.trainer) || AREA_MANAGERS.find(a => a.id === filters.trainer);
-          meta.trainerName = t?.name || filters.trainer;
-          meta.trainerId = filters.trainer;
+        if (selectedTrainer) {
+          const t = allHRPersonnel.find(h => h.id === selectedTrainer) || AREA_MANAGERS.find(a => a.id === selectedTrainer);
+          meta.trainerName = t?.name || selectedTrainer;
+          meta.trainerId = selectedTrainer;
         } else if (reportData.length > 0 && reportData.length === 1) {
           const firstRecord = reportData[0] as any;
           meta.trainerName = firstRecord.trainerName || firstRecord.trainer_name || '';
@@ -2949,10 +2959,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
           meta.trainerId = '';
         }
 
-        if (filters.am) {
-          const am = AREA_MANAGERS.find(a => a.id === filters.am);
-          meta.amName = am?.name || filters.am;
-          meta.auditorName = am?.name || filters.am;
+        if (selectedAM) {
+          const am = AREA_MANAGERS.find(a => a.id === selectedAM);
+          meta.amName = am?.name || selectedAM;
+          meta.auditorName = am?.name || selectedAM;
         } else if (reportData.length > 0 && reportData.length === 1) {
           const firstRecord = reportData[0] as any;
           meta.amName = firstRecord.amName || firstRecord.am_name || '';
@@ -2991,10 +3001,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         const meta: any = {};
 
         // Store filter
-        if (filters.store) {
-          const s = allStores.find(s => s.id === filters.store);
-          meta.storeName = s?.name || filters.store;
-          meta.storeId = filters.store;
+        if (selectedStore) {
+          const s = allStores.find(s => s.id === selectedStore);
+          meta.storeName = s?.name || selectedStore;
+          meta.storeId = selectedStore;
         } else if (reportData.length > 0 && reportData.length === 1) {
           const firstRecord = reportData[0] as any;
           meta.storeName = firstRecord.storeName || firstRecord.store_name || firstRecord.Store || '';
@@ -3002,17 +3012,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         // Region filter
-        if (filters.region) {
-          meta.region = filters.region;
+        if (selectedRegion) {
+          meta.region = selectedRegion;
         } else if (reportData.length > 0 && reportData.length === 1) {
           const firstRecord = reportData[0] as any;
           meta.region = firstRecord.region || firstRecord.Region || '';
         }
 
         // Auditor filter
-        if (filters.am) {
-          const amInfo = AREA_MANAGERS.find(am => am.id === filters.am);
-          meta.auditorName = amInfo?.name || filters.am;
+        if (selectedAM) {
+          const amInfo = AREA_MANAGERS.find(am => am.id === selectedAM);
+          meta.auditorName = amInfo?.name || selectedAM;
         } else if (reportData.length > 0 && reportData.length === 1) {
           const firstRecord = reportData[0] as any;
           meta.auditorName = firstRecord.auditorName || firstRecord.auditor || firstRecord.Auditor || '';
@@ -3107,16 +3117,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         const meta: any = {};
 
         // Store filter
-        if (filters.store) {
-          const s = allStores.find(s => s.id === filters.store);
-          meta.storeName = s?.name || filters.store;
-          meta.storeId = filters.store;
+        if (selectedStore) {
+          const s = allStores.find(s => s.id === selectedStore);
+          meta.storeName = s?.name || selectedStore;
+          meta.storeId = selectedStore;
         } else if (reportData.length > 0 && reportData.length === 1) {
           const firstRecord = reportData[0] as any;
           meta.storeName = firstRecord.storeName || firstRecord.store_name || '';
           meta.storeId = firstRecord.storeId || firstRecord.storeID || '';
-        } else if (filters.region) {
-          meta.storeName = `${filters.region} Region`;
+        } else if (selectedRegion) {
+          meta.storeName = `${selectedRegion} Region`;
           meta.storeId = '';
         } else if (reportData.length > 0) {
           meta.storeName = 'All Stores (Filtered)';
@@ -3124,10 +3134,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         // HR Person filter
-        if (filters.hrPerson) {
-          const hr = allHRPersonnel.find(h => h.id === filters.hrPerson);
-          meta.hrPersonName = hr?.name || filters.hrPerson;
-          meta.hrPersonId = filters.hrPerson;
+        if (selectedHRPerson) {
+          const hr = allHRPersonnel.find(h => h.id === selectedHRPerson);
+          meta.hrPersonName = hr?.name || selectedHRPerson;
+          meta.hrPersonId = selectedHRPerson;
         } else if (reportData.length > 0 && reportData.length === 1) {
           const firstRecord = reportData[0] as any;
           meta.hrPersonName = firstRecord.hrPersonName || firstRecord.hr_person || '';
@@ -3138,9 +3148,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         // AM filter
-        if (filters.am) {
-          const am = AREA_MANAGERS.find(a => a.id === filters.am);
-          meta.amName = am?.name || filters.am;
+        if (selectedAM) {
+          const am = AREA_MANAGERS.find(a => a.id === selectedAM);
+          meta.amName = am?.name || selectedAM;
         } else if (reportData.length > 0 && reportData.length === 1) {
           const firstRecord = reportData[0] as any;
           meta.amName = firstRecord.amName || firstRecord.am_name || '';
@@ -3171,10 +3181,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
 
         // Determine active filters to set report mode
         const hasEmployeeFilter = !!filters.employee;
-        const hasStoreFilter = !!filters.store;
-        const hasAMFilter = !!filters.am;
-        const hasTrainerFilter = !!filters.trainer;
-        const hasRegionFilter = !!filters.region;
+        const hasStoreFilter = !!selectedStore;
+        const hasAMFilter = !!selectedAM;
+        const hasTrainerFilter = !!selectedTrainer;
+        const hasRegionFilter = !!selectedRegion;
         const hasAnyFilter = hasEmployeeFilter || hasStoreFilter || hasAMFilter || hasTrainerFilter || hasRegionFilter;
 
         // Set report mode based on filters
@@ -3193,10 +3203,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         // Store filter - prioritize store name from mapping
-        if (filters.store) {
-          const s = allStores.find(s => s.id === filters.store);
-          meta.storeName = s?.name || filters.store;
-          meta.storeId = filters.store;
+        if (selectedStore) {
+          const s = allStores.find(s => s.id === selectedStore);
+          meta.storeName = s?.name || selectedStore;
+          meta.storeId = selectedStore;
         } else if (hasAnyFilter && firstRecord) {
           const storeId = firstRecord['Store'] || firstRecord.storeId || '';
           const storeInfo = allStores.find(s => s.id === storeId);
@@ -3205,8 +3215,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         // Region filter
-        if (filters.region) {
-          meta.regionName = filters.region;
+        if (selectedRegion) {
+          meta.regionName = selectedRegion;
         }
 
         // Employee filter
@@ -3224,9 +3234,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         // Trainer filter - get name from personnel list
-        if (filters.trainer) {
-          const t = allHRPersonnel.find(h => h.id === filters.trainer) || AREA_MANAGERS.find(a => a.id === filters.trainer);
-          meta.trainerName = t?.name || filters.trainer;
+        if (selectedTrainer) {
+          const t = allHRPersonnel.find(h => h.id === selectedTrainer) || AREA_MANAGERS.find(a => a.id === selectedTrainer);
+          meta.trainerName = t?.name || selectedTrainer;
         } else if (firstRecord && !hasAnyFilter) {
           meta.trainerName = '';
         } else if (firstRecord) {
@@ -3236,9 +3246,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         // AM filter - get name from area managers list
-        if (filters.am) {
-          const am = AREA_MANAGERS.find(a => a.id === filters.am);
-          meta.amName = am?.name || filters.am;
+        if (selectedAM) {
+          const am = AREA_MANAGERS.find(a => a.id === selectedAM);
+          meta.amName = am?.name || selectedAM;
         } else if (firstRecord && !hasAnyFilter) {
           meta.amName = '';
         } else if (firstRecord) {
@@ -3266,13 +3276,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         if (hasEmployeeFilter) {
           filenamePart = meta.employeeName?.replace(/\s+/g, '_') || filters.employee;
         } else if (hasStoreFilter) {
-          filenamePart = meta.storeName?.replace(/\s+/g, '_') || filters.store;
+          filenamePart = meta.storeName?.replace(/\s+/g, '_') || selectedStore;
         } else if (hasAMFilter) {
-          filenamePart = meta.amName?.replace(/\s+/g, '_') || filters.am;
+          filenamePart = meta.amName?.replace(/\s+/g, '_') || selectedAM;
         } else if (hasTrainerFilter) {
-          filenamePart = meta.trainerName?.replace(/\s+/g, '_') || filters.trainer;
+          filenamePart = meta.trainerName?.replace(/\s+/g, '_') || selectedTrainer;
         } else if (hasRegionFilter) {
-          filenamePart = filters.region?.replace(/\s+/g, '_') || 'Region';
+          filenamePart = selectedRegion ? selectedRegion.replace(/\s+/g, '_') : 'Region';
         }
         const fileName = `SHLP_Certification_${filenamePart}_${new Date().toISOString().split('T')[0]}.pdf`;
 
@@ -3289,15 +3299,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         const firstRecord = reportData.length > 0 ? reportData[0] as any : null;
 
         // Store filter
-        if (filters.store) {
-          const s = allStores.find(s => s.id === filters.store);
-          meta.storeName = s?.name || filters.store;
-          meta.storeId = filters.store;
+        if (selectedStore) {
+          const s = allStores.find(s => s.id === selectedStore);
+          meta.storeName = s?.name || selectedStore;
+          meta.storeId = selectedStore;
         } else if (firstRecord) {
           meta.storeName = firstRecord.storeName || firstRecord.store_name || firstRecord['Store Name'] || '';
           meta.storeId = firstRecord.storeId || firstRecord.store_id || firstRecord['Store ID'] || '';
-        } else if (filters.region) {
-          meta.storeName = `${filters.region} Region`;
+        } else if (selectedRegion) {
+          meta.storeName = `${selectedRegion} Region`;
           meta.storeId = '';
         } else if (reportData.length > 0) {
           meta.storeName = 'All Stores (Filtered)';
@@ -3305,16 +3315,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         }
 
         // Region filter
-        if (filters.region) {
-          meta.region = filters.region;
+        if (selectedRegion) {
+          meta.region = selectedRegion;
         } else if (firstRecord) {
           meta.region = firstRecord.region || firstRecord.Region || '';
         }
 
         // Finance Auditor filter (stored in AM filter for consistency)
-        if (filters.am) {
-          const amInfo = AREA_MANAGERS.find(am => am.id === filters.am);
-          meta.auditorName = amInfo?.name || filters.am;
+        if (selectedAM) {
+          const amInfo = AREA_MANAGERS.find(am => am.id === selectedAM);
+          meta.auditorName = amInfo?.name || selectedAM;
         } else if (firstRecord) {
           meta.auditorName = firstRecord.financeAuditorName || firstRecord.financeName || firstRecord['Finance Auditor Name'] || '';
         }
@@ -3413,35 +3423,35 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
         // Training-specific report header
         reportTitle = `Training Audit Report`;
         // If a store filter is applied, show store-level training report
-        if (filters.store) {
-          const storeInfo = allStores.find(s => s.id === filters.store);
+        if (selectedStore) {
+          const storeInfo = allStores.find(s => s.id === selectedStore);
           entityDetails = {
-            'Store Name': storeInfo?.name || filters.store,
-            'Store ID': filters.store,
+            'Store Name': storeInfo?.name || selectedStore,
+            'Store ID': selectedStore,
             'Data Type': dataType,
             'Total Training Records': reportData.length
           };
-        } else if (filters.trainer) {
+        } else if (selectedTrainer) {
           // Trainer filter used as trainer selection for training dashboard
-          const trainerInfo = allHRPersonnel.find(hr => hr.id === filters.trainer) || AREA_MANAGERS.find(am => am.id === filters.trainer);
+          const trainerInfo = allHRPersonnel.find(hr => hr.id === selectedTrainer) || AREA_MANAGERS.find(am => am.id === selectedTrainer);
           entityDetails = {
-            'Trainer Name': trainerInfo?.name || filters.trainer,
-            'Trainer ID': filters.trainer,
+            'Trainer Name': trainerInfo?.name || selectedTrainer,
+            'Trainer ID': selectedTrainer,
             'Data Type': dataType,
             'Total Training Records': reportData.length
           };
-        } else if (filters.am) {
-          const amInfo = AREA_MANAGERS.find(am => am.id === filters.am);
+        } else if (selectedAM) {
+          const amInfo = AREA_MANAGERS.find(am => am.id === selectedAM);
           entityDetails = {
-            'Area Manager': amInfo?.name || filters.am,
-            'AM ID': filters.am,
+            'Area Manager': amInfo?.name || selectedAM,
+            'AM ID': selectedAM,
             'Total Training Records': reportData.length,
             'Data Type': dataType
           };
-        } else if (filters.region) {
+        } else if (selectedRegion) {
           reportTitle = `${dataType} Region Report`;
           entityDetails = {
-            'Region': filters.region,
+            'Region': selectedRegion,
             'Total Training Records': reportData.length,
             'Data Type': dataType
           };
@@ -3451,17 +3461,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
             'Data Type': dataType
           };
         }
-      } else if (filters.store) {
-        const storeInfo = allStores.find(s => s.id === filters.store);
+      } else if (selectedStore) {
+        const storeInfo = allStores.find(s => s.id === selectedStore);
         reportTitle = `${dataType} Store Report`;
         entityDetails = {
-          'Store Name': storeInfo?.name || filters.store,
-          'Store ID': filters.store,
+          'Store Name': storeInfo?.name || selectedStore,
+          'Store ID': selectedStore,
           'Total Submissions': reportData.length,
           'Data Type': dataType
         };
-      } else if (filters.am) {
-        const amInfo = AREA_MANAGERS.find(am => am.id === filters.am);
+      } else if (selectedAM) {
+        const amInfo = AREA_MANAGERS.find(am => am.id === selectedAM);
         reportTitle = `${dataType} Area Manager Report`;
         const storesFromData = reportData.reduce((acc, sub) => {
           const storeName = sub.storeName || sub.store_name || 'Unknown Store';
@@ -3471,29 +3481,29 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
           return acc;
         }, []);
         entityDetails = {
-          'Area Manager': amInfo?.name || filters.am,
-          'AM ID': filters.am,
+          'Area Manager': amInfo?.name || selectedAM,
+          'AM ID': selectedAM,
           'Stores Managed': storesFromData.join(', ') || 'N/A',
           'Total Submissions': reportData.length,
           'Stores Covered': stats?.uniqueStores || 0,
           'Data Type': dataType
         };
-      } else if (filters.trainer) {
-        const hrInfo = allHRPersonnel.find(hr => hr.id === filters.trainer);
+      } else if (selectedTrainer) {
+        const hrInfo = allHRPersonnel.find(hr => hr.id === selectedTrainer);
         // dashboardType may be a union; perform a runtime string check for 'training'
         const roleName = String(dashboardType) === 'training' ? 'Trainer' : 'HR Personnel';
         reportTitle = `${dataType} ${roleName} Report`;
         entityDetails = {
-          [`${roleName} Name`]: hrInfo?.name || filters.trainer,
-          [`${roleName} ID`]: filters.trainer,
+          [`${roleName} Name`]: hrInfo?.name || selectedTrainer,
+          [`${roleName} ID`]: selectedTrainer,
           'Total Submissions': reportData.length,
           'Stores Covered': stats?.uniqueStores || 0,
           'Data Type': dataType
         };
-      } else if (filters.region) {
+      } else if (selectedRegion) {
         reportTitle = `${dataType} Region Report`;
         entityDetails = {
-          'Region': filters.region,
+          'Region': selectedRegion,
           'Total Submissions': reportData.length,
           'Stores Covered': stats?.uniqueStores || 0,
           'Data Type': dataType
@@ -3525,10 +3535,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
       const entityEntries = Object.entries(entityDetails);
       // Add a 'Filters Applied' entry so reports clearly show which filters were used
       const filtersApplied = [] as string[];
-      if (filters.region) filtersApplied.push(`Region=${filters.region}`);
-      if (filters.store) filtersApplied.push(`Store=${filters.store}`);
-      if (filters.am) filtersApplied.push(`AM=${filters.am}`);
-      if (filters.trainer) filtersApplied.push(`Trainer/HR=${filters.trainer}`);
+      if (selectedRegion) filtersApplied.push(`Region=${selectedRegion}`);
+      if (selectedStore) filtersApplied.push(`Store=${selectedStore}`);
+      if (selectedAM) filtersApplied.push(`AM=${selectedAM}`);
+      if (selectedTrainer) filtersApplied.push(`Trainer/HR=${selectedTrainer}`);
       if (filters.health) filtersApplied.push(`StoreHealth=${filters.health}`);
       if (filtersApplied.length > 0) {
         entityEntries.push(['Filters Applied', filtersApplied.join(', ')]);
@@ -4165,17 +4175,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
 
       // Generate filename based on entity type
       let filename = 'HRConnect_Report';
-      if (filters.store) {
-        const storeInfo = allStores.find(s => s.id === filters.store);
-        filename = `HRConnect_Store_${(storeInfo?.name || filters.store).replace(/\s+/g, '_')}`;
-      } else if (filters.am) {
-        const amInfo = AREA_MANAGERS.find(am => am.id === filters.am);
-        filename = `HRConnect_AM_${(amInfo?.name || filters.am).replace(/\s+/g, '_')}`;
-      } else if (filters.trainer) {
-        const hrInfo = allHRPersonnel.find(hr => hr.id === filters.trainer);
-        filename = `HRConnect_HR_${(hrInfo?.name || filters.trainer).replace(/\s+/g, '_')}`;
-      } else if (filters.region) {
-        filename = `HRConnect_Region_${filters.region.replace(/\s+/g, '_')}`;
+      if (selectedStore) {
+        const storeInfo = allStores.find(s => s.id === selectedStore);
+        filename = `HRConnect_Store_${(storeInfo?.name || selectedStore).replace(/\s+/g, '_')}`;
+      } else if (selectedAM) {
+        const amInfo = AREA_MANAGERS.find(am => am.id === selectedAM);
+        filename = `HRConnect_AM_${(amInfo?.name || selectedAM).replace(/\s+/g, '_')}`;
+      } else if (selectedTrainer) {
+        const hrInfo = allHRPersonnel.find(hr => hr.id === selectedTrainer);
+        filename = `HRConnect_HR_${(hrInfo?.name || selectedTrainer).replace(/\s+/g, '_')}`;
+      } else if (selectedRegion) {
+        filename = `HRConnect_Region_${selectedRegion.replace(/\s+/g, '_')}`;
       }
 
       // Single-submission: use HRPulse_* naming like the sample
