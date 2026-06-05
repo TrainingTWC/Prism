@@ -7593,8 +7593,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                 <>
                   {/* Historic Trend Chart - Only show if store filter is applied and historic data exists */}
                   {filters.store && financeHistoricData.length > 0 && (() => {
+                    const selectedStoreId = normalizeId(Array.isArray(filters.store) ? filters.store[0] : filters.store);
+                    if (!selectedStoreId) return null;
+
                     const storeHistoric = financeHistoricData.filter(
-                      h => h.storeId.toUpperCase() === filters.store.toUpperCase()
+                      h => normalizeId(h.storeId) === selectedStoreId
                     ).sort((a, b) => {
                       const dateA = new Date(a.auditDate);
                       const dateB = new Date(b.auditDate);
@@ -7612,7 +7615,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
 
                     // Add current audit if available
                     const currentAudit = filteredFinanceData.find(
-                      f => f.storeId.toUpperCase() === filters.store.toUpperCase()
+                      f => normalizeId(f.storeId) === selectedStoreId
                     );
                     if (currentAudit) {
                       const currentDate = new Date(currentAudit.submissionTime);
@@ -7632,7 +7635,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
                       <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700 mb-6">
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            Historic Performance Trend - {allStores.find(s => s.id === filters.store)?.name || filters.store}
+                            Historic Performance Trend - {allStores.find(s => normalizeId(s.id) === selectedStoreId)?.name || selectedStoreId}
                           </h3>
                           <div className="flex items-center space-x-4 text-sm">
                             <div className="text-gray-600 dark:text-slate-400">
