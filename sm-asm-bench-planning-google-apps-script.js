@@ -500,8 +500,13 @@ function getCandidateData(employeeId) {
     
     if (candidateRow[8]) {
       try {
-        assessmentUnlockTime = new Date(candidateRow[8]);
-        timeUnlocked = currentTime >= assessmentUnlockTime;
+        const parsedDate = new Date(candidateRow[8]);
+        if (!isNaN(parsedDate.getTime())) {
+          assessmentUnlockTime = parsedDate;
+          timeUnlocked = currentTime >= assessmentUnlockTime;
+        } else {
+          timeUnlocked = true;
+        }
       } catch (e) {
         // If date parsing fails, allow access
         timeUnlocked = true;

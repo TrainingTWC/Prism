@@ -16,21 +16,27 @@ interface BenchPlanningChecklistProps {
 type TabType = 'readiness' | 'assessment' | 'interview';
 
 // Google Apps Script endpoint - UPDATE THIS with your deployed SM-ASM script URL
-const BENCH_PLANNING_SM_ASM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyMynWOxjrwi4892AKUTVgFizmGzkn_CEKUPyv7PHpTAFmSNGbpx1kJMS8Y3wVNV-eJnA/exec';
+const BENCH_PLANNING_SM_ASM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwZcaIodTHx6-55dBWRw6YE0szGCDi5UCZX3KgyevPwa1AFBqH0oBKdMQdDnvQX37ql_g/exec';
 
 // Readiness checklist items for SM to ASM level
 const READINESS_ITEMS = [
-  'Has successfully managed full shifts independently with consistent quality standards',
-  'Demonstrates strong leadership in coaching and developing team members',
-  'Shows consistent ability to handle peak hours and complex operational challenges',
-  'Has completed all advanced training modules including P&L basics and inventory management',
-  'Exhibits strong problem-solving skills and decision-making capabilities',
-  'Maintains excellent communication with store team, AM, and support functions',
-  'Shows initiative in driving store performance metrics (sales, quality, guest satisfaction)',
-  'Has experience managing conflict resolution and challenging guest situations',
-  'Demonstrates understanding of cost control, wastage management, and labour scheduling',
-  'Can open and close the store independently following all protocols',
-  'Shows commitment to TWC values and acts as a role model for the team'
+  'Demonstrates clear understanding of P&L, cost control, and store-level KPIs.',
+  'Prioritizes tasks effectively to balance customer experience, operations, and team well-being.',
+  'Ensures full compliance with SOPs, safety protocols, food safety, and statutory regulations.',
+  'Continuously identifies operational bottlenecks and initiates sustainable solutions.',
+  'Provides regular coaching and feedback to team members for performance and growth.',
+  'Recognizes and nurtures talent; supports internal promotions and succession planning.',
+  'Maintains discipline and professionalism across the team, addressing issues promptly and fairly.',
+  'Drives team motivation and morale during high-pressure periods or challenging days.',
+  'Sets the standard for guest engagement and leads by example in service excellence.',
+  'Handles escalated customer issues with calm, confidence, and effective resolution.',
+  'Builds a loyal customer base through consistent service, community engagement, and feedback handling.',
+  'Owns store performance and consistently works toward achieving business targets.',
+  'Takes accountability for store readiness, cleanliness, and team presentation at all times.',
+  'Maintains confidentiality and demonstrates integrity in handling team, cash, and store matters.',
+  'Represents the brand positively in all forums and communications.',
+  'Actively seeks feedback and development opportunities to grow as a leader.',
+  'Completes all advanced training modules (e.g., leadership, financial acumen, compliance).'
 ];
 
 // Interview sections - Core Competencies
@@ -268,33 +274,33 @@ const ASSESSMENT_QUESTIONS = [
   }
 ];
 
-const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({ 
-  userRole, 
-  onStatsUpdate, 
-  onBackToChecklists 
+const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
+  userRole,
+  onStatsUpdate,
+  onBackToChecklists
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('readiness');
   const [loading, setLoading] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  
+
   // Get user info from URL parameters
   const urlParams = new URLSearchParams(window.location.search);
   const userId = urlParams.get('EMPID') || urlParams.get('empId') || urlParams.get('id') || '';
   const userName = urlParams.get('empName') || urlParams.get('name') || '';
-  
+
   // State for candidate data
   const [candidateData, setCandidateData] = useState<BenchCandidate | null>(null);
   const [candidateSearchId, setCandidateSearchId] = useState('');
   const [managerCandidates, setManagerCandidates] = useState<BenchCandidate[]>([]);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [notEligible, setNotEligible] = useState(false);
-  
+
   // Readiness Checklist State
   const [readinessScores, setReadinessScores] = useState<{ [key: number]: number }>({});
   const [readinessRemarks, setReadinessRemarks] = useState('');
   const [readinessStatus, setReadinessStatus] = useState<'not_started' | 'pending' | 'passed' | 'failed'>('not_started');
-  
+
   // Assessment State (will be populated with questions later)
   const [assessmentAnswers, setAssessmentAnswers] = useState<{ [key: string]: string }>({});
   const [assessmentLocked, setAssessmentLocked] = useState(true);
@@ -304,36 +310,36 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
   const [assessmentResults, setAssessmentResults] = useState<any>(null);
   const [assessmentStatus, setAssessmentStatus] = useState<any>(null);
   const [isSubmittingAssessment, setIsSubmittingAssessment] = useState(false);
-  
+
   // Interview State
   const [interviewScores, setInterviewScores] = useState<{ [key: number]: number }>({});
   const [interviewRemarks, setInterviewRemarks] = useState('');
   const [interviewLocked, setInterviewLocked] = useState(true);
-  
+
   // Determine user type (manager, candidate, or panelist)
   const [userType, setUserType] = useState<'manager' | 'candidate' | 'panelist' | 'admin'>('candidate');
   const [isPanelistConfirmed, setIsPanelistConfirmed] = useState(false);
-  
+
   // Panelist view state - dashboard or interview form
   const [panelistView, setPanelistView] = useState<'dashboard' | 'interview'>('dashboard');
-  
+
   // Get auth context for logout
   const { logout, userRole: authRole } = useAuth();
-  
+
   const handleExit = () => {
     if (window.confirm('Are you sure you want to exit?')) {
       logout();
       window.location.href = '/Prism/';
     }
   };
-  
+
   // Load manager's candidates from Google Sheets
   const loadManagerCandidates = async (managerId: string) => {
     try {
       setLoadingCandidates(true);
       const response = await fetch(`${BENCH_PLANNING_SM_ASM_ENDPOINT}?action=getManagerCandidates&managerId=${managerId}&_t=${new Date().getTime()}`);
       const data = await response.json();
-      
+
       if (data.success && data.candidates) {
         setManagerCandidates(data.candidates);
       } else {
@@ -341,11 +347,10 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
       }
     } catch (error) {
       console.error('Error loading manager candidates:', error);
-    } finally {
-      setLoadingCandidates(false);
     }
+    // Removed finally block that altered loading state
   };
-  
+
   // Load panelist's assigned candidates
   const loadPanelistCandidates = async (panelistId: string): Promise<boolean> => {
     try {
@@ -355,7 +360,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
         `${BENCH_PLANNING_SM_ASM_ENDPOINT}?action=getPanelistCandidates&panelistId=${panelistId}&_t=${new Date().getTime()}`
       );
       const data = await response.json();
-      
+
       if (data.success && data.candidates && data.candidates.length > 0) {
         console.log('[SM-ASM BENCH] User is a panelist with', data.candidates.length, 'candidates');
         setIsPanelistConfirmed(true);
@@ -364,25 +369,25 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
       }
       return false;
     } catch (error) {
-      console.log('Not a panelist:', error.message);
+      console.log('[SM-ASM BENCH] Error checking panelist role:', error);
       return false;
-    } finally {
-      setLoadingCandidates(false);
     }
+    // Removed finally block that altered loading state
   };
-  
+
   // Load candidate data from Google Sheets
   const loadCandidateData = async (employeeId: string) => {
     try {
-      setLoading(true);
       setNotEligible(false);
       const response = await fetch(`${BENCH_PLANNING_SM_ASM_ENDPOINT}?action=getCandidateData&employeeId=${employeeId}&_t=${new Date().getTime()}`);
       const data = await response.json();
-      
+
+      console.log('[SM-ASM BENCH] Candidate check response:', data);
+
       if (data.success && data.candidate) {
         setCandidateData(data.candidate);
         setNotEligible(false);
-        
+
         // Load statuses
         if (data.readinessStatus) {
           setReadinessStatus(data.readinessStatus.status);
@@ -390,7 +395,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
             setReadinessScores(data.readinessStatus.scores);
           }
         }
-        
+
         if (data.assessmentStatus) {
           console.log('[SM-ASM ASSESSMENT] Raw assessment data received:', {
             attempted: data.assessmentStatus.attempted,
@@ -400,12 +405,12 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
             passed: data.assessmentStatus.passed,
             answers: data.assessmentStatus.answers
           });
-          
+
           // If assessment was attempted and we have answers, recalculate score on frontend
           if (data.assessmentStatus.attempted && data.assessmentStatus.answers) {
             const answers = data.assessmentStatus.answers;
             let correctCount = 0;
-            
+
             // Count correct answers using current frontend question definitions
             ASSESSMENT_QUESTIONS.forEach(question => {
               const userAnswer = answers[question.id];
@@ -413,11 +418,11 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
                 correctCount++;
               }
             });
-            
+
             const totalQuestions = ASSESSMENT_QUESTIONS.length;
             const recalculatedScore = parseFloat(((correctCount / totalQuestions) * 100).toFixed(2));
             const recalculatedPassed = recalculatedScore >= 80;
-            
+
             console.log('[SM-ASM ASSESSMENT] Recalculated score:', {
               correctCount,
               totalQuestions,
@@ -426,7 +431,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
               originalScore: data.assessmentStatus.score,
               originalPassed: data.assessmentStatus.passed
             });
-            
+
             // Use recalculated values
             setAssessmentStatus({
               ...data.assessmentStatus,
@@ -441,21 +446,21 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
             setAssessmentStatus(data.assessmentStatus);
             setAssessmentPassed(data.assessmentStatus.passed);
           }
-          
+
           setAssessmentLocked(!data.assessmentStatus.unlocked);
           setAssessmentAttempted(data.assessmentStatus.attempted);
         }
-        
+
         if (data.interviewStatus) {
           setInterviewLocked(!data.interviewStatus.unlocked);
         }
-        
+
         // Determine user type (case-insensitive comparison)
         const userIdUpper = userId.toUpperCase();
         const managerIdUpper = data.candidate.managerId?.toUpperCase() || '';
         const panelistIdUpper = data.candidate.panelistId?.toUpperCase() || '';
         const employeeIdUpper = data.candidate.employeeId?.toUpperCase() || '';
-        
+
         if (managerIdUpper === userIdUpper) {
           setUserType('manager');
         } else if (panelistIdUpper === userIdUpper) {
@@ -465,6 +470,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
         }
       } else {
         // Candidate not found in the list
+        console.log('[SM-ASM BENCH] Candidate check failed:', data.message);
         setCandidateData(null);
         // Don't set notEligible immediately - wait to see if they have manager candidates
         // setNotEligible(true);
@@ -472,22 +478,21 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
     } catch (error) {
       console.error('Error loading candidate data:', error);
       setErrorMessage('Failed to load candidate data');
-    } finally {
-      setLoading(false);
     }
+    // Removed finally block that altered loading state
   };
-  
+
   // Load data on component mount if user ID is available - SEQUENTIAL CHECKS
   useEffect(() => {
     const checkUserAccess = async () => {
       if (!userId) {
         return;
       }
-      
+
       console.log('[SM-ASM BENCH] Starting sequential check for user:', userId);
       setLoading(true);
       setNotEligible(false);
-      
+
       // Step 1: Check if user is a panelist (highest priority)
       console.log('[SM-ASM BENCH] Step 1: Checking panelist role...');
       const isPanelist = await loadPanelistCandidates(userId);
@@ -496,27 +501,28 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
         setLoading(false);
         return; // Stop here, user is confirmed panelist
       }
-      
+
       // Step 2: Check if user is a candidate
       console.log('[SM-ASM BENCH] Step 2: Checking candidate role...');
       await loadCandidateData(userId);
-      
+
       // Step 3: Also check if user is a manager
       console.log('[SM-ASM BENCH] Step 3: Checking manager role...');
       await loadManagerCandidates(userId);
-      
+
+      setLoadingCandidates(false);
       setLoading(false);
     };
-    
+
     checkUserAccess();
   }, [userId]);
-  
+
   // After both data loads complete, determine eligibility
   useEffect(() => {
     // If user is confirmed as panelist, candidate, or manager - they are eligible
     if (isPanelistConfirmed || candidateData || managerCandidates.length > 0) {
       setNotEligible(false);
-    } 
+    }
     // Only set notEligible if:
     // 1. User is not a panelist (not isPanelistConfirmed)
     // 2. User is not a candidate (no candidateData)
@@ -526,14 +532,14 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
       setNotEligible(true);
     }
   }, [loading, loadingCandidates, isPanelistConfirmed, candidateData, managerCandidates, userId]);
-  
+
   // Set assessment questions from hardcoded data when assessment is unlocked
   useEffect(() => {
     if (!assessmentLocked && assessmentQuestions.length === 0) {
       setAssessmentQuestions(ASSESSMENT_QUESTIONS);
     }
   }, [assessmentLocked, assessmentQuestions.length]);
-  
+
   // Set user type to manager/admin if manager candidates are loaded but user is not a candidate
   useEffect(() => {
     if (managerCandidates.length > 0 && !candidateData) {
@@ -547,30 +553,31 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
       setNotEligible(false);
     }
   }, [managerCandidates, candidateData, authRole]);
-  
+
   // Submit Readiness Checklist
   const handleSubmitReadiness = async () => {
     if (!candidateData) {
       setErrorMessage('Please load candidate data first');
       return;
     }
-    
+
     // Validate all items are scored
     const allScored = READINESS_ITEMS.every((_, index) => readinessScores[index] >= 1 && readinessScores[index] <= 5);
     if (!allScored) {
       setErrorMessage('Please score all items (1-5)');
+      setSubmitStatus('error');
       return;
     }
-    
+
     try {
       setLoading(true);
       hapticFeedback.select();
-      
+
       const totalScore = Object.values(readinessScores).reduce((sum, score) => sum + score, 0);
       const maxScore = READINESS_ITEMS.length * 5;
       const percentage = (totalScore / maxScore) * 100;
       const passed = percentage >= 80; // 80% passing threshold
-      
+
       const params = {
         action: 'submitReadiness',
         employeeId: candidateData.employeeId,
@@ -584,19 +591,19 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
         passed: String(passed),
         submissionTime: new Date().toISOString()
       };
-      
+
       const response = await fetch(BENCH_PLANNING_SM_ASM_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams(params).toString()
       });
-      
+
       // With no-cors, we can't read the response, so assume success
       setSubmitStatus('success');
       setReadinessStatus(passed ? 'passed' : 'failed');
       hapticFeedback.success();
-      
+
       // Refresh data to update assessment lock status
       setTimeout(async () => {
         await loadCandidateData(candidateData.employeeId);
@@ -611,23 +618,24 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
       setLoading(false);
     }
   };
-  
+
   // Submit Assessment (placeholder - will be updated when questions are provided)
   const handleSubmitAssessment = async () => {
     if (!candidateData || isSubmittingAssessment) return;
-    
+
     // Validate all questions are answered
     const allAnswered = assessmentQuestions.every(q => assessmentAnswers[q.id]);
     if (!allAnswered) {
       setErrorMessage('Please answer all questions before submitting');
+      setSubmitStatus('error');
       return;
     }
-    
+
     try {
       setIsSubmittingAssessment(true);
       setLoading(true);
       hapticFeedback.select();
-      
+
       const params = {
         action: 'submitAssessment',
         employeeId: candidateData.employeeId,
@@ -635,25 +643,25 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
         answers: JSON.stringify(assessmentAnswers),
         submissionTime: new Date().toISOString()
       };
-      
+
       console.log('Submitting SM-ASM assessment with params:', params);
       console.log('Answers object:', assessmentAnswers);
       console.log('Questions count:', assessmentQuestions.length);
-      
+
       const response = await fetch(BENCH_PLANNING_SM_ASM_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams(params).toString()
       });
-      
+
       console.log('SM-ASM assessment submission sent successfully');
-      
+
       // With no-cors, we can't read the response, so assume success
       setSubmitStatus('success');
       setAssessmentAttempted(true);
       hapticFeedback.success();
-      
+
       // Refresh data to get actual results
       setTimeout(async () => {
         await loadCandidateData(candidateData.employeeId);
@@ -669,25 +677,26 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
       setIsSubmittingAssessment(false);
     }
   };
-  
+
   // Submit Interview
   const handleSubmitInterview = async () => {
     if (!candidateData) return;
-    
+
     // Validate all sections are scored
     const allScored = INTERVIEW_SECTIONS.every((_, index) => interviewScores[index] >= 1 && interviewScores[index] <= 5);
     if (!allScored) {
       setErrorMessage('Please score all sections (1-5)');
+      setSubmitStatus('error');
       return;
     }
-    
+
     try {
       setLoading(true);
       hapticFeedback.select();
-      
+
       const totalScore = Object.values(interviewScores).reduce((sum, score) => sum + score, 0);
       const maxScore = INTERVIEW_SECTIONS.length * 5;
-      
+
       const params = {
         action: 'submitInterview',
         employeeId: candidateData.employeeId,
@@ -700,14 +709,14 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
         maxScore: String(maxScore),
         submissionTime: new Date().toISOString()
       };
-      
+
       await fetch(BENCH_PLANNING_SM_ASM_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams(params).toString()
       });
-      
+
       setSubmitStatus('success');
       hapticFeedback.success();
       setTimeout(() => setSubmitStatus('idle'), 3000);
@@ -720,23 +729,22 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
       setLoading(false);
     }
   };
-  
+
   // Render Readiness Checklist Tab
   const renderReadinessTab = () => {
     const isManager = userType === 'manager' || userType === 'admin';
     const canEdit = isManager && readinessStatus === 'not_started';
-    
+
     return (
       <div className="space-y-6">
         {/* Status Banner */}
         {readinessStatus !== 'not_started' && (
-          <div className={`p-4 rounded-lg border ${
-            readinessStatus === 'passed' 
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' 
+          <div className={`p-4 rounded-lg border ${readinessStatus === 'passed'
+              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
               : readinessStatus === 'failed'
-              ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-              : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
-          }`}>
+                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+            }`}>
             <div className="flex items-center gap-2">
               {readinessStatus === 'passed' ? (
                 <>
@@ -763,7 +771,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
             </div>
           </div>
         )}
-        
+
         {/* Info Card */}
         {candidateData && (
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
@@ -788,13 +796,13 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
             </div>
           </div>
         )}
-        
+
         {/* Readiness Checklist Items */}
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">
             Readiness Criteria (Score each item 1-5)
           </h3>
-          
+
           {!isManager && (
             <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
               <p className="text-sm text-blue-900 dark:text-blue-100">
@@ -802,7 +810,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
               </p>
             </div>
           )}
-          
+
           {isManager && readinessStatus !== 'not_started' && (
             <div className="mb-4 space-y-3">
               <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
@@ -811,11 +819,10 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
                 </p>
               </div>
               {candidateData && (
-                <div className={`p-4 rounded-lg border ${
-                  readinessStatus === 'passed'
+                <div className={`p-4 rounded-lg border ${readinessStatus === 'passed'
                     ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
                     : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-                }`}>
+                  }`}>
                   <div className="flex items-center gap-3">
                     {readinessStatus === 'passed' ? (
                       <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -823,18 +830,16 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
                       <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
                     )}
                     <div>
-                      <p className={`font-semibold ${
-                        readinessStatus === 'passed'
+                      <p className={`font-semibold ${readinessStatus === 'passed'
                           ? 'text-green-900 dark:text-green-100'
                           : 'text-red-900 dark:text-red-100'
-                      }`}>
+                        }`}>
                         Status: {readinessStatus === 'passed' ? 'PASSED ✓' : 'NOT PASSED ✗'}
                       </p>
-                      <p className={`text-sm ${
-                        readinessStatus === 'passed'
+                      <p className={`text-sm ${readinessStatus === 'passed'
                           ? 'text-green-800 dark:text-green-200'
                           : 'text-red-800 dark:text-red-200'
-                      }`}>
+                        }`}>
                         Employee: {candidateData.employeeName} ({candidateData.employeeId})
                       </p>
                     </div>
@@ -843,7 +848,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
               )}
             </div>
           )}
-          
+
           <div className="space-y-3 sm:space-y-4">
             {READINESS_ITEMS.map((item, index) => (
               <div key={index} className="border border-gray-200 dark:border-slate-700 rounded-lg p-3 sm:p-4">
@@ -857,11 +862,10 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
                         key={score}
                         onClick={() => canEdit && setReadinessScores(prev => ({ ...prev, [index]: score }))}
                         disabled={!canEdit}
-                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-medium text-sm sm:text-base transition-all shrink-0 ${
-                          readinessScores[index] === score
+                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-medium text-sm sm:text-base transition-all shrink-0 ${readinessScores[index] === score
                             ? 'bg-blue-600 text-white shadow-lg scale-110'
                             : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                        } ${!canEdit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          } ${!canEdit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         {score}
                       </button>
@@ -871,7 +875,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
               </div>
             ))}
           </div>
-          
+
           {/* Remarks */}
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
@@ -886,7 +890,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
               placeholder="Add any additional comments..."
             />
           </div>
-          
+
           {/* Submit Button */}
           {canEdit && (
             <button
@@ -902,22 +906,22 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
       </div>
     );
   };
-  
+
   // Render Assessment Tab
   const renderAssessmentTab = () => {
     const isCandidate = userType === 'candidate';
-    
+
     if (assessmentLocked) {
       // Determine the actual reason for lock
       let lockMessage = '';
       let hasTimeRestriction = false;
-      
+
       // Check if readiness has been passed
       const readinessPassed = readinessStatus === 'passed';
-      
+
       // Check if time restriction exists and hasn't been reached
       const timeNotReached = assessmentStatus?.assessmentUnlockDateTime && !assessmentStatus?.timeUnlocked;
-      
+
       if (!readinessPassed) {
         // Readiness is the blocker
         if (readinessStatus === 'failed') {
@@ -947,7 +951,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
           ? 'Your manager needs to complete the Readiness Checklist and you must pass (80% or above) before you can access the self-assessment.'
           : 'This assessment will be unlocked once the readiness checklist is completed and passed (80% or above).';
       }
-      
+
       return (
         <div className="flex flex-col items-center justify-center py-12">
           <Lock className="w-16 h-16 text-gray-400 dark:text-slate-600 mb-4" />
@@ -965,15 +969,14 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
         </div>
       );
     }
-    
+
     if (assessmentAttempted && !isCandidate) {
       return (
         <div className="flex flex-col items-center justify-center py-12">
-          <div className={`p-4 rounded-full mb-4 ${
-            assessmentPassed 
-              ? 'bg-green-100 dark:bg-green-900/20' 
+          <div className={`p-4 rounded-full mb-4 ${assessmentPassed
+              ? 'bg-green-100 dark:bg-green-900/20'
               : 'bg-red-100 dark:bg-red-900/20'
-          }`}>
+            }`}>
             {assessmentPassed ? (
               <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
             ) : (
@@ -989,11 +992,11 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
         </div>
       );
     }
-    
+
     if (assessmentAttempted && isCandidate) {
       const passed = assessmentStatus?.passed || assessmentPassed;
       const score = assessmentStatus?.score;
-      
+
       return (
         <div className="flex flex-col items-center justify-center py-12">
           {passed ? (
@@ -1034,7 +1037,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
         </div>
       );
     }
-    
+
     return (
       <div className="space-y-6">
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
@@ -1042,18 +1045,18 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
             ⚠️ Important: You have only ONE attempt for this assessment. Make sure you're ready before starting.
           </p>
         </div>
-        
+
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">
             Self Assessment
           </h3>
           <p className="text-sm text-gray-600 dark:text-slate-400 mb-6">
-            {assessmentQuestions.length > 0 
+            {assessmentQuestions.length > 0
               ? `Answer all ${assessmentQuestions.length} questions. Passing threshold: 80% (${Math.ceil(assessmentQuestions.length * 0.8)} correct answers required)`
               : 'Loading assessment questions...'
             }
           </p>
-          
+
           {assessmentQuestions.length > 0 ? (
             <div className="space-y-6">
               {assessmentQuestions.map((question, index) => (
@@ -1066,16 +1069,15 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
                       {question.question}
                     </p>
                   </div>
-                  
+
                   <div className="ml-11 space-y-2">
                     {Object.entries(question.options).map(([optionKey, optionValue]) => (
-                      <label 
+                      <label
                         key={optionKey}
-                        className={`flex items-start gap-3 p-3 rounded-lg border-2 transition-all cursor-pointer ${
-                          assessmentAnswers[question.id] === optionKey
+                        className={`flex items-start gap-3 p-3 rounded-lg border-2 transition-all cursor-pointer ${assessmentAnswers[question.id] === optionKey
                             ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
                             : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
-                        } ${(!isCandidate || assessmentAttempted) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          } ${(!isCandidate || assessmentAttempted) ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <input
                           type="radio"
@@ -1103,7 +1105,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
               Loading questions...
             </div>
           )}
-          
+
           <button
             onClick={handleSubmitAssessment}
             disabled={loading || !isCandidate || assessmentAttempted || isSubmittingAssessment || assessmentQuestions.length === 0 || Object.keys(assessmentAnswers).length < assessmentQuestions.length}
@@ -1116,11 +1118,11 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
       </div>
     );
   };
-  
+
   // Render Interview Tab
   const renderInterviewTab = () => {
     const isPanelist = userType === 'panelist' || userType === 'admin';
-    
+
     if (interviewLocked) {
       return (
         <div className="flex flex-col items-center justify-center py-12">
@@ -1134,7 +1136,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
         </div>
       );
     }
-    
+
     return (
       <div className="space-y-6">
         {/* Info */}
@@ -1153,7 +1155,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
             </div>
           </div>
         )}
-        
+
         {!isPanelist && (
           <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm text-blue-900 dark:text-blue-100">
@@ -1161,13 +1163,13 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
             </p>
           </div>
         )}
-        
+
         {/* Interview Sections */}
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">
             Evaluation Criteria (Score each section 1-5)
           </h3>
-          
+
           <div className="space-y-3 sm:space-y-4">
             {INTERVIEW_SECTIONS.map((section, index) => (
               <div key={index} className="border border-gray-200 dark:border-slate-700 rounded-lg p-3 sm:p-4">
@@ -1181,11 +1183,10 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
                         key={score}
                         onClick={() => isPanelist && setInterviewScores(prev => ({ ...prev, [index]: score }))}
                         disabled={!isPanelist}
-                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-medium text-sm sm:text-base transition-all shrink-0 ${
-                          interviewScores[index] === score
+                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-medium text-sm sm:text-base transition-all shrink-0 ${interviewScores[index] === score
                             ? 'bg-purple-600 text-white shadow-lg scale-110'
                             : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                        } ${!isPanelist ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          } ${!isPanelist ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         {score}
                       </button>
@@ -1195,7 +1196,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
               </div>
             ))}
           </div>
-          
+
           {/* Remarks */}
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
@@ -1210,7 +1211,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
               placeholder="Add your overall evaluation comments..."
             />
           </div>
-          
+
           {/* Submit Button */}
           {isPanelist && (
             <button
@@ -1226,61 +1227,61 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
       </div>
     );
   };
-  
+
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto animate-pulse p-4 md:p-6 transition-all duration-300 ease-in-out">
         {/* Full Page Skeleton Header */}
         <div className="bg-gray-100 dark:bg-slate-800/50 rounded-xl p-6 mb-8 border border-gray-200 dark:border-slate-700">
-           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-             <div className="flex items-center gap-4">
-               <div className="w-12 h-12 bg-gray-200 dark:bg-slate-700 rounded-lg"></div>
-               <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded-lg w-64 md:w-96"></div>
-             </div>
-             <div className="w-32 h-10 bg-gray-200 dark:bg-slate-700 rounded-lg"></div>
-           </div>
-           <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-full md:w-1/2"></div>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gray-200 dark:bg-slate-700 rounded-lg"></div>
+              <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded-lg w-64 md:w-96"></div>
+            </div>
+            <div className="w-32 h-10 bg-gray-200 dark:bg-slate-700 rounded-lg"></div>
+          </div>
+          <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-full md:w-1/2"></div>
         </div>
-        
+
         {/* Content Card Skeleton */}
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
-            {/* Tabs Skeleton */}
-            <div className="border-b border-gray-200 dark:border-slate-700 p-2 bg-gray-50 dark:bg-slate-800/50">
-               <div className="flex gap-2 overflow-x-auto p-1">
-                 <div className="h-10 w-32 bg-gray-200 dark:bg-slate-700 rounded-lg shrink-0"></div>
-                 <div className="h-10 w-32 bg-gray-200 dark:bg-slate-700 rounded-lg shrink-0"></div>
-                 <div className="h-10 w-32 bg-gray-200 dark:bg-slate-700 rounded-lg shrink-0"></div>
-               </div>
+          {/* Tabs Skeleton */}
+          <div className="border-b border-gray-200 dark:border-slate-700 p-2 bg-gray-50 dark:bg-slate-800/50">
+            <div className="flex gap-2 overflow-x-auto p-1">
+              <div className="h-10 w-32 bg-gray-200 dark:bg-slate-700 rounded-lg shrink-0"></div>
+              <div className="h-10 w-32 bg-gray-200 dark:bg-slate-700 rounded-lg shrink-0"></div>
+              <div className="h-10 w-32 bg-gray-200 dark:bg-slate-700 rounded-lg shrink-0"></div>
             </div>
-            
-            <div className="p-6 md:p-8 space-y-8">
-                {/* Simulated Checklist Items */}
-                <div className="space-y-6">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="flex gap-4 p-4 border border-gray-100 dark:border-slate-700/50 rounded-lg">
-                       <div className="shrink-0 w-6 h-6 bg-gray-200 dark:bg-slate-700 rounded bg-opacity-50"></div>
-                       <div className="flex-1 space-y-3">
-                          <div className="h-5 bg-gray-200 dark:bg-slate-700 rounded w-11/12"></div>
-                          <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-2/3 opacity-70"></div>
-                       </div>
-                    </div>
-                  ))}
+          </div>
+
+          <div className="p-6 md:p-8 space-y-8">
+            {/* Simulated Checklist Items */}
+            <div className="space-y-6">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex gap-4 p-4 border border-gray-100 dark:border-slate-700/50 rounded-lg">
+                  <div className="shrink-0 w-6 h-6 bg-gray-200 dark:bg-slate-700 rounded bg-opacity-50"></div>
+                  <div className="flex-1 space-y-3">
+                    <div className="h-5 bg-gray-200 dark:bg-slate-700 rounded w-11/12"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-2/3 opacity-70"></div>
+                  </div>
                 </div>
+              ))}
             </div>
+          </div>
         </div>
-        
+
         {/* Loading Indicator Pill */}
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 px-6 py-3 rounded-full shadow-lg border border-gray-200 dark:border-slate-700 flex items-center gap-3 z-50">
-             <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
-             <span className="font-medium text-gray-900 dark:text-slate-100 whitespace-nowrap">Loading candidate data...</span>
+          <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
+          <span className="font-medium text-gray-900 dark:text-slate-100 whitespace-nowrap">Loading candidate data...</span>
         </div>
       </div>
     );
   }
-  
+
   return (
     <div className="max-w-6xl mx-auto px-2 sm:px-4">
-      
+
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-3 sm:p-6 mb-4 sm:mb-6 border border-purple-200 dark:border-purple-800">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
@@ -1303,7 +1304,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
           Comprehensive readiness assessment, self-evaluation, and interview process for bench candidates.
         </p>
       </div>
-      
+
       {/* Not Eligible Message */}
       {notEligible && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-8 border-2 border-yellow-400 dark:border-yellow-600 mb-6">
@@ -1330,7 +1331,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
           </div>
         </div>
       )}
-      
+
       {/* Panelist Dashboard View */}
       {!notEligible && isPanelistConfirmed && !candidateData && panelistView === 'dashboard' && (
         <BenchPlanningSMASMPanelistDashboard
@@ -1344,7 +1345,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
           }}
         />
       )}
-      
+
       {/* Back to Dashboard button for panelists */}
       {!notEligible && isPanelistConfirmed && candidateData && panelistView === 'interview' && (
         <div className="mb-6">
@@ -1362,14 +1363,14 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
           </button>
         </div>
       )}
-      
+
       {/* Candidate Selection (for managers/admins only - panelists use dashboard) */}
       {!candidateData && !notEligible && (userType === 'manager' || userType === 'admin') && (
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6 mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">
             {userType === 'manager' ? 'Select Your Team Member' : 'Load Candidate Data'}
           </h3>
-          
+
           {/* Dropdown for managers with their candidates */}
           {userType === 'manager' && managerCandidates.length > 0 && (
             <div className="space-y-4">
@@ -1396,7 +1397,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
                   ))}
                 </select>
               </div>
-              
+
               {loadingCandidates && (
                 <p className="text-sm text-gray-600 dark:text-slate-400">
                   Loading your team members...
@@ -1404,7 +1405,7 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
               )}
             </div>
           )}
-          
+
           {/* Fallback search for panelists/admins or if no candidates found */}
           {(userType !== 'manager' || managerCandidates.length === 0) && (
             <div className="space-y-4">
@@ -1433,58 +1434,55 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
           )}
         </div>
       )}
-      
+
       {/* Tab Navigation */}
       {!notEligible && candidateData && (
         <div className="flex gap-1 sm:gap-2 mb-4 sm:mb-6 border-b border-gray-200 dark:border-slate-700 overflow-x-auto scrollbar-hide -mx-2 sm:mx-0 px-2 sm:px-0">
           <button
             onClick={() => setActiveTab('readiness')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${
-              activeTab === 'readiness'
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${activeTab === 'readiness'
                 ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400'
                 : 'text-gray-600 dark:text-slate-400 border-transparent hover:text-gray-900 dark:hover:text-slate-200'
-            }`}
+              }`}
           >
             <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Readiness</span>
             {readinessStatus === 'passed' && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
             {assessmentLocked && <Lock className="w-3 h-3 sm:w-4 sm:h-4" />}
           </button>
-          
+
           {/* Only show Assessment and Interview tabs for candidates */}
           {userType === 'candidate' && (
             <>
-            <button
-              onClick={() => setActiveTab('assessment')}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${
-                activeTab === 'assessment'
-                  ? 'text-green-600 dark:text-green-400 border-green-600 dark:border-green-400'
-                  : 'text-gray-600 dark:text-slate-400 border-transparent hover:text-gray-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Assessment</span>
-              {assessmentLocked ? <Lock className="w-3 h-3 sm:w-4 sm:h-4" /> : <Unlock className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
-              {assessmentPassed && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('interview')}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${
-                activeTab === 'interview'
-                  ? 'text-purple-600 dark:text-purple-400 border-purple-600 dark:border-purple-400'
-                  : 'text-gray-600 dark:text-slate-400 border-transparent hover:text-gray-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Interview</span>
-              {interviewLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4 text-green-600" />}
-            </button>
-          </>
-        )}
+              <button
+                onClick={() => setActiveTab('assessment')}
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${activeTab === 'assessment'
+                    ? 'text-green-600 dark:text-green-400 border-green-600 dark:border-green-400'
+                    : 'text-gray-600 dark:text-slate-400 border-transparent hover:text-gray-900 dark:hover:text-slate-200'
+                  }`}
+              >
+                <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Assessment</span>
+                {assessmentLocked ? <Lock className="w-3 h-3 sm:w-4 sm:h-4" /> : <Unlock className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
+                {assessmentPassed && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('interview')}
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium transition-colors border-b-2 whitespace-nowrap text-xs sm:text-sm md:text-base ${activeTab === 'interview'
+                    ? 'text-purple-600 dark:text-purple-400 border-purple-600 dark:border-purple-400'
+                    : 'text-gray-600 dark:text-slate-400 border-transparent hover:text-gray-900 dark:hover:text-slate-200'
+                  }`}
+              >
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Interview</span>
+                {interviewLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4 text-green-600" />}
+              </button>
+            </>
+          )}
         </div>
       )}
-      
+
       {/* Status Messages */}
       {!notEligible && submitStatus === 'success' && (
         <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2">
@@ -1492,14 +1490,14 @@ const BenchPlanningSMASMChecklist: React.FC<BenchPlanningChecklistProps> = ({
           <span className="text-green-900 dark:text-green-100">Submitted successfully!</span>
         </div>
       )}
-      
+
       {!notEligible && submitStatus === 'error' && (
         <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
           <span className="text-red-900 dark:text-red-100">{errorMessage || 'Submission failed'}</span>
         </div>
       )}
-      
+
       {/* Tab Content */}
       {!notEligible && !(isPanelistConfirmed && panelistView === 'dashboard') && (
         <div className="mb-8">
