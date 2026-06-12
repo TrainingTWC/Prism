@@ -1821,8 +1821,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   const filteredVendorAuditData = useMemo(() => {
     if (!vendorAuditData) return [];
     return vendorAuditData.filter((s: VendorAuditSubmission) => {
-      if (filters.region && s.region !== filters.region) return false;
-      if (filters.am && normalizeId(s.auditorId) !== normalizeId(filters.am)) return false;
+      if (filters.region.length > 0 && !matchesFilter(filters.region, s.region)) return false;
+      if (filters.am.length > 0 && !matchesFilterNorm(filters.am, s.auditorId)) return false;
       if (filters.vendorName && s.vendorName !== filters.vendorName) return false;
       if (filters.city && s.city !== filters.city) return false;
       if (filters.dateFrom || filters.dateTo) {
@@ -1846,8 +1846,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   const filteredVehicleAuditData = useMemo(() => {
     if (!vehicleAuditData) return [];
     return vehicleAuditData.filter((s: VehicleAuditSubmission) => {
-      if (filters.region && s.region !== filters.region) return false;
-      if (filters.am && normalizeId(s.auditorId) !== normalizeId(filters.am)) return false;
+      if (filters.region.length > 0 && !matchesFilter(filters.region, s.region)) return false;
+      if (filters.am.length > 0 && !matchesFilterNorm(filters.am, s.auditorId)) return false;
       if (filters.dateFrom || filters.dateTo) {
         const dateStr = String(s.submissionTime || '').trim();
         if (!dateStr) return false;
@@ -1869,8 +1869,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, initialDashboardType })
   const filteredCFAuditData = useMemo(() => {
     if (!cfAuditData) return [];
     return cfAuditData.filter((s: CFAuditSubmission) => {
-      if (filters.region && s.region !== filters.region) return false;
-      if (filters.am && normalizeId(s.auditorId) !== normalizeId(filters.am)) return false;
+      if (filters.region.length > 0 && !matchesFilter(filters.region, s.region)) return false;
+      if (filters.am.length > 0 && !matchesFilterNorm(filters.am, s.auditorId)) return false;
       if (filters.dateFrom || filters.dateTo) {
         const dateStr = String(s.submissionTime || '').trim();
         if (!dateStr) return false;
