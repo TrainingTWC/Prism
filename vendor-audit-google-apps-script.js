@@ -168,9 +168,35 @@ function doGet(e) {
 // QA AUDIT SUBMISSION
 // ===========================================================================
 
+function persistQASignaturesToDrive(params, refTime) {
+  var folder = getQADriveFolder();
+  var safeStore = String(params.storeName || params.storeID || 'store').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 20);
+  var safeRef = String(refTime).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 20);
+
+  if (params.auditorSignature && params.auditorSignature.indexOf('data:') === 0) {
+    try {
+      params.auditorSignature = uploadBase64ToVADrive(params.auditorSignature, folder, safeStore + '_' + safeRef + '_auditor_sig');
+      Logger.log('Uploaded QA auditor signature to Drive');
+    } catch (e) {
+      Logger.log('QA auditor signature upload failed: ' + e);
+    }
+  }
+  if (params.smSignature && params.smSignature.indexOf('data:') === 0) {
+    try {
+      params.smSignature = uploadBase64ToVADrive(params.smSignature, folder, safeStore + '_' + safeRef + '_sm_sig');
+      Logger.log('Uploaded SM signature to Drive');
+    } catch (e) {
+      Logger.log('SM signature upload failed: ' + e);
+    }
+  }
+}
+
 function submitQAAudit(params) {
   var sheet = getOrCreateSheet('QA', qaHeaders());
   var ts = now();
+
+  // Upload signatures to Google Drive to prevent sheet bloating
+  persistQASignaturesToDrive(params, params.submissionTime || ts);
 
   // Build the main QA row
   var row = [
@@ -256,6 +282,9 @@ function updateQAAudit(params) {
     }
   }
   if (rowIndex === -1) return json({ success: false, message: 'Row not found for rowId: ' + rowId });
+
+  // Upload signatures to Google Drive to prevent sheet bloating
+  persistQASignaturesToDrive(params, rowId);
 
   var ts = now() + ' (Updated)';
   var row = [
@@ -1010,11 +1039,18 @@ function vendorAuditHeaders() {
 // ===========================
 
 var VA_DRIVE_FOLDER_NAME = 'VendorAuditImages';
+var QA_DRIVE_FOLDER_NAME = 'QAAuditImages';
 
 function getVADriveFolder() {
   var folders = DriveApp.getFoldersByName(VA_DRIVE_FOLDER_NAME);
   if (folders.hasNext()) return folders.next();
   return DriveApp.createFolder(VA_DRIVE_FOLDER_NAME);
+}
+
+function getQADriveFolder() {
+  var folders = DriveApp.getFoldersByName(QA_DRIVE_FOLDER_NAME);
+  if (folders.hasNext()) return folders.next();
+  return DriveApp.createFolder(QA_DRIVE_FOLDER_NAME);
 }
 
 function persistVAImagesToDrive(questionImagesJSON, vendorId, submissionRef) {
@@ -1080,6 +1116,33 @@ function uploadBase64ToVADrive(dataUrl, folder, filename) {
 // CREATE VENDOR AUDIT
 // ===========================
 
+function persistVendorSignaturesToDrive(params, refTime) {
+  var folder = getVADriveFolder();
+  var safeVendor = String(params.vendorName || params.vendorId || 'vendor').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 20);
+  var safeRef = String(refTime).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 20);
+
+  if (params.auditorSignature && params.auditorSignature.indexOf('data:') === 0) {
+    try {
+      params.auditorSignature = uploadBase64ToVADrive(params.auditorSignature, folder, safeVendor + '_' + safeRef + '_auditor_sig');
+      Logger.log('Uploaded auditor signature to Drive');
+    } catch (e) {
+      Logger.log('Auditor signature upload failed: ' + e);
+    }
+  }
+  if (params.vendorSignature && params.vendorSignature.indexOf('data:') === 0) {
+    try {
+      params.vendorSignature = uploadBase64ToVADrive(params.vendorSignature, folder, safeVendor + '_' + safeRef + '_vendor_sig');
+      Logger.log('Uploaded vendor signature to Drive');
+    } catch (e) {
+      Logger.log('Vendor signature upload failed: ' + e);
+    }
+  }
+}
+
+// ===========================
+// CREATE VENDOR AUDIT
+// ===========================
+
 function createVendorAudit(params) {
   var headers = vendorAuditHeaders();
   var sheet = getOrCreateSheet('Vendor Audits', headers);
@@ -1096,6 +1159,9 @@ function createVendorAudit(params) {
     Logger.log('Drive image upload failed (create), saving without images: ' + e);
     params.questionImagesJSON = '{}';
   }
+
+  // Upload signatures to Google Drive to prevent sheet bloating
+  persistVendorSignaturesToDrive(params, params.submissionTime || ts);
 
   var row = buildVendorAuditRow(params, ts);
   sheet.appendRow(row);
@@ -1167,6 +1233,9 @@ function updateVendorAudit(params) {
   } catch (e) {
     Logger.log('Drive image upload failed (update), keeping existing images: ' + e);
   }
+
+  // Upload signatures to Google Drive to prevent sheet bloating
+  persistVendorSignaturesToDrive(params, rowId);
 
   var updatedRow = buildVendorAuditRow(params, String(data[rowIndex - 1][0]));
   sheet.getRange(rowIndex, 1, 1, updatedRow.length).setValues([updatedRow]);
